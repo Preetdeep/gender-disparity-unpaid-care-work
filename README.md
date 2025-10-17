@@ -185,10 +185,10 @@ If you use this code or analysis, please cite:
 ```bibtex
 @unpublished{gendercapre2025,
   title={The Participation Puzzle: Gender Disparities in Unpaid Care Work in India},
-  author={[Your Name]},
+  author={[Dr Preet Deep Singh]},
   year={2025},
   note={Analysis of India Time Use Survey 2024},
-  url={https://github.com/[your-username]/[repo-name]}
+  url={https://github.com/Preetdeep/gender-disparity-unpaid-care-work}
 }
 ```
 
@@ -207,7 +207,7 @@ Key references informing this analysis:
 
 For questions about the analysis or replication:
 - Open an issue on this repository
-- [Your contact information]
+- @DrPreetDeep
 
 ## License
 
@@ -216,7 +216,7 @@ This project is licensed under the MIT License - see below for details.
 ```
 MIT License
 
-Copyright (c) 2025 [Your Name]
+Copyright (c) 2025 Dr Preet Deep Singh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
