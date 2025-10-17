@@ -1,0 +1,45 @@
+# R specific
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# knitr and R markdown
+*.utf8.md
+*.knit.md
+*_cache/
+*_files/
+
+# Output files
+*.pdf
+*.html
+*.docx
+
+# Data files (too large for git)
+*.dta
+*.csv
+*.xlsx
+*.xls
+data/
+
+# Temporary files
+*.tmp
+*.log
+*.aux
+*.out
+*.toc
+*.bbl
+*.blg
+
+# LaTeX
+*.tex
+*.synctex.gz
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

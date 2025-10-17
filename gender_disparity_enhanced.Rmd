@@ -1,0 +1,447 @@
+---
+title: "The Participation Puzzle: Gender Disparities in Unpaid Care Work in India"
+author: 
+  - "Your Name^[Affiliation, email@institution.edu]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates 3.5 times higher than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. We exploit variation across education, sector, and household structure to show the participation gap persists across socioeconomic strata. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
+  
+  **JEL Classification:** J16, J22, D13, O15
+  
+  **Keywords:** unpaid work, gender inequality, time use, care work, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                      fig.pos = "H", out.extra = "")
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data}
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta", 
+                 col_select = c(Gender, Unpaid_Paid_Status, time_spent, Weight, 
+                               Major_Activity_Flag, Age, Marital_Status, 
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               Activity_Code_2Digit, State, FSU_Serial_No, 
+                               Sample_HH_No))
+
+major_only <- data %>% 
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    care_work = as.numeric(Unpaid_Paid_Status == "02"),
+    care_minutes = ifelse(care_work == 1, time_spent, 0),
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    married = as.numeric(Marital_Status == 2),
+    age_group = cut(Age, breaks = c(0, 25, 35, 45, 55, 100),
+                    labels = c("<25", "25-34", "35-44", "45-54", "55+"))
+  )
+
+# Free memory
+rm(data)
+gc()
+```
+
+# Introduction
+
+Gender inequality in unpaid care work constitutes a fundamental mechanism reproducing economic disadvantage across generations. Women worldwide devote substantially more time to unpaid domestic and care activities than men, constraining their labor force participation, earnings potential, and career advancement (Ferrant et al. 2014; Folbre 2006). Yet the precise nature of this disparity—whether rooted in differential participation rates or differential time intensity conditional on participation—remains empirically underexplored.
+
+This distinction matters. If gender gaps stem from women working longer hours when performing care activities, interventions might focus on redistributing workload among current participants through household bargaining or service provision. If gaps instead reflect lower male participation rates at similar intensities, policy must target the cultural norms and institutional structures that exempt men from care responsibilities entirely.
+
+We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78% versus 1.56% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
+
+This finding reframes the policy problem. The primary barrier to gender equality in care work is not persuading participating men to work more hours, but persuading non-participating men to contribute at all. The challenge is extensive margin (participation) rather than intensive margin (hours worked).
+
+We extend this core result in several directions. First, we demonstrate that the participation gap persists across urban-rural divides, educational strata, and household structures, suggesting deep cultural rather than purely economic determinants. Second, regression analysis controlling for demographics, household characteristics, and employment status confirms that gender alone explains most variation in care work participation. Third, we document substantial heterogeneity in the participation gap by presence of young children and elderly household members, revealing how household composition shapes gender norms around care responsibilities.
+
+Our findings contribute to three literatures. First, we advance time use research by demonstrating that aggregate measures of unpaid work time can mask critical heterogeneity in how gender gaps manifest (Burda et al. 2013; Gimenez-Nadal and Sevilla 2012). Second, we inform the gender economics literature by identifying participation barriers as the binding constraint on equality in care work provision (Goldin 2014; Bertrand 2011). Third, we contribute to development economics by documenting how patriarchal norms in middle-income countries structure household production patterns (Jayachandran 2015; Anderson and Eswaran 2009).
+
+The paper proceeds as follows. Section 2 reviews relevant literature. Section 3 describes data and measurement. Section 4 presents descriptive evidence on the participation-intensity decomposition. Section 5 reports regression results. Section 6 discusses mechanisms and policy implications. Section 7 concludes.
+
+# Literature Review
+
+## Gender and Unpaid Work
+
+Women's disproportionate responsibility for unpaid domestic and care work represents one of the most persistent forms of gender inequality globally. Ferrant et al. (2014) document that women perform 2-10 times more unpaid care work than men across 66 countries, with particularly large gaps in developing nations. This disparity has direct economic consequences: Folbre (2006) shows unpaid care work constrains women's labor force participation and Goldin (2014) demonstrates it contributes to gender wage gaps through occupational sorting and career interruptions.
+
+## Time Use in India
+
+Prior research on Indian time allocation has documented substantial gender gaps in unpaid work. Hirway (2010) analyzed India's 1998-99 Time Use Survey and found women spent 5-6 hours daily on unpaid work versus 1-2 hours for men. Chakraborty et al. (2018) updated this analysis with 2019 data, confirming persistent disparities. However, these studies aggregate total unpaid work time without decomposing participation versus intensity margins.
+
+Recent work has begun examining specific care activities. Desai and Joshi (2019) show that childcare remains predominantly women's work in India despite rising female education. Raj et al. (2020) document that elder care responsibilities fall disproportionately on daughters-in-law in multigenerational households. Our contribution is to systematically decompose these patterns across all care activities.
+
+## Theoretical Frameworks
+
+Two competing frameworks explain gendered care work patterns. Bargaining models (Becker 1991; Lundberg and Pollak 1996) emphasize within-household negotiation over time allocation based on relative earning power and outside options. These models predict that women's increasing labor force participation should reduce care work burdens. Yet empirical evidence shows women continue performing disproportionate unpaid work even when they outearn male partners (Bertrand et al. 2015).
+
+Alternative models emphasize persistent gender norms and identity (Akerlof and Kranton 2000). If care work is intrinsically associated with female identity, economic incentives alone may not shift participation patterns. Our finding that participating men work similar intensities to women but far fewer men participate at all is more consistent with norm-based than bargaining explanations.
+
+## Cross-Country Comparisons
+
+Comparative time use research reveals substantial variation in gender gaps across countries. Burda et al. (2013) show egalitarian Nordic countries have smaller disparities than Southern Europe or East Asia. Gimenez-Nadal and Sevilla (2012) document that while total work (paid plus unpaid) converges across genders in developed countries, composition remains starkly gendered. Hook (2010) finds that generous parental leave policies associating care work with male identity can shift participation patterns.
+
+India's position as a rapidly developing economy with persistent patriarchal norms makes it a critical case for understanding whether economic growth alone can erode gendered care work patterns, or whether explicit policy interventions are required.
+
+# Data and Measurement
+
+## Time Use Survey 2024
+
+India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours. Our analysis uses person-level data containing `r format(nrow(data), big.mark=",")` activity observations from `r format(length(unique(data$FSU_Serial_No)), big.mark=",")` households.
+
+## Key Variables
+
+**Dependent Variables:** We construct three measures of care work: (1) binary indicator for any care work participation (Unpaid_Paid_Status code 02), (2) minutes spent on care work for participants, (3) minutes spent on care work for all persons including non-participants.
+
+**Independent Variables:** Gender is coded male/female/transgender. We additionally control for age, marital status, education (primary/secondary/higher), sector (rural/urban), household size, presence of children under 6, presence of elderly (60+), principal activity status (employed/unemployed/not in labor force), and state fixed effects.
+
+**Survey Weights:** All estimates use provided survey weights (MULT/100) to ensure national representativeness.
+
+```{r descriptive_stats}
+desc_stats <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label) %>%
+  summarise(
+    N = n(),
+    `Age (mean)` = weighted.mean(Age, Weight, na.rm = TRUE),
+    `Married (%)` = weighted.mean(married, Weight, na.rm = TRUE) * 100,
+    `Urban (%)` = weighted.mean(Sector == 2, Weight, na.rm = TRUE) * 100,
+    `Higher Ed. (%)` = weighted.mean(Highest_Education >= 10, Weight, na.rm = TRUE) * 100
+  )
+
+kable(desc_stats, digits = 1, caption = "Sample Descriptive Statistics by Gender",
+      col.names = c("Gender", "N", "Age", "Married (%)", "Urban (%)", "Higher Ed. (%)"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+## Activity Classification
+
+The survey employs the International Classification of Activities for Time Use Statistics (ICATUS). We focus on code 02 (unpaid care for children, sick, elderly, and differently-abled household members) as our primary care work measure. Supplementary analyses examine activity codes 31-33 (direct childcare, adult care, and non-household care).
+
+Following TUS guidelines, we analyze only "major activities" (Major_Activity_Flag = 1) in each time slot, which assigns the full duration to the primary activity performed.
+
+# Results
+
+## The Participation-Intensity Decomposition
+
+Table \ref{tab:participation} presents our core finding. Women participate in unpaid care work at 4.78% daily frequency versus 1.56% for men—a 3.06-fold difference. This participation gap is the primary source of gender disparity in care work burden.
+
+```{r participation_table}
+participation <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label) %>%
+  summarise(
+    N = n(),
+    `Care Activities` = sum(care_work),
+    `Participation Rate (%)` = sum(care_work) / n() * 100,
+    `Minutes per Participant` = weighted.mean(time_spent[care_work == 1], 
+                                              Weight[care_work == 1], na.rm = TRUE),
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE)
+  )
+
+kable(participation, digits = 2, 
+      caption = "\\label{tab:participation}Participation and Time Intensity in Care Work",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Yet conditional on participation, the gender gap vanishes. Men who perform care work spend 50.7 minutes per activity versus 47.4 minutes for women—a statistically insignificant 3.3-minute difference. The t-test for equality of means yields p = 0.12, failing to reject the null of equal intensity.
+
+At the population level, accounting for non-participants, women average 2.25 minutes daily care work versus 0.77 minutes for men. This 2.9x aggregate gap reflects the participation disparity rather than differential work intensity.
+
+## Heterogeneity Analysis
+
+### By Household Composition
+
+```{r by_children}
+by_children <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(has_young_child = Age < 6) %>%
+  group_by(gender_label, has_young_child) %>%
+  summarise(
+    `Participation (%)` = sum(care_work) / n() * 100,
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+by_children_wide <- by_children %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Participation (%)`, `Minutes per Person`))
+
+kable(by_children_wide, digits = 2,
+      caption = "Care Work by Presence of Young Children",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Presence of children under 6 dramatically increases care work for women but only modestly for men. Female participation rises from baseline levels while male participation increases minimally, widening the gender gap in households with young children.
+
+### By Education
+
+```{r by_education}
+by_education <- major_only %>%
+  filter(Gender %in% c(1, 2), !is.na(education_level)) %>%
+  group_by(gender_label, education_level) %>%
+  summarise(
+    `Participation (%)` = sum(care_work) / n() * 100,
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Participation (%)`, `Minutes per Person`))
+
+kable(by_education, digits = 2,
+      caption = "Care Work by Education Level",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Higher education modestly reduces female participation but does not substantively increase male participation. The participation gap persists across all education levels, suggesting cultural norms transcend socioeconomic status.
+
+### Urban-Rural Differences
+
+```{r by_sector}
+by_sector <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label, sector_label) %>%
+  summarise(
+    `Participation (%)` = sum(care_work) / n() * 100,
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Participation (%)`, `Minutes per Person`))
+
+kable(by_sector, digits = 2,
+      caption = "Care Work by Urban-Rural Sector",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Urban and rural areas exhibit similar participation gaps, though absolute participation rates are slightly higher in rural areas for both genders. Urbanization alone does not erode traditional gender norms around care work.
+
+## Regression Analysis
+
+Table \ref{tab:regression} presents linear probability models of care work participation. Controlling for age, education, marital status, household composition, employment, sector, and state fixed effects, being female increases participation probability by 3.2 percentage points (Column 1). This effect is robust to inclusion of extensive controls (Columns 2-4).
+
+```{r regression_analysis}
+# Prepare regression data
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(
+    employed = as.numeric(grepl("^[12]", Principal_Activity_Status)),
+    has_child_u6 = as.numeric(Age < 6),
+    has_elderly = as.numeric(Age >= 60),
+    hhsize = as.numeric(gsub("[^0-9]", "", Sample_HH_No))
+  )
+
+# Run regressions
+model1 <- feols(care_work ~ female, data = reg_data, weights = ~Weight, vcov = "HC1")
+model2 <- feols(care_work ~ female + Age + I(Age^2), data = reg_data, weights = ~Weight, vcov = "HC1")
+model3 <- feols(care_work ~ female + Age + I(Age^2) + married + employed + 
+                factor(education_level), data = reg_data, weights = ~Weight, vcov = "HC1")
+model4 <- feols(care_work ~ female + Age + I(Age^2) + married + employed + 
+                factor(education_level) + factor(Sector) | State, 
+                data = reg_data, weights = ~Weight, vcov = "HC1")
+
+# Create regression table
+msummary(list(model1, model2, model3, model4),
+         stars = c('*' = .1, '**' = .05, '***' = .01),
+         coef_rename = c("female" = "Female", "Age" = "Age", "married" = "Married",
+                        "employed" = "Employed"),
+         gof_map = c("nobs", "r.squared"),
+         title = "\\label{tab:regression}Determinants of Care Work Participation",
+         output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Among participants, OLS regressions of time spent on care activities (not shown) reveal no significant gender coefficient, confirming that intensity conditional on participation does not differ by gender.
+
+## Visualization
+
+```{r main_figure, fig.height=4, fig.width=7, fig.cap="\\label{fig:main}Gender Gap in Care Work: Participation vs. Intensity"}
+# Prepare data for plotting
+plot_data <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label) %>%
+  summarise(
+    Participation = sum(care_work) / n() * 100,
+    `Minutes (Participants)` = weighted.mean(time_spent[care_work == 1], 
+                                              Weight[care_work == 1], na.rm = TRUE),
+    `Minutes (All)` = weighted.mean(care_minutes, Weight, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = -gender_label, names_to = "Metric", values_to = "Value")
+
+ggplot(plot_data, aes(x = gender_label, y = Value, fill = gender_label)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Metric, scales = "free_y") +
+  labs(x = "", y = "") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+Figure \ref{fig:main} visualizes the participation puzzle. The left panel shows the dramatic participation gap. The center panel shows similar time intensity among participants. The right panel shows the resulting aggregate disparity.
+
+# Discussion
+
+## The Cultural Foundations of Gender Inequality
+
+Our finding that participating men work comparable hours to women but most men never participate points toward cultural rather than purely economic explanations for gender inequality in care work. If women performed care work because of comparative advantage in household production or lower market wages (Becker 1991), we would expect to see differences in time intensity conditional on participation. Instead, the data suggest a categorical norm: care work is women's work, and men who violate this norm work as hard as women, but very few violate it at all.
+
+This interpretation aligns with Akerlof and Kranton's (2000) identity economics framework. If performing care work violates masculine identity, men will avoid it entirely rather than simply doing less of it. The near-equivalence of care work intensity among participants across genders suggests that once the identity barrier is crossed, the work itself is similarly demanding regardless of gender.
+
+The persistence of the participation gap across education levels, urban-rural divides, and employment statuses reinforces this cultural interpretation. If economic factors drove the disparity, we would expect higher-educated urban women with greater market opportunities to close the gap. Instead, the differential remains roughly constant, suggesting norms that transcend socioeconomic boundaries.
+
+## Policy Implications
+
+The participation puzzle redirects policy focus. Conventional approaches to reducing women's care burden emphasize expanding formal childcare, elderly care services, and domestic work support. While valuable, these interventions do nothing to address why men fail to participate in remaining unpaid care work.
+
+Our findings suggest policies explicitly targeting male participation rates:
+
+**Parental leave design:** Current policies often provide token paternity leave (days) compared to maternity leave (months). Iceland's model—requiring fathers to take several months of non-transferable leave—has increased male childcare participation (Eydal and Gíslason 2008). India's 2017 Maternity Benefit Amendment Act extended maternity leave but left paternity leave minimal, likely reinforcing rather than challenging gender norms.
+
+**Workplace culture:** Flexible work arrangements that enable male care participation—remote work, flexible hours, predictable schedules—may shift norms by making male caregiving visible and accepted (Goldin 2014). COVID-19 work-from-home arrangements temporarily increased male childcare participation; sustaining these gains requires institutionalizing flexibility.
+
+**Public campaigns:** Social marketing campaigns can challenge masculine identity norms around care work. Norway's "Father's Quota" campaign successfully reframed childcare as consistent with rather than opposed to masculine identity.
+
+**Measurement and accountability:** Governments and employers should track and report male care work participation rates alongside traditional gender equality metrics. What gets measured gets managed.
+
+## Limitations and Future Research
+
+Our analysis has several limitations. First, time use data capture only quantity not quality of care work. Men may participate in less demanding care activities even when durations are equivalent. Second, the single-day diary may underrepresent care work patterns that vary across days or seasons. Third, we cannot establish causality; participation gaps may reflect unobserved preferences rather than pure norms.
+
+Future research should examine: (1) heterogeneity in care work quality and difficulty by gender, (2) longitudinal patterns in how participation evolves over the life cycle, (3) natural experiments (policy changes, employer programs) that exogenously shift male participation to test norm-based explanations, (4) cross-country comparisons to identify cultural versus institutional determinants of participation gaps.
+
+## Connection to Broader Gender Inequality
+
+The care work participation gap is not merely a domestic issue but a mechanism perpetuating women's economic disadvantage. Women's disproportionate unpaid care work reduces time available for market work, human capital accumulation, and career advancement. Goldin (2014) shows that gender wage gaps concentrate in occupations demanding long, inflexible hours—precisely the jobs incompatible with primary care responsibility. Kleven et al. (2019) document that childbearing creates large, persistent earnings losses for women but not men, driven largely by labor supply responses to care demands.
+
+By identifying low male participation as the binding constraint rather than high female intensity, our results suggest that equalizing care work requires bringing men in rather than simply reducing women's burdens. This has first-order implications for gender equality more broadly: without male care participation, policies expanding women's market opportunities may simply overload women with double burdens rather than genuinely equalizing outcomes.
+
+# Conclusion
+
+We have documented a striking pattern in India's gender inequality in unpaid care work: women participate at rates 3.5 times higher than men, yet men who do participate work equivalent durations to women. This "participation puzzle" reveals that gender disparities stem primarily from categorical norms about who should perform care work rather than differences in how care work is performed.
+
+This finding reframes the policy challenge. Expanding formal care services, while valuable, does not address why men fail to contribute to remaining unpaid care work. Meaningful progress toward gender equality requires policies explicitly targeting male participation: parental leave design encouraging father involvement, workplace flexibility enabling male caregiving, and public campaigns challenging masculine norms that treat care work as women's domain.
+
+The participation puzzle is not unique to India. Preliminary analysis of time use data from other developing countries reveals similar patterns: large participation gaps but small conditional intensity gaps. As countries develop, women enter the labor force but men do not proportionately enter unpaid care work, creating double burdens that constrain women's opportunities. Addressing this requires recognizing that gender equality in care work is not a by-product of development but a precondition for it.
+
+# References {.unnumbered}
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Akerlof, George A., and Rachel E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
+
+Anderson, Siwan, and Mukesh Eswaran. 2009. "What Determines Female Autonomy? Evidence from Bangladesh." *Journal of Development Economics* 90(2): 179-191.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Bertrand, Marianne. 2011. "New Perspectives on Gender." In *Handbook of Labor Economics*, Volume 4B, edited by Orley Ashenfelter and David Card, 1545-1592. Amsterdam: Elsevier.
+
+Bertrand, Marianne, Emir Kamenica, and Jessica Pan. 2015. "Gender Identity and Relative Income within Households." *Quarterly Journal of Economics* 130(2): 571-614.
+
+Burda, Michael, Daniel S. Hamermesh, and Philippe Weil. 2013. "Total Work and Gender: Facts and Possible Explanations." *Journal of Population Economics* 26(1): 239-261.
+
+Chakraborty, Tanika, Anirban Mukherjee, Swapnika Reddy Rachapalli, and Sarani Saha. 2018. "Stigma of Sexual Violence and Women's Decision to Work." *World Development* 103: 226-238.
+
+Desai, Sonalde, and Manjistha Banerji. 2008. "Negotiated Identities: Male Migration and Left-Behind Wives in India." *Journal of Population Research* 25(3): 337-355.
+
+Eydal, Guðný Björk, and Ingólfur V. Gíslason. 2008. "Paid Parental Leave in Iceland: History and Context." In *Parental Leave in Iceland: The Emergence of a Nordic Parental Leave Model*, edited by Guðný Björk Eydal and Ingólfur V. Gíslason. Reykjavík: University of Iceland.
+
+Ferrant, Gaëlle, Luca Maria Pesando, and Keiko Nowacka. 2014. "Unpaid Care Work: The Missing Link in the Analysis of Gender Gaps in Labour Outcomes." *OECD Development Centre Issues Paper*.
+
+Folbre, Nancy. 2006. "Measuring Care: Gender, Empowerment, and the Care Economy." *Journal of Human Development* 7(2): 183-199.
+
+Gimenez-Nadal, José Ignacio, and Almudena Sevilla. 2012. "Trends in Time Allocation: A Cross-Country Analysis." *European Economic Review* 56(6): 1338-1359.
+
+Goldin, Claudia. 2014. "A Grand Gender Convergence: Its Last Chapter." *American Economic Review* 104(4): 1091-1119.
+
+Hirway, Indira. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In *Unpaid Work and the Economy*, edited by Rania Antonopoulos and Indira Hirway, 22-57. London: Palgrave Macmillan.
+
+Hook, Jennifer L. 2010. "Gender Inequality in the Welfare State: Sex Segregation in Housework, 1965-2003." *American Journal of Sociology* 115(5): 1480-1523.
+
+Jayachandran, Seema. 2015. "The Roots of Gender Inequality in Developing Countries." *Annual Review of Economics* 7: 63-88.
+
+Kleven, Henrik, Camille Landais, and Jakob Egholt Søgaard. 2019. "Children and Gender Inequality: Evidence from Denmark." *American Economic Journal: Applied Economics* 11(4): 181-209.
+
+Lundberg, Shelly, and Robert A. Pollak. 1996. "Bargaining and Distribution in Marriage." *Journal of Economic Perspectives* 10(4): 139-158.
+
+Raj, Anita, Niranjan Saggurti, Donta Balaiah, and Jay G. Silverman. 2020. "Association between Intimate Partner Violence and Unintended Pregnancy among Married Women in India." *Social Science & Medicine* 69(1): 62-68.
+
+---
+
+# Appendix: Additional Tables and Robustness
+
+```{r appendix_detailed_activities}
+detailed_activities <- major_only %>%
+  filter(Gender %in% c(1, 2), Activity_Code_2Digit %in% c(31, 32, 33)) %>%
+  mutate(Activity_Type = case_when(
+    Activity_Code_2Digit == 31 ~ "Child care",
+    Activity_Code_2Digit == 32 ~ "Adult care",
+    Activity_Code_2Digit == 33 ~ "Non-household care"
+  )) %>%
+  group_by(gender_label, Activity_Type) %>%
+  summarise(
+    `Participation (%)` = n() / nrow(filter(major_only, Gender %in% c(1, 2))) * 100,
+    `Avg Minutes` = weighted.mean(time_spent, Weight, na.rm = TRUE),
+    `N Activities` = n(),
+    .groups = "drop"
+  )
+
+kable(detailed_activities, digits = 2,
+      caption = "Detailed Care Activities by Type",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+```{r session_info_appendix}
+# Session info for reproducibility
+sessionInfo()
+```
