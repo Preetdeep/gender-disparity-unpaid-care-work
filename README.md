@@ -40,7 +40,7 @@ This analysis uses India's **Time Use Survey 2024** conducted by the National St
 We gratefully acknowledge:
 
 - **Dr. Tanu Goel** (ICRIER) for invaluable guidance and support throughout this research
-- **Chellsea** (ICRIER) for essential assistance with data access and methodology
+- **Chellsea Lauhka** (ICRIER) for essential assistance with data access and methodology
 - **Indian Council for Research on International Economic Relations (ICRIER)** for institutional support
 - **National Statistical Office, India** for conducting and disseminating the Time Use Survey
 
