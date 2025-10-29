@@ -1,10 +1,10 @@
 ---
 title: "The Participation Puzzle: Gender Disparities in Unpaid Care Work in India"
-author: 
-  - "Your Name^[Affiliation, email@institution.edu]"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates 3.5 times higher than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. We exploit variation across education, sector, and household structure to show the participation gap persists across socioeconomic strata. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
+  We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at substantially higher rates than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. We exploit variation across education, sector, and household structure to show the participation gap persists across socioeconomic strata. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
   
   **JEL Classification:** J16, J22, D13, O15
   
