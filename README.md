@@ -120,7 +120,7 @@ This analysis uses India's **Time Use Survey 2024** conducted by the National St
 
 **Data availability:** The microdata can be obtained from the [Ministry of Statistics and Programme Implementation](https://mospi.gov.in/) or through authorized research institutions.
 
-**Data not included in this repository** due to size (1GB+) and data use agreements.
+**Data not included in this repository** due to size (1GB+)
 
 ---
 
@@ -225,18 +225,6 @@ The template includes:
 
 ---
 
-## 📚 Literature
-
-Key references informing these analyses:
-
-- Akerlof, G.A., and R.E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
-- Ferrant, G., L.M. Pesando, and K. Nowacka. 2014. "Unpaid Care Work: The Missing Link in the Analysis of Gender Gaps in Labour Outcomes." OECD Development Centre.
-- Folbre, N. 2006. "Measuring Care: Gender, Empowerment, and the Care Economy." *Journal of Human Development* 7(2): 183-199.
-- Goldin, C. 2014. "A Grand Gender Convergence: Its Last Chapter." *American Economic Review* 104(4): 1091-1119.
-- Hirway, I. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In *Unpaid Work and the Economy*.
-- Jayachandran, S. 2015. "The Roots of Gender Inequality in Developing Countries." *Annual Review of Economics* 7: 63-88.
-
----
 
 ## 📧 Contact
 
@@ -256,12 +244,10 @@ If you use code or analysis from this repository, please cite:
   title = {Analysis of Gender and Time Use Patterns Using India's Time Use Survey 2024},
   author = {[Dr Preet Deep Singh]},
   year = {2025},
-  note = {Research conducted under the guidance of Dr. Tanu Goel (ICRIER)},
   url = {https://github.com/Preetdeep/gender-disparity-unpaid-care-work}
 }
 ```
 
-**Please also acknowledge:** Dr. Tanu Goel (ICRIER) for research guidance and ICRIER for institutional support and data access.
 
 ---
 
