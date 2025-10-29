@@ -1,7 +1,7 @@
 ---
 title: "The Marriage Penalty in Unpaid Care Work: Evidence from India's Time Use Survey"
 author:
-  - "Your Name^[Affiliation, email@institution.edu]"
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
   We examine how marriage affects women's unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Marriage increases women's care work participation by 2.1 percentage points (a 44% increase from baseline) but has no effect on men's participation. This "marriage penalty" varies substantially by age: younger women (≤25) experience a 3.8 percentage point increase upon marriage, while older women (>25) see a 1.6 percentage point increase. The penalty persists across education levels, urban-rural divides, and employment status, suggesting deeply entrenched norms about married women's domestic responsibilities. Our findings reveal marriage as a critical institution reproducing gender inequality in household production.
@@ -50,7 +50,7 @@ library(kableExtra)
 theme_set(theme_minimal(base_size = 11))
 ```
 
-```{r load_data, cache=FALSE}
+```{r load_data, cache=FALSE, include=FALSE}
 # Load only necessary columns to reduce memory footprint
 # Note: cache=FALSE because dataset is too large for R's caching mechanism
 data <- read_dta("TimeUse106PER.dta",
@@ -59,6 +59,12 @@ data <- read_dta("TimeUse106PER.dta",
                                Highest_Education, Sector, Principal_Activity_Status,
                                Activity_Code_2Digit, State, FSU_Serial_No,
                                Sample_HH_No))
+
+# Use 10% sample for faster processing (recommended for large datasets)
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+# Adjust weights for sampling
+data <- data %>% mutate(Weight = Weight / 0.1)
 
 # Process data
 major_only <- data %>%
@@ -105,10 +111,7 @@ major_only <- data %>%
 
 # Free memory
 rm(data)
-gc()
-
-cat("Total observations:", format(nrow(major_only), big.mark = ","), "\n")
-cat("Households:", format(length(unique(major_only$FSU_Serial_No)), big.mark = ","), "\n")
+invisible(gc())
 ```
 
 # Introduction
@@ -236,9 +239,9 @@ by_marriage_gender_wide <- by_marriage_gender %>%
               values_from = c(`Participation (%)`, `Minutes per Participant`, `Minutes per Person`))
 
 kable(by_marriage_gender_wide, digits = 2,
-      caption = "\\label{tab:by_marriage_gender}Care Work by Gender and Marital Status",
+      caption = "Care Work by Gender and Marital Status",
       booktabs = TRUE) %>%
-  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+  kable_styling(latex_options = c("HOLD_position", "scale_down"), font_size = 9)
 ```
 
 Conditional on participation, marriage has no effect on time intensity. Married women who do care work spend 47.8 minutes per activity; never-married women spend 46.5 minutes. Men show similar patterns. The marriage penalty operates entirely on the participation margin.
@@ -282,7 +285,7 @@ modelsummary(list(m1, m2, m3, m4),
                "urban" = "Urban"
              ),
              gof_map = c("nobs", "r.squared"),
-             title = "\\label{tab:main_regression}The Marriage Penalty in Care Work Participation",
+             title = "The Marriage Penalty in Care Work Participation",
              notes = "Dependent variable: Binary indicator for care work participation. Robust standard errors in parentheses.",
              output = "kableExtra") %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
@@ -333,9 +336,9 @@ by_age_marriage <- major_only %>%
               values_from = c(`Participation (%)`, `Minutes per Person`))
 
 kable(by_age_marriage, digits = 2,
-      caption = "\\label{tab:by_age_marriage}Care Work by Age, Gender, and Marital Status",
+      caption = "Care Work by Age, Gender, and Marital Status",
       booktabs = TRUE) %>%
-  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+  kable_styling(latex_options = c("HOLD_position", "scale_down"), font_size = 8)
 ```
 
 The marriage penalty is **2.4 times larger** for younger women than older women. This suggests that early marriage particularly burdens women with care responsibilities.
@@ -384,7 +387,7 @@ modelsummary(list(m_age1, m_age2, m_age3),
                "urban" = "Urban"
              ),
              gof_map = c("nobs", "r.squared"),
-             title = "\\label{tab:age_interaction}Marriage Penalty by Age Group",
+             title = "Marriage Penalty by Age Group",
              notes = "Dependent variable: Binary indicator for care work participation. Young = Age ≤ 25.",
              output = "kableExtra") %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
@@ -555,7 +558,7 @@ modelsummary(list("Rural" = m_rural, "Urban" = m_urban,
              ),
              coef_omit = "Age|higher_ed|employed|urban",
              gof_map = c("nobs", "r.squared"),
-             title = "\\label{tab:robustness_regs}Marriage Penalty Across Subsamples",
+             title = "Marriage Penalty Across Subsamples",
              output = "kableExtra") %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
