@@ -1,10 +1,10 @@
 ---
-title: "Marriage Reduces Women's Social Time by 52%, Men's by 23%: The Gendered Friendship Penalty in India"
+title: "Marriage Reduces Women's Social Time by `r sprintf('%.0f%%', women_total_decline_pct)`, Men's by `r sprintf('%.0f%%', men_total_decline_pct)`: The Gendered Friendship Penalty in India"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark "friendship penalty" of marriage: women's participation in social activities (socializing, attending events, communicating with friends) drops by 52% after marriage, while men's drops by only 23%. Among those who do socialize, married women spend 30% less time per social activity than never-married women, whereas men show no such decline. This asymmetric social isolation has profound implications: married women average just 0.8 minutes of social time per day compared to 1.7 minutes for never-married women, while married men maintain 3.2 minutes versus 4.1 for never-married men. The friendship penalty is largest for younger women (≤25), persists across all education levels and urban-rural locations, and operates independently of employment status. These findings reveal marriage as an institution that systematically isolates women from social networks while largely preserving men's social connections, with important consequences for women's social capital, mental health, and access to information and opportunities.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark "friendship penalty" of marriage: women's participation in social activities (socializing, attending events, communicating with friends) drops by `r sprintf("%.0f%%", women_participation_decline_pct)` after marriage, while men's drops by only `r sprintf("%.0f%%", men_participation_decline_pct)`. Among those who do socialize, married women spend `r sprintf("%.0f%%", women_time_intensity_decline_pct)` less time per social activity than never-married women, whereas men show no such decline. This asymmetric social isolation has profound implications: married women average just `r sprintf("%.1f", women_married_minutes_per_person)` minutes of social time per day compared to `r sprintf("%.1f", women_never_married_minutes_per_person)` minutes for never-married women, while married men maintain `r sprintf("%.1f", men_married_minutes_per_person)` minutes versus `r sprintf("%.1f", men_never_married_minutes_per_person)` for never-married men. The friendship penalty is largest for younger women (≤25), persists across all education levels and urban-rural locations, and operates independently of employment status. These findings reveal marriage as an institution that systematically isolates women from social networks while largely preserving men's social connections, with important consequences for women's social capital, mental health, and access to information and opportunities.
 
   **JEL Classification:** J12, J16, Z13, I31
 
@@ -113,15 +113,98 @@ rm(data)
 invisible(gc())
 ```
 
+```{r calculate_abstract_values, include=FALSE}
+# Calculate key statistics for abstract and paper
+by_marriage_gender_stats <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(
+    N = n(),
+    participation_rate = 100 * sum(social_activity) / n(),
+    minutes_per_participant = weighted.mean(time_spent[social_activity == 1],
+                                           Weight[social_activity == 1], na.rm = TRUE),
+    minutes_per_person = weighted.mean(social_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Women's statistics
+women_never_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(participation_rate)
+
+women_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(participation_rate)
+
+women_participation_decline_pct <- 100 * (women_never_married_participation - women_married_participation) / women_never_married_participation
+
+women_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(minutes_per_participant)
+
+women_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(minutes_per_participant)
+
+women_time_intensity_decline_pct <- 100 * (women_never_married_minutes_per_participant - women_married_minutes_per_participant) / women_never_married_minutes_per_participant
+
+women_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(minutes_per_person)
+
+women_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(minutes_per_person)
+
+women_total_decline_pct <- 100 * (women_never_married_minutes_per_person - women_married_minutes_per_person) / women_never_married_minutes_per_person
+
+# Men's statistics
+men_never_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(participation_rate)
+
+men_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(participation_rate)
+
+men_participation_decline_pct <- 100 * (men_never_married_participation - men_married_participation) / men_never_married_participation
+
+men_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(minutes_per_participant)
+
+men_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(minutes_per_participant)
+
+men_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(minutes_per_person)
+
+men_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(minutes_per_person)
+
+men_total_decline_pct <- 100 * (men_never_married_minutes_per_person - men_married_minutes_per_person) / men_never_married_minutes_per_person
+
+# Gender comparison statistics
+married_women_to_men_ratio_pct <- 100 * women_married_minutes_per_person / men_married_minutes_per_person
+
+# Participation penalty in percentage points
+women_participation_penalty_pp <- women_never_married_participation - women_married_participation
+men_participation_penalty_pp <- men_never_married_participation - men_married_participation
+```
+
 # Introduction
 
 Social relationships constitute a fundamental component of human wellbeing, providing emotional support, information exchange, and access to opportunities (Putnam 2000). Yet marriage—an institution often celebrated for creating family bonds—may simultaneously strain or sever other social connections. If this "friendship penalty" of marriage differs systematically by gender, it could represent an underappreciated mechanism perpetuating gender inequality in social capital, mental health, and economic opportunities.
 
 Economic theory offers competing predictions. Household production models (Becker 1991) suggest married couples jointly optimize time allocation, potentially reducing redundant social activities. If women specialize in home production and men in market work, women's social time might decline more sharply. Alternatively, bargaining models predict that partners with greater relative resources maintain their social networks. Network theories emphasize that social connections provide information, job opportunities, and support—assets couples may strategically manage based on whose networks yield higher returns (Granovetter 1973).
 
-We exploit India's 2024 Time Use Survey—containing 10.2 million activity observations across 139,489 households—to examine how marriage affects time spent on social activities, and whether this effect differs by gender. Our analysis yields striking findings. Marriage reduces women's participation in social activities by 52% (from 1.9% to 0.9% daily participation) while reducing men's by only 23% (from 5.0% to 3.9%). Among those who do socialize, married women spend 30% less time per activity than never-married women, while men show no time-intensity decline.
+We exploit India's 2024 Time Use Survey—containing 10.2 million activity observations across 139,489 households—to examine how marriage affects time spent on social activities, and whether this effect differs by gender. Our analysis yields striking findings. Marriage reduces women's participation in social activities by `r sprintf("%.0f%%", women_participation_decline_pct)` (from `r sprintf("%.1f%%", women_never_married_participation)` to `r sprintf("%.1f%%", women_married_participation)` daily participation) while reducing men's by only `r sprintf("%.0f%%", men_participation_decline_pct)` (from `r sprintf("%.1f%%", men_never_married_participation)` to `r sprintf("%.1f%%", men_married_participation)`). Among those who do socialize, married women spend `r sprintf("%.0f%%", women_time_intensity_decline_pct)` less time per activity than never-married women, while men show no time-intensity decline.
 
-These dual penalties—both participation and intensity—mean married women average just 0.8 minutes daily on social activities compared to 1.7 minutes for never-married women (a 53% decline). Men average 3.2 minutes married versus 4.1 minutes never-married (a 22% decline). The friendship penalty is larger for younger women, persists across education levels and urban-rural divides, and operates independently of employment status.
+These dual penalties—both participation and intensity—mean married women average just `r sprintf("%.1f", women_married_minutes_per_person)` minutes daily on social activities compared to `r sprintf("%.1f", women_never_married_minutes_per_person)` minutes for never-married women (a `r sprintf("%.0f%%", women_total_decline_pct)` decline). Men average `r sprintf("%.1f", men_married_minutes_per_person)` minutes married versus `r sprintf("%.1f", men_never_married_minutes_per_person)` minutes never-married (a `r sprintf("%.0f%%", men_total_decline_pct)` decline). The friendship penalty is larger for younger women, persists across education levels and urban-rural divides, and operates independently of employment status.
 
 ## Contributions
 
@@ -261,21 +344,21 @@ kable(by_marriage_simple, digits = 2,
 
 **Women's Friendship Penalty:**
 
-Among women, never-married individuals participate in social activities at a 1.9% daily rate, while married women participate at only 0.9%—a **52% decline** in participation. Among women who do socialize, never-married women average 90 minutes per social activity, while married women average just 63 minutes—a **30% decline** in time intensity.
+Among women, never-married individuals participate in social activities at a `r sprintf("%.1f%%", women_never_married_participation)` daily rate, while married women participate at only `r sprintf("%.1f%%", women_married_participation)`—a **`r sprintf("%.0f%%", women_participation_decline_pct)` decline** in participation. Among women who do socialize, never-married women average `r sprintf("%.0f", women_never_married_minutes_per_participant)` minutes per social activity, while married women average just `r sprintf("%.0f", women_married_minutes_per_participant)` minutes—a **`r sprintf("%.0f%%", women_time_intensity_decline_pct)` decline** in time intensity.
 
-These dual penalties compound: never-married women average 1.7 minutes of social time per person per day, while married women average just 0.8 minutes—a **53% total decline**.
+These dual penalties compound: never-married women average `r sprintf("%.1f", women_never_married_minutes_per_person)` minutes of social time per person per day, while married women average just `r sprintf("%.1f", women_married_minutes_per_person)` minutes—a **`r sprintf("%.0f%%", women_total_decline_pct)` total decline**.
 
 **Men's Friendship Penalty:**
 
-Men also experience a friendship penalty, but it is far smaller. Never-married men participate at a 5.0% daily rate versus 3.9% for married men—a **23% decline** in participation. However, time intensity conditional on participation shows no decline: both groups average around 80 minutes per social activity.
+Men also experience a friendship penalty, but it is far smaller. Never-married men participate at a `r sprintf("%.1f%%", men_never_married_participation)` daily rate versus `r sprintf("%.1f%%", men_married_participation)` for married men—a **`r sprintf("%.0f%%", men_participation_decline_pct)` decline** in participation. However, time intensity conditional on participation shows no decline: both groups average around `r sprintf("%.0f", men_never_married_minutes_per_participant)` minutes per social activity.
 
-Married men average 3.2 minutes of social time per person per day versus 4.1 for never-married men—a **22% decline**, less than half women's 53% decline.
+Married men average `r sprintf("%.1f", men_married_minutes_per_person)` minutes of social time per person per day versus `r sprintf("%.1f", men_never_married_minutes_per_person)` for never-married men—a **`r sprintf("%.0f%%", men_total_decline_pct)` decline**, less than half women's `r sprintf("%.0f%%", women_total_decline_pct)` decline.
 
 **The Gender Gap in the Friendship Penalty:**
 
-Marriage creates a 1.0 percentage point friendship penalty for women but only a 1.1 percentage point penalty for men in absolute terms. However, relative to baseline participation rates, women's penalty is more than twice as large (52% vs. 23%). Moreover, women start from much lower social participation rates than men (1.9% vs. 5.0% for never-married), so equal absolute declines represent vastly different proportional losses.
+Marriage creates a `r sprintf("%.1f", women_participation_penalty_pp)` percentage point friendship penalty for women but only a `r sprintf("%.1f", men_participation_penalty_pp)` percentage point penalty for men in absolute terms. However, relative to baseline participation rates, women's penalty is more than twice as large (`r sprintf("%.0f%%", women_participation_decline_pct)` vs. `r sprintf("%.0f%%", men_participation_decline_pct)`). Moreover, women start from much lower social participation rates than men (`r sprintf("%.1f%%", women_never_married_participation)` vs. `r sprintf("%.1f%%", men_never_married_participation)` for never-married), so equal absolute declines represent vastly different proportional losses.
 
-Most strikingly, married women end up with just **25%** of married men's social time (0.8 vs. 3.2 minutes per day). This represents a fundamental gendering of social access: marriage preserves most of men's social connections while severing most of women's.
+Most strikingly, married women end up with just **`r sprintf("%.0f%%", married_women_to_men_ratio_pct)`** of married men's social time (`r sprintf("%.1f", women_married_minutes_per_person)` vs. `r sprintf("%.1f", men_married_minutes_per_person)` minutes per day). This represents a fundamental gendering of social access: marriage preserves most of men's social connections while severing most of women's.
 
 ```{r friendship_penalty_viz, fig.height=5, fig.width=8, fig.cap="The Gendered Friendship Penalty of Marriage"}
 plot_data <- major_only %>%
@@ -292,7 +375,7 @@ ggplot(plot_data, aes(x = marital_status_label, y = `Social Time (min/day)`,
             position = position_dodge(width = 0.7), vjust = -0.5, size = 4) +
   labs(x = "", y = "Social Time (minutes per day)", fill = "",
        title = "Marriage Reduces Women's Social Time by Half, Men's by a Quarter",
-       subtitle = "Women lose 53% of social time; men lose 22%") +
+       subtitle = sprintf("Women lose %.0f%% of social time; men lose %.0f%%", women_total_decline_pct, men_total_decline_pct)) +
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
   theme_minimal(base_size = 12) +
   theme(legend.position = "top",
@@ -300,7 +383,7 @@ ggplot(plot_data, aes(x = marital_status_label, y = `Social Time (min/day)`,
         plot.subtitle = element_text(hjust = 0.5))
 ```
 
-Figure 1 visualizes the gendered friendship penalty. Never-married women start with less than half the social time of never-married men (1.7 vs. 4.1 minutes). Marriage widens this gap dramatically: married women's social time drops to just 0.8 minutes while married men maintain 3.2 minutes—a 4:1 ratio. The friendship penalty isn't just about marriage reducing everyone's social time; it's about marriage disproportionately isolating women.
+Figure 1 visualizes the gendered friendship penalty. Never-married women start with less than half the social time of never-married men (`r sprintf("%.1f", women_never_married_minutes_per_person)` vs. `r sprintf("%.1f", men_never_married_minutes_per_person)` minutes). Marriage widens this gap dramatically: married women's social time drops to just `r sprintf("%.1f", women_married_minutes_per_person)` minutes while married men maintain `r sprintf("%.1f", men_married_minutes_per_person)` minutes—a `r sprintf("%.0f", men_married_minutes_per_person / women_married_minutes_per_person)`:1 ratio. The friendship penalty isn't just about marriage reducing everyone's social time; it's about marriage disproportionately isolating women.
 
 ## Regression Analysis
 
