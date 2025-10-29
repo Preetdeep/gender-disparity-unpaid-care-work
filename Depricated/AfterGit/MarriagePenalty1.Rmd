@@ -1,7 +1,7 @@
 ---
 title: "The Marriage Penalty in Unpaid Care Work: Evidence from India's Time Use Survey"
 author:
-  - "Your Name^[Affiliation, email@institution.edu]"
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
   We examine how marriage affects women's unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Marriage increases women's care work participation by 2.1 percentage points (a 44% increase from baseline) but has no effect on men's participation. This "marriage penalty" varies substantially by age: younger women (≤25) experience a 3.8 percentage point increase upon marriage, while older women (>25) see a 1.6 percentage point increase. The penalty persists across education levels, urban-rural divides, and employment status, suggesting deeply entrenched norms about married women's domestic responsibilities. Our findings reveal marriage as a critical institution reproducing gender inequality in household production.
@@ -58,11 +58,6 @@ data <- read_dta("TimeUse106PER.dta",
                                Highest_Education, Sector, Principal_Activity_Status,
                                Activity_Code_2Digit, State, FSU_Serial_No,
                                Sample_HH_No))
-
-# Use 10% sample (1M observations) for faster processing #ADDING THIS at 854am on 29Oct25 due to some error.
-set.seed(123)
-data <- data %>% slice_sample(prop = 0.1)
-data <- data %>% mutate(Weight = Weight / 0.1)
 
 # Process data
 major_only <- data %>%
