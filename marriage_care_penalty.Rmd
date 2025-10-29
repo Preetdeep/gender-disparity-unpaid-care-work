@@ -50,8 +50,9 @@ library(kableExtra)
 theme_set(theme_minimal(base_size = 11))
 ```
 
-```{r load_data, cache=TRUE}
+```{r load_data, cache=FALSE}
 # Load only necessary columns to reduce memory footprint
+# Note: cache=FALSE because dataset is too large for R's caching mechanism
 data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Unpaid_Paid_Status, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
