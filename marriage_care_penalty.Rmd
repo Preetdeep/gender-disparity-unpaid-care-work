@@ -1,10 +1,10 @@
 ---
-title: "Marriage Increases Women's Unpaid Care Work by `r sprintf('%.0f%%', marriage_penalty_pct)`, Men's Unchanged: Evidence from India"
+title: "The Marriage Care Penalty: How Marriage Increases Women's Unpaid Work While Men's Remains Unchanged"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (`r format(total_obs, big.mark=",")` observations, `r format(total_households, big.mark=",")` households), we document a stark marriage penalty in unpaid care work: marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points (`r sprintf("%.0f%%", marriage_penalty_pct)` increase) while having zero effect on men's participation. This penalty is `r sprintf("%.1f", age_penalty_ratio)` times larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark marriage penalty in unpaid care work: marriage substantially increases women's care work participation while having zero effect on men's participation. This penalty is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
 
   **JEL Classification:** J12, J16, J22, D13
 
