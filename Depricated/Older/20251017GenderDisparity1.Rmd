@@ -1,0 +1,218 @@
+---
+title: "Gender Disparities in Unpaid Care Work: Evidence from India's Time Use Survey 2024"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+## Introduction
+
+This paper examines gender disparities in unpaid care and domestic work using India's Time Use Survey 2024. The survey captures detailed time allocation across 10.2 million activity observations from 139,489 households.
+
+Our analysis distinguishes between two critical dimensions of unpaid work burden: **participation rates** (who does the work) and **time intensity** (how long they spend when they do it). This decomposition reveals that gender gaps in unpaid work stem primarily from differences in who participates rather than how much time participants spend.
+
+## Data and Methods
+```{r load_data}
+# Load the TUS 2024 person-level data
+data <- read_dta("TimeUse106PER.dta")
+
+# Filter to major activities only (standard approach per TUS guidelines)
+major_only <- data %>% filter(Major_Activity_Flag == 1)
+
+# Check data structure
+cat("Total observations:", nrow(data), "\n")
+cat("Major activities only:", nrow(major_only), "\n")
+```
+
+### Activity Classification
+
+The survey uses the International Classification of Activities for Time Use Statistics (ICATUS). Key codes:
+
+- **Code 02**: Unpaid care for children, sick, elderly, differently-abled persons in own household
+- **Code 03**: Other household services (cooking, cleaning, maintenance)
+- **Code 04**: Production of goods for own consumption
+- **Activity codes 31-33**: Direct care activities (childcare, adult care, non-household care)
+```{r activity_distribution}
+# Distribution of unpaid/paid status codes
+table(major_only$Unpaid_Paid_Status) %>% 
+  kable(caption = "Distribution of Unpaid/Paid Status Codes")
+```
+
+## Results
+
+### Participation Rates in Unpaid Care Work
+```{r participation_rates}
+# Calculate participation rates by gender
+participation <- major_only %>%
+  group_by(Gender) %>%
+  summarise(
+    total_observations = n(),
+    care_work_activities = sum(Unpaid_Paid_Status == "02"),
+    participation_rate = care_work_activities / total_observations * 100
+  )
+
+participation %>%
+  kable(digits = 2, caption = "Participation in Unpaid Care Work by Gender")
+```
+
+Women participate in unpaid care work at rates 3.5 times higher than men. This differential participation is the primary driver of gender disparities in care work burden.
+
+### Time Intensity: Conditional on Participation
+
+Among those who actually perform unpaid care work, men and women spend similar amounts of time:
+```{r time_per_participant}
+care_work_participants <- major_only %>%
+  filter(Unpaid_Paid_Status == "02") %>%
+  group_by(Gender) %>%
+  summarise(
+    avg_minutes_per_participant = weighted.mean(time_spent, Weight, na.rm = TRUE),
+    n_activities = n()
+  )
+
+care_work_participants %>%
+  kable(digits = 1, caption = "Average Minutes per Participant in Care Work")
+```
+
+**Key finding**: When men participate in care work, they work comparable durations to women. The gap is not in intensity conditional on participation, but in the propensity to participate at all.
+
+### Population-Level Burden
+
+The critical metric for understanding gender inequality is average time per person across the entire population (including non-participants):
+```{r per_person_burden}
+care_burden <- major_only %>%
+  group_by(Gender) %>%
+  summarise(
+    total_care_time = sum(ifelse(Unpaid_Paid_Status == "02", 
+                                  time_spent * Weight, 0), na.rm = TRUE),
+    total_population_weight = sum(Weight, na.rm = TRUE)
+  ) %>%
+  mutate(
+    care_minutes_per_person_per_day = total_care_time / total_population_weight
+  )
+
+care_burden %>%
+  select(Gender, care_minutes_per_person_per_day) %>%
+  kable(digits = 2, caption = "Average Care Work Minutes per Person per Day")
+```
+
+Women perform care work for an average of 2.25 minutes per person per day, compared to 0.77 minutes for men—a **2.9x difference**.
+```{r care_burden_plot, fig.width=8, fig.height=5}
+ggplot(care_burden, aes(x = factor(Gender, labels = c("Male", "Female", "Transgender")), 
+                        y = care_minutes_per_person_per_day, 
+                        fill = factor(Gender))) +
+  geom_col() +
+  labs(title = "Average Daily Unpaid Care Work per Person",
+       subtitle = "Including non-participants",
+       x = "Gender",
+       y = "Minutes per day") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  scale_fill_manual(values = c("#3498db", "#e74c3c", "#95a5a6"))
+```
+
+### Breakdown by Type of Unpaid Work
+```{r unpaid_breakdown}
+unpaid_breakdown <- major_only %>%
+  filter(Unpaid_Paid_Status %in% c("01","02","03","04")) %>%
+  group_by(Gender, Unpaid_Paid_Status) %>%
+  summarise(
+    total_time = sum(time_spent * Weight, na.rm = TRUE),
+    total_pop = sum(Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(minutes_per_person = total_time / total_pop)
+
+unpaid_breakdown %>%
+  select(Gender, Unpaid_Paid_Status, minutes_per_person) %>%
+  tidyr::pivot_wider(names_from = Gender, values_from = minutes_per_person) %>%
+  kable(digits = 2, caption = "Minutes per Person by Unpaid Work Type")
+```
+
+Code definitions:
+- 01: Self-care/maintenance
+- 02: Care for household members
+- 03: Household services (cooking, cleaning)
+- 04: Production of goods for own consumption
+
+### Care Activities by Detailed Category
+```{r care_activities}
+care_activities <- major_only %>%
+  filter(Activity_Code_2Digit %in% c(31, 32, 33)) %>%
+  group_by(Gender, Activity_Code_2Digit) %>%
+  summarise(
+    avg_minutes = weighted.mean(time_spent, Weight, na.rm = TRUE),
+    n_activities = n(),
+    .groups = "drop"
+  )
+
+care_activities %>%
+  mutate(Activity_Type = case_when(
+    Activity_Code_2Digit == 31 ~ "Child care",
+    Activity_Code_2Digit == 32 ~ "Adult care",
+    Activity_Code_2Digit == 33 ~ "Non-household care"
+  )) %>%
+  select(Gender, Activity_Type, avg_minutes, n_activities) %>%
+  kable(digits = 1, caption = "Care Activities by Type (Participants Only)")
+```
+
+Women perform vastly more child care activities (756,342 vs 30,280 observations), but when men do participate, they spend similar durations per activity.
+
+## Discussion
+
+### The Participation Gap vs Intensity Gap
+
+Our analysis reveals a critical distinction in understanding gender inequality in unpaid work:
+
+1. **Participation gap**: Women are 3.5x more likely to engage in care work activities
+2. **Intensity gap**: Conditional on participation, men and women work similar durations
+
+This pattern suggests that cultural norms around *who should* perform care work drive disparities more than differences in how care work is performed once undertaken. When men do engage in care work, they work as hard as women. The problem is that most men simply don't engage at all.
+
+### Policy Implications
+
+The participation gap points toward interventions that normalize male participation in care work rather than simply redistributing hours among existing participants. Policies might include:
+
+- Paternity leave and care-related leave policies for men
+- Public campaigns challenging gender norms around care work
+- Workplace flexibility that enables male participation
+- Measurement and reporting of male care work participation rates
+
+### Methodological Note on Aggregation
+
+Aggregating across codes 01-04 obscures gender gaps because self-care (code 01) shows no gender difference and dominates the total. Researchers should examine specific unpaid work categories rather than broad aggregates to identify where disparities concentrate.
+
+## Conclusion
+
+Women in India bear a disproportionate burden of unpaid care work, performing care activities at rates 3.5 times higher than men. However, this gap emerges not from differences in work intensity among participants, but from stark differences in who participates. When men do engage in care work, they work comparable hours to women. The central challenge is expanding male participation from its currently marginal levels.
+
+## Appendix: Full Summary Statistics
+```{r full_summary}
+# Total unpaid household work burden
+household_burden <- major_only %>%
+  group_by(Gender) %>%
+  summarise(
+    total_household_time = sum(ifelse(Unpaid_Paid_Status %in% c("01","02","03","04"), 
+                                       time_spent * Weight, 0), na.rm = TRUE),
+    total_population_weight = sum(Weight, na.rm = TRUE)
+  ) %>%
+  mutate(
+    household_minutes_per_person_per_day = total_household_time / total_population_weight
+  )
+
+household_burden %>%
+  kable(digits = 2, caption = "Total Unpaid Household Work (Codes 01-04)")
+```
+```{r session_info}
+sessionInfo()
+```

@@ -1,0 +1,369 @@
+Variable Name | Type | Description | Value | Meaning
+Household Member Listing (Block 3)
+relationship_to_head | categorical | Relationship to Head | 1 | self
+
+relationship_to_head | categorical | Relationship to Head | 2 | spouse of head
+
+relationship_to_head | categorical | Relationship to Head | 3 | married child
+
+relationship_to_head | categorical | Relationship to Head | 4 | spouse of married child
+
+relationship_to_head | categorical | Relationship to Head | 5 | unmarried child
+
+relationship_to_head | categorical | Relationship to Head | 6 | grandchild
+
+relationship_to_head | categorical | Relationship to Head | 7 | father/mother/father-in-law/mother-in-law
+
+relationship_to_head | categorical | Relationship to Head | 8 | other relatives
+
+relationship_to_head | categorical | Relationship to Head | 9 | servant/employees/other non-relatives
+
+gender | categorical | Sex of Member | 1 | male
+
+gender | categorical | Sex of Member | 2 | female
+
+gender | categorical | Sex of Member | 3 | transgender
+
+age | discrete numeric | Age in Completed Years | 0+ | actual years (0 if below 1)
+
+marital_status | categorical | Marital Status | 1 | never married
+
+marital_status | categorical | Marital Status | 2 | currently married
+
+marital_status | categorical | Marital Status | 3 | widowed
+
+marital_status | categorical | Marital Status | 4 | divorced/separated
+
+highest_education | categorical | Highest Level of Education Completed | 01 | not literate
+
+highest_education | categorical | Highest Level of Education Completed | 02 | literate but below primary
+
+highest_education | categorical | Highest Level of Education Completed | 03 | primary
+
+highest_education | categorical | Highest Level of Education Completed | 04 | upper primary/middle
+
+highest_education | categorical | Highest Level of Education Completed | 05 | secondary
+
+highest_education | categorical | Highest Level of Education Completed | 06 | higher secondary
+
+highest_education | categorical | Highest Level of Education Completed | 07 | diploma/certificate course up to secondary
+
+highest_education | categorical | Highest Level of Education Completed | 08 | diploma/certificate course higher secondary
+
+highest_education | categorical | Highest Level of Education Completed | 10 | diploma/certificate course graduation and above
+
+highest_education | categorical | Highest Level of Education Completed | 11 | graduate
+
+highest_education | categorical | Highest Level of Education Completed | 12 | post-graduate and above
+
+Usual Principal Activity Status (for age 6+)
+principal_activity | categorical | Usual Principal Activity Status | 11 | worked in household enterprise: self-employed as own-account worker
+
+principal_activity | categorical | Usual Principal Activity Status | 12 | worked in household enterprise: self-employed as employer
+
+principal_activity | categorical | Usual Principal Activity Status | 13 | worked in household enterprise: self-employed as helper
+
+principal_activity | categorical | Usual Principal Activity Status | 21 | worked as regular salaried/wage employee
+
+principal_activity | categorical | Usual Principal Activity Status | 31 | worked as casual wage labour in public works
+
+principal_activity | categorical | Usual Principal Activity Status | 41 | worked as casual wage labour in other types of works
+
+principal_activity | categorical | Usual Principal Activity Status | 51 | not working but seeking/available for work (unemployed)
+
+principal_activity | categorical | Usual Principal Activity Status | 61 | attended educational institution
+
+principal_activity | categorical | Usual Principal Activity Status | 62 | attended domestic duties only
+
+principal_activity | categorical | Usual Principal Activity Status | 63 | attended domestic duties and was also engaged in free collection of goods, tailoring, weaving, etc., for household use
+
+principal_activity | categorical | Usual Principal Activity Status | 64 | pensioners, remittance recipients, etc.
+
+principal_activity | categorical | Usual Principal Activity Status | 65 | not able to work due to disability
+
+principal_activity | categorical | Usual Principal Activity Status | 66 | others
+
+Household Characteristics (Block 4)
+household_size | discrete numeric | Total number of persons in household | n | actual count
+
+religion | categorical | Religion of household | 1 | Hindu
+
+religion | categorical | Religion of household | 2 | Muslim
+
+religion | categorical | Religion of household | 3 | Christian
+
+religion | categorical | Religion of household | 4 | Sikh
+
+religion | categorical | Religion of household | 5 | Jain
+
+religion | categorical | Religion of household | 6 | Buddhist/Neo-Buddhist
+
+religion | categorical | Religion of household | 7 | others
+
+social_group | categorical | Social Group of Household | 1 | Scheduled Tribe
+
+social_group | categorical | Social Group of Household | 2 | Scheduled Caste
+
+social_group | categorical | Social Group of Household | 3 | Other Backward Class
+
+social_group | categorical | Social Group of Household | 9 | None of the above
+
+land_possessed | discrete numeric | Total land possessed by household (hectares) | n | actual value
+
+usual_monthly_consumer_expenditure | discrete numeric | Household's monthly consumer expenditure (₹) | n | actual value
+
+primary_energy_cooking | categorical | Source of energy for cooking | 1 | firewood
+
+primary_energy_cooking | categorical | Source of energy for cooking | 2 | crop residue
+
+primary_energy_cooking | categorical | Source of energy for cooking | 3 | cow dung cake
+
+primary_energy_cooking | categorical | Source of energy for cooking | 4 | coal/charcoal
+
+primary_energy_cooking | categorical | Source of energy for cooking | 5 | kerosene
+
+primary_energy_cooking | categorical | Source of energy for cooking | 6 | LPG
+
+primary_energy_cooking | categorical | Source of energy for cooking | 7 | gobar gas
+
+primary_energy_cooking | categorical | Source of energy for cooking | 8 | electricity
+
+primary_energy_cooking | categorical | Source of energy for cooking | 9 | other
+
+primary_energy_lighting | categorical | Source of energy for lighting | 1 | kerosene
+
+primary_energy_lighting | categorical | Source of energy for lighting | 2 | solar
+
+primary_energy_lighting | categorical | Source of energy for lighting | 3 | electricity
+
+primary_energy_lighting | categorical | Source of energy for lighting | 9 | other
+
+Informant & Interview Codes (Block 0/B1)
+informant_code | categorical | Informant Response | 1 | co-operative & capable
+
+informant_code | categorical | Informant Response | 2 | co-operative, not capable
+
+informant_code | categorical | Informant Response | 3 | busy
+
+informant_code | categorical | Informant Response | 4 | reluctant
+
+informant_code | categorical | Informant Response | 9 | other
+
+survey_code | categorical | Status of Survey Household | 1 | surveyed original
+
+survey_code | categorical | Status of Survey Household | 2 | substitute
+
+survey_code | categorical | Status of Survey Household | 3 | casualty
+
+Reason for Substitution
+substitution_reason | categorical | Reason for Substitution (FSU/Household) | 1 | not identifiable/traceable
+
+substitution_reason | categorical | Reason for Substitution (FSU/Household) | 2 | not accessible
+
+substitution_reason | categorical | Reason for Substitution (FSU/Household) | 3 | restricted area, not permitted
+
+substitution_reason | categorical | Reason for Substitution (FSU/Household) | 9 | other
+
+Telephone Numbers (Block 1)
+phone_1 | string | First mobile number | n/a | digits
+
+phone_2 | string | Second mobile number | n/a | digits
+
+phone_landline | string | Landline number | n/a | digits
+
+General Characteristics
+head_name | string | Name of head of household | n/a | actual name
+
+household_no | ordinal | Serial number of household (sampling frame) | n | assigned number
+
+house_no | ordinal | Serial number of house/census number | n | assigned number
+
+sub_unit_no | ordinal | Serial number of sub-unit | n | assigned number
+
+ICATUS 2016 3-digit Activity Codebook (Block 6:Column 10)
+(Each code below is an exact variable value; variable name for all is activity_code_3digit)
+
+1 Employment and related activities
+
+110 Employment in corporations, government and non-profit institutions
+
+121 Growing of crops for the market in household enterprises
+
+122 Raising animals for the market in household enterprises
+
+123 Forestry and logging for the market in household enterprises
+
+124 Fishing for the market in household enterprises
+
+125 Aquaculture for the market in household enterprises
+
+126 Mining and quarrying for the market in household enterprises
+
+127 Making and processing goods for the market in household enterprises
+
+128 Construction activities for the market in household enterprises
+
+129 Other activities related to employment in household enterprises to produce goods
+
+131 Vending and trading of goods in household enterprises
+
+132 Providing paid repair, installation, maintenance and disposal services in household enterprises
+
+133 Providing paid business and professional services in household enterprises
+
+134 Transporting goods and passengers for pay or profit in household enterprises
+
+135 Providing paid personal care services in household enterprises
+
+136 Providing paid domestic services
+
+139 Other activities related to employment in household enterprises providing services
+
+141 Activities ancillary to employment for production of services
+
+142 Breaks during working time within employment
+
+151 Regular wage salary for production of goods
+
+152 Regular wage salary for production of services
+
+161 Casual labour for production of goods
+
+162 Casual labour for production of services
+
+181 Travel related to employment
+
+182 Commuting to/from work
+
+2 Production of goods for own final use
+
+211 Growing crops and kitchen gardening, for own final use
+
+212 Farming of animals and production of animal products for own final use
+
+213 Hunting, trapping and production of animal skins for own final use
+
+214 Forestry and logging for own final use
+
+215 Gathering wild products for own final use
+
+216 Fishing for own final use
+
+217 Aquaculture for own final use
+
+218 Mining and quarrying for own final use
+
+22x Making and processing goods for own final use (exact subcode table as in document)
+
+221 Making, processing food products, beverages and tobacco for own final use
+
+222 Making, processing textiles, wearing apparel, leather and related products for own final use
+
+223 Making, processing of wood and bark products for own final use
+
+224 Making, processing bricks, concrete slabs, hollow blocks, tiles for own final use
+
+225 Making, processing herbal and medicinal preparations for own final use
+
+226 Making, processing metals and metal products for own final use
+
+227 Making, processing of products using other materials for own final use
+
+229 Acquiring supplies and disposing of products and other activities related to making and processing goods for own final use
+
+230 Construction activities for own final use
+
+241 Gathering firewood and other natural products used as fuel for own final use
+
+242 Fetching water from natural and other sources for own final use
+
+250 Travelling, moving, transporting or accompanying goods or persons related to own-use production of goods
+
+3 Household and family care
+
+311 Household management and planning
+
+312 Food preparation
+
+313 Serving food for household members
+
+314 Cleaning of meals and eating space
+
+321 Maintaining dwellings and surroundings
+
+331 Cleaning, laundering, and repairing of clothing
+
+341 Shopping for/purchasing of goods and related activities
+
+351 Paying household bills
+
+361 Household administration and paperwork
+
+371 Gardening, tending kitchen garden
+
+381 Pet care
+
+4 Care for household members
+
+411 Caring for children in household
+
+412 Teaching own children
+
+413 Physical care for children (washing, dressing, feeding etc.)
+
+414 Accompanying children
+
+421 Caring for adults (elderly, disabled, sick) in household
+
+5 Education
+
+511 Attending classes
+
+512 Homework, research, study
+
+6 Participation in community/social services
+
+611 Community meetings, civic activities
+
+621 Voluntary work for charities, NGOs, etc.
+
+631 Participation in religious activities
+
+7 Social life, entertainment and sports
+
+711 Talking with household members
+
+712 Talking with non-household members
+
+713 Reading and writing e-mail in personal capacity
+
+721 Visiting friends and relatives
+
+731 Socializing outside the home
+
+741 Meditation
+
+742 Participating in group sports
+
+8 Mass Media Use
+
+841 Reading newspaper
+
+842 Watching news on TV
+
+843 Watching entertainment on TV
+
+844 Internet browsing not work-related
+
+845 Listening to radio/music
+
+9 Personal care and rest
+
+911 Night sleep
+
+921 Eating meals
+
+922 Drinking tea
+
+931 Personal hygiene (washing, bathing, brushing teeth, etc.)
+

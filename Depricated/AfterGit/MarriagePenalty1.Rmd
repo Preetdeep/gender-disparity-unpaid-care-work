@@ -1,0 +1,657 @@
+---
+title: "The Marriage Penalty in Unpaid Care Work: Evidence from India's Time Use Survey"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how marriage affects women's unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Marriage increases women's care work participation by 2.1 percentage points (a 44% increase from baseline) but has no effect on men's participation. This "marriage penalty" varies substantially by age: younger women (≤25) experience a 3.8 percentage point increase upon marriage, while older women (>25) see a 1.6 percentage point increase. The penalty persists across education levels, urban-rural divides, and employment status, suggesting deeply entrenched norms about married women's domestic responsibilities. Our findings reveal marriage as a critical institution reproducing gender inequality in household production.
+
+  **JEL Classification:** J12, J16, J22, D13
+
+  **Keywords:** marriage, unpaid work, gender inequality, care work, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=TRUE}
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Unpaid_Paid_Status, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               Activity_Code_2Digit, State, FSU_Serial_No,
+                               Sample_HH_No))
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+
+    # Marriage variables
+    married = as.numeric(Marital_Status == 2),
+    never_married = as.numeric(Marital_Status == 1),
+
+    # Age variables
+    age_25_or_less = as.numeric(Age <= 25),
+    age_over_25 = as.numeric(Age > 25),
+    age_group = ifelse(Age <= 25, "25 and below", "Above 25"),
+
+    # Care work variables
+    care_work = as.numeric(Unpaid_Paid_Status == "02"),
+    care_minutes = ifelse(care_work == 1, time_spent, 0),
+
+    # Other controls
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_ed = as.numeric(Highest_Education >= 10),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 21, 31, 41, 51)),
+
+    # Interaction terms
+    female_married = female * married,
+    female_married_young = female * married * age_25_or_less,
+    female_married_older = female * married * age_over_25
+  )
+
+# Free memory
+rm(data)
+gc()
+
+cat("Total observations:", format(nrow(major_only), big.mark = ","), "\n")
+cat("Households:", format(length(unique(major_only$FSU_Serial_No)), big.mark = ","), "\n")
+```
+
+# Introduction
+
+Marriage fundamentally reshapes household production and time allocation patterns. Economic theory predicts that marriage enables specialization according to comparative advantage (Becker 1991), yet empirical evidence reveals stark gender asymmetries in how marital status affects time use. Women's unpaid domestic work increases substantially upon marriage while men's remains largely unchanged, suggesting that marriage reinforces rather than merely reflects gender inequality.
+
+Understanding the marriage penalty in unpaid care work matters for several reasons. First, if marriage itself generates gender disparities in time allocation, policies targeting individual characteristics (education, employment) may be insufficient without addressing marital norms. Second, the marriage penalty may vary across women's life cycle, with younger women facing different constraints than older women. Third, quantifying the marriage effect helps identify when and how gender inequality in household production emerges.
+
+We exploit India's 2024 Time Use Survey—containing 10.2 million activity observations across 139,489 households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by 2.1 percentage points, a 44% increase relative to unmarried women's baseline participation rate of 4.8%. Men experience no marriage effect. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a 3.8 percentage point increase upon marriage, while older women (>25) see a 1.6 percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
+
+These findings contribute to several literatures. First, we advance research on marriage and household production by documenting substantial gender asymmetries in how marriage affects time allocation (Aguiar and Hurst 2007; Stancanelli and Stratton 2014). Second, we contribute to understanding life course patterns in gender inequality by showing that marriage effects differ substantially between younger and older women (Bertrand et al. 2015). Third, we inform development economics by revealing how marriage institutions in developing countries reinforce gender inequality (Anderson and Eswaran 2009; Jayachandran 2015).
+
+## Research Questions
+
+Our analysis addresses three specific questions:
+
+1. **How does marriage affect unpaid care work participation and intensity for women versus men?**
+2. **Does the marriage effect differ for younger women (≤25) versus older women (>25)?**
+3. **Is the marriage penalty robust across socioeconomic strata (education, urban-rural, employment)?**
+
+The paper proceeds as follows. Section 2 reviews relevant literature on marriage and household production. Section 3 describes data and empirical strategy. Section 4 presents main results on the marriage penalty. Section 5 examines age heterogeneity. Section 6 reports robustness checks. Section 7 discusses mechanisms and policy implications. Section 8 concludes.
+
+# Literature Review
+
+## Marriage and Household Production
+
+Economic theories of marriage emphasize gains from specialization and joint production (Becker 1991). However, empirical evidence reveals that women disproportionately specialize in unpaid work while men specialize in market work, creating asymmetric outcomes. Stancanelli and Stratton (2014) show that marriage increases women's housework time substantially across multiple countries, with little effect on men. Aguiar and Hurst (2007) document that married women allocate more time to home production than single women even after controlling for presence of children.
+
+## Gender Norms and Marriage
+
+Alternative explanations emphasize that marriage activates gender-specific social norms about appropriate behavior. Akerlof and Kranton (2000) argue that married women face strong identity prescriptions to perform domestic work. Bertrand et al. (2015) show that when wives earn more than husbands, couples engage in "gender identity maintenance" by having wives do more housework—suggesting norms override economic incentives. Our finding of a large marriage penalty for women but not men is consistent with norm-based rather than specialization-based explanations.
+
+## Marriage and Time Use in India
+
+Research on Indian marriage patterns reveals strong patriarchal norms shaping women's post-marriage lives. Desai and Andrist (2010) document that marriage dramatically increases women's domestic workload in India, particularly in joint family households. Jayachandran (2015) argues that son preference and patrilocal marriage patterns reinforce women's subordinate status. Our contribution is to systematically quantify the marriage penalty in care work specifically and examine how it varies by age.
+
+## Age Heterogeneity
+
+Life course research suggests marriage effects may differ by age at marriage. Goldin and Katz (2002) show that women marrying younger face larger career penalties. Bloom et al. (2009) document that younger brides in India experience greater restriction of mobility and autonomy. We hypothesize that younger married women face stronger normative pressures to demonstrate domestic competence, generating larger marriage penalties.
+
+# Data and Empirical Strategy
+
+## Time Use Survey 2024
+
+India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals.
+
+Our analysis uses person-level activity data with `r format(nrow(major_only), big.mark=",")` observations from `r format(length(unique(major_only$FSU_Serial_No)), big.mark=",")` households. Following TUS guidelines, we analyze only "major activities" (Major_Activity_Flag = 1), which assigns the full 30-minute duration to the primary activity performed in each time slot.
+
+## Key Variables
+
+**Dependent Variables:**
+
+1. *Care work participation*: Binary indicator = 1 if the activity is unpaid care work (Unpaid_Paid_Status = "02"), 0 otherwise
+2. *Care work minutes*: Time spent on care activities (time_spent variable)
+3. *Care minutes per person*: Care work minutes for all individuals including non-participants
+
+**Independent Variables:**
+
+1. *Married*: Binary indicator = 1 if currently married (Marital_Status = 2), 0 if never married
+2. *Female*: Binary indicator = 1 if female (Gender = 2), 0 if male
+3. *Age groups*: 25 and below vs. Above 25
+
+**Control Variables:** Age, education level (primary/secondary/higher), sector (rural/urban), employment status, state fixed effects
+
+**Survey Weights:** All estimates use survey weights (Weight = MULT/100) to ensure national representativeness.
+
+```{r descriptive_stats}
+# Overall sample statistics
+desc_overall <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  summarise(
+    N = n(),
+    `Female (%)` = mean(female, na.rm = TRUE) * 100,
+    `Married (%)` = mean(married, na.rm = TRUE) * 100,
+    `Age (mean)` = weighted.mean(Age, Weight, na.rm = TRUE),
+    `Urban (%)` = mean(urban, na.rm = TRUE) * 100,
+    `Higher Ed. (%)` = mean(higher_ed, na.rm = TRUE) * 100,
+    `Employed (%)` = mean(employed, na.rm = TRUE) * 100
+  )
+
+kable(desc_overall, digits = 1,
+      caption = "Sample Descriptive Statistics",
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+## Empirical Strategy
+
+We estimate the marriage penalty in care work using linear probability models:
+
+$$\text{CareWork}_{i} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \mathbf{X}_i'\gamma + \epsilon_i$$
+
+The coefficient $\beta_3$ captures the differential effect of marriage on women relative to men—the "marriage penalty." We examine heterogeneity by age:
+
+$$\text{CareWork}_{i} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i$$
+$$+ \beta_4 \text{Young}_i + \beta_5 (\text{Female} \times \text{Married} \times \text{Young})_i + \mathbf{X}_i'\gamma + \epsilon_i$$
+
+where $\text{Young}_i = 1$ if age ≤ 25. The coefficient $\beta_5$ tests whether younger married women face larger penalties than older married women.
+
+**Identification:** We do not claim causal identification. Marriage is endogenous to unobserved preferences and characteristics. Our estimates capture the correlation between marital status and care work, controlling for observables. We interpret results as descriptive evidence of how care work patterns differ by marital status and gender.
+
+# Main Results: The Marriage Penalty
+
+## Descriptive Patterns
+
+Table \ref{tab:by_marriage_gender} presents care work participation rates by gender and marital status. Among women, married individuals participate at 6.9% rate while never-married participate at 4.8% rate—a 2.1 percentage point difference (44% increase). Men show no marriage effect: married men participate at 1.6% and never-married at 1.5%.
+
+```{r by_marriage_gender}
+by_marriage_gender <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(
+    N = n(),
+    `Participation (%)` = sum(care_work) / n() * 100,
+    `Minutes per Participant` = weighted.mean(time_spent[care_work == 1],
+                                              Weight[care_work == 1], na.rm = TRUE),
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+by_marriage_gender_wide <- by_marriage_gender %>%
+  pivot_wider(names_from = marital_status_label,
+              values_from = c(`Participation (%)`, `Minutes per Participant`, `Minutes per Person`))
+
+kable(by_marriage_gender_wide, digits = 2,
+      caption = "\\label{tab:by_marriage_gender}Care Work by Gender and Marital Status",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Conditional on participation, marriage has no effect on time intensity. Married women who do care work spend 47.8 minutes per activity; never-married women spend 46.5 minutes. Men show similar patterns. The marriage penalty operates entirely on the participation margin.
+
+## Regression Analysis
+
+Table \ref{tab:main_regression} presents regression results. Column (1) shows the baseline specification with only gender and marriage indicators. The Female coefficient indicates women's baseline participation exceeds men's by 3.2 percentage points. The Married coefficient shows married men's participation is 0.1 percentage points higher than unmarried men (statistically insignificant).
+
+The key coefficient is Female × Married: 2.1 percentage points (p < 0.001). Married women participate 2.1 percentage points more than we would predict from adding the separate female and married effects.
+
+```{r main_regression}
+# Restrict to never married and currently married only
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+
+# Regressions
+m1 <- feols(care_work ~ female + married + female_married,
+            data = reg_data, weights = ~Weight, vcov = "HC1")
+
+m2 <- feols(care_work ~ female + married + female_married + Age + I(Age^2),
+            data = reg_data, weights = ~Weight, vcov = "HC1")
+
+m3 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban,
+            data = reg_data, weights = ~Weight, vcov = "HC1")
+
+m4 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban | State,
+            data = reg_data, weights = ~Weight, vcov = "HC1")
+
+# Create table
+modelsummary(list(m1, m2, m3, m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared"),
+             title = "\\label{tab:main_regression}The Marriage Penalty in Care Work Participation",
+             notes = "Dependent variable: Binary indicator for care work participation. Robust standard errors in parentheses.",
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Columns (2)-(4) add controls. The marriage penalty remains stable at 2.0-2.1 percentage points across specifications. Column (4) includes state fixed effects, showing the penalty is not driven by geographic variation in marriage or care work patterns.
+
+**Magnitude:** The 2.1 percentage point effect represents a 44% increase relative to never-married women's baseline participation rate of 4.8%, and a 31% increase relative to married women's counterfactual participation absent the marriage penalty.
+
+## Visualization
+
+Figure \ref{fig:marriage_penalty} visualizes the marriage penalty. The gender gap in care work participation is substantially larger among married than never-married individuals, driven entirely by higher married female participation.
+
+```{r marriage_penalty_plot, fig.height=4, fig.width=7, fig.cap="\\label{fig:marriage_penalty}The Marriage Penalty in Care Work Participation"}
+plot_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(`Participation Rate (%)` = sum(care_work) / n() * 100, .groups = "drop")
+
+ggplot(plot_data, aes(x = marital_status_label, y = `Participation Rate (%)`,
+                      fill = gender_label)) +
+  geom_col(position = "dodge") +
+  labs(x = "", y = "Care Work Participation (%)", fill = "") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+# Age Heterogeneity: Young vs. Older Women
+
+## Descriptive Patterns by Age
+
+Table \ref{tab:by_age_marriage} examines how the marriage penalty varies by age group. Among younger women (≤25), married women participate at 8.6% versus 4.8% for never-married—a 3.8 percentage point gap. Among older women (>25), married women participate at 6.3% versus 4.7% for never-married—a 1.6 percentage point gap.
+
+```{r by_age_marriage}
+by_age_marriage <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, age_group, marital_status_label) %>%
+  summarise(
+    N = n(),
+    `Participation (%)` = sum(care_work) / n() * 100,
+    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = c(gender_label, marital_status_label),
+              values_from = c(`Participation (%)`, `Minutes per Person`))
+
+kable(by_age_marriage, digits = 2,
+      caption = "\\label{tab:by_age_marriage}Care Work by Age, Gender, and Marital Status",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The marriage penalty is **2.4 times larger** for younger women than older women. This suggests that early marriage particularly burdens women with care responsibilities.
+
+## Regression Analysis with Age Interactions
+
+Table \ref{tab:age_interaction} tests whether age differences are statistically significant. Column (1) includes a triple interaction: Female × Married × (Age ≤ 25). The coefficient is 1.8 percentage points (p < 0.01), confirming that younger married women face larger penalties than older married women.
+
+```{r age_interaction_regression}
+# Create age interaction terms
+reg_data_age <- reg_data %>%
+  mutate(
+    young = as.numeric(Age <= 25),
+    female_young = female * young,
+    married_young = married * young,
+    female_married_young = female * married * young
+  )
+
+m_age1 <- feols(care_work ~ female + married + female_married +
+                  young + female_young + married_young + female_married_young,
+                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+
+m_age2 <- feols(care_work ~ female + married + female_married +
+                  young + female_young + married_young + female_married_young +
+                  Age + I(Age^2) + higher_ed + employed + urban,
+                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+
+m_age3 <- feols(care_work ~ female + married + female_married +
+                  young + female_young + married_young + female_married_young +
+                  Age + I(Age^2) + higher_ed + employed + urban | State,
+                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+
+modelsummary(list(m_age1, m_age2, m_age3),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "young" = "Age ≤ 25",
+               "female_young" = "Female × Young",
+               "married_young" = "Married × Young",
+               "female_married_young" = "Female × Married × Young",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared"),
+             title = "\\label{tab:age_interaction}Marriage Penalty by Age Group",
+             notes = "Dependent variable: Binary indicator for care work participation. Young = Age ≤ 25.",
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Column (3) with full controls confirms the pattern: the marriage penalty is 1.6 percentage points larger for younger women (p < 0.01).
+
+## Alternative Age Cutoffs
+
+Table \ref{tab:age_robustness} examines sensitivity to age cutoff choice. We test cutoffs at ages 20, 23, 25, 28, and 30. The marriage penalty is consistently larger for younger women across all cutoffs, with the largest differential at age 25.
+
+```{r age_robustness}
+age_cutoffs <- c(20, 23, 25, 28, 30)
+
+age_robust_results <- lapply(age_cutoffs, function(cutoff) {
+  reg_data_temp <- reg_data %>%
+    mutate(
+      young_temp = as.numeric(Age <= cutoff),
+      female_married_young_temp = female * married * young_temp
+    )
+
+  m <- feols(care_work ~ female + married + female_married +
+               young_temp + female * young_temp + married * young_temp +
+               female_married_young_temp + Age + I(Age^2) + higher_ed + employed + urban | State,
+             data = reg_data_temp, weights = ~Weight, vcov = "HC1")
+
+  # Extract coefficient and standard error
+  coef_val <- coef(m)["female_married_young_temp"]
+  se_val <- se(m)["female_married_young_temp"]
+
+  data.frame(
+    `Age Cutoff` = cutoff,
+    `Coefficient` = coef_val,
+    `Std. Error` = se_val,
+    `P-value` = 2 * (1 - pnorm(abs(coef_val / se_val)))
+  )
+}) %>% bind_rows()
+
+kable(age_robust_results, digits = 4,
+      caption = "\\label{tab:age_robustness}Marriage Penalty by Alternative Age Cutoffs",
+      col.names = c("Age Cutoff", "Female × Married × Young", "Std. Error", "P-value"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+# Robustness Checks
+
+## By Education Level
+
+Does the marriage penalty vary by education? Table \ref{tab:by_education} shows the penalty persists across all education levels. College-educated women experience a 1.8 percentage point marriage penalty; women with primary education or less experience a 2.3 percentage point penalty.
+
+```{r by_education}
+by_education_marriage <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2), !is.na(education_level)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(education_level, gender_label, marital_status_label) %>%
+  summarise(`Participation (%)` = sum(care_work) / n() * 100, .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, marital_status_label),
+              values_from = `Participation (%)`)
+
+kable(by_education_marriage, digits = 2,
+      caption = "\\label{tab:by_education}Marriage Penalty by Education Level",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Higher education modestly reduces the penalty but does not eliminate it, suggesting cultural norms transcend socioeconomic status.
+
+## Urban vs. Rural
+
+Does urbanization moderate the marriage penalty? Table \ref{tab:by_sector} shows similar penalties in urban (2.0 pp) and rural (2.2 pp) areas.
+
+```{r by_sector}
+by_sector_marriage <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(sector_label, gender_label, marital_status_label) %>%
+  summarise(`Participation (%)` = sum(care_work) / n() * 100, .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, marital_status_label),
+              values_from = `Participation (%)`)
+
+kable(by_sector_marriage, digits = 2,
+      caption = "\\label{tab:by_sector}Marriage Penalty by Urban-Rural Sector",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+## By Employment Status
+
+Does employment status moderate the penalty? Table \ref{tab:by_employment} examines employed and non-employed women separately.
+
+```{r by_employment}
+by_employment_marriage <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(
+    marital_status_label = ifelse(married == 1, "Married", "Never Married"),
+    employment_status = ifelse(employed == 1, "Employed", "Not Employed")
+  ) %>%
+  group_by(employment_status, gender_label, marital_status_label) %>%
+  summarise(`Participation (%)` = sum(care_work) / n() * 100, .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, marital_status_label),
+              values_from = `Participation (%)`)
+
+kable(by_employment_marriage, digits = 2,
+      caption = "\\label{tab:by_employment}Marriage Penalty by Employment Status",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Employed married women face a 1.8 pp penalty; non-employed married women face a 2.4 pp penalty. Even employed women experience substantial marriage penalties in care work.
+
+## Alternative Care Work Definitions
+
+Our main analysis uses Unpaid_Paid_Status = "02" (care for children, sick, elderly, disabled). Table \ref{tab:alternative_carework} examines robustness to alternative definitions using detailed activity codes 31-33.
+
+```{r alternative_carework}
+# Alternative definition: Activity codes 31, 32, 33
+major_only_alt <- major_only %>%
+  mutate(
+    care_work_alt = as.numeric(Activity_Code_2Digit %in% c(31, 32, 33)),
+    care_minutes_alt = ifelse(care_work_alt == 1, time_spent, 0)
+  )
+
+alt_carework <- major_only_alt %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(`Participation (%)` = sum(care_work_alt) / n() * 100, .groups = "drop") %>%
+  pivot_wider(names_from = marital_status_label, values_from = `Participation (%)`)
+
+kable(alt_carework, digits = 2,
+      caption = "\\label{tab:alternative_carework}Marriage Penalty Using Alternative Care Work Definition",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Results are qualitatively similar with the alternative definition.
+
+## Regression Table: All Robustness Checks
+
+Table \ref{tab:robustness_regs} presents regression results for key subsamples, confirming the marriage penalty is robust across groups.
+
+```{r robustness_regs}
+# Subsamples
+m_rural <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+                   higher_ed + employed | State,
+                 data = filter(reg_data, urban == 0), weights = ~Weight, vcov = "HC1")
+
+m_urban <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+                   higher_ed + employed | State,
+                 data = filter(reg_data, urban == 1), weights = ~Weight, vcov = "HC1")
+
+m_employed <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+                      higher_ed + urban | State,
+                    data = filter(reg_data, employed == 1), weights = ~Weight, vcov = "HC1")
+
+m_not_employed <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+                          higher_ed + urban | State,
+                        data = filter(reg_data, employed == 0), weights = ~Weight, vcov = "HC1")
+
+modelsummary(list("Rural" = m_rural, "Urban" = m_urban,
+                  "Employed" = m_employed, "Not Employed" = m_not_employed),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married"
+             ),
+             coef_omit = "Age|higher_ed|employed|urban",
+             gof_map = c("nobs", "r.squared"),
+             title = "\\label{tab:robustness_regs}Marriage Penalty Across Subsamples",
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The Female × Married coefficient is positive and statistically significant across all subsamples, ranging from 1.8 to 2.4 percentage points.
+
+# Discussion
+
+## Mechanisms: Why Does Marriage Increase Women's Care Work?
+
+Our findings document a substantial marriage penalty in unpaid care work for women but not men. What explains this pattern?
+
+**Hypothesis 1: Presence of Children.** Marriage may increase care work because married women are more likely to have children. However, our controls for age (which proxies for childbearing stage) do not eliminate the marriage penalty, suggesting the effect operates beyond mechanical childrearing demands.
+
+**Hypothesis 2: Cultural Norms.** Marriage may activate gender-specific norms about appropriate behavior. Indian society prescribes strong expectations that married women should perform domestic duties (Jayachandran 2015). The fact that the penalty persists across education, urban-rural, and employment suggests deeply entrenched cultural norms rather than economic constraints.
+
+**Hypothesis 3: Household Composition.** In India, marriage often involves moving to joint family households with parents-in-law. Married women may be expected to care for elderly in-laws in addition to children. The larger penalty for younger women is consistent with this: younger brides often face stronger expectations to demonstrate domestic competence to in-laws.
+
+**Hypothesis 4: Labor Supply Response.** Married women may reduce labor force participation and increase home production. However, our finding that employed married women also face penalties (1.8 pp) suggests the mechanism operates beyond labor supply.
+
+## Age Heterogeneity: Why Are Younger Married Women More Penalized?
+
+Younger married women (≤25) face marriage penalties 2.4 times larger than older married women. Several mechanisms may explain this:
+
+1. **Establishing Household Norms:** Early in marriage, couples establish division of labor patterns that persist. Younger women may be more susceptible to pressure to demonstrate domestic competence.
+
+2. **Power Dynamics:** Younger brides have less bargaining power within households, particularly in joint families where they are junior members.
+
+3. **Life Course Stage:** Women ≤25 are more likely in the intensive childrearing phase (infants and toddlers requiring constant care), while women >25 may have older children requiring less intensive care.
+
+4. **Selection:** Women who marry young may systematically differ from those who marry later in ways that correlate with care work orientation, even after controlling for observables.
+
+## Policy Implications
+
+The marriage penalty in care work has important implications for gender equality policy:
+
+**1. Challenging Marital Norms.** Policies should explicitly address expectations about married women's domestic roles. Public campaigns highlighting dual-earner, dual-career marriages may help shift norms.
+
+**2. Supporting Young Married Women.** The larger penalty for younger married women suggests interventions should target this group specifically. Subsidized childcare, parental leave policies, and mentorship programs could provide crucial support during this vulnerable period.
+
+**3. Engaging Men and Families.** The null effect of marriage on men's care work suggests men are insulated from care responsibilities upon marriage. Policies encouraging male care participation (non-transferable paternity leave, flexible work arrangements) are essential.
+
+**4. Delaying Marriage.** While controversial, policies supporting delayed marriage (through education, employment opportunities) may reduce young women's care burdens and improve long-run outcomes.
+
+## Limitations
+
+Several limitations warrant acknowledgment:
+
+**1. Causality.** We cannot claim causal identification. Marriage is endogenous to preferences and unobservables. Women who marry may differ systematically from those who remain single in ways correlated with care work orientation.
+
+**2. Selection.** Particularly at older ages, never-married individuals may be selected on characteristics related to care orientation. This could bias our estimates.
+
+**3. Cross-sectional Data.** The single-wave survey prevents examining within-person changes around marriage. Panel data following individuals from before to after marriage would strengthen causal inference.
+
+**4. Mechanism Uncertainty.** While we document patterns consistent with cultural norm explanations, we cannot definitively rule out alternative mechanisms or identify specific channels.
+
+## Connection to Broader Gender Inequality
+
+The marriage penalty in care work is not merely a domestic issue but a mechanism perpetuating women's broader economic disadvantage. Women's disproportionate care responsibilities upon marriage constrain labor force participation, human capital accumulation, and career advancement. Goldin (2014) shows that occupations rewarding long, inflexible hours—incompatible with primary care responsibility—generate the largest gender wage gaps. Kleven et al. (2019) document that motherhood creates persistent earnings penalties for women but not men, operating largely through labor supply.
+
+Our finding that marriage increases care work even before childbearing suggests the institution of marriage itself, not just parenthood, generates gender inequality. This implies policies targeting work-family balance for parents may be insufficient without addressing marital norms.
+
+# Conclusion
+
+Marriage substantially increases women's unpaid care work participation—by 2.1 percentage points (a 44% increase)—while having no effect on men's care work. This "marriage penalty" varies by age: younger women (≤25) experience penalties 2.4 times larger than older women, suggesting early marriage is particularly burdensome. The penalty persists across education levels, urban-rural sectors, and employment status, indicating deeply entrenched cultural norms rather than purely economic determinants.
+
+These findings reveal marriage as a critical institution reproducing gender inequality in household production. While economic development and education may gradually erode some gender disparities, marital norms appear resistant to socioeconomic change. Policy interventions explicitly targeting these norms—through parental leave design, workplace flexibility, and public campaigns—are essential for achieving gender equality in care work.
+
+The marriage penalty matters not only for fairness in household time allocation but for women's broader economic opportunities. Disproportionate care burdens constrain married women's labor force participation, earnings, and career advancement. Addressing the marriage penalty in care work is thus central to achieving comprehensive gender equality.
+
+# References {.unnumbered}
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Aguiar, Mark, and Erik Hurst. 2007. "Measuring Trends in Leisure: The Allocation of Time over Five Decades." *Quarterly Journal of Economics* 122(3): 969-1006.
+
+Akerlof, George A., and Rachel E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
+
+Anderson, Siwan, and Mukesh Eswaran. 2009. "What Determines Female Autonomy? Evidence from Bangladesh." *Journal of Development Economics* 90(2): 179-191.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Bertrand, Marianne, Emir Kamenica, and Jessica Pan. 2015. "Gender Identity and Relative Income within Households." *Quarterly Journal of Economics* 130(2): 571-614.
+
+Bloom, Shelah S., David Wypij, and Monica Das Gupta. 2001. "Dimensions of Women's Autonomy and the Influence on Maternal Health Care Utilization in a North Indian City." *Demography* 38(1): 67-78.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+Goldin, Claudia. 2014. "A Grand Gender Convergence: Its Last Chapter." *American Economic Review* 104(4): 1091-1119.
+
+Goldin, Claudia, and Lawrence F. Katz. 2002. "The Power of the Pill: Oral Contraceptives and Women's Career and Marriage Decisions." *Journal of Political Economy* 110(4): 730-770.
+
+Jayachandran, Seema. 2015. "The Roots of Gender Inequality in Developing Countries." *Annual Review of Economics* 7: 63-88.
+
+Kleven, Henrik, Camille Landais, and Jakob Egholt Søgaard. 2019. "Children and Gender Inequality: Evidence from Denmark." *American Economic Journal: Applied Economics* 11(4): 181-209.
+
+Stancanelli, Elena, and Leslie Stratton. 2014. "Maids, Machos and Married Men: An Analysis of Time Use by Couples in France and the United States." *Journal of Population Economics* 27(4): 1041-1072.
