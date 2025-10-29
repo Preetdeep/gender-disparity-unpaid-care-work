@@ -49,3 +49,93 @@ Age is numeric, continuous, min 6, max 118, mean 35.88, width 3, valid/invalid c
 Day of the week is discrete: 1=Monday, ..., 7=Sunday. Distribution is even, categorical codes used.
 
 Categorical/discrete variables use meaningful codes (e.g., Gender, Day of Week, Paid/Unpaid, etc.)
+
+Codebook: Survey/Employment Data Fields
+<details> <summary><strong>Principal Activity Status</strong></summary>
+Code	Category
+11	Worked in household enterprise (self-employed): own account worker
+12	Worked in household enterprise (self-employed): employer
+21	Worked as helper in household enterprise
+31	Worked as regular salaried/wage employee
+41	Worked as casual wage labour in public works
+51	Worked as casual wage labour in other types of work
+81	Had work in household enterprise but did not work due to sickness
+82	Had work in household enterprise but did not work due to other reasons
+91	Had salaried wage employment but did not work due to sickness
+92	Had salaried wage employment but did not work due to other reasons
+98	Did not work: Looking for work
+99	Did not work: Others
+</details> <details> <summary><strong>Gender</strong></summary>
+Code	Category
+1	Male
+2	Female
+3	Other
+</details> <details> <summary><strong>Marital Status</strong></summary>
+Code	Category
+1	Never married
+2	Currently married
+3	Widowed
+4	Divorced/separated
+</details> <details> <summary><strong>Relation to Head of Household</strong></summary>
+Code	Category
+1	Self
+2	Spouse
+3	Child
+4	Grandchild
+5	Parent
+6	Parent-in-law
+7	Brother/Sister
+8	Other relatives
+9	Non-relatives
+</details> <details> <summary><strong>Highest Level of Education</strong></summary>
+Code	Category
+0	Not literate
+1	Literate - without formal schooling
+2	Literate - up to primary
+3	Middle
+4	Secondary
+5	Higher secondary
+6	Diploma/certificate course
+7	Graduate & above
+</details> <details> <summary><strong>Day of the Week</strong></summary>
+Code	Category
+1	Monday
+2	Tuesday
+3	Wednesday
+4	Thursday
+5	Friday
+6	Saturday
+7	Sunday
+</details> <details> <summary><strong>Type of Day</strong></summary>
+Code	Category
+1	Normal day
+2	Holiday
+3	Festival
+</details> <details> <summary><strong>Response Code</strong></summary>
+Code	Category
+1	Response received
+2	No response
+3	Refused
+4	Could not contact
+</details> <details> <summary><strong>Unpaid/Paid Status of Activity</strong></summary>
+Code	Category
+1	Unpaid
+2	Paid
+</details> <details> <summary><strong>Multiple Activity Flag</strong></summary>
+Code	Category
+1	Yes
+2	No
+</details> <details> <summary><strong>Simultaneous Activity Flag</strong></summary>
+Code	Category
+1	Yes
+2	No
+</details> <details> <summary><strong>Major Activity Flag</strong></summary>
+Code	Category
+1	Yes
+2	No
+</details> <details> <summary><strong>Enterprise Type</strong></summary>
+Code	Category
+1	Government/Public Sector
+2	Private Sector/Enterprise
+3	NGO/Trust/Cooperative
+</details>
