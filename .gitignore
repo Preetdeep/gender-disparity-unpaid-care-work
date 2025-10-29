@@ -11,10 +11,6 @@
 *_cache/
 *_files/
 
-# Output files
-*.pdf
-*.html
-*.docx
 
 # Data files (too large for git)
 *.dta
