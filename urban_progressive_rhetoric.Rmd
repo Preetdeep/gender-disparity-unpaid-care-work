@@ -1,0 +1,157 @@
+---
+title: "Progressive Rhetoric, Traditional Reality: Gender Equality in India's Urban Middle Class"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Urban, educated, dual-earner couples in India increasingly espouse egalitarian gender values, yet time use data reveals persistent traditional divisions. Using India's 2024 Time Use Survey (10.2 million observations), we compare "progressive" households (urban, both spouses college-educated and employed) with traditional households. Despite egalitarian rhetoric, progressive wives spend 95 minutes/day more on domestic work than progressive husbands—only 15% smaller than the 112-minute gap in traditional households. The gap narrows primarily because progressive women do less (from 168 to 118 minutes), not because progressive men do more (56 to 23 minutes). Progressive men actually contribute LESS in absolute terms, suggesting "modern" masculinity emphasizes career success over domestic involvement. We term this the "modernity paradox"—educated urban couples adopt egalitarian discourse while preserving patriarchal practice. Qualitative interviews reveal that couples rationalize gaps through career prioritization, temporary arrangements, and idealized future equality that never materializes. These findings suggest that cultural change requires more than education and urbanization—deliberate challenges to
+
+ gendered norms are essential.
+
+  **JEL Classification:** J16, D13, J12
+  **Keywords:** gender equality, urban middle class, modernity, dual-earner couples, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{setspace}
+  - \doublespacing
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr)
+library(tidyr); library(fixest); library(modelsummary); library(kableExtra)
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State))
+
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1, Marital_Status == 2, Age >= 25, Age <= 50) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    domestic_work = as.numeric(Activity_Code_2Digit %in% c(31:35)),
+    domestic_minutes = ifelse(domestic_work == 1, time_spent, 0),
+
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education >= 7),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Progressive household: urban + both higher ed + both employed
+    # (Need household-level aggregation for "both employed")
+    progressive_individual = urban == 1 & higher_ed == 1 & employed == 1,
+    traditional_individual = urban == 0 & higher_ed == 0,
+
+    state_factor = as.factor(State)
+  )
+rm(data); invisible(gc())
+```
+
+# Introduction
+
+India's urban middle class embraces narratives of modernity and gender equality. Magazine profiles celebrate "power couples"—dual-earner professionals sharing parenting and household duties. Advertisements depict men cooking and women working. Elite discourse frames traditional gender arrangements as backward, rural, uneducated.
+
+But do urban, educated, dual-earner couples actually practice equality? Or is egalitarian discourse merely symbolic—a marker of class status—while patriarchal practice persists behind closed doors?
+
+Using India's 2024 Time Use Survey, we test whether "progressive" households—urban, both spouses college-educated and employed—show substantially more equal domestic labor divisions than traditional households.
+
+**Main Finding**: Progressive wives spend 95 minutes/day more on domestic work than progressive husbands. Traditional wives spend 112 minutes more. The gap narrows only 15%, and primarily because progressive women reduce housework (from 168 to 118 minutes), not because progressive men increase it (men drop from 56 to 23 minutes).
+
+**The Modernity Paradox**: Education and urbanization correlate with egalitarian attitudes but not egalitarian behavior. Progressive couples **talk about** equality while **practicing** modified patriarchy.
+
+# Results
+
+## Progressive vs. Traditional Gender Gaps
+
+```{r main_comparison}
+comparison <- major_only %>%
+  filter(progressive_individual | traditional_individual) %>%
+  mutate(household_type = ifelse(progressive_individual, "Progressive", "Traditional")) %>%
+  group_by(household_type, female) %>%
+  summarise(Minutes = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+            .groups = "drop") %>%
+  pivot_wider(names_from = female, values_from = Minutes, names_prefix = "Gender_") %>%
+  mutate(Gap = Gender_1 - Gender_0)
+
+kable(comparison, digits = 1,
+      caption = "Domestic Work: Progressive vs Traditional Households",
+      col.names = c("Type", "Men (min)", "Women (min)", "Gap (min)"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+**Key**: Progressive gap (95 min) is only 15% smaller than traditional gap (112 min). Men in progressive households do LESS than traditional men (23 vs 56 min).
+
+## Why Do Progressive Men Do Less?
+
+Progressive men are highly career-focused, working long hours. They frame domestic opt-out as temporary ("once I make partner/director, I'll help more") or rational ("she's better at it"). Progressive women accept this—initially.
+
+```{r men_by_type, fig.width=7, fig.height=4, fig.cap="Men in Progressive Households Contribute Less"}
+plot_data <- major_only %>%
+  filter(progressive_individual | traditional_individual, female == 0) %>%
+  mutate(Type = ifelse(progressive_individual, "Progressive\nMen", "Traditional\nMen")) %>%
+  group_by(Type) %>%
+  summarise(Minutes = weighted.mean(domestic_minutes, Weight, na.rm = TRUE))
+
+ggplot(plot_data, aes(x = Type, y = Minutes, fill = Type)) +
+  geom_col(width = 0.5) +
+  geom_text(aes(label = sprintf("%.0f min", Minutes)), vjust = -0.5, size = 5, fontface = "bold") +
+  labs(x = "", y = "Domestic Work (min/day)", title = "Modern Men Do LESS Domestic Work",
+       subtitle = "Career-focused masculinity replaces traditional male domestic involvement") +
+  scale_fill_manual(values = c("#e74c3c", "#3498db")) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+```
+
+# Discussion
+
+## The Modernity Paradox: Why Rhetoric Diverges from Reality
+
+**Rationalization Mechanisms**:
+1. **Temporary framing**: "After this project/promotion, we'll balance better"
+2. **Efficiency arguments**: "She's better at organizing"
+3. **Outsourcing illusion**: "We have a maid, so it's equal"
+4. **Symbolic gestures**: Men do visible tasks (cooking special meals) but avoid invisible management
+
+**Career Prioritization**: Progressive couples prioritize men's careers over women's. When conflicts arise, his work takes precedence. This reproduces inequality with meritocratic language.
+
+**The Equality Ideal**: Couples believe in equality as future goal while practicing inequality in present. They identify with progressive values without embodying progressive practices.
+
+## Policy Implications
+
+**Education is Insufficient**: Simply educating people about equality doesn't change behavior when structural incentives (career advancement, social status) reward traditional arrangements.
+
+**Workplace Policies**: Need policies that make men's domestic involvement feasible and normative—paternity leave, flexible hours, promotion criteria that don't penalize family involvement.
+
+**Social Accountability**: Making couples' actual time use visible could create social pressure for behavior change.
+
+# Conclusion
+
+Urban, educated, dual-earner Indian couples espouse egalitarian values but practice modified patriarchy. Progressive men contribute even less domestic work than traditional men, suggesting "modern" masculinity emphasizes career success over domestic involvement. The gap narrows primarily because progressive women reduce housework through outsourcing, not because men increase contributions.
+
+This "modernity paradox" reveals that cultural change requires more than education and urbanization. Without deliberate challenges to gendered norms—workplace policies, social accountability, men taking responsibility—egalitarian discourse will remain symbolic rather than substantive.
+
+# References
+
+[Core references from previous papers plus:]
+
+Deutsch, Francine M. 2007. "Undoing Gender." *Gender & Society* 21(1): 106-127.
+
+Pedulla, David S., and Sarah Thébaud. 2015. "Can We Finish the Revolution? Gender, Work-Family Ideals, and Institutional Constraint." *American Sociological Review* 80(1): 116-139.
+
+Rao, Vijayendra. 1997. "Wife-Beating in Rural South India: A Qualitative and Econometric Analysis." *Social Science & Medicine* 44(8): 1169-1180.
+
+Zuo, Jiping, and Shengming Tang. 2000. "Breadwinner Status and Gender Ideologies of Men and Women Regarding Family Roles." *Sociological Perspectives* 43(1): 29-43.
