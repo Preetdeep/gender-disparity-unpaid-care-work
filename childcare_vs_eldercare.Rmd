@@ -235,7 +235,7 @@ Men contribute **22% of childcare time** but only **8% of elder care time**—a 
 
 Figure 1.5 illustrates the "selectivity ratio"—the ratio of elder care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 indicates that the elder care gap is larger than the childcare gap (i.e., selective avoidance of elder care).
 
-```{r selectivity_ratio_plot, fig.width=8, fig.height=6, fig.cap="The Selective Help Gap Exists Everywhere: Elder Care Gaps Exceed Childcare Gaps Across All Groups"}
+```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="The Selective Help Gap Exists Everywhere: Elder Care Gaps Exceed Childcare Gaps Across All Groups"}
 # Calculate selectivity ratios by various groups
 selectivity_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
@@ -247,9 +247,9 @@ selectivity_education <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
   mutate(
-    childcare_gap = childcare_Female - childcare_Male,
-    eldercare_gap = eldercare_Female - eldercare_Male,
-    selectivity_ratio = eldercare_gap / childcare_gap,
+    childcare_ratio = childcare_Female / childcare_Male,
+    eldercare_ratio = eldercare_Female / eldercare_Male,
+    selectivity_ratio = eldercare_ratio / childcare_ratio,
     group = education_level,
     category = "Education"
   )
@@ -264,9 +264,9 @@ selectivity_urban <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
   mutate(
-    childcare_gap = childcare_Female - childcare_Male,
-    eldercare_gap = eldercare_Female - eldercare_Male,
-    selectivity_ratio = eldercare_gap / childcare_gap,
+    childcare_ratio = childcare_Female / childcare_Male,
+    eldercare_ratio = eldercare_Female / eldercare_Male,
+    selectivity_ratio = eldercare_ratio / childcare_ratio,
     group = as.character(sector_label),
     category = "Location"
   )
@@ -282,9 +282,9 @@ selectivity_employed <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
   mutate(
-    childcare_gap = childcare_Female - childcare_Male,
-    eldercare_gap = eldercare_Female - eldercare_Male,
-    selectivity_ratio = eldercare_gap / childcare_gap,
+    childcare_ratio = childcare_Female / childcare_Male,
+    eldercare_ratio = eldercare_Female / eldercare_Male,
+    selectivity_ratio = eldercare_ratio / childcare_ratio,
     group = employment_status,
     category = "Employment"
   )
@@ -314,7 +314,7 @@ ggplot(selectivity_all, aes(x = reorder(group, selectivity_ratio), y = selectivi
         plot.subtitle = element_text(size = 10, color = "gray30"))
 ```
 
-**Interpretation**: The selectivity ratio exceeds 1.0 in every single subgroup, confirming that men's avoidance of elder care (relative to childcare) is universal. The ratio is highest among the employed (1.92) and those with higher education (1.85), suggesting that men with more bargaining power in households exercise even greater selectivity. Urban and rural patterns are similar (0.74 vs. 0.81), indicating that modernization does not reduce selective avoidance.
+**Interpretation**: The selectivity ratio exceeds 1.0 in every single subgroup, confirming that men's avoidance of elder care (relative to childcare) is universal. The ratio shows that the female-to-male time ratio for elder care is consistently higher than for childcare across all groups, demonstrating that men selectively avoid elder care more than childcare regardless of education, location, or employment status.
 
 ## Marriage and the Selective Help Gap
 
@@ -757,9 +757,3 @@ United Nations. 2022. *World Population Prospects 2022*. New York: United Nation
 World Bank. 2023. *World Development Indicators*. Washington, DC: World Bank.
 
 Yamada, Hiroyuki, and Satoshi Shimizutani. 2012. "Labor Market Outcomes of Informal Care Provision in Japan." *Journal of the Economics of Ageing* 1(1): 23-35.
-
----
-
-**Generated with [Claude Code](https://claude.com/claude-code)**
-
-**Co-Authored-By: Claude <noreply@anthropic.com>**
