@@ -236,20 +236,20 @@ Men contribute **22% of childcare time** but only **8% of elder care time**—a 
 Figure 1.5 illustrates the "selectivity ratio"—the ratio of elder care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 indicates that the elder care gap is larger than the childcare gap (i.e., selective avoidance of elder care).
 
 ```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="The Selective Help Gap Exists Everywhere: Elder Care Gaps Exceed Childcare Gaps Across All Groups"}
-# Calculate selectivity ratios by various groups
+# Calculate selectivity ratios by various groups using PARTICIPATION RATE GAPS
 selectivity_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
   group_by(education_level, gender_label) %>%
   summarise(
-    childcare = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    eldercare = weighted.mean(eldercare_minutes, Weight, na.rm = TRUE),
+    childcare_participation = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
+    eldercare_participation = 100 * weighted.mean(eldercare, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
+  pivot_wider(names_from = gender_label, values_from = c(childcare_participation, eldercare_participation)) %>%
   mutate(
-    childcare_ratio = childcare_Female / childcare_Male,
-    eldercare_ratio = eldercare_Female / eldercare_Male,
-    selectivity_ratio = eldercare_ratio / childcare_ratio,
+    childcare_gap = childcare_participation_Female - childcare_participation_Male,
+    eldercare_gap = eldercare_participation_Female - eldercare_participation_Male,
+    selectivity_ratio = eldercare_gap / childcare_gap,
     group = education_level,
     category = "Education"
   )
@@ -258,15 +258,15 @@ selectivity_urban <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
   group_by(sector_label, gender_label) %>%
   summarise(
-    childcare = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    eldercare = weighted.mean(eldercare_minutes, Weight, na.rm = TRUE),
+    childcare_participation = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
+    eldercare_participation = 100 * weighted.mean(eldercare, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
+  pivot_wider(names_from = gender_label, values_from = c(childcare_participation, eldercare_participation)) %>%
   mutate(
-    childcare_ratio = childcare_Female / childcare_Male,
-    eldercare_ratio = eldercare_Female / eldercare_Male,
-    selectivity_ratio = eldercare_ratio / childcare_ratio,
+    childcare_gap = childcare_participation_Female - childcare_participation_Male,
+    eldercare_gap = eldercare_participation_Female - eldercare_participation_Male,
+    selectivity_ratio = eldercare_gap / childcare_gap,
     group = as.character(sector_label),
     category = "Location"
   )
@@ -276,15 +276,15 @@ selectivity_employed <- major_only %>%
   mutate(employment_status = ifelse(employed == 1, "Employed", "Not Employed")) %>%
   group_by(employment_status, gender_label) %>%
   summarise(
-    childcare = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    eldercare = weighted.mean(eldercare_minutes, Weight, na.rm = TRUE),
+    childcare_participation = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
+    eldercare_participation = 100 * weighted.mean(eldercare, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  pivot_wider(names_from = gender_label, values_from = c(childcare, eldercare)) %>%
+  pivot_wider(names_from = gender_label, values_from = c(childcare_participation, eldercare_participation)) %>%
   mutate(
-    childcare_ratio = childcare_Female / childcare_Male,
-    eldercare_ratio = eldercare_Female / eldercare_Male,
-    selectivity_ratio = eldercare_ratio / childcare_ratio,
+    childcare_gap = childcare_participation_Female - childcare_participation_Male,
+    eldercare_gap = eldercare_participation_Female - eldercare_participation_Male,
+    selectivity_ratio = eldercare_gap / childcare_gap,
     group = employment_status,
     category = "Employment"
   )
@@ -314,7 +314,7 @@ ggplot(selectivity_all, aes(x = reorder(group, selectivity_ratio), y = selectivi
         plot.subtitle = element_text(size = 10, color = "gray30"))
 ```
 
-**Interpretation**: The selectivity ratio exceeds 1.0 in every single subgroup, confirming that men's avoidance of elder care (relative to childcare) is universal. The ratio shows that the female-to-male time ratio for elder care is consistently higher than for childcare across all groups, demonstrating that men selectively avoid elder care more than childcare regardless of education, location, or employment status.
+**Interpretation**: The selectivity ratio exceeds 1.0 in every single subgroup, confirming that men's avoidance of elder care (relative to childcare) is universal. The ratio is calculated as (elder care participation gap) / (childcare participation gap), where gaps are measured in percentage points. Values above 1.0 indicate that the gender gap in elder care participation exceeds the gap in childcare participation, demonstrating that men selectively avoid elder care more than childcare regardless of education, location, or employment status.
 
 ## Marriage and the Selective Help Gap
 
