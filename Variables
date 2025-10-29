@@ -1,0 +1,51 @@
+Summary table of all variables for the India Time Use Survey 2024 (tus106PER data file), including specifics for Age and Day of the Week as requested:
+
+Variable Name	Type	Format	Range/Min/Max	Categories/Details
+Age	Numeric	Continuous	Min: 6, Max: 118, Mean: 35.88	Age of person. Width: 3. Valid: 10,128,216. Invalid: 83,262. ​
+Day of the Week	Discrete	Character	1–7	1=Monday, 2=Tuesday, ..., 7=Sunday. Valid: 10,128,216. Each day distributed almost equally. ​
+Schedule_ID	Numeric	Character	-	Schedule identification code ​
+FSU_Serial_No	Numeric	Character	-	Frame Survey Unit serial number ​
+Schedule	Character	-	-	Schedule type ​
+Survey_Year	Character	-	-	Year of survey ​
+Sector	Character	-	-	Urban/Rural ​
+NSS_Region	Character	-	-	Region code ​
+District	Character	-	-	District code ​
+Stratum	Character	-	-	Coding for survey stratification ​
+Sub_Stratum	Character	-	-	Sub-stratification code ​
+Sub_Round	Character	-	-	Sub-round indicator ​
+FOD_Sub_Region	Character	-	-	Field Office sub-region code ​
+Sample_HH_No	Numeric	-	-	Household sample number ​
+Person_Serial_No	Numeric	-	-	Person serial number within household ​
+Relation_to_Head	Discrete	Character	-	Relationship category ​
+Gender	Discrete	Character	1=Male, 2=Female, 3=Other	Gender of individual ​
+Marital_Status	Discrete	Character	-	Marital status categories ​
+Highest_Education	Discrete	Character	-	Highest education: categorical ​
+Principal_Activity_Status	Discrete	Character	-	Occupation status: categorical ​
+NIC_Industry_Code	Discrete	Numeric	2-digit code	Industry code per NIC 2008 ​
+Member_Serial_No	Numeric	-	-	Household member serial number ​
+Member_Age	Numeric	-	-	Age of household member ​
+Informant_Serial_No	Numeric	-	-	Number of informant ​
+Informant_Gender	Discrete	Character	1=Male, 2=Female, etc.	Gender of informant ​
+Type_of_Day	Discrete	Character	Codes for day type	​
+Response_Code	Numeric	-	-	Indicator for response: categorical ​
+Activity_Member_Serial_No	Numeric	-	-	Serial no. for activity member ​
+Activity_Member_Age	Numeric	-	Min: 6, Max: 118	Age while performing activity; mean: 35.88 ​
+Activity_Serial_No	Numeric	-	-	Activity serial ​
+Time_From	Character	Time	HH:MM format	Activity starting time ​
+Time_To	Character	Time	HH:MM format	Activity ending time ​
+Multiple_Activity_Flag	Boolean	-	1=Yes, 2=No	Multiple activities? ​
+Simultaneous_Activity_Flag	Boolean	-	1=Yes, 2=No	Simultaneous activities? ​
+Major_Activity_Flag	Boolean	-	1=Yes, 2=No	Was activity major? ​
+Activity_Code_3Digit	Numeric	-	Coded 3-digit	Code for activity ​
+Activity_Location	Character	-	-	Location where performed ​
+Unpaid_Paid_Status	Discrete	Character	1=Unpaid, 2=Paid	Was activity paid/unpaid? ​
+Enterprise_Type	Discrete	Character	-	Enterprise typology ​
+NSC	Character	-	-	NSC variable ​
+MULT	Character	-	-	MULT variable ​
+Key specifics:
+
+Age is numeric, continuous, min 6, max 118, mean 35.88, width 3, valid/invalid counts noted.
+
+Day of the week is discrete: 1=Monday, ..., 7=Sunday. Distribution is even, categorical codes used.
+
+Categorical/discrete variables use meaningful codes (e.g., Gender, Day of Week, Paid/Unpaid, etc.)
