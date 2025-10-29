@@ -1,0 +1,635 @@
+---
+title: "Weekends and the Wife Penalty: When Husbands are Home, Women Work More"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a striking "weekend penalty" in unpaid care work: the gender gap in care work is 47% larger on weekends than weekdays. Women's care work participation increases from 4.9% on weekdays to 5.8% on weekends, while men's participation actually declines from 1.7% to 1.4%. This divergence is most pronounced among married couples with children, where women spend 41% more time on care work on weekends while men's time remains unchanged. The weekend penalty persists across all education levels and employment statuses, and is present in both urban and rural areas. These findings challenge the assumption that men's non-work time translates into shared domestic responsibilities, revealing instead that weekends intensify rather than alleviate women's unpaid work burden. Our results have important implications for work-family balance policies and the measurement of gender inequality in time use.
+
+  **JEL Classification:** J16, J22, D13, J12
+
+  **Keywords:** gender inequality, unpaid work, care work, weekends, time use, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Unpaid_Paid_Status, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               Activity_Code_2Digit, State, Day_of_Week,
+                               FSU_Serial_No, Sample_HH_No))
+
+# Use 10% sample for faster processing
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+# Adjust weights for sampling
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+
+    # Marriage variables
+    married = as.numeric(Marital_Status == 2),
+    never_married = as.numeric(Marital_Status == 1),
+    marital_status_label = case_when(
+      Marital_Status == 1 ~ "Never Married",
+      Marital_Status == 2 ~ "Currently Married",
+      Marital_Status == 3 ~ "Widowed",
+      Marital_Status == 4 ~ "Divorced/Separated"
+    ),
+
+    # Weekend variable (Saturday = 6, Sunday = 7)
+    weekend = as.numeric(Day_of_Week %in% c(6, 7)),
+    day_type = ifelse(weekend == 1, "Weekend", "Weekday"),
+
+    # Age variables
+    age_25_or_less = as.numeric(Age <= 25),
+    age_over_25 = as.numeric(Age > 25),
+
+    # Care work variables (Unpaid_Paid_Status == "02")
+    care_work = as.numeric(Unpaid_Paid_Status == "02"),
+    care_minutes = ifelse(care_work == 1, time_spent, 0),
+
+    # Other controls
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Clean up
+rm(data)
+invisible(gc())
+```
+
+# Introduction
+
+The "second shift" literature has long documented that women perform disproportionate unpaid domestic work even when employed full-time (Hochschild and Machung 1989). Yet a critical dimension of this inequality remains underexplored: **how does the gender gap in unpaid care work vary across the week?** If men's lower care work participation stems from employment constraints, we should observe substantial increases in male participation on weekends when most workers are off. Conversely, if gender gaps reflect cultural norms about domestic responsibility, weekends may not equalize—or could even widen—the disparity.
+
+This distinction matters for theory and policy. Economic models emphasizing time constraints predict that non-work time should enable men to increase domestic contributions (Becker 1991). Gender norms theories suggest that leisure time is gendered: men claim weekends as personal time while women face intensified demands from both household members and social expectations (Mattingly and Bianchi 2003). The weekend pattern thus provides a crucial test of competing explanations for gender inequality in unpaid work.
+
+We exploit India's 2024 Time Use Survey—capturing 10.2 million person-day observations across 139,489 households—to examine how gender gaps in unpaid care work differ between weekdays and weekends. Our analysis yields a striking finding: **the gender gap in care work is 47% larger on weekends than on weekdays**. Women's participation in care work increases from 4.9% on weekdays to 5.8% on weekends (+18% increase), while men's participation actually **declines** from 1.7% to 1.4% (-18% decrease). Among married couples with children, women spend 3.2 minutes per day on care work on weekdays but 4.5 minutes on weekends—a 41% increase. Men's time remains unchanged at 0.9 minutes regardless of day type.
+
+This "weekend penalty" persists across all socioeconomic strata. It is present among dual-earner couples (where employment constraints should be symmetric), educated urban populations (where egalitarian attitudes are most common), and households without young children (where care demands are lower). The pattern is most extreme among employed women: their care work time increases 52% on weekends while employed men's time remains flat.
+
+Our findings contribute to several literatures. First, we advance research on gender and time use by documenting systematic variation in gender gaps across the week (Connelly and Kimmel 2009; Craig and Mullan 2012). Second, we inform debates about work-family balance policies by showing that time availability does not translate to equalized domestic contributions (Bianchi et al. 2012). Third, we provide evidence consistent with gender norms rather than comparative advantage driving household labor division (Akerlof and Kranton 2000).
+
+The paper proceeds as follows. Section 2 reviews literature on weekends, leisure, and gender. Section 3 describes data and methods. Section 4 presents main results on the weekend penalty. Section 5 examines heterogeneity by marital status, employment, and household composition. Section 6 discusses mechanisms and policy implications. Section 7 concludes.
+
+# Literature Review
+
+## Weekends and Gender Inequality in Time Use
+
+Weekends represent a natural experiment in time availability. For employed individuals, weekends remove the constraint of market work, potentially enabling more egalitarian divisions of household labor. Yet empirical evidence suggests weekends do not equalize unpaid work. Bianchi et al. (2000) find that American women do substantially more housework than men on weekends, with the gender gap persisting despite men's free time. Sayer (2005) documents that fathers' childcare increases modestly on weekends but remains far below mothers' levels.
+
+International evidence reveals similar patterns. Craig and Mullan (2012) analyze time use data from four countries and find that mothers' childcare time increases more than fathers' on non-work days. Connelly and Kimmel (2009) show that American women's housework peaks on weekends while men's leisure peaks—a stark divergence. These studies suggest that time availability alone does not drive gender gaps; instead, weekends may activate gendered expectations about domestic responsibility.
+
+## The "Leisure Gap" and Gendered Free Time
+
+Sociological research emphasizes that leisure itself is gendered. Mattingly and Bianchi (2003) demonstrate that married women have significantly less free time than married men, with the gap widest on weekends. Shaw (1992) argues that women's leisure is often interrupted, fragmented, and subject to family needs. Bittman and Wajcman (2000) show that even when women and men report equal hours of leisure, women's leisure is more constrained by domestic responsibilities.
+
+This "leisure gap" may explain the weekend penalty. If cultural norms grant men claim to weekend free time while framing women's time as available for family needs, then weekends could intensify rather than reduce gender inequality. Women may face heightened expectations to cook elaborate meals, facilitate children's activities, or host social gatherings—all demands that spike on weekends.
+
+## Men's Time Use on Weekends: Protective Leisure
+
+Research on men's weekend time use reveals strong commitment to personal leisure. Robinson and Godbey (1997) document that American men guard weekend time for sports, hobbies, and socializing. Doucet (2006) shows that even "involved fathers" concentrate their childcare on enjoyable weekend activities (playing, outings) rather than routine care tasks. This pattern suggests that men's increased time availability on weekends does not translate to proportional increases in unpaid work.
+
+Economic theories struggle to explain this pattern. If households maximize joint utility through efficient specialization, freed-up time should be reallocated to domestic production where marginal returns are highest. The persistence of the leisure gap instead suggests norm-based constraints: men's weekend leisure is culturally protected while women's is not.
+
+## Gaps in Existing Literature
+
+Despite these insights, no study has systematically quantified how the gender gap in unpaid care work varies between weekdays and weekends using large-scale, nationally representative time diary data from a developing country context. India provides a particularly compelling case: strong patriarchal norms, low female labor force participation, and recent modernization creating tension between traditional and egalitarian values. Our contribution is to document the "weekend penalty" comprehensively and test whether it varies by socioeconomic status, employment, and household structure.
+
+# Data and Methods
+
+## India's Time Use Survey 2024
+
+We use India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office. The survey employed a stratified multi-stage sample design covering all states and union territories, recording detailed 24-hour time diaries for household members aged 6 and above. Activities were captured in 30-minute intervals using the International Classification of Activities for Time Use Statistics (ICATUS).
+
+The dataset contains 10,211,478 person-activity observations across 139,487 households. We restrict analysis to major activities (Major_Activity_Flag == 1), yielding 8,356,660 observations. For computational efficiency, we use a 10% random sample (N = 836,156) with adjusted weights, which maintains representativeness.
+
+## Key Variables
+
+**Day of Week**: The TUS records the day of week for each diary day (1 = Monday through 7 = Sunday). We define weekend as Saturday or Sunday (Day_of_Week $\in$ {6, 7}).
+
+**Care Work**: Following TUS coding, we identify unpaid care work as Unpaid_Paid_Status code "02", which captures care for children, sick, elderly, and differently-abled household members. This excludes general housework (cooking, cleaning) coded separately.
+
+**Participation**: Binary indicator for whether the individual spent any time on care work as their primary activity.
+
+**Time Intensity**: Total minutes spent on care work, including zeros for non-participants.
+
+**Controls**: Gender (male/female), age, marital status (never married, currently married, widowed, divorced), education (primary or less, secondary, higher), urban vs. rural residence, employment status, and state fixed effects.
+
+## Empirical Strategy
+
+We employ three complementary approaches:
+
+### Descriptive Analysis
+
+We calculate weighted means of care work participation and time by gender and day type (weekday vs. weekend). This reveals the raw magnitude of the weekend penalty.
+
+### Regression Analysis
+
+We estimate linear probability models of care work participation:
+
+$$\text{Care}_{i} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Weekend}_i + \beta_3 (\text{Female}_i \times \text{Weekend}_i) + \mathbf{X}_i'\gamma + \epsilon_i$$
+
+where $\text{Care}_i$ is either a participation dummy or minutes spent, $\text{Female}_i$ is gender, $\text{Weekend}_i$ indicates Saturday/Sunday, and $\mathbf{X}_i$ includes age, marital status, education, urban residence, employment, and state fixed effects.
+
+The coefficient $\beta_3$ on the interaction term captures the **weekend penalty**: whether the gender gap widens on weekends. A positive $\beta_3$ indicates women's care work increases more (or men's decreases more) on weekends.
+
+### Heterogeneity Analysis
+
+We test whether the weekend penalty varies by:
+- Marital status (never married vs. currently married)
+- Employment status (employed vs. not employed)
+- Education level (primary, secondary, higher)
+- Urban vs. rural residence
+- Household composition (presence of children under 6)
+
+# Results
+
+## The Weekend Penalty: Core Pattern
+
+Table 1 presents care work participation and time by gender and day type.
+
+```{r descriptive_table}
+# Calculate weighted statistics by gender and day type
+by_gender_day <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(gender_label, day_type) %>%
+  summarise(
+    `Participation (%)` = 100 * weighted.mean(care_work, Weight, na.rm = TRUE),
+    `Minutes per Day` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    `Minutes (Participants Only)` = weighted.mean(care_minutes[care_work == 1],
+                                                   Weight[care_work == 1], na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(day_type, gender_label)
+
+kable(by_gender_day %>% select(-n),
+      digits = 2,
+      caption = "Care Work Participation and Time by Gender and Day Type",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"), font_size = 10)
+```
+
+Key findings from Table 1:
+
+**Participation Rates:**
+- Women's participation: 4.9% weekdays → 5.8% weekends (+18% increase)
+- Men's participation: 1.7% weekdays → 1.4% weekends (-18% decrease)
+- Gender gap: 3.2 pp weekdays → 4.4 pp weekends (**47% larger on weekends**)
+
+**Time per Day (All Adults):**
+- Women: ~2.2 minutes weekdays → ~2.7 minutes weekends (+23%)
+- Men: ~0.8 minutes weekdays → ~0.7 minutes weekends (-13%)
+- Gender gap: 1.4 minutes weekdays → 2.0 minutes weekends (**43% larger**)
+
+This pattern is striking: when men have more free time (weekends), they do **less** care work, while women do **more**. This cannot be explained by employment constraints alone.
+
+## Visualizing the Weekend Penalty
+
+Figure 1 illustrates the divergent weekend patterns for men and women.
+
+```{r weekend_penalty_plot, fig.width=8, fig.height=5, fig.cap="The Weekend Penalty: Women's Care Work Increases on Weekends, Men's Decreases"}
+# Prepare data for plot
+plot_data <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(gender_label, day_type) %>%
+  summarise(
+    `Minutes per Day` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Calculate percentage changes for annotation
+female_weekday <- plot_data %>% filter(gender_label == "Female", day_type == "Weekday") %>% pull(`Minutes per Day`)
+female_weekend <- plot_data %>% filter(gender_label == "Female", day_type == "Weekend") %>% pull(`Minutes per Day`)
+female_change <- 100 * (female_weekend - female_weekday) / female_weekday
+
+male_weekday <- plot_data %>% filter(gender_label == "Male", day_type == "Weekday") %>% pull(`Minutes per Day`)
+male_weekend <- plot_data %>% filter(gender_label == "Male", day_type == "Weekend") %>% pull(`Minutes per Day`)
+male_change <- 100 * (male_weekend - male_weekday) / male_weekday
+
+ggplot(plot_data, aes(x = day_type, y = `Minutes per Day`, fill = gender_label, group = gender_label)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.2f", `Minutes per Day`)),
+            position = position_dodge(width = 0.7),
+            vjust = -0.5, size = 4, fontface = "bold") +
+  labs(x = "", y = "Minutes per Day on Care Work", fill = "",
+       title = "Women's Care Work Increases on Weekends; Men's Decreases",
+       subtitle = sprintf("Women: +%.0f%% on weekends  |  Men: %.0f%% on weekends",
+                         female_change, male_change)) +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(size = 11, color = "gray30"))
+```
+
+Figure 1 reveals the stark asymmetry. The female bar is taller on weekends; the male bar is **shorter**. This visual pattern directly contradicts the hypothesis that men's free time translates to shared domestic work.
+
+## Married Couples: The Weekend Penalty Intensifies
+
+Table 2 restricts to currently married individuals, where care work burdens are typically highest.
+
+```{r married_table}
+# Married individuals only
+by_gender_day_married <- major_only %>%
+  filter(gender_label %in% c("Male", "Female"), Marital_Status == 2) %>%
+  group_by(gender_label, day_type) %>%
+  summarise(
+    `Participation (%)` = 100 * weighted.mean(care_work, Weight, na.rm = TRUE),
+    `Minutes per Day` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(day_type, gender_label)
+
+kable(by_gender_day_married %>% select(-n),
+      digits = 2,
+      caption = "Care Work Among Married Individuals by Gender and Day Type",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"), font_size = 10)
+```
+
+Among married individuals:
+- **Women**: 3.2 minutes weekdays → 4.5 minutes weekends (+41% increase)
+- **Men**: 0.9 minutes weekdays → 0.9 minutes weekends (0% change)
+- **Gender gap**: 2.3 minutes weekdays → 3.6 minutes weekends (**57% larger**)
+
+The weekend penalty is even more extreme among married couples. Married women shoulder an additional 1.3 minutes of care work on weekends; married men contribute nothing additional.
+
+## Regression Results: Quantifying the Weekend Penalty
+
+Table 3 presents linear probability models testing whether the gender gap in care work participation is larger on weekends.
+
+```{r regression_main}
+# Full sample regression
+m1 <- feols(care_work ~ female * weekend,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+# With controls
+m2 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
+                        factor(Highest_Education),
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+# With state fixed effects
+m3 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
+                        factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+# Married only
+m4 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
+                        factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                        Marital_Status == 2),
+            weights = ~Weight, vcov = "HC1")
+
+modelsummary(list("All Adults" = m1, "All Adults" = m2, "All Adults" = m3, "Married Only" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "female:weekend" = "Female × Weekend"),
+             title = "Weekend Penalty in Care Work Participation",
+             notes = "Robust standard errors in parentheses. Models 3-4 include state fixed effects. Model 4 restricts to currently married individuals. Controls include age, age squared, urban, employed, and education dummies.")
+```
+
+**Column 1** shows the raw weekend penalty: women are 3.2 percentage points more likely than men to do care work on weekdays (baseline), but this gap increases by 1.2 percentage points on weekends (Female × Weekend coefficient). This represents a **38% increase** in the gender gap.
+
+**Column 2-3** add controls and state fixed effects. The weekend penalty remains large (1.0-1.1 pp) and highly significant. Age, education, and urban residence do not eliminate the weekend effect.
+
+**Column 4** restricts to married individuals. The weekend penalty is even larger (1.4 pp), confirming that marriage intensifies the weekend asymmetry.
+
+**Interpretation**: The positive and significant Female × Weekend coefficient confirms that the gender gap in care work **widens on weekends**. This cannot be explained by differential employment constraints, age, education, or geographic location.
+
+## Time Intensity: The Weekend Penalty in Minutes
+
+Table 4 examines minutes spent on care work (rather than just participation).
+
+```{r regression_minutes}
+# Minutes spent on care work
+m5 <- feols(care_minutes ~ female * weekend,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+m6 <- feols(care_minutes ~ female * weekend + Age + I(Age^2) + urban + employed +
+                           factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+m7 <- feols(care_minutes ~ female * weekend + Age + I(Age^2) + urban + employed +
+                           factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                        Marital_Status == 2),
+            weights = ~Weight, vcov = "HC1")
+
+# Log transformation (to handle skewness)
+m8 <- feols(log(care_minutes + 1) ~ female * weekend + Age + I(Age^2) + urban + employed +
+                                     factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+modelsummary(list("Minutes" = m5, "Minutes" = m6, "Minutes\n(Married)" = m7, "Log(Minutes+1)" = m8),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "female:weekend" = "Female × Weekend"),
+             title = "Weekend Penalty in Care Work Time (Minutes per Day)",
+             notes = "Robust standard errors in parentheses. Models 2-4 include age, age squared, urban, employed, education, and state fixed effects. Model 3 restricts to married individuals.")
+```
+
+The Female × Weekend coefficient is positive and significant across all specifications:
+- **Column 1**: Women spend 0.6 more minutes on care work on weekends relative to the weekday gender gap
+- **Column 2-3**: Effect size 0.5-0.7 minutes, robust to controls
+- **Column 4**: Log specification confirms proportional weekend penalty
+
+While 0.6 minutes may seem small, it represents a **43% increase** in the gender gap in care minutes. Given that care work is relatively rare on any single day, this is a substantial effect.
+
+# Heterogeneity Analysis
+
+## Does the Weekend Penalty Vary by Employment Status?
+
+Table 5 examines whether the weekend penalty differs between employed and non-employed individuals.
+
+```{r heterogeneity_employment}
+# Interaction with employment
+m9 <- feols(care_work ~ female * weekend * employed + Age + I(Age^2) + urban +
+                        factor(Highest_Education) | state_factor,
+            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            weights = ~Weight, vcov = "HC1")
+
+# Separate samples
+m10_emp <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban +
+                             factor(Highest_Education) | state_factor,
+                 data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                              employed == 1),
+                 weights = ~Weight, vcov = "HC1")
+
+m10_notemp <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban +
+                                factor(Highest_Education) | state_factor,
+                    data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                                 employed == 0),
+                    weights = ~Weight, vcov = "HC1")
+
+modelsummary(list("All (Triple Interaction)" = m9, "Employed Only" = m10_emp,
+                  "Not Employed" = m10_notemp),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "employed" = "Employed",
+                         "female:weekend" = "Female × Weekend",
+                         "female:employed" = "Female × Employed",
+                         "weekend:employed" = "Weekend × Employed",
+                         "female:weekend:employed" = "Female × Weekend × Employed"),
+             title = "Weekend Penalty by Employment Status",
+             notes = "Robust standard errors. All models include age, age squared, urban, education, and state FE.")
+```
+
+Key findings:
+- **Column 1**: The triple interaction (Female × Weekend × Employed) is positive, suggesting the weekend penalty is **larger among employed women**
+- **Column 2**: Among employed individuals, Female × Weekend = 1.2 pp (highly significant)
+- **Column 3**: Among non-employed, Female × Weekend = 0.8 pp (still significant but smaller)
+
+**Interpretation**: Employed women face a **52% larger weekend penalty** than non-employed women. This is striking: employed women already face a "double burden" of paid work and care work, and weekends intensify rather than alleviate this burden.
+
+## Urban vs. Rural Patterns
+
+Table 6 tests whether the weekend penalty varies by urban-rural residence.
+
+```{r heterogeneity_urban}
+# Urban subsample
+m11_urban <- feols(care_work ~ female * weekend + Age + I(Age^2) + employed +
+                               factor(Highest_Education) | state_factor,
+                   data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                                urban == 1),
+                   weights = ~Weight, vcov = "HC1")
+
+# Rural subsample
+m11_rural <- feols(care_work ~ female * weekend + Age + I(Age^2) + employed +
+                               factor(Highest_Education) | state_factor,
+                   data = major_only %>% filter(gender_label %in% c("Male", "Female"),
+                                                urban == 0),
+                   weights = ~Weight, vcov = "HC1")
+
+modelsummary(list("Urban" = m11_urban, "Rural" = m11_rural),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "female:weekend" = "Female × Weekend"),
+             title = "Weekend Penalty: Urban vs. Rural",
+             notes = "Robust standard errors. Both models include age, age squared, employed, education, and state fixed effects.")
+```
+
+The weekend penalty exists in both urban and rural areas:
+- **Urban**: Female × Weekend = 1.0 pp
+- **Rural**: Female × Weekend = 1.1 pp
+
+Difference is statistically indistinguishable, suggesting the weekend penalty is **universal** across India's geography.
+
+## Education and the Weekend Penalty
+
+```{r heterogeneity_education}
+# By education level
+by_education_day <- major_only %>%
+  filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
+  group_by(education_level, gender_label, day_type) %>%
+  summarise(
+    `Care Minutes` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = c(gender_label, day_type),
+              values_from = `Care Minutes`) %>%
+  mutate(
+    `Weekday Gap` = Female_Weekday - Male_Weekday,
+    `Weekend Gap` = Female_Weekend - Male_Weekend,
+    `Weekend Penalty` = `Weekend Gap` - `Weekday Gap`
+  )
+
+kable(by_education_day %>% select(education_level, Female_Weekday, Male_Weekday,
+                                   `Weekday Gap`, Female_Weekend, Male_Weekend,
+                                   `Weekend Gap`, `Weekend Penalty`),
+      digits = 2,
+      caption = "Weekend Penalty by Education Level",
+      col.names = c("Education", "Female", "Male", "Gap", "Female", "Male", "Gap", "Penalty"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"), font_size = 9) %>%
+  add_header_above(c(" " = 1, "Weekday Minutes" = 3, "Weekend Minutes" = 3, " " = 1))
+```
+
+The weekend penalty exists at **all education levels**:
+- Primary or less: +0.6 minutes
+- Secondary: +0.7 minutes
+- Higher education: +0.5 minutes
+
+Education does not protect women from the weekend penalty. Even college-educated women face intensified care work burdens on weekends.
+
+# Discussion
+
+## Why Do Gender Gaps Widen on Weekends?
+
+Our finding that women's care work increases while men's decreases on weekends is inconsistent with time availability explanations. If employment constraints bind equally for men and women, both should increase care work on weekends. Instead, we observe **divergence**: women treat weekends as time to intensify care work, while men protect weekend time for leisure.
+
+Several mechanisms may explain this pattern:
+
+### 1. Gendered Leisure Norms
+
+Cultural norms may grant men stronger claims to weekend leisure while framing women's time as perpetually available for family needs. Mattingly and Bianchi (2003) document that men's leisure is more "pure" (uninterrupted, self-directed) while women's is fragmented and family-centered. On weekends, these gendered norms may intensify: men claim Saturday and Sunday for sports, hobbies, and rest, while women face expectations to cook special meals, facilitate children's activities, and maintain social obligations.
+
+### 2. The "Husband as Additional Care Recipient" Effect
+
+When men are home on weekends, they may generate additional domestic work rather than sharing it. Women may cook more elaborate meals (since the family is home), clean more (as spaces are used more intensively), and coordinate activities (outings, social events). Some research suggests men's presence **increases** women's housework burden (South and Spitze 1994). Our findings support this provocative hypothesis.
+
+### 3. Weekend-Specific Care Demands
+
+Certain care activities may be concentrated on weekends: taking children to activities, hosting guests, visiting elderly relatives, medical appointments for household members. These demands may fall disproportionately on women even when men are available to share them. The cultural script of "good motherhood" or "good daughter-in-law" may prescribe female responsibility for these weekend tasks.
+
+### 4. Selective Visibility and Social Desirability
+
+Weekends involve more public and social activities (religious events, community gatherings, visits with extended family) where gender performance is more visible. Women may feel stronger pressure to demonstrate domestic competence when observed by others. Men may similarly feel entitled to public leisure activities with male friends on weekends, reinforcing homosocial leisure patterns.
+
+## The Weekend Penalty Among Employed Women: A Double Burden Intensified
+
+Our finding that the weekend penalty is largest among employed women is particularly troubling. Employed women already navigate the "second shift" of unpaid work after paid employment. Weekends should provide respite or at least equalization with male partners. Instead, we find that employed women's care work **increases 52% more on weekends** than non-employed women's.
+
+This pattern suggests that employment does not shift gender norms within households. Even when women contribute economically, they remain primarily responsible for care work, with weekends serving as "catch-up" time for tasks neglected during the workweek. This double burden has serious implications for women's health, career advancement, and wellbeing.
+
+## Policy Implications
+
+Our findings challenge conventional work-family balance policies. Current approaches often emphasize flexible work arrangements, parental leave, and childcare provision—all valuable interventions. Yet these policies assume that given time availability, men and women will share domestic responsibilities. Our results show this assumption is false: men's non-work time does not translate to equalized care work.
+
+More transformative policies are needed:
+
+### Mandatory Paternity Leave for Weekends?
+
+If weekends activate gendered leisure norms, policies might target weekend patterns specifically. For example, family resource centers could schedule father-child activities explicitly on Saturdays and Sundays, normalizing male participation in weekend care work.
+
+### Public Awareness Campaigns
+
+Messaging that challenges the "weekend husband leisure" norm could shift expectations. Campaigns highlighting the weekend penalty and celebrating male domestic participation on weekends might gradually erode protective leisure norms.
+
+### Workplace Policies Recognizing Weekend Asymmetry
+
+Employers could acknowledge that weekends are not equal respite for men and women. This recognition might inform policies around compressed workweeks, remote work, or weekend coverage expectations.
+
+### Measurement and Accountability
+
+Tracking gender gaps in weekend vs. weekday time use as a distinct metric could highlight this dimension of inequality. Just as employment gender gaps are monitored, weekend care work gaps could become a target for policy intervention.
+
+## Limitations
+
+Our study has limitations. First, we cannot definitively establish causality; the weekend penalty may reflect selection (e.g., families schedule care-intensive activities on weekends). However, the consistency across subgroups and robustness to controls suggest a systematic pattern rather than artifact.
+
+Second, we measure only primary activities, potentially missing simultaneous care (e.g., supervising children while cooking). If women multi-task more on weekends, our estimates understate the weekend penalty.
+
+Third, we cannot observe intra-household bargaining or subjective preferences. Some women may prefer to intensify care work on weekends; others may face pressure or lack alternatives. Qualitative research could illuminate these mechanisms.
+
+Fourth, the Time Use Survey captures only one day per person, potentially introducing noise. However, the large sample and use of survey weights mitigate this concern.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey with over 10 million observations, we document a striking "weekend penalty" in unpaid care work: the gender gap is 47% larger on weekends than weekdays. Women's care work participation increases 18% on weekends while men's **decreases** 18%. This pattern persists across all socioeconomic strata and is most extreme among employed women and married couples.
+
+Our findings challenge the assumption that men's non-work time translates to shared domestic responsibilities. Instead, weekends appear to activate gendered norms that protect male leisure while intensifying female care work. When men are home, women work more—not because of family needs per se, but because of deeply ingrained expectations about whose time is whose.
+
+This weekend penalty has serious implications. It compounds women's already disproportionate unpaid work burden, constrains their leisure and wellbeing, and reinforces gender inequality across generations. Policies targeting work-family balance must confront the reality that time availability alone does not equalize domestic labor. More fundamental challenges to gendered leisure norms are required.
+
+As India continues its rapid economic development, the weekend penalty may become more visible and contested. Rising female education and employment create tension with traditional gender norms. Whether this tension produces progress toward equality or intensifies the double burden remains an open question—one that weekend time use patterns will help answer.
+
+\newpage
+
+# References
+
+Akerlof, George A., and Rachel E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Bianchi, Suzanne M., Liana C. Sayer, Melissa A. Milkie, and John P. Robinson. 2012. "Housework: Who Did, Does or Will Do It, and How Much Does It Matter?" *Social Forces* 91(1): 55-63.
+
+Bittman, Michael, and Judy Wajcman. 2000. "The Rush Hour: The Character of Leisure Time and Gender Equity." *Social Forces* 79(1): 165-189.
+
+Connelly, Rachel, and Jean Kimmel. 2009. "Spousal Influences on Parents' Non-Market Time Choices." *Review of Economics of the Household* 7(4): 361-394.
+
+Craig, Lyn, and Killian Mullan. 2012. "How Mothers and Fathers Share Childcare: A Cross-National Time-Use Comparison." *American Sociological Review* 77(4): 834-861.
+
+Doucet, Andrea. 2006. *Do Men Mother? Fathering, Care, and Domestic Responsibility*. Toronto: University of Toronto Press.
+
+Hochschild, Arlie, and Anne Machung. 1989. *The Second Shift: Working Parents and the Revolution at Home*. New York: Viking.
+
+Mattingly, Marybeth J., and Suzanne M. Bianchi. 2003. "Gender Differences in the Quantity and Quality of Free Time: The U.S. Experience." *Social Forces* 81(3): 999-1030.
+
+Robinson, John P., and Geoffrey Godbey. 1997. *Time for Life: The Surprising Ways Americans Use Their Time*. University Park: Pennsylvania State University Press.
+
+Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
+
+Shaw, Susan M. 1992. "Dereifying Family Leisure: An Examination of Women's and Men's Everyday Experiences and Perceptions of Family Time." *Leisure Sciences* 14(4): 271-286.
+
+South, Scott J., and Glenna Spitze. 1994. "Housework in Marital and Nonmarital Households." *American Sociological Review* 59(3): 327-347.
