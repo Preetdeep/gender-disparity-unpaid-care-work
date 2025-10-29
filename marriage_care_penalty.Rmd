@@ -1,10 +1,10 @@
 ---
-title: "Marriage Increases Women's Unpaid Care Work by 44%, Men's Unchanged: Evidence from India"
+title: "Marriage Increases Women's Unpaid Care Work by `r sprintf('%.0f%%', marriage_penalty_pct)`, Men's Unchanged: Evidence from India"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark marriage penalty in unpaid care work: marriage increases women's care work participation by 2.1 percentage points (44% increase) while having zero effect on men's participation. This penalty is 2.4 times larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
+  Using India's 2024 Time Use Survey (`r format(total_obs, big.mark=",")` observations, `r format(total_households, big.mark=",")` households), we document a stark marriage penalty in unpaid care work: marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points (`r sprintf("%.0f%%", marriage_penalty_pct)` increase) while having zero effect on men's participation. This penalty is `r sprintf("%.1f", age_penalty_ratio)` times larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
 
   **JEL Classification:** J12, J16, J22, D13
 
@@ -114,13 +114,85 @@ rm(data)
 invisible(gc())
 ```
 
+```{r calculate_key_stats, include=FALSE}
+# Calculate key statistics for abstract and introduction
+
+# Overall sample statistics
+total_obs <- nrow(major_only)
+total_households <- length(unique(paste(major_only$FSU_Serial_No, major_only$Sample_HH_No)))
+
+# Gender and marital status patterns - for never married and married only
+women_never_married_participation <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+women_married_participation <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+men_never_married_participation <- major_only %>%
+  filter(Gender == 1, Marital_Status == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+men_married_participation <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+# Marriage penalty for women
+marriage_penalty_pp <- women_married_participation - women_never_married_participation
+marriage_penalty_pct <- (marriage_penalty_pp / women_never_married_participation) * 100
+
+# Age-specific marriage penalties for women
+young_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+young_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+young_marriage_penalty <- young_women_married - young_women_never_married
+
+older_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_marriage_penalty <- older_women_married - older_women_never_married
+
+# Ratio of young to older penalty
+age_penalty_ratio <- young_marriage_penalty / older_marriage_penalty
+
+# Minutes per activity for married vs never married women (conditional on participation)
+married_women_minutes <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, care_work == 1) %>%
+  summarise(mins = weighted.mean(time_spent, Weight, na.rm = TRUE)) %>%
+  pull(mins)
+
+never_married_women_minutes <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, care_work == 1) %>%
+  summarise(mins = weighted.mean(time_spent, Weight, na.rm = TRUE)) %>%
+  pull(mins)
+```
+
 # Introduction
 
 Marriage fundamentally reshapes household production and time allocation patterns. Economic theory predicts that marriage enables specialization according to comparative advantage (Becker 1991), yet empirical evidence reveals stark gender asymmetries in how marital status affects time use. Women's unpaid domestic work increases substantially upon marriage while men's remains largely unchanged, suggesting that marriage reinforces rather than merely reflects gender inequality.
 
 Understanding the marriage penalty in unpaid care work matters for several reasons. First, if marriage itself generates gender disparities in time allocation, policies targeting individual characteristics (education, employment) may be insufficient without addressing marital norms. Second, the marriage penalty may vary across women's life cycle, with younger women facing different constraints than older women. Third, quantifying the marriage effect helps identify when and how gender inequality in household production emerges.
 
-We exploit India's 2024 Time Use Survey—containing 10.2 million activity observations across 139,489 households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by 2.1 percentage points, a 44% increase relative to unmarried women's baseline participation rate of 4.8%. Men experience no marriage effect. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a 3.8 percentage point increase upon marriage, while older women (>25) see a 1.6 percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
+We exploit India's 2024 Time Use Survey—containing `r format(total_obs, big.mark=",")` activity observations across `r format(total_households, big.mark=",")` households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points, a `r sprintf("%.0f%%", marriage_penalty_pct)` increase relative to unmarried women's baseline participation rate of `r sprintf("%.1f%%", women_never_married_participation)`. Men experience no marriage effect. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a `r sprintf("%.1f", young_marriage_penalty)` percentage point increase upon marriage, while older women (>25) see a `r sprintf("%.1f", older_marriage_penalty)` percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
 
 These findings contribute to several literatures. First, we advance research on marriage and household production by documenting substantial gender asymmetries in how marriage affects time allocation (Aguiar and Hurst 2007; Stancanelli and Stratton 2014). Second, we contribute to understanding life course patterns in gender inequality by showing that marriage effects differ substantially between younger and older women (Bertrand et al. 2015). Third, we inform development economics by revealing how marriage institutions in developing countries reinforce gender inequality (Anderson and Eswaran 2009; Jayachandran 2015).
 
@@ -218,7 +290,22 @@ where $\text{Young}_i = 1$ if age ≤ 25. The coefficient $\beta_5$ tests whethe
 
 ## Descriptive Patterns
 
-Table \ref{tab:by_marriage_gender} presents care work participation rates by gender and marital status. Among women, married individuals participate at 6.9% rate while never-married participate at 4.8% rate—a 2.1 percentage point difference (44% increase). Men show no marriage effect: married men participate at 1.6% and never-married at 1.5%.
+```{r calc_descriptive_stats, include=FALSE}
+# Calculate participation rates for descriptive text
+men_married_rate <- major_only %>%
+  filter(Gender == 1, Marital_Status == 2) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+women_married_rate <- women_married_participation
+women_never_married_rate <- women_never_married_participation
+marriage_gap_women <- women_married_rate - women_never_married_rate
+marriage_gap_pct_women <- (marriage_gap_women / women_never_married_rate) * 100
+
+men_never_married_rate <- men_never_married_participation
+```
+
+Table \ref{tab:by_marriage_gender} presents care work participation rates by gender and marital status. Among women, married individuals participate at `r sprintf("%.1f%%", women_married_rate)` rate while never-married participate at `r sprintf("%.1f%%", women_never_married_rate)` rate—a `r sprintf("%.1f", marriage_gap_women)` percentage point difference (`r sprintf("%.0f%%", marriage_gap_pct_women)` increase). Men show no marriage effect: married men participate at `r sprintf("%.1f%%", men_married_rate)` and never-married at `r sprintf("%.1f%%", men_never_married_rate)`.
 
 ```{r by_marriage_gender}
 by_marriage_gender <- major_only %>%
@@ -246,7 +333,7 @@ kable(by_marriage_simple, digits = 2,
   add_header_above(c(" " = 1, "Participation (%)" = 2, "Minutes per Person" = 2))
 ```
 
-Conditional on participation, marriage has no effect on time intensity. Married women who do care work spend 47.8 minutes per activity; never-married women spend 46.5 minutes. Men show similar patterns. The marriage penalty operates entirely on the participation margin.
+Conditional on participation, marriage has no effect on time intensity. Married women who do care work spend `r sprintf("%.1f", married_women_minutes)` minutes per activity; never-married women spend `r sprintf("%.1f", never_married_women_minutes)` minutes. Men show similar patterns. The marriage penalty operates entirely on the participation margin.
 
 ## Regression Analysis
 
@@ -256,13 +343,13 @@ Table \ref{tab:main_regression} presents our core regression results examining t
 
 The baseline model includes only gender and marriage indicators plus their interaction. Three key patterns emerge:
 
-1. The **Female coefficient (0.2%,  p<0.001)** shows that among never-married individuals, women participate in care work at rates only 0.2 percentage points higher than men—a negligible difference. This reveals that in the absence of marriage, gender differences in care work are minimal.
+1. The **Female coefficient (`r sprintf("%.1f%%", female_coef_m1)`,  p<0.001)** shows that among never-married individuals, women participate in care work at rates only `r sprintf("%.1f", female_coef_m1)` percentage points higher than men—a negligible difference. This reveals that in the absence of marriage, gender differences in care work are minimal.
 
-2. The **Married coefficient (2.1%, p<0.001)** indicates that marriage increases men's care work participation by 2.1 percentage points. However, this effect becomes statistically insignificant once we add controls in later specifications, suggesting it captures compositional differences rather than a true marriage effect for men.
+2. The **Married coefficient (`r sprintf("%.1f%%", married_coef_m1)`, p<0.001)** indicates that marriage increases men's care work participation by `r sprintf("%.1f", married_coef_m1)` percentage points. However, this effect becomes statistically insignificant once we add controls in later specifications, suggesting it captures compositional differences rather than a true marriage effect for men.
 
-3. The **Female × Married coefficient (4.1%, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The positive, highly significant coefficient indicates that married women participate 4.1 percentage points more than we would predict from simply adding the female and married effects. This is the marriage penalty.
+3. The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The positive, highly significant coefficient indicates that married women participate `r sprintf("%.1f", female_married_coef_m1)` percentage points more than we would predict from simply adding the female and married effects. This is the marriage penalty.
 
-To interpret the magnitude: among married individuals, women participate at rates 6.4% (= 0.2% + 2.1% + 4.1%) while men participate at 2.1%, a 4.3 percentage point gap driven entirely by the marriage penalty.
+To interpret the magnitude: among married individuals, women participate at rates `r sprintf("%.1f%%", predicted_married_women_rate)` (= `r sprintf("%.1f%%", female_coef_m1)` + `r sprintf("%.1f%%", married_coef_m1)` + `r sprintf("%.1f%%", female_married_coef_m1)`) while men participate at `r sprintf("%.1f%%", predicted_married_men_rate)`, a `r sprintf("%.1f", gender_gap_married)` percentage point gap driven entirely by the marriage penalty.
 
 ```{r main_regression}
 # Restrict to never married and currently married only
@@ -303,11 +390,56 @@ modelsummary(list(m1, m2, m3, m4),
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
 
+```{r extract_reg_coefficients, include=FALSE}
+# Extract coefficients for inline reporting
+female_coef_m1 <- coef(m1)["female"] * 100
+married_coef_m1 <- coef(m1)["married"] * 100
+female_married_coef_m1 <- coef(m1)["female_married"] * 100
+
+female_coef_m2 <- coef(m2)["female"] * 100
+female_married_coef_m2 <- coef(m2)["female_married"] * 100
+age_coef_m2 <- coef(m2)["Age"] * 100
+
+female_married_coef_m3 <- coef(m3)["female_married"] * 100
+higher_ed_coef_m3 <- coef(m3)["higher_ed"] * 100
+employed_coef_m3 <- coef(m3)["employed"] * 100
+urban_coef_m3 <- coef(m3)["urban"] * 100
+
+female_married_coef_m4 <- coef(m4)["female_married"] * 100
+
+# Calculate magnitudes for interpretation
+never_married_women_baseline <- women_never_married_participation
+penalty_increase_pct_relative <- (female_married_coef_m4 / never_married_women_baseline) * 100
+
+# Calculate predicted rates for married women and men
+# Married women: baseline + female + married + female*married
+# Using model 1 coefficients
+predicted_married_women_rate <- female_coef_m1 + married_coef_m1 + female_married_coef_m1
+predicted_married_men_rate <- married_coef_m1
+gender_gap_married <- predicted_married_women_rate - predicted_married_men_rate
+
+# Additional calculations for magnitudes section (using observed rates)
+married_women_observed_rate <- women_married_participation
+never_married_women_observed_rate <- women_never_married_participation
+observed_increase_pct <- ((married_women_observed_rate - never_married_women_observed_rate) / never_married_women_observed_rate) * 100
+
+# Time slots calculation: assuming 30-minute slots per month
+# 3.2 pp increase * 30 days = approx 0.96 additional days with care work
+# If each episode is 30 minutes, that's approximately 0.96 * 48 (30-min slots per day) = 46 slots
+# But that's not meaningful. Let's calculate based on minutes per month
+# 3.2% increase in participation * average minutes when participating
+avg_minutes_when_participating <- major_only %>%
+  filter(Gender == 2, care_work == 1) %>%
+  summarise(mins = weighted.mean(time_spent, Weight, na.rm = TRUE)) %>%
+  pull(mins)
+additional_slots_per_month <- (female_married_coef_m4 / 100) * 30 * (avg_minutes_when_participating / 30)
+```
+
 **Column (2): Adding Age Controls**
 
-Column (2) adds age and age-squared to account for life-cycle patterns in care work. The **Age coefficient (-0.3%, p<0.001)** and **Age² coefficient (positive, p<0.001)** trace a U-shaped pattern: care work participation declines in early adulthood, reaches a minimum around age 40, then increases again—likely reflecting childrearing demands for young adults and elder care for middle-aged individuals.
+Column (2) adds age and age-squared to account for life-cycle patterns in care work. The **Age coefficient (`r sprintf("%.1f%%", age_coef_m2)`, p<0.001)** and **Age² coefficient (positive, p<0.001)** trace a U-shaped pattern: care work participation declines in early adulthood, reaches a minimum around age 40, then increases again—likely reflecting childrearing demands for young adults and elder care for middle-aged individuals.
 
-Crucially, the **Female × Married coefficient (3.7%, p<0.001)** remains large and highly significant after controlling for age, demonstrating that the marriage penalty is not simply an artifact of married women being at different life stages than never-married women.
+Crucially, the **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m2)`, p<0.001)** remains large and highly significant after controlling for age, demonstrating that the marriage penalty is not simply an artifact of married women being at different life stages than never-married women.
 
 **Column (3): Adding Socioeconomic Controls**
 
