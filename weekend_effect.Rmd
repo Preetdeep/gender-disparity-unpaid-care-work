@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a striking "weekend penalty" in unpaid care work: the gender gap in care work is substantially larger on weekends than weekdays. Women's care work participation increases on weekends while men's participation actually declines. This divergence is most pronounced among married couples with children, where women spend significantly more time on care work on weekends while men's time remains unchanged. The weekend penalty persists across all education levels and employment statuses, and is present in both urban and rural areas. These findings challenge the assumption that men's non-work time translates into shared domestic responsibilities, revealing instead that weekends intensify rather than alleviate women's unpaid work burden. Our results have important implications for work-family balance policies and the measurement of gender inequality in time use.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a striking "weekend penalty" in unpaid care work: the gender gap in care work is substantially larger on weekends than weekdays. Both men and women increase their care work participation on weekends, but women increase substantially more in absolute terms, widening the gender gap. This divergence is most pronounced among married couples with children, where women's care work increases significantly on weekends while men's increases remain modest. The weekend penalty persists across all education levels and employment statuses, and is present in both urban and rural areas. These findings challenge the assumption that men's non-work time translates into proportionally shared domestic responsibilities, revealing instead that weekends intensify the gender disparity in unpaid work. Our results have important implications for work-family balance policies and the measurement of gender inequality in time use.
 
   **JEL Classification:** J16, J22, D13, J12
 
@@ -263,7 +263,7 @@ The "second shift" literature has long documented that women perform disproporti
 
 This distinction matters for theory and policy. Economic models emphasizing time constraints predict that non-work time should enable men to increase domestic contributions (Becker 1991). Gender norms theories suggest that leisure time is gendered: men claim weekends as personal time while women face intensified demands from both household members and social expectations (Mattingly and Bianchi 2003). The weekend pattern thus provides a crucial test of competing explanations for gender inequality in unpaid work.
 
-We exploit India's 2024 Time Use Survey—capturing 10.2 million person-day observations across 139,489 households—to examine how gender gaps in unpaid care work differ between weekdays and weekends. Our analysis yields a striking finding: **the gender gap in care work is `r sprintf("%.0f%%", gap_increase_pct)` larger on weekends than on weekdays**. Women's participation in care work increases from `r sprintf("%.1f%%", female_weekday_pct)` on weekdays to `r sprintf("%.1f%%", female_weekend_pct)` on weekends (`r sprintf("%+.0f%%", female_pct_change)` increase), while men's participation actually **declines** from `r sprintf("%.1f%%", male_weekday_pct)` to `r sprintf("%.1f%%", male_weekend_pct)` (`r sprintf("%.0f%%", male_pct_change)` decrease). Among married couples with children, women spend `r sprintf("%.1f", female_weekday_min_married)` minutes per day on care work on weekdays but `r sprintf("%.1f", female_weekend_min_married)` minutes on weekends—a `r sprintf("%.0f%%", female_min_change_pct_married)` increase. Men's time remains unchanged at `r sprintf("%.1f", male_weekday_min_married)` minutes regardless of day type.
+We exploit India's 2024 Time Use Survey—capturing 10.2 million person-day observations across 139,489 households—to examine how gender gaps in unpaid care work differ between weekdays and weekends. Our analysis yields a striking finding: **the gender gap in care work is `r sprintf("%.0f%%", gap_increase_pct)` larger on weekends than on weekdays**. Women's participation in care work increases from `r sprintf("%.1f%%", female_weekday_pct)` on weekdays to `r sprintf("%.1f%%", female_weekend_pct)` on weekends (`r sprintf("%+.0f%%", female_pct_change)` increase), while men's participation also **increases** from `r sprintf("%.1f%%", male_weekday_pct)` to `r sprintf("%.1f%%", male_weekend_pct)` (`r sprintf("%+.0f%%", male_pct_change)` increase)—but women's absolute increase is substantially larger, widening the gender gap. Among married couples with children, women spend `r sprintf("%.1f", female_weekday_min_married)` minutes per day on care work on weekdays but `r sprintf("%.1f", female_weekend_min_married)` minutes on weekends—a `r sprintf("%.0f%%", female_min_change_pct_married)` increase. Men's time also increases modestly from weekdays to weekends.
 
 This "weekend penalty" persists across all socioeconomic strata. It is present among dual-earner couples (where employment constraints should be symmetric), educated urban populations (where egalitarian attitudes are most common), and households without young children (where care demands are lower). The pattern is most extreme among employed women: their care work time increases `r sprintf("%.0f%%", employed_female_increase_pct)` on weekends while employed men's time remains flat.
 
@@ -374,21 +374,21 @@ Key findings from Table 1:
 
 **Participation Rates:**
 - Women's participation: `r sprintf("%.1f%%", female_weekday_pct)` weekdays → `r sprintf("%.1f%%", female_weekend_pct)` weekends (`r sprintf("%+.0f%%", female_pct_change)` increase)
-- Men's participation: `r sprintf("%.1f%%", male_weekday_pct)` weekdays → `r sprintf("%.1f%%", male_weekend_pct)` weekends (`r sprintf("%.0f%%", male_pct_change)` decrease)
+- Men's participation: `r sprintf("%.1f%%", male_weekday_pct)` weekdays → `r sprintf("%.1f%%", male_weekend_pct)` weekends (`r sprintf("%+.0f%%", male_pct_change)` increase)
 - Gender gap: `r sprintf("%.1f", weekday_gap_pp)` pp weekdays → `r sprintf("%.1f", weekend_gap_pp)` pp weekends (**`r sprintf("%.0f%%", gap_increase_pct)` larger on weekends**)
 
 **Time per Day (All Adults):**
 - Women: `r sprintf("%.1f", female_weekday_min)` minutes weekdays → `r sprintf("%.1f", female_weekend_min)` minutes weekends (`r sprintf("%+.0f%%", female_min_change_pct)`)
-- Men: `r sprintf("%.1f", male_weekday_min)` minutes weekdays → `r sprintf("%.1f", male_weekend_min)` minutes weekends (`r sprintf("%.0f%%", male_min_change_pct)`)
+- Men: `r sprintf("%.1f", male_weekday_min)` minutes weekdays → `r sprintf("%.1f", male_weekend_min)` minutes weekends (`r sprintf("%+.0f%%", male_min_change_pct)`)
 - Gender gap: `r sprintf("%.1f", weekday_gap_min)` minutes weekdays → `r sprintf("%.1f", weekend_gap_min)` minutes weekends (**`r sprintf("%.0f%%", gap_min_increase_pct)` larger**)
 
-This pattern is striking: when men have more free time (weekends), they do **less** care work, while women do **more**. This cannot be explained by employment constraints alone.
+This pattern is striking: when men have more free time (weekends), both genders increase their care work, but **women increase substantially more** in absolute terms than men. This asymmetric response cannot be explained by employment constraints alone.
 
 ## Visualizing the Weekend Penalty
 
 Figure 1 illustrates the divergent weekend patterns for men and women.
 
-```{r weekend_penalty_plot, fig.width=8, fig.height=5, fig.cap="The Weekend Penalty: Women's Care Work Increases on Weekends, Men's Decreases"}
+```{r weekend_penalty_plot, fig.width=8, fig.height=5, fig.cap="The Weekend Penalty: Both Genders Increase Care Work on Weekends, But Women Increase More"}
 # Prepare data for plot
 plot_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -413,8 +413,8 @@ ggplot(plot_data, aes(x = day_type, y = `Minutes per Day`, fill = gender_label, 
             position = position_dodge(width = 0.7),
             vjust = -0.5, size = 4, fontface = "bold") +
   labs(x = "", y = "Minutes per Day on Care Work", fill = "",
-       title = "Women's Care Work Increases on Weekends; Men's Decreases",
-       subtitle = sprintf("Women: +%.0f%% on weekends  |  Men: %.0f%% on weekends",
+       title = "Both Genders Increase Care Work on Weekends; Women Increase More",
+       subtitle = sprintf("Women: %+.0f%% on weekends  |  Men: %+.0f%% on weekends",
                          female_change, male_change)) +
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
   theme_minimal(base_size = 12) +
@@ -423,7 +423,7 @@ ggplot(plot_data, aes(x = day_type, y = `Minutes per Day`, fill = gender_label, 
         plot.subtitle = element_text(size = 11, color = "gray30"))
 ```
 
-Figure 1 reveals the stark asymmetry. The female bar is taller on weekends; the male bar is **shorter**. This visual pattern directly contradicts the hypothesis that men's free time translates to shared domestic work.
+Figure 1 reveals the stark asymmetry. Both bars are taller on weekends, but the female bar increases substantially more than the male bar. This visual pattern shows that while both genders increase care work when they have more free time, women's increase far exceeds men's, widening the gender gap.
 
 ## Married Couples: The Weekend Penalty Intensifies
 
@@ -451,10 +451,10 @@ kable(by_gender_day_married %>% select(-n),
 
 Among married individuals:
 - **Women**: `r sprintf("%.1f", female_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", female_weekend_min_married)` minutes weekends (`r sprintf("%+.0f%%", female_min_change_pct_married)` increase)
-- **Men**: `r sprintf("%.1f", male_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", male_weekend_min_married)` minutes weekends (`r sprintf("%.0f%%", male_min_change_pct_married)` change)
+- **Men**: `r sprintf("%.1f", male_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", male_weekend_min_married)` minutes weekends (`r sprintf("%+.0f%%", male_min_change_pct_married)` change)
 - **Gender gap**: `r sprintf("%.1f", weekday_gap_min_married)` minutes weekdays → `r sprintf("%.1f", weekend_gap_min_married)` minutes weekends (**`r sprintf("%.0f%%", gap_min_increase_pct_married)` larger**)
 
-The weekend penalty is even more extreme among married couples. Married women shoulder an additional `r sprintf("%.1f", additional_min_married)` minutes of care work on weekends; married men contribute nothing additional.
+The weekend penalty is even more extreme among married couples. Married women shoulder an additional `r sprintf("%.1f", additional_min_married)` minutes of care work on weekends, while married men's increases are much more modest, widening the gender gap substantially.
 
 ## Regression Results: Quantifying the Weekend Penalty
 
@@ -705,7 +705,7 @@ Education does not protect women from the weekend penalty. Even college-educated
 
 ## Why Do Gender Gaps Widen on Weekends?
 
-Our finding that women's care work increases while men's decreases on weekends is inconsistent with time availability explanations. If employment constraints bind equally for men and women, both should increase care work on weekends. Instead, we observe **divergence**: women treat weekends as time to intensify care work, while men protect weekend time for leisure.
+Our finding that both men's and women's care work increases on weekends, but with women increasing substantially more in absolute terms, reveals important insights about time availability versus gender norms. If employment constraints bind equally for men and women, both should increase care work proportionally on weekends. Instead, we observe **asymmetric increases**: women increase their care work substantially while men's increases are modest, suggesting that gender norms rather than time constraints drive the weekend penalty.
 
 Several mechanisms may explain this pattern:
 
@@ -765,7 +765,7 @@ Fourth, the Time Use Survey captures only one day per person, potentially introd
 
 # Conclusion
 
-Using India's 2024 Time Use Survey with over 10 million observations, we document a striking "weekend penalty" in unpaid care work: the gender gap is `r sprintf("%.0f%%", gap_increase_pct)` larger on weekends than weekdays. Women's care work participation increases `r sprintf("%.0f%%", female_pct_change)` on weekends while men's **decreases** `r sprintf("%.0f%%", abs(male_pct_change))`. This pattern persists across all socioeconomic strata and is most extreme among employed women and married couples.
+Using India's 2024 Time Use Survey with over 10 million observations, we document a striking "weekend penalty" in unpaid care work: the gender gap is `r sprintf("%.0f%%", gap_increase_pct)` larger on weekends than weekdays. Women's care work participation increases `r sprintf("%.0f%%", female_pct_change)` on weekends while men's increases only `r sprintf("%.0f%%", male_pct_change)`, creating an asymmetric response that widens the gender gap. This pattern persists across all socioeconomic strata and is most extreme among employed women and married couples.
 
 Our findings challenge the assumption that men's non-work time translates to shared domestic responsibilities. Instead, weekends appear to activate gendered norms that protect male leisure while intensifying female care work. When men are home, women work more—not because of family needs per se, but because of deeply ingrained expectations about whose time is whose.
 
