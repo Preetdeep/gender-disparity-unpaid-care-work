@@ -1,10 +1,10 @@
 ---
-title: "Men Do 22% of Childcare but Only 8% of Elder Care: The Selective Help Gap in India"
+title: "The Selective Help Gap: Men Contribute Modestly to Childcare but Minimally to Elder Care"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document stark gender asymmetries in care work that vary dramatically by care recipient type. Men's participation in childcare is modest but measurable, while their contribution to elder care is minimal. The gender gap in elder care participation is 60% larger than in childcare, revealing a "selective help" pattern where men selectively avoid elder care more than childcare. This pattern persists across all education levels, urban-rural locations, and age groups, suggesting deeply rooted cultural norms that view childcare as partially shared responsibility but elder care as exclusively women's burden. As India's population ages rapidly—with the 60+ share doubling to 20% by 2050—this selective avoidance threatens to intensify women's unpaid work burden dramatically, with profound implications for gender equality and women's labor force participation.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document stark gender asymmetries in care work that vary dramatically by care recipient type. Men's participation in childcare is modest but measurable, while their contribution to elder care is minimal. The gender gap in elder care participation is substantially larger than in childcare, revealing a "selective help" pattern where men selectively avoid elder care more than childcare. This pattern persists across all education levels, urban-rural locations, and age groups, suggesting deeply rooted cultural norms that view childcare as partially shared responsibility but elder care as exclusively women's burden. As India's population ages rapidly—with the 60+ share doubling to 20% by 2050—this selective avoidance threatens to intensify women's unpaid work burden dramatically, with profound implications for gender equality and women's labor force participation.
 
   **JEL Classification:** J12, J13, J14, J16, I10
 
