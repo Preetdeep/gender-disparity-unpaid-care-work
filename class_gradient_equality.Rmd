@@ -4,11 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Conventional wisdom suggests that wealth enables more egalitarian gender arrangements in households: affluent dual-earner couples can afford household help, reducing women's domestic burden and enabling shared responsibilities. Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we test this assumption by examining gender gaps in domestic work across socioeconomic strata. We find the opposite pattern: gender gaps in total domestic time are substantially larger in high-SES households than in low-SES households. This counterintuitive result stems from two mechanisms. First, wealth enables complete male opt-out: in affluent households with domestic help, men reduce their already-minimal contributions to near-zero, while women shift from execution to management but maintain similar total time. Second, affluent households have higher standards and more complex consumption patterns, increasing women's planning and coordination demands. We term this the "wealth paradox"—economic resources exacerbate rather than reduce gender inequality in household labor by enabling men to fully exit while binding women to managerial responsibilities. These findings challenge resource bargaining theories and suggest that without deliberate cultural challenges to gendered household norms, rising prosperity may widen rather than narrow domestic gender gaps.
+  Does wealth enable household gender equality? Using India's 2024 Time Use Survey (10.2 million person-day observations), we examine domestic work patterns across socioeconomic strata. Counter to resource bargaining predictions, gender gaps are 32% larger in high-SES households (122 minutes/day) than low-SES households (92 minutes). This "wealth paradox" occurs because affluent men exit domestic work entirely (14 vs. 63 minutes/day) while women shift from execution to management with minimal time reduction (136 vs. 155 minutes). Even among dual-earners, wealth widens gaps. These patterns suggest economic development alone will not promote household gender equality without deliberate challenges to gendered norms about domestic responsibility.
 
   **JEL Classification:** J16, D13, J12, I32
 
   **Keywords:** gender inequality, wealth, household bargaining, class, domestic work, India
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
 
 output:
   pdf_document:
@@ -56,10 +58,7 @@ data <- read_dta("TimeUse106PER.dta",
                                Highest_Education, Sector, Principal_Activity_Status,
                                State, FSU_Serial_No, Sample_HH_No))
 
-set.seed(123)
-data <- data %>% slice_sample(prop = 0.1)
-data <- data %>% mutate(Weight = Weight / 0.1)
-
+# Filter to major activities to reduce memory usage
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
@@ -71,7 +70,11 @@ major_only <- data %>%
     female = as.numeric(Gender == 2),
     married = as.numeric(Marital_Status == 2),
 
-    # All domestic work
+    # Create household ID for clustering
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # All domestic work (Activity codes 31-35):
+    # 31 = Childcare, 32 = Adult care, 33 = Cooking, 34 = Shopping, 35 = Household management
     domestic_work = as.numeric(Activity_Code_2Digit %in% c(31, 32, 33, 34, 35)),
     domestic_minutes = ifelse(domestic_work == 1, time_spent, 0),
 
@@ -317,14 +320,14 @@ m1 <- feols(domestic_minutes ~ female * factor(education_level) * urban +
                                Age + I(Age^2) + employed | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                         married == 1),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # Just the key interaction
 m2 <- feols(domestic_minutes ~ female * I(education_level == "Higher education" & urban == 1) +
                                Age + I(Age^2) + employed | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                         married == 1),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Full Model" = m1, "Key Interaction" = m2),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -333,7 +336,7 @@ modelsummary(list("Full Model" = m1, "Key Interaction" = m2),
                          "I(education_level == \"Higher education\" & urban == 1)TRUE" = "High SES",
                          "female:I(education_level == \"Higher education\" & urban == 1)TRUE" = "Female × High SES"),
              title = "Does Wealth Widen Gender Gaps? (Married Couples)",
-             notes = "Positive Female × High SES means gender gap is larger in affluent households.")
+             notes = "Standard errors clustered at household level. Positive Female × High SES means gender gap is larger in affluent households.")
 ```
 
 **Interpretation**: Positive and significant Female × High SES coefficient confirms that gender gaps in domestic time are larger in affluent households, even controlling for age, employment, and state.
@@ -386,10 +389,17 @@ Standard bargaining models predict wealth increases women's power, enabling more
 
 ## Limitations
 
-1. **SES Proxies**: Without direct wealth/consumption data, our education × urban proxies are imperfect
-2. **Selection**: Affluent families may differ in preferences, not just resources
-3. **Causality**: Cross-sectional data can't establish whether wealth causes wider gaps or whether traditional families become wealthier
-4. **India-Specific**: Patterns may differ in societies with different gender norms
+1. **SES Proxies**: Without direct wealth/consumption data, our education × urban classification is a crude proxy for household socioeconomic status. Education and urban residence correlate with wealth but also capture cultural differences, selection effects, and unmeasured heterogeneity. The "wealth paradox" may partly reflect sorting rather than causal effects of resources.
+
+2. **Non-Matched Individuals**: Our analysis compares men and women within SES categories but does not match spouses within households. Gender gaps are calculated from separate averages of men's and women's time, not from actual couple-level differences. This may overstate or understate within-household inequality if assortative mating patterns differ by SES.
+
+3. **Selection**: Affluent families may differ systematically in preferences, values, or unobserved characteristics that affect both SES and household division of labor. High-SES couples may have more traditional gender attitudes (selection into traditional marriages among the wealthy) independent of resources per se.
+
+4. **Causality**: Cross-sectional data cannot establish whether wealth causes wider gaps or whether couples with traditional gender arrangements differentially accumulate wealth. Longitudinal data tracking couples as they become wealthier would be needed for causal identification.
+
+5. **Missing Mechanism Data**: We lack direct measures of domestic help employment, consumption standards, or household complexity that would allow us to test proposed mechanisms (asymmetric exit, standards escalation, mental load) directly.
+
+6. **India-Specific Context**: Patterns may differ in societies with different gender norms, domestic service market structures, or cultural meanings of wealth. Generalizability beyond India requires replication.
 
 # Conclusion
 
