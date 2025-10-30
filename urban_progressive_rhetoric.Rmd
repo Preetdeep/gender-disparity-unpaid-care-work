@@ -66,7 +66,28 @@ But do urban, educated, dual-earner couples actually practice equality? Or is eg
 
 Using India's 2024 Time Use Survey, we test whether "progressive" households—urban, both spouses college-educated and employed—show substantially more equal domestic labor divisions than traditional households.
 
-**Main Finding**: Progressive wives spend 95 minutes/day more on domestic work than progressive husbands. Traditional wives spend 112 minutes more. The gap narrows only 15%, and primarily because progressive women reduce housework (from 168 to 118 minutes), not because progressive men increase it (men drop from 56 to 23 minutes).
+```{r calculate_summary_stats, include=FALSE}
+# Calculate summary statistics for the introduction
+summary_stats <- major_only %>%
+  filter(progressive_individual | traditional_individual) %>%
+  mutate(household_type = ifelse(progressive_individual, "Progressive", "Traditional")) %>%
+  group_by(household_type, female) %>%
+  summarise(Minutes = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+            .groups = "drop") %>%
+  pivot_wider(names_from = female, values_from = Minutes, names_prefix = "Gender_") %>%
+  mutate(Gap = Gender_1 - Gender_0)
+
+prog_gap_intro <- summary_stats %>% filter(household_type == "Progressive") %>% pull(Gap)
+trad_gap_intro <- summary_stats %>% filter(household_type == "Traditional") %>% pull(Gap)
+gap_reduction_pct_intro <- 100 * (1 - prog_gap_intro / trad_gap_intro)
+
+prog_women_intro <- summary_stats %>% filter(household_type == "Progressive") %>% pull(Gender_1)
+prog_men_intro <- summary_stats %>% filter(household_type == "Progressive") %>% pull(Gender_0)
+trad_women_intro <- summary_stats %>% filter(household_type == "Traditional") %>% pull(Gender_1)
+trad_men_intro <- summary_stats %>% filter(household_type == "Traditional") %>% pull(Gender_0)
+```
+
+**Main Finding**: Progressive wives spend `r sprintf("%.0f", prog_gap_intro)` minutes/day more on domestic work than progressive husbands. Traditional wives spend `r sprintf("%.0f", trad_gap_intro)` minutes more. The gap narrows only `r sprintf("%.0f%%", gap_reduction_pct_intro)`, and primarily because progressive women reduce housework (from `r sprintf("%.0f", trad_women_intro)` to `r sprintf("%.0f", prog_women_intro)` minutes), not because progressive men increase it (men drop from `r sprintf("%.0f", trad_men_intro)` to `r sprintf("%.0f", prog_men_intro)` minutes).
 
 **The Modernity Paradox**: Education and urbanization correlate with egalitarian attitudes but not egalitarian behavior. Progressive couples **talk about** equality while **practicing** modified patriarchy.
 
@@ -84,6 +105,17 @@ comparison <- major_only %>%
   pivot_wider(names_from = female, values_from = Minutes, names_prefix = "Gender_") %>%
   mutate(Gap = Gender_1 - Gender_0)
 
+# Extract values for inline text
+prog_men <- comparison %>% filter(household_type == "Progressive") %>% pull(Gender_0)
+prog_women <- comparison %>% filter(household_type == "Progressive") %>% pull(Gender_1)
+prog_gap <- comparison %>% filter(household_type == "Progressive") %>% pull(Gap)
+
+trad_men <- comparison %>% filter(household_type == "Traditional") %>% pull(Gender_0)
+trad_women <- comparison %>% filter(household_type == "Traditional") %>% pull(Gender_1)
+trad_gap <- comparison %>% filter(household_type == "Traditional") %>% pull(Gap)
+
+gap_reduction_pct <- 100 * (1 - prog_gap / trad_gap)
+
 kable(comparison, digits = 1,
       caption = "Domestic Work: Progressive vs Traditional Households",
       col.names = c("Type", "Men (min)", "Women (min)", "Gap (min)"),
@@ -91,7 +123,7 @@ kable(comparison, digits = 1,
   kable_styling(latex_options = "HOLD_position")
 ```
 
-**Key**: Progressive gap (95 min) is only 15% smaller than traditional gap (112 min). Men in progressive households do LESS than traditional men (23 vs 56 min).
+**Key**: Progressive gap (`r sprintf("%.1f", prog_gap)` min) is only `r sprintf("%.0f%%", gap_reduction_pct)` smaller than traditional gap (`r sprintf("%.1f", trad_gap)` min). Men in progressive households do `r ifelse(prog_men < trad_men, "LESS", "MORE")` than traditional men (`r sprintf("%.1f", prog_men)` vs `r sprintf("%.1f", trad_men)` min).
 
 ## Why Do Progressive Men Do Less?
 

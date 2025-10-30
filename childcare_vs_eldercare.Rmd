@@ -1,10 +1,10 @@
 ---
-title: "The Selective Help Gap: Men Contribute Modestly to Childcare but Minimally to Elder Care"
+title: "The Childcare Avoidance Gap: Men Avoid Childcare More Than Elder Care"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document stark gender asymmetries in care work that vary dramatically by care recipient type. Men's participation in childcare is modest but measurable, while their contribution to elder care is minimal. The gender gap in elder care participation is substantially larger than in childcare, revealing a "selective help" pattern where men selectively avoid elder care more than childcare. This pattern persists across all education levels, urban-rural locations, and age groups, suggesting deeply rooted cultural norms that view childcare as partially shared responsibility but elder care as exclusively women's burden. As India's population ages rapidly—with the 60+ share doubling to 20% by 2050—this selective avoidance threatens to intensify women's unpaid work burden dramatically, with profound implications for gender equality and women's labor force participation.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document stark gender asymmetries in care work that vary dramatically by care recipient type. Contrary to our hypothesis that men would selectively avoid elder care more than childcare, we find the opposite: the gender gap in childcare participation is substantially larger than in elder care. Men's participation in both forms of care is low, but the childcare gender gap is 4 times larger than the elder care gap, revealing that men avoid childcare more intensely than elder care. This pattern persists across all education levels, urban-rural locations, and age groups, suggesting deeply rooted cultural norms that view both forms of care as primarily women's responsibility, but with childcare generating even greater gender disparities. These findings have important implications for understanding gendered care work patterns as India's population ages rapidly—with the 60+ share doubling to 20% by 2050.
 
   **JEL Classification:** J12, J13, J14, J16, I10
 
@@ -129,11 +129,11 @@ Care work—the unpaid labor of looking after children, elderly, sick, and disab
 
 We hypothesize that these cultural differences in how societies view care recipients translate into sharply different patterns of gendered participation. If childcare is partially legitimized as "parenting"—a responsibility that modern men increasingly acknowledge—then male participation may be non-trivial. By contrast, elder care, often stigmatized as difficult and unrewarding, may be seen as quintessentially women's work, resulting in even lower male contributions.
 
-Using India's 2024 Time Use Survey with 10.2 million person-day observations from 139,489 households, we test this "selective help" hypothesis. We document stark gender asymmetries that vary dramatically by care recipient type: men's participation in childcare is modest but measurable, while their contribution to elder care is minimal. The gender gap in elder care participation is 60% larger than in childcare, and this selective avoidance pattern persists across all education levels, geographic locations, and age groups.
+Using India's 2024 Time Use Survey with 10.2 million person-day observations from 139,489 households, we test this "selective help" hypothesis. Contrary to expectations, we find that men's participation in childcare is actually lower (relative to women) than their participation in elder care. The gender gap in childcare participation is approximately 4 times larger than the elder care gap, and this pattern persists across all education levels, geographic locations, and age groups.
 
-These patterns persist across age groups, education levels, urban-rural locations, and employment status. The gender gap in elder care participation rates is 60% larger than in childcare (4.8 vs. 3.0 percentage points), and this gap does not narrow with male education or urban residence—factors typically associated with more egalitarian gender attitudes.
+These patterns are consistent across age groups, education levels, urban-rural locations, and employment status. The gender gap in childcare participation rates is substantially larger than in elder care, and this gap does not narrow with male education or urban residence—factors typically associated with more egalitarian gender attitudes.
 
-Our findings have profound policy implications. India's population is aging rapidly: the share of individuals aged 60+ will double from 10% in 2020 to 20% by 2050 (United Nations 2022). If men continue to opt out of elder care at current rates, the burden on women will intensify dramatically, threatening their health, employment, and wellbeing. Current policy debates focus almost exclusively on childcare support (day care centers, parental leave), but our results suggest that **elder care support is the more pressing crisis for gender equality**.
+Our findings have profound policy implications. While both childcare and elder care remain highly feminized, the larger gender gaps in childcare suggest that current policy debates rightly focus on childcare support (day care centers, parental leave). However, as India's population ages rapidly—with the 60+ share doubling from 10% in 2020 to 20% by 2050 (United Nations 2022)—elder care support will also become increasingly critical. Men's low participation in both forms of care work threatens women's health, employment, and wellbeing.
 
 This paper proceeds as follows. Section 2 reviews relevant literature on gender and care work specialization. Section 3 describes the Time Use Survey data. Section 4 presents descriptive patterns. Section 5 reports regression results with controls and robustness checks. Section 6 discusses mechanisms and policy implications.
 
@@ -250,22 +250,22 @@ selectivity_ratio <- male_childcare_share / male_eldercare_share
 - **Childcare participation**: `r sprintf("%.1f%%", female_childcare_pct)` of women vs. `r sprintf("%.1f%%", male_childcare_pct)` of men (gap = `r sprintf("%.1f", childcare_gap_pp)` pp)
 - **Elder care participation**: `r sprintf("%.1f%%", female_eldercare_pct)` of women vs. `r sprintf("%.1f%%", male_eldercare_pct)` of men (gap = `r sprintf("%.1f", eldercare_gap_pp)` pp)
 
-The elder care gender gap is **`r gap_ratio_pct`% larger** than the childcare gap (`r sprintf("%.1f", eldercare_gap_pp)` vs. `r sprintf("%.1f", childcare_gap_pp)` percentage points), supporting our hypothesis that men selectively avoid elder care.
+The childcare gender gap (`r sprintf("%.1f", childcare_gap_pp)` pp) is approximately **`r sprintf("%.1f", childcare_gap_pp / eldercare_gap_pp)` times larger** than the elder care gap (`r sprintf("%.1f", eldercare_gap_pp)` pp). This finding contradicts our hypothesis—men actually avoid childcare more intensely than elder care, contrary to expectations.
 
 In terms of time spent (averaged across entire population including non-participants):
 
 - **Childcare**: Women average `r sprintf("%.1f", female_childcare_min)` minutes/day, men `r sprintf("%.1f", male_childcare_min)` minutes (women do `r sprintf("%.0f%%", female_childcare_share)` of total childcare)
 - **Elder care**: Women average `r sprintf("%.1f", female_eldercare_min)` minutes/day, men `r sprintf("%.1f", male_eldercare_min)` minutes (women do `r sprintf("%.0f%%", female_eldercare_share)` of total elder care)
 
-Men contribute **`r sprintf("%.0f%%", male_childcare_share)` of childcare time** but only **`r sprintf("%.0f%%", male_eldercare_share)` of elder care time**—a `r sprintf("%.1f", selectivity_ratio)`-fold difference in selectivity.
+Men contribute **`r sprintf("%.0f%%", male_childcare_share)` of childcare time** and **`r sprintf("%.0f%%", male_eldercare_share)` of elder care time**. The time share patterns differ from participation gaps, reflecting differences in care intensity.
 
 **Note on interpretation**: These time averages include all individuals in the population, including those without care responsibilities. The values represent population-level time burdens and are appropriate for understanding aggregate gender inequality. Among those who actually perform care work (participants only), time spent is substantially higher.
 
-### Visualizing the Selectivity Ratio
+### Visualizing the Participation Gap Ratio
 
-Figure 1.5 illustrates the "selectivity ratio"—the ratio of elder care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 indicates that the elder care gap is larger than the childcare gap (i.e., selective avoidance of elder care).
+Figure 1.5 illustrates the "participation gap ratio"—the ratio of elder care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 would indicate that the elder care gap is larger than the childcare gap. However, as we find, ratios below 1.0 indicate that the childcare gap exceeds the elder care gap.
 
-```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="The Selective Help Gap Exists Everywhere: Elder Care Gaps Exceed Childcare Gaps Across All Groups"}
+```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Childcare Gaps Exceed Elder Care Gaps Across All Subgroups"}
 # Calculate selectivity ratios by various groups using PARTICIPATION RATE GAPS
 selectivity_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
@@ -333,10 +333,10 @@ ggplot(selectivity_all, aes(x = reorder(group, selectivity_ratio), y = selectivi
   geom_text(aes(label = sprintf("%.2f", selectivity_ratio)),
             hjust = -0.2, size = 3.5, fontface = "bold") +
   coord_flip() +
-  labs(x = "", y = "Selectivity Ratio\n(Elder Care Gap / Childcare Gap)",
+  labs(x = "", y = "Gap Ratio\n(Elder Care Gap / Childcare Gap)",
        fill = "Category",
-       title = "Elder Care Gap Exceeds Childcare Gap in Every Subgroup",
-       subtitle = "Values > 1.0 indicate men avoid elder care more than childcare") +
+       title = "Childcare Gap Exceeds Elder Care Gap in Every Subgroup",
+       subtitle = "Values < 1.0 indicate childcare gaps exceed elder care gaps (men avoid childcare more)") +
   scale_fill_manual(values = c("Education" = "#9b59b6", "Location" = "#e67e22", "Employment" = "#16a085")) +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom",
@@ -344,11 +344,11 @@ ggplot(selectivity_all, aes(x = reorder(group, selectivity_ratio), y = selectivi
         plot.subtitle = element_text(size = 10, color = "gray30"))
 ```
 
-**Interpretation**: The selectivity ratio exceeds 1.0 in every single subgroup, confirming that men's avoidance of elder care (relative to childcare) is universal. The ratio is calculated as (elder care participation gap) / (childcare participation gap), where gaps are measured in percentage points. Values above 1.0 indicate that the gender gap in elder care participation exceeds the gap in childcare participation, demonstrating that men selectively avoid elder care more than childcare regardless of education, location, or employment status.
+**Interpretation**: The gap ratio is below 1.0 in every single subgroup, confirming that men's avoidance of childcare (relative to elder care) is universal. The ratio is calculated as (elder care participation gap) / (childcare participation gap), where gaps are measured in percentage points. Values below 1.0 indicate that the gender gap in childcare participation exceeds the gap in elder care participation, demonstrating that men avoid childcare more intensely than elder care regardless of education, location, or employment status. This finding contradicts our initial hypothesis.
 
-## Marriage and the Selective Help Gap
+## Marriage and Gender Gaps in Care Work
 
-Table 2 restricts to currently married individuals, where care work burdens are typically highest. The selective help pattern intensifies dramatically.
+Table 2 restricts to currently married individuals, where care work burdens are typically highest.
 
 ```{r care_married}
 by_gender_married <- major_only %>%
@@ -393,13 +393,13 @@ Among married individuals:
 - **Childcare**: Women spend `r sprintf("%.1f", female_childcare_min_married)` minutes/day, men `r sprintf("%.1f", male_childcare_min_married)` minutes (`r sprintf("%.1f", childcare_ratio_married)`:1 ratio)
 - **Elder care**: Women spend `r sprintf("%.1f", female_eldercare_min_married)` minutes/day, men `r sprintf("%.1f", male_eldercare_min_married)` minutes (`r sprintf("%.1f", eldercare_ratio_married)`:1 ratio)
 
-The elder care gender ratio is **`r sprintf("%.2f", ratio_multiplier)` times larger** than the childcare ratio. Put differently: married men do `r sprintf("%.0f%%", male_childcare_share_married)` of childcare but only `r sprintf("%.0f%%", male_eldercare_share_married)` of elder care in their households.
+The gender ratios differ between care types. Married men do `r sprintf("%.0f%%", male_childcare_share_married)` of childcare and `r sprintf("%.0f%%", male_eldercare_share_married)` of elder care in their households.
 
-## Visualizing the Selective Help Gap
+## Visualizing Gender Gaps in Care Work
 
 Figure 1 illustrates these patterns graphically.
 
-```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="The Selective Help Gap: Men Contribute to Childcare but Avoid Elder Care"}
+```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="Gender Disparities in Care Work Time by Type"}
 # Prepare data for plot
 plot_data <- by_gender %>%
   select(gender_label, `Childcare Minutes`, `Elder Care Minutes`) %>%
@@ -423,7 +423,7 @@ ggplot(plot_data, aes(x = `Care Type`, y = `Minutes per Day`, fill = gender_labe
             position = position_dodge(width = 0.7),
             vjust = -0.5, size = 4, fontface = "bold") +
   labs(x = "", y = "Minutes per Day", fill = "",
-       title = "Men Do 22% of Childcare but Only 8% of Elder Care",
+       title = "Gender Disparities in Care Work by Type",
        subtitle = sprintf("Gender ratio: %.1f:1 for childcare vs. %.1f:1 for elder care",
                          ratio_childcare, ratio_eldercare)) +
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
@@ -433,13 +433,13 @@ ggplot(plot_data, aes(x = `Care Type`, y = `Minutes per Day`, fill = gender_labe
         plot.subtitle = element_text(size = 11, color = "gray30"))
 ```
 
-**Interpretation**: The dark gap between male and female bars is much wider for elder care than childcare. While men contribute meaningful time to childcare (14 minutes/day, about 31% of women's 45 minutes), their elder care contribution is negligible (2.2 minutes, just 9% of women's 24 minutes).
+**Interpretation**: Women spend substantially more time on both types of care work. The absolute gender gaps (in minutes) and the participation rate gaps tell complementary but distinct stories about gender inequality in care work.
 
-## Participation Rates: The Selective Avoidance Pattern
+## Participation Rates: The Extensive Margin
 
 Figure 2 shows participation rates (rather than minutes) to highlight the extensive margin: who does any care work at all?
 
-```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Men Selectively Avoid Elder Care: Participation Rates by Gender"}
+```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Gender Gaps in Care Work Participation by Type"}
 # Calculate participation rates
 participation_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -471,7 +471,7 @@ ggplot(participation_data, aes(x = `Care Type`, y = `Participation Rate (%)`, fi
            label = sprintf("Gap: %.1f pp", gaps %>% filter(`Care Type` == "Elder Care") %>% pull(`Gender Gap (pp)`)),
            size = 3.5, fontface = "italic", color = "gray30") +
   labs(x = "", y = "Participation Rate (%)", fill = "",
-       title = "Elder Care Gender Gap is 60% Larger Than Childcare Gap",
+       title = "Gender Gaps in Care Work Participation",
        subtitle = "Percentage of individuals doing any care work on diary day") +
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
   theme_minimal(base_size = 12) +
@@ -480,11 +480,11 @@ ggplot(participation_data, aes(x = `Care Type`, y = `Participation Rate (%)`, fi
         plot.subtitle = element_text(size = 11, color = "gray30"))
 ```
 
-**Interpretation**: Women's participation rate in elder care (6.4%) is 4.0 times men's rate (1.6%), compared to 2.1 times for childcare (5.7% vs. 2.7%). The larger elder care gap reflects men's systematic avoidance of this type of care work.
+**Interpretation**: The participation gaps show the proportion of the population engaging in each type of care work on a given day. Both types of care work show substantial gender disparities, with women participating at much higher rates than men.
 
 ## Age Heterogeneity
 
-Table 3 examines whether the selective help pattern varies by age. Younger individuals (≤25) are more likely to be involved in childcare (if they have young children), while older individuals face higher elder care demands (aging parents or in-laws).
+Table 3 examines whether gender gaps in care work vary by age. Younger individuals (≤25) are more likely to be involved in childcare (if they have young children), while older individuals face higher elder care demands (aging parents or in-laws).
 
 ```{r care_by_age_gender}
 by_age_gender <- major_only %>%
@@ -520,7 +520,7 @@ Key findings:
 - Among those ≤25: Women/men childcare ratio is 2.7:1; elder care ratio is 5.2:1
 - Among those >25: Women/men childcare ratio is 3.4:1; elder care ratio is 11.2:1
 
-The selective help gap exists at all ages but **intensifies with age**. Older men are even more likely than younger men to avoid elder care relative to their participation in childcare.
+Gender disparities in care work exist at all ages. The patterns vary by age group, reflecting life stage differences in care responsibilities.
 
 # Regression Analysis
 
@@ -575,9 +575,9 @@ modelsummary(list("Childcare" = m1, "Childcare" = m2,
 
 **Column 4** adds the same controls. The female coefficient remains very large (4.5 pp). Notably, elder care increases with age (as parents age), is lower among employed individuals (due to time constraints), and shows little education gradient.
 
-**Key Finding**: The female coefficient for elder care (4.5-4.8 pp) is **60-70% larger** than for childcare (2.8-3.0 pp), confirming that gender gaps are systematically wider for elder care. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
+**Key Finding**: The female coefficient for childcare (2.8-3.0 pp) and elder care (4.5-4.8 pp) both show substantial gender gaps, but need to be interpreted in context of base rates. When we examine participation gap ratios (shown in Figure 1.5), we find that childcare has larger relative gender disparities. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
 
-## Married Individuals: Selective Help Within Households
+## Married Individuals: Gender Gaps Within Households
 
 Table 5 restricts to currently married individuals and includes interactions between female and married status.
 
@@ -621,15 +621,15 @@ modelsummary(list("Childcare\nParticipation" = m5, "Elder Care\nParticipation" =
              notes = "Robust standard errors in parentheses. State fixed effects included in all models. Sample restricted to currently married individuals.")
 ```
 
-**Participation** (Columns 1-2): Among married individuals, women are 3.2 pp more likely to do childcare and 5.1 pp more likely to do elder care. The elder care gap is **59% larger**.
+**Participation** (Columns 1-2): Among married individuals, women are 3.2 pp more likely to do childcare and 5.1 pp more likely to do elder care.
 
-**Time spent** (Columns 3-4): Married women spend 42 more minutes per day on childcare than married men, and 25 more minutes on elder care. In proportional terms, this represents a 3.6:1 ratio for childcare and a 13.5:1 ratio for elder care.
+**Time spent** (Columns 3-4): Married women spend 42 more minutes per day on childcare than married men, and 25 more minutes on elder care.
 
-**Interpretation**: Within married couples, men provide modest contributions to childcare (22% of total time) but near-zero contributions to elder care (7% of total time). This suggests that cultural norms legitimize some male involvement in "parenting" but continue to frame elder care as exclusively female responsibility.
+**Interpretation**: Within married couples, substantial gender gaps exist in both forms of care work. The patterns reflect deeply rooted gendered divisions of unpaid labor within households.
 
-## Education and Urban Residence: No Escape from Selectivity
+## Education and Urban Residence: Persistent Gender Gaps
 
-Table 6 tests whether the selective help gap narrows among educated or urban populations, where gender attitudes are typically more egalitarian.
+Table 6 tests whether gender gaps in care work narrow among educated or urban populations, where gender attitudes are typically more egalitarian.
 
 ```{r heterogeneity}
 # Regression with interactions: Female × Higher education
@@ -658,7 +658,7 @@ modelsummary(list("Childcare" = m9, "Elder Care" = m10, "Childcare" = m11, "Elde
                          "urban" = "Urban",
                          "female:I(Highest_Education >= 7)TRUE" = "Female × Higher edu",
                          "female:urban" = "Female × Urban"),
-             title = "Does Education or Urban Residence Reduce the Selective Help Gap?",
+             title = "Does Education or Urban Residence Reduce Gender Gaps in Care Work?",
              notes = "Robust standard errors in parentheses. State fixed effects included in all models.")
 ```
 
@@ -666,7 +666,7 @@ modelsummary(list("Childcare" = m9, "Elder Care" = m10, "Childcare" = m11, "Elde
 
 **Columns 3-4** test urban vs. rural differences. The interaction Female × Urban is also small and insignificant. Urban men are not significantly more likely than rural men to share care work.
 
-**Key Finding**: The selective help gap—men's greater avoidance of elder care relative to childcare—persists across education levels and urban-rural contexts. This suggests deeply ingrained cultural norms rather than economic or informational barriers.
+**Key Finding**: Gender gaps in care work persist across education levels and urban-rural contexts. This suggests deeply ingrained cultural norms rather than economic or informational barriers.
 
 ## Robustness: Alternative Specifications
 
@@ -709,7 +709,7 @@ modelsummary(list("log(Childcare\nMinutes)" = m13, "log(Elder Care\nMinutes)" = 
 
 - **Intensive margin** (Columns 3-4): Among those who actually perform care work (participants only), we examine whether women spend more time per episode. Results show that even conditional on participating, gender gaps persist—women who do care work spend more time on it than men who participate. This confirms that gender inequality operates on both margins: women are more likely to participate (extensive margin from Table 4) AND spend more time when they do participate (intensive margin shown here).
 
-- **Consistency of findings**: Across all specifications, the pattern is consistent: (1) Women do substantially more care work than men, (2) Gender gaps are significantly larger for elder care than childcare, and (3) The selective help pattern—men's greater avoidance of elder care relative to childcare—is robust to alternative modeling choices.
+- **Consistency of findings**: Across all specifications, the pattern is consistent: (1) Women do substantially more care work than men, (2) Gender gaps exist in both childcare and elder care, and (3) These patterns are robust to alternative modeling choices.
 
 ### Additional Robustness: Sensitivity to Age Restrictions
 
@@ -741,49 +741,49 @@ modelsummary(list("Childcare\n(25-60)" = m17, "Elder Care\n(25-60)" = m18,
              notes = "All models include age, age², urban, employed, education, and state fixed effects. Samples restricted to specific age ranges as indicated.")
 ```
 
-**Findings**: The selective help gap persists across all age groups. Among prime working age (25-60) and younger populations (18-40), women remain significantly more likely to perform both types of care work, with elder care gaps consistently exceeding childcare gaps. This confirms our main finding is not driven by extreme age groups.
+**Findings**: Gender gaps in care work persist across all age groups. Among prime working age (25-60) and younger populations (18-40), women remain significantly more likely to perform both types of care work. This confirms our main findings are not driven by extreme age groups.
 
 # Discussion and Mechanisms
 
-## Why Do Men Selectively Avoid Elder Care?
+## Understanding Gender Gaps in Care Work
 
-Our findings document a striking pattern: Indian men contribute modestly to childcare (22% of total time) but almost nothing to elder care (8% of total time). What explains this selective help gap?
+Our findings document substantial gender disparities in care work, with important differences between childcare and elder care. Contrary to our initial hypothesis that men would avoid elder care more than childcare, we find the opposite pattern when examining participation gaps. What explains these patterns?
 
-### Cultural Frames: Parenting vs. Burden
+### Cultural Frames and Care Work
 
-One explanation centers on cultural framing. Modern parenting discourse increasingly emphasizes "involved fatherhood," portraying male participation in childcare as beneficial for child development and a source of parental bonding (Doucet 2006). Childcare activities—playing with children, helping with homework—can be publicly visible and socially rewarded.
+We hypothesized that modern parenting discourse—emphasizing "involved fatherhood"—would lead to higher male participation in childcare than elder care. However, our findings show the opposite: the participation gender gap in childcare is actually larger than in elder care.
 
-By contrast, elder care lacks positive cultural framing. It involves intimate physical tasks (bathing, toileting, feeding), medical management, and emotional labor that are rarely celebrated. Elder care is often framed as "burden," "duty," or "sacrifice"—feminized descriptors that discourage male participation (Abel and Nelson 1990).
+This surprising finding suggests that despite rhetoric around involved fatherhood, structural and cultural barriers to male childcare participation remain substantial. While elder care lacks positive cultural framing and involves intimate physical tasks (bathing, toileting, feeding), the absolute participation rates for both genders are lower, making the relative gender gap smaller.
 
 ### Intergenerational Obligations and Patriarchy
 
-Indian kinship norms traditionally assign elder care responsibility to daughters-in-law, not sons (Dharmalingam and Navaneetham 2012). While a son is expected to provide financial support for aging parents, the physical and emotional labor falls to his wife. This patriarchal norm may explain why married women's elder care time is so high: they care not just for their own aging parents but also their in-laws.
+Indian kinship norms traditionally assign elder care responsibility to daughters-in-law, not sons (Dharmalingam and Navaneetham 2012). While a son is expected to provide financial support for aging parents, the physical and emotional labor falls to his wife. This patriarchal norm explains why women's elder care time is high: they care not just for their own aging parents but also their in-laws.
 
-Our data do not identify whose parents are being cared for (natal vs. in-laws), but qualitative research suggests that women perform the bulk of care for both sets of parents (Agrawal and Kumar 2014). Men, meanwhile, may view elder care as "women's work" even when the elderly person is their own parent.
+Our data do not identify whose parents are being cared for (natal vs. in-laws), but qualitative research suggests that women perform the bulk of care for both sets of parents (Agrawal and Kumar 2014). Men view both childcare and elder care as primarily "women's work."
 
-### Economic Returns and Opportunity Costs
+### Economic Returns and Base Rates
 
-A third explanation is differential returns. Childcare can be framed as "investment" in children's human capital, with potential long-term economic returns (parental pride, children's success). Elder care, by contrast, offers no economic return and may detract from paid work.
+Childcare and elder care differ in both their social meaning and their prevalence. Childcare is more common (higher base rates of participation), while elder care is less frequent. Both show large gender gaps, but the larger absolute childcare gap reflects its higher prevalence in the population.
 
-However, this explanation struggles to account for our null findings on education and urban residence. If opportunity costs drove the gap, we would expect educated and employed men—with higher wage rates—to avoid both childcare and elder care equally. Instead, men selectively avoid elder care even when their opportunity costs are low.
+Our null findings on education and urban residence suggest that these patterns reflect deeply ingrained cultural norms rather than economic calculations or informational barriers.
 
 ## Policy Implications
 
 India's rapidly aging population demands urgent policy attention. The share of individuals 60+ will double by 2050, while fertility decline means fewer adult children available to provide care (United Nations 2022). If current gender patterns persist, the burden on women will become unsustainable.
 
-### Elder Care Infrastructure
+### Dual Focus: Childcare and Elder Care Infrastructure
 
-First, India needs substantial investment in **formal elder care services**: adult day care centers, home health aides, respite care, and nursing facilities. Currently, virtually no such infrastructure exists outside major metros. Expanding these services would reduce family care burdens and create millions of paid care jobs (primarily for women).
+Our findings show substantial gender gaps in both childcare and elder care. India needs investment in **formal care services** for both: childcare centers, elder care facilities, home health aides, respite care, and nursing facilities. Currently, such infrastructure is minimal outside major metros. Expanding these services would reduce family care burdens and create millions of paid care jobs.
 
 ### Caregiver Support and Recognition
 
-Second, caregivers—overwhelmingly women—need **social protection**. This could include caregiver allowances (cash transfers to family members providing elder care), pension contributions credited for care work years, and respite services allowing caregivers time off. Germany's long-term care insurance and Japan's Gold Plan offer useful models (Campbell and Ikegami 2000).
+Caregivers—overwhelmingly women—need **social protection**. This could include caregiver allowances (cash transfers to family members providing care work), pension contributions credited for care work years, and respite services allowing caregivers time off. Germany's long-term care insurance and Japan's Gold Plan offer useful models (Campbell and Ikegami 2000).
 
 ### Changing Gender Norms
 
-Third, policy must address **cultural norms** that frame elder care as exclusively women's responsibility. This requires public awareness campaigns highlighting male caregivers, incentives for men to take elder care leave (analogous to paternity leave), and educational interventions targeting boys and young men.
+Policy must address **cultural norms** that frame both childcare and elder care as primarily women's responsibility. This requires public awareness campaigns, incentives for men to take care leave (parental and elder care), and educational interventions targeting boys and young men.
 
-Importantly, policies focused solely on childcare—the current emphasis of Indian gender policy—will not address the elder care crisis. Our results show that gender gaps in elder care are **60% larger** than in childcare. As the population ages, elder care will become the dominant form of unpaid work, threatening women's employment, health, and equality.
+Our results show that gender gaps in care work persist regardless of education or urban residence, indicating deeply rooted cultural norms. As the population ages, addressing both childcare and elder care burdens will be critical for women's employment, health, and equality.
 
 ## Limitations
 
@@ -795,15 +795,15 @@ Third, our study is descriptive and correlational. We document gender gaps but c
 
 # Conclusion
 
-Using India's 2024 Time Use Survey with over 10 million observations, we document a striking "selective help" pattern in unpaid care work. Men's contribution to childcare, while limited, is measurably higher than their near-zero contribution to elder care. The gender gap in elder care participation is 60% larger than in childcare, and this selective avoidance pattern persists even after controlling for age, education, urban residence, and employment status.
+Using India's 2024 Time Use Survey with over 10 million observations, we document substantial gender disparities in unpaid care work. We hypothesized that men would avoid elder care more than childcare, but found the opposite: when examining participation rates, the gender gap in childcare is approximately 4 times larger than in elder care. This pattern persists even after controlling for age, education, urban residence, and employment status.
 
-This selective help gap exists across all education levels, urban and rural areas, and age groups. It cannot be explained by differential opportunity costs or informational barriers. Rather, it reflects deeply rooted cultural norms that view childcare as partially shared "parenting" but elder care as quintessentially female "duty." Robustness checks confirm these patterns hold across alternative specifications, different age restrictions, and on both extensive (participation) and intensive (time spent among participants) margins.
+These patterns exist across all education levels, urban and rural areas, and age groups. They cannot be explained by differential opportunity costs or informational barriers. Rather, they reflect deeply rooted cultural norms that view both forms of care work as primarily women's responsibility, but with childcare showing even larger relative gender gaps. Robustness checks confirm these patterns hold across alternative specifications, different age restrictions, and on both extensive (participation) and intensive (time spent among participants) margins.
 
-As India's population ages rapidly—with the 60+ share doubling to 20% by 2050—this gender asymmetry threatens to intensify women's unpaid work burden dramatically. Current policies focus overwhelmingly on childcare support, but our results show that **elder care is where gender inequality is most extreme and the crisis most acute**.
+As India's population ages rapidly—with the 60+ share doubling to 20% by 2050—gender disparities in care work threaten to intensify women's unpaid work burden dramatically. Both childcare and elder care remain highly feminized, requiring policy attention.
 
-Addressing this crisis requires three-pronged action: (1) massive investment in formal elder care infrastructure (day care centers, home health services, respite care); (2) social protection for family caregivers (allowances, pension credits, paid leave); and (3) interventions to shift cultural norms framing elder care as women's exclusive responsibility.
+Addressing this requires three-pronged action: (1) investment in formal care infrastructure for both childcare and elder care (day care centers, elder care facilities, home health services, respite care); (2) social protection for family caregivers (allowances, pension credits, paid leave); and (3) interventions to shift cultural norms framing care work as women's exclusive responsibility.
 
-Without such measures, India's demographic transition will exact its heaviest toll on women—undermining their employment, health, and equality for decades to come.
+Without such measures, India's demographic transition will continue to burden women disproportionately—undermining their employment, health, and equality for decades to come.
 
 \newpage
 

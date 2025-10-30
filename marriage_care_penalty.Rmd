@@ -339,18 +339,6 @@ Conditional on participation, marriage has no effect on time intensity. Married 
 
 Table \ref{tab:main_regression} presents our core regression results examining the marriage penalty in care work participation. We employ linear probability models with robust standard errors, using survey weights to ensure national representativeness.
 
-**Column (1): Baseline Specification**
-
-The baseline model includes only gender and marriage indicators plus their interaction. Three key patterns emerge:
-
-1. The **Female coefficient (`r sprintf("%.1f%%", female_coef_m1)`,  p<0.001)** shows that among never-married individuals, women participate in care work at rates only `r sprintf("%.1f", female_coef_m1)` percentage points higher than men—a negligible difference. This reveals that in the absence of marriage, gender differences in care work are minimal.
-
-2. The **Married coefficient (`r sprintf("%.1f%%", married_coef_m1)`, p<0.001)** indicates that marriage increases men's care work participation by `r sprintf("%.1f", married_coef_m1)` percentage points. However, this effect becomes statistically insignificant once we add controls in later specifications, suggesting it captures compositional differences rather than a true marriage effect for men.
-
-3. The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The positive, highly significant coefficient indicates that married women participate `r sprintf("%.1f", female_married_coef_m1)` percentage points more than we would predict from simply adding the female and married effects. This is the marriage penalty.
-
-To interpret the magnitude: among married individuals, women participate at rates `r sprintf("%.1f%%", predicted_married_women_rate)` (= `r sprintf("%.1f%%", female_coef_m1)` + `r sprintf("%.1f%%", married_coef_m1)` + `r sprintf("%.1f%%", female_married_coef_m1)`) while men participate at `r sprintf("%.1f%%", predicted_married_men_rate)`, a `r sprintf("%.1f", gender_gap_married)` percentage point gap driven entirely by the marriage penalty.
-
 ```{r main_regression}
 # Restrict to never married and currently married only
 reg_data <- major_only %>%
@@ -371,26 +359,6 @@ m4 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban | State,
             data = reg_data, weights = ~Weight, vcov = "HC1")
 
-# Create table
-modelsummary(list(m1, m2, m3, m4),
-             stars = c('*' = .1, '**' = .05, '***' = .01),
-             coef_rename = c(
-               "female" = "Female",
-               "married" = "Married",
-               "female_married" = "Female × Married",
-               "Age" = "Age",
-               "higher_ed" = "Higher Education",
-               "employed" = "Employed",
-               "urban" = "Urban"
-             ),
-             gof_map = c("nobs", "r.squared"),
-             title = "The Marriage Penalty in Care Work Participation",
-             notes = "Dependent variable: Binary indicator for care work participation. Robust standard errors in parentheses.",
-             output = "kableExtra") %>%
-  kable_styling(latex_options = c("HOLD_position", "scale_down"))
-```
-
-```{r extract_reg_coefficients, include=FALSE}
 # Extract coefficients for inline reporting
 female_coef_m1 <- coef(m1)["female"] * 100
 married_coef_m1 <- coef(m1)["married"] * 100
@@ -423,17 +391,43 @@ married_women_observed_rate <- women_married_participation
 never_married_women_observed_rate <- women_never_married_participation
 observed_increase_pct <- ((married_women_observed_rate - never_married_women_observed_rate) / never_married_women_observed_rate) * 100
 
-# Time slots calculation: assuming 30-minute slots per month
-# 3.2 pp increase * 30 days = approx 0.96 additional days with care work
-# If each episode is 30 minutes, that's approximately 0.96 * 48 (30-min slots per day) = 46 slots
-# But that's not meaningful. Let's calculate based on minutes per month
-# 3.2% increase in participation * average minutes when participating
+# Time slots calculation
 avg_minutes_when_participating <- major_only %>%
   filter(Gender == 2, care_work == 1) %>%
   summarise(mins = weighted.mean(time_spent, Weight, na.rm = TRUE)) %>%
   pull(mins)
 additional_slots_per_month <- (female_married_coef_m4 / 100) * 30 * (avg_minutes_when_participating / 30)
+
+# Create table
+modelsummary(list(m1, m2, m3, m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared"),
+             title = "The Marriage Penalty in Care Work Participation",
+             notes = "Dependent variable: Binary indicator for care work participation. Robust standard errors in parentheses.",
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
+
+**Column (1): Baseline Specification**
+
+The baseline model includes only gender and marriage indicators plus their interaction. Three key patterns emerge:
+
+1. The **Female coefficient (`r sprintf("%.1f%%", female_coef_m1)`,  p<0.001)** shows that among never-married individuals, women participate in care work at rates only `r sprintf("%.1f", female_coef_m1)` percentage points higher than men—a negligible difference. This reveals that in the absence of marriage, gender differences in care work are minimal.
+
+2. The **Married coefficient (`r sprintf("%.1f%%", married_coef_m1)`, p<0.001)** indicates that marriage increases men's care work participation by `r sprintf("%.1f", married_coef_m1)` percentage points. However, this effect becomes statistically insignificant once we add controls in later specifications, suggesting it captures compositional differences rather than a true marriage effect for men.
+
+3. The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The positive, highly significant coefficient indicates that married women participate `r sprintf("%.1f", female_married_coef_m1)` percentage points more than we would predict from simply adding the female and married effects. This is the marriage penalty.
+
+To interpret the magnitude: among married individuals, women participate at rates `r sprintf("%.1f%%", predicted_married_women_rate)` (= `r sprintf("%.1f%%", female_coef_m1)` + `r sprintf("%.1f%%", married_coef_m1)` + `r sprintf("%.1f%%", female_married_coef_m1)`) while men participate at `r sprintf("%.1f%%", predicted_married_men_rate)`, a `r sprintf("%.1f", gender_gap_married)` percentage point gap driven entirely by the marriage penalty.
 
 **Column (2): Adding Age Controls**
 

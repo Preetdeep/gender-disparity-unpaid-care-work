@@ -297,7 +297,7 @@ These gaps are substantial but smaller than gaps in cooking (women do 90%+) or c
 
 Figure 1 illustrates time spent on shopping by gender.
 
-```{r shopping_plot, fig.width=8, fig.height=5, fig.cap="The Shopping Gap: Women Do 68% of Household Shopping"}
+```{r shopping_plot, fig.width=8, fig.height=5, fig.cap="The Shopping Gap: Women Do 96% of Household Shopping"}
 # Prepare data for plot
 plot_data <- by_gender %>%
   select(gender_label, `Shopping Minutes`) %>%
@@ -654,7 +654,7 @@ Our finding that the shopping gap is largest among married couples supports this
 
 Economic theories emphasize efficiency-based specialization: if women have lower wage rates, couples maximize joint income by having women do more household work (Becker 1981). However, this cannot explain our findings:
 
-1. **The gap persists among employed women**: Employed women's shopping time (9.5 min) is barely lower than unemployed women's (10.8 min), despite opportunity costs.
+1. **The gap persists among employed women**: Employed women's shopping time (`r sprintf("%.1f", employed_female)` min) is only `r employed_reduction_pct`% lower than unemployed women's (`r sprintf("%.1f", not_employed_female)` min), despite opportunity costs.
 2. **Education does not reduce the gap**: Highly educated women and men likely have similar wage rates, yet gaps remain large.
 
 These patterns suggest that the mental load is "sticky"—resistant to economic incentives—because it reflects identity and norms rather than optimization.

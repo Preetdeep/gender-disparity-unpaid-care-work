@@ -632,7 +632,7 @@ Addressing the friendship penalty requires multi-pronged approaches:
 
 # Conclusion
 
-Marriage reduces women's social time by 53%, dropping from 1.7 to 0.8 minutes daily, while reducing men's by only 22% (4.1 to 3.2 minutes). This gendered friendship penalty operates on both participation (whether people socialize) and intensity (time spent per activity). It is twice as large for younger women (≤25), persists across education levels and urban-rural divides, and operates independently of employment status.
+Marriage reduces women's social time by `r sprintf("%.0f%%", women_total_decline_pct)`, dropping from `r sprintf("%.1f", women_never_married_minutes_per_person)` to `r sprintf("%.1f", women_married_minutes_per_person)` minutes daily, while reducing men's by only `r sprintf("%.0f%%", men_total_decline_pct)` (`r sprintf("%.1f", men_never_married_minutes_per_person)` to `r sprintf("%.1f", men_married_minutes_per_person)` minutes). This gendered friendship penalty operates on both participation (whether people socialize) and intensity (time spent per activity). It is twice as large for younger women (≤25), persists across education levels and urban-rural divides, and operates independently of employment status.
 
 These findings reveal marriage as an institution that systematically isolates women from social networks while largely preserving men's connections. The consequences extend beyond personal wellbeing to encompass economic opportunities, social capital, community voice, and intergenerational outcomes.
 

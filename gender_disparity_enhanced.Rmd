@@ -132,7 +132,7 @@ India's position as a rapidly developing economy with persistent patriarchal nor
 
 ## Time Use Survey 2024
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours. Our analysis uses person-level data containing `r format(nrow(data), big.mark=",")` activity observations from `r format(length(unique(data$FSU_Serial_No)), big.mark=",")` households.
+India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours. Our analysis uses person-level data containing `r format(nrow(major_only), big.mark=",")` activity observations from `r format(length(unique(major_only$FSU_Serial_No)), big.mark=",")` households.
 
 ## Key Variables
 
