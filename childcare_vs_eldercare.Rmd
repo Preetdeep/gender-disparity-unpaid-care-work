@@ -825,7 +825,7 @@ This means our estimates capture both: (A) within-household gender gaps in care 
 
 # Conclusion
 
-We examine gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million person-day observations). Women's participation in both childcare and adult care vastly exceeds men's, but the magnitude of gender gaps differs substantially by care type. The childcare participation gap (16.2 percentage points) is approximately four times the adult care gap (4.1 percentage points), indicating particularly acute male underrepresentation in childcare despite contemporary rhetoric around "involved fatherhood."
+We examine gender disparities in unpaid care work using a 10% random sample of India's 2019 Time Use Survey (approximately 1 million person-day observations from the full 10.2 million observations). Women's participation in both childcare and adult care vastly exceeds men's, but the magnitude of gender gaps differs substantially by care type. The childcare participation gap (16.2 percentage points) is approximately four times the adult care gap (4.1 percentage points), indicating particularly acute male underrepresentation in childcare despite contemporary rhetoric around "involved fatherhood."
 
 These patterns persist across socioeconomic strata and life stages. Education and urban residence—typically associated with egalitarian gender attitudes—do not narrow care work gaps. Employment reduces care time for both genders but does not equalize contributions. Robustness checks across alternative specifications, age restrictions, and estimation approaches confirm consistency of findings.
 
