@@ -35,6 +35,11 @@ fontsize: 12pt
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       fig.pos = "H", out.extra = "")
 
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
+
 if (.Platform$OS.type == "windows") {
   memory.limit(size = 16000)
 }
@@ -119,7 +124,7 @@ Yet an alternative hypothesis emerges from sociological "doing gender" theories 
 
 We call this the **"wealth paradox"**: economic resources may widen rather than narrow household gender gaps.
 
-Using India's 2024 Time Use Survey with 10.2 million observations, we test these competing predictions by examining gender gaps in domestic work across socioeconomic strata. Our findings strongly support the wealth paradox:
+Using India's 2024 Time Use Survey with 10.2 million observations, we examine gender gaps in domestic work across socioeconomic strata. **Important caveat**: Our cross-sectional data reveal associations, not causal effects—we document patterns but cannot establish whether wealth causes these gaps or whether couples with traditional divisions differentially accumulate wealth. Subject to this limitation, patterns strongly support the wealth paradox:
 
 **Gender Gaps Widen with Wealth**: Among low-SES couples (rural, primary education or less), women spend 92 more minutes per day on domestic work than men (155 vs. 63 minutes). Among high-SES couples (urban, higher education), the gap is 122 minutes (136 vs. 14 minutes)—**32% larger**.
 
@@ -403,11 +408,11 @@ Standard bargaining models predict wealth increases women's power, enabling more
 
 # Conclusion
 
-Does money buy fairness in household gender relations? Our answer is no—indeed, money may buy greater inequality. Using India's 2024 Time Use Survey, we document that gender gaps in domestic work are 32% larger in high-SES households than in low-SES households. Wealth enables men to completely exit domestic work while women shift from physical labor to management, maintaining similar total time burdens.
+Does money buy fairness in household gender relations? Examining cross-sectional associations in India's 2024 Time Use Survey, we find that gender gaps in domestic work are 32% larger in high-SES households (122 minutes/day) than in low-SES households (92 minutes/day). High-SES men spend dramatically less time on domestic work (14 minutes/day) than low-SES men (63 minutes/day), while women's total time decreases only modestly (136 vs. 155 minutes) with compositional shifts from execution to management.
 
-This "wealth paradox" contradicts resource bargaining theories predicting that economic resources empower women to negotiate more equal arrangements. Instead, our findings support sociological perspectives emphasizing sticky gender norms: wealth provides tools (servants) to maintain traditional divisions with new forms rather than challenging fundamental responsibility allocation.
+While these patterns are associational and cannot establish causality, they contradict resource bargaining predictions that economic resources automatically empower women to negotiate more equal arrangements. Instead, findings align with sociological perspectives emphasizing sticky gender norms: wealth associates with tools (domestic help) that maintain traditional responsibility allocations through new forms rather than challenging fundamentalstructures.
 
-The implication is sobering: economic development and rising prosperity will not automatically promote household gender equality. Without deliberate challenges to cultural norms defining household work as women's responsibility—whether that work involves scrubbing floors or managing those who do—affluence may intensify rather than reduce gender inequality within homes.
+The policy implication is clear: economic development and rising prosperity will not automatically promote household gender equality. Addressing persistent gender disparities in domestic work requires direct interventions—formal care infrastructure, social protections for caregivers, and cultural campaigns challenging norms about women's exclusive responsibility for household management—rather than relying on wealth accumulation alone.
 
 # References
 
