@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million person-day observations, 139,489 households), we compare gender disparities across two forms of unpaid care work: childcare and adult care. Counter to expectations that men would participate more in childcare due to modern "involved fatherhood" norms, we find men's participation rates remain extremely low for both activities. The gender participation gap in childcare (16.2 percentage points) substantially exceeds that in adult care (4.1 percentage points). This pattern persists across education levels, urban-rural locations, and age groups, reflecting deeply entrenched cultural norms assigning care work to women. As India's 60+ population share doubles to 20% by 2050, these findings highlight urgent needs for care infrastructure and cultural transformation.
+  Using a 10% random sample of India's 2019 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we provide population-level estimates of gender disparities across two forms of unpaid care work: childcare and adult care. We cannot condition on household composition (presence of children or elderly members). Men's participation rates remain extremely low for both activities. The gender participation gap in childcare (16.2 percentage points) substantially exceeds that in adult care (4.1 percentage points). This pattern persists across education levels, urban-rural locations, and age groups, reflecting deeply entrenched cultural norms assigning care work to women. As India's 60+ population share doubles to 20% by 2050, these findings highlight urgent needs for care infrastructure and cultural transformation.
 
   **JEL Classification:** J12, J13, J14, J16, I10
 
-  **Keywords:** childcare, adult care, gender inequality, unpaid care work, aging, India
+  **Keywords:** childcare, adult care, gender inequality, unpaid care work, aging, India, time use survey, household production, demographic transition
 
-  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
 output:
   pdf_document:
@@ -142,9 +142,9 @@ invisible(gc())
 
 Care work—the unpaid labor of looking after children, elderly, sick, and disabled household members—remains overwhelmingly women's responsibility across the world. Yet not all care work is the same. Recent feminist scholarship has emphasized that care recipients differ systematically in their social meaning: children are often framed as "investment in the future" and objects of shared parental pride, while elderly care evokes notions of obligation, burden, and end-of-life management (Folbre 2012; England 2005).
 
-We hypothesize that these cultural differences in how societies view care recipients translate into sharply different patterns of gendered participation. If childcare is partially legitimized as "parenting"—a responsibility that modern men increasingly acknowledge—then male participation may be non-trivial. By contrast, adult care, often stigmatized as difficult and unrewarding, may be seen as quintessentially women's work, resulting in even lower male contributions.
+One might hypothesize that cultural differences in how societies view care recipients translate into different patterns of gendered participation. If childcare is partially legitimized as "parenting"—a responsibility that modern men increasingly acknowledge—then male participation may be non-trivial. By contrast, adult care, often stigmatized as difficult and unrewarding, may be seen as quintessentially women's work, resulting in even lower male contributions.
 
-Using India's 2024 Time Use Survey with 10.2 million person-day observations from 139,489 households, we test this "selective help" hypothesis. Contrary to expectations, we find that men's participation in childcare is actually lower (relative to women) than their participation in adult care. The gender gap in childcare participation is approximately 4 times larger than the adult care gap, and this pattern persists across all education levels, geographic locations, and age groups.
+Using a 10% random sample of India's 2019 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine gender disparities in these two types of care work. **Important limitation:** We cannot observe household composition (number/ages of children, presence of elderly members), so our estimates represent population-level gender gaps, not gaps conditional on care needs being present. We find that men's participation in childcare is actually lower (relative to women) than their participation in adult care. The gender gap in childcare participation is approximately 4 times larger than the adult care gap, and this pattern persists across all education levels, geographic locations, and age groups. This suggests that in the Indian context, patriarchal norms assign *all* forms of care work primarily to women, with childcare being particularly feminized despite "involved fatherhood" rhetoric.
 
 These patterns are consistent across age groups, education levels, urban-rural locations, and employment status. The gender gap in childcare participation rates is substantially larger than in adult care, and this gap does not narrow with male education or urban residence—factors typically associated with more egalitarian gender attitudes.
 
@@ -176,9 +176,11 @@ Our study fills this gap by providing the first comprehensive comparison of gend
 
 # Data and Measurement
 
-## India's Time Use Survey 2024
+## India's Time Use Survey 2019
 
-We use India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households, making it one of the largest time use surveys ever conducted. Respondents recorded all activities in 30-minute intervals, including both primary activities (what the person was mainly doing) and secondary activities (simultaneous tasks).
+We use India's Time Use Survey (TUS) 2019, conducted by the National Statistical Office between January and December 2019. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households, making it one of the largest time use surveys ever conducted. Respondents recorded all activities in 30-minute intervals, including both primary activities (what the person was mainly doing) and secondary activities (simultaneous tasks).
+
+**Sampling Strategy:** Due to computational constraints, we analyze a 10% random sample of the full dataset (approximately 1 million person-day observations after restricting to major activities). We adjust survey weights accordingly (dividing by 0.1) to maintain population representativeness. This sampling approach is common in analyses of large administrative datasets and does not bias population-level estimates.
 
 Activities are classified using the International Classification of Activities for Time Use Statistics (ICATUS), with 3-digit detail. For this study, we focus on two specific categories:
 
@@ -275,7 +277,7 @@ Men contribute **`r sprintf("%.0f%%", male_childcare_share)` of childcare time**
 
 Figure 3 illustrates the "participation gap ratio"—the ratio of adult care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 would indicate that the adult care gap is larger than the childcare gap. However, as we find, ratios below 1.0 indicate that the childcare gap exceeds the adult care gap.
 
-```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Figure 3: Childcare Gaps Exceed Adult Care Gaps Across All Subgroups"}
+```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Childcare Gaps Exceed Adult Care Gaps Across All Subgroups"}
 # Calculate selectivity ratios by various groups using PARTICIPATION RATE GAPS
 selectivity_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
@@ -409,7 +411,7 @@ The gender ratios differ between care types. Married men do `r sprintf("%.0f%%",
 
 Figure 1 illustrates these patterns graphically.
 
-```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="Figure 1: Gender Disparities in Care Work Time by Type"}
+```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="Gender Disparities in Care Work Time by Type"}
 # Prepare data for plot
 plot_data <- by_gender %>%
   select(gender_label, `Childcare Minutes`, `Adult Care Minutes`) %>%
@@ -449,7 +451,7 @@ ggplot(plot_data, aes(x = `Care Type`, y = `Minutes per Day`, fill = gender_labe
 
 Figure 2 shows participation rates (rather than minutes) to highlight the extensive margin: who does any care work at all?
 
-```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Figure 2: Gender Gaps in Care Work Participation by Type"}
+```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Gender Gaps in Care Work Participation by Type"}
 # Calculate participation rates
 participation_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -575,17 +577,17 @@ modelsummary(list("Childcare" = m1, "Childcare" = m2,
              notes = "Standard errors clustered at household level in parentheses. State fixed effects included in models 2 and 4.")
 ```
 
-**Column 1** shows that women are 3.0 percentage points more likely than men to do childcare on any given day (p < 0.001). Given a male baseline of 2.7%, this represents a **111% increase**.
+**Column 1** shows that women are 16.2 percentage points more likely than men to do childcare on any given day (p < 0.001). Given a male baseline participation rate of 0.71% (Table 1), the female-male gap represents approximately 23 times higher participation for women.
 
-**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (2.8 pp) and highly significant. Age has a positive effect (childcare peaks in middle age when children are young), and education has little effect.
+**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (13.4 pp) and highly significant. Age has a positive effect (childcare peaks in middle age when children are young), and education has little effect.
 
 **Employment Effect on Care Work**: The employment coefficient is negative and statistically significant for both childcare and adult care. This is expected and theoretically important: employed individuals face time constraints that reduce their availability for unpaid care work. This finding underscores the "double burden" faced by employed women—they must balance paid work with care responsibilities that employed men largely avoid. The negative employment coefficient does **not** mean employed people shirk care responsibilities, but rather reflects the zero-sum time constraint: hours spent in paid work mechanically reduce time available for care, particularly on diary days when employment is the major activity.
 
-**Column 3** shows that women are 4.8 percentage points more likely than men to do adult care (p < 0.001). Given a male baseline of 1.6%, this represents a **300% increase**—far larger than the childcare effect.
+**Column 3** shows that women are 4.1 percentage points more likely than men to do adult care (p < 0.001). Given a male baseline participation rate of 0.41% (Table 1), women's participation is approximately 11 times higher than men's.
 
-**Column 4** adds the same controls. The female coefficient remains very large (4.5 pp). Notably, adult care increases with age (as parents age), is lower among employed individuals (due to time constraints), and shows little education gradient.
+**Column 4** adds the same controls. The female coefficient remains large (3.4 pp) and highly significant. Notably, adult care increases with age (as parents age), is lower among employed individuals (due to time constraints), and shows little education gradient.
 
-**Key Finding**: The female coefficient for childcare (2.8-3.0 pp) and adult care (4.5-4.8 pp) both show substantial gender gaps, but need to be interpreted in context of base rates. When we examine participation gap ratios (shown in Figure 3), we find that childcare has larger relative gender disparities. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
+**Key Finding**: The female coefficients show substantial gender gaps in both childcare (13.4-16.2 pp) and adult care (3.4-4.1 pp). The absolute gap is approximately 4 times larger for childcare than adult care, indicating particularly acute male underrepresentation in childcare. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
 
 ## Married Individuals: Gender Gaps Within Households
 
