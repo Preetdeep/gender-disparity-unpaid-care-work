@@ -236,6 +236,8 @@ gap_by_ses <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(`Domestic Minutes`, N)) %>%
   mutate(
+    Male = `Domestic Minutes_Male`,
+    Female = `Domestic Minutes_Female`,
     `Gender Gap (F - M)` = `Domestic Minutes_Female` - `Domestic Minutes_Male`,
     `Female Share (%)` = 100 * `Domestic Minutes_Female` / (`Domestic Minutes_Female` + `Domestic Minutes_Male`)
   )
