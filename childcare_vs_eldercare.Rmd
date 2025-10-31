@@ -64,7 +64,7 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               State, FSU_Serial_No, Sample_HH_No, Household_ID))
+                               State, FSU_Serial_No, Sample_HH_No))
 
 # Process data - filter to major activities only to reduce memory usage
 major_only <- data %>%
