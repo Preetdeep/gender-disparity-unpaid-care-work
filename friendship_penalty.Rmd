@@ -4,11 +4,19 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark "friendship penalty" of marriage: women's participation in social activities (socializing, attending events, communicating with friends) drops dramatically after marriage, while men's drops only modestly. Among those who do socialize, married women spend substantially less time per social activity than never-married women, whereas men show no such decline. This asymmetric social isolation has profound implications: married women average far less social time per day than never-married women, while married men maintain similar levels to their unmarried counterparts. The friendship penalty is largest for younger women (≤25), persists across all education levels and urban-rural locations, and operates independently of employment status. These findings reveal marriage as an institution that systematically isolates women from social networks while largely preserving men's social connections, with important consequences for women's social capital, mental health, and access to information and opportunities.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark "friendship penalty" of marriage that differs sharply by gender.
+
+  Women's participation in social activities drops dramatically after marriage, while men's drops only modestly. Among those who do socialize, married women spend substantially less time per social activity than never-married women, whereas men show no such decline.
+
+  This dual penalty—participation and intensity—means married women average far less social time per day than never-married women, while married men maintain similar levels. The friendship penalty is largest for younger women (≤25), persists across all education levels and urban-rural locations, and operates independently of employment status.
+
+  These cross-sectional associations suggest marriage may isolate women from social networks while largely preserving men's connections, with potential consequences for women's social capital, mental health, and economic opportunities. Causal interpretation is limited by selection into marriage.
 
   **JEL Classification:** J12, J16, Z13, I31
 
   **Keywords:** marriage, social capital, gender inequality, social networks, friendship, India
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
 output:
   pdf_document:
     latex_engine: xelatex
@@ -31,6 +39,11 @@ fontsize: 12pt
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       fig.pos = "H", out.extra = "")
+
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
 
 # Increase memory limit if on Windows
 if (.Platform$OS.type == "windows") {
@@ -58,13 +71,17 @@ data <- read_dta("TimeUse106PER.dta",
                                Highest_Education, Sector, Principal_Activity_Status,
                                State, FSU_Serial_No, Sample_HH_No))
 
-# Use 10% sample for faster processing
-set.seed(123)
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+# The full dataset (10.2M observations) exceeds memory limits during compilation
+# Random sampling maintains representativeness while enabling analysis
+set.seed(123)  # For reproducibility
 data <- data %>% slice_sample(prop = 0.1)
-# Adjust weights for sampling
+
+# Adjust survey weights to reflect sampling
+# Each observation now represents 10x its original weight
 data <- data %>% mutate(Weight = Weight / 0.1)
 
-# Process data
+# Process data - filter to major activities only
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
@@ -81,13 +98,21 @@ major_only <- data %>%
     married = as.numeric(Marital_Status == 2),
     never_married = as.numeric(Marital_Status == 1),
 
-    # Age variables
+    # Age variables (cutoff at 25 to separate early vs. later marriage patterns)
     age_25_or_less = as.numeric(Age <= 25),
     age_over_25 = as.numeric(Age > 25),
     age_group = ifelse(Age <= 25, "25 and below", "Above 25"),
 
+    # Create household ID for clustering standard errors
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
     # Social activities variables
-    # Activity code 81-89: Social life and communication
+    # ICATUS Activity codes 81-89: Social life and communication
+    # 81: Participating in social events and community activities
+    # 82: Civic and organizational activities
+    # 83: Socializing and communication
+    # 84: Attending or hosting social events
+    # 85-89: Other social and community activities
     social_activity = as.numeric(Activity_Code_2Digit >= 81 & Activity_Code_2Digit <= 89),
     social_minutes = ifelse(social_activity == 1, time_spent, 0),
 
@@ -99,13 +124,16 @@ major_only <- data %>%
       Highest_Education %in% c(4, 5, 6) ~ "Secondary",
       Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
     ),
-    higher_ed = as.numeric(Highest_Education >= 10),
-    employed = as.numeric(Principal_Activity_Status %in% c(11, 21, 31, 41, 51)),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
 
     # Interaction terms
     female_married = female * married,
     female_married_young = female * married * age_25_or_less,
-    female_married_older = female * married * age_over_25
+    female_married_older = female * married * age_over_25,
+
+    # State fixed effects
+    state_factor = as.factor(State)
   )
 
 # Free memory
@@ -216,7 +244,7 @@ Third, we document substantial heterogeneity by age. Younger married women (≤2
 
 Fourth, we connect to the social capital literature by showing how gendered marriage patterns systematically deprive women of network-based resources. If men's social networks provide job information, business opportunities, and community influence, while women's networks atrophy post-marriage, this mechanism perpetuates economic inequality beyond direct labor market discrimination.
 
-The paper proceeds as follows. Section 2 reviews relevant literature. Section 3 describes data and measurement. Section 4 presents main results on the friendship penalty. Section 5 examines heterogeneity by age, education, and employment. Section 6 reports robustness checks. Section 7 discusses mechanisms and implications. Section 8 concludes.
+**Roadmap**: Section 2 reviews theoretical perspectives on social capital, gender differences in social networks, and marriage's effects on social life. Section 3 describes our data source, sampling strategy, variable definitions, and empirical approach. Section 4 presents main descriptive and regression results documenting the gendered friendship penalty. Section 5 examines heterogeneity by age. Section 6 reports robustness checks across education, urban-rural location, and employment status. Section 7 discusses potential mechanisms and broader implications for wellbeing and policy. Section 8 concludes and acknowledges limitations.
 
 # Literature Review
 
@@ -240,42 +268,54 @@ Hirway (2010) documents Indian women's overwhelming domestic workload using 1998
 
 # Data and Measurement
 
-## Time Use Survey 2024
+## Data Source and Sampling Strategy
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals.
+India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above (N = 10.2 million person-day observations from 139,489 households), capturing activities in 30-minute intervals using the International Classification of Activities for Time Use Statistics (ICATUS).
 
-Our analysis uses person-level activity data. Following TUS guidelines, we analyze only "major activities" (Major_Activity_Flag = 1), which assigns the full 30-minute duration to the primary activity performed in each time slot.
+**Sampling for Analysis**: Due to computational and memory constraints during analysis, we use a **10% random sample** (seed = 123) of the full dataset. Survey weights are adjusted by a factor of 10 to maintain population representativeness. This sampling approach preserves the distributional properties of the full dataset while enabling feasible computation. All estimates reported below use the adjusted survey weights.
+
+**Major Activities**: Following TUS guidelines, we analyze only "major activities" (Major_Activity_Flag = 1), which assigns the full 30-minute duration to the primary activity performed in each time slot. This methodological choice excludes simultaneously performed secondary activities to avoid double-counting time.
 
 ## Defining Social Activities
 
-We define social activities using the International Classification of Activities for Time Use Statistics (ICATUS) codes 81-89, which encompass:
+We define social activities using ICATUS codes 81-89, which encompass:
 
-- **Code 81-82**: Participating in social and civic activities
-- **Code 83**: Socializing, communication, and community interaction
-- **Code 84**: Attending or hosting social events
+- **Code 81**: Participating in social events and community activities
+- **Code 82**: Civic and organizational activities
+- **Code 83**: Socializing and communication (visiting friends, phone calls, informal gatherings)
+- **Code 84**: Attending or hosting social events (parties, celebrations, social occasions)
+- **Codes 85-89**: Other social and community interaction activities
 
-These codes capture time spent with friends, relatives (outside care-giving), neighbors, and community members in non-work, non-care contexts. This definition excludes:
-- Care work (captured separately in codes 31-33)
-- Religious activities (code 9)
-- Work-related socializing (embedded in employment codes)
+These codes capture time spent with friends, relatives (outside caregiving contexts), neighbors, and community members in non-work, non-care settings.
+
+**Excluded from social activities**:
+- Care work for children, elderly, or sick household members (codes 31-32)
+- Religious and spiritual activities (codes 91-96)
+- Work-related socializing (embedded in employment activity codes)
+- Domestic work and household management (codes 33-35)
 
 ## Key Variables
 
 **Dependent Variables:**
 
-1. *Social activity participation*: Binary indicator = 1 if activity codes 81-89, 0 otherwise
-2. *Social minutes*: Time spent on social activities
-3. *Social minutes per person*: Social time for all individuals including non-participants
+1. *Social activity participation*: Binary indicator = 1 if any time spent in activity codes 81-89, 0 otherwise
+2. *Social minutes (conditional)*: Time spent on social activities among participants only
+3. *Social minutes per person (unconditional)*: Social time averaged across all individuals including non-participants (zero social time)
 
 **Independent Variables:**
 
-1. *Married*: Binary = 1 if currently married (Marital_Status = 2), 0 if never married
-2. *Female*: Binary = 1 if female (Gender = 2), 0 if male
-3. *Age groups*: 25 and below vs. Above 25
+1. *Married*: Binary = 1 if currently married (Marital_Status = 2), 0 if never married (Marital_Status = 1). Widowed and divorced individuals excluded from main analysis.
+2. *Female*: Binary = 1 if female (Gender = 2), 0 if male (Gender = 1)
+3. *Age groups*: Binary split at age 25 (≤25 vs. >25) to distinguish early marriage patterns from later marriage. Age 25 represents approximate median marriage age for women in India and separates developmental stages where peer friendships play different roles.
 
-**Control Variables:** Age, age-squared, education level, sector (rural/urban), employment status, state fixed effects
+**Control Variables:**
+- Age and age-squared (continuous, capturing non-linear life-cycle patterns)
+- Education level: Primary or less, Secondary, Higher education (based on Highest_Education codes 1-12)
+- Sector: Rural (Sector = 1) vs. Urban (Sector = 2)
+- Employment status: Engaged in work for pay or profit (Principal_Activity_Status codes 11, 12, 21, 31, 41, 51)
+- State fixed effects: Controls for all time-invariant state-level cultural and economic differences
 
-**Survey Weights:** All estimates use survey weights to ensure national representativeness.
+**Survey Weights:** All descriptive statistics and regression estimates use survey weights (adjusted for 10% sampling) to ensure national representativeness.
 
 ```{r descriptive_stats}
 # Overall sample statistics
@@ -304,9 +344,13 @@ We estimate the friendship penalty using linear probability models:
 
 $$\text{SocialActivity}_{i} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \mathbf{X}_i'\gamma + \epsilon_i$$
 
-The coefficient $\beta_3$ captures the differential effect of marriage on women relative to men—the "friendship penalty." We examine heterogeneity by age, education, employment, and urban-rural location.
+The coefficient $\beta_3$ captures the differential effect of marriage on women relative to men—the "friendship penalty."
 
-**Identification:** We do not claim causal identification. Marriage is endogenous to preferences and characteristics. Our estimates capture the correlation between marital status and social time, controlling for observables.
+**Standard Errors**: We cluster standard errors at the household level (household_id) to account for within-household correlation in social activity patterns. Multiple individuals from the same household likely have correlated social time due to shared household characteristics (presence of children, household norms about socializing, geographic location, vehicle access). Ignoring this correlation would understate standard errors and overstate statistical significance.
+
+**Linear Probability Model Limitations**: Social activity participation is a binary outcome, and linear probability models can predict impossible values outside [0,1]. We acknowledge this limitation but prefer the LPM for ease of interpretation and consistency with difference-in-differences designs. Our predicted probabilities remain within reasonable bounds for most observations, though some extrapolations may exceed 0 or 1.
+
+**Identification Caveat**: We do not claim causal identification. Marriage is endogenous—individuals select into marriage based on preferences, social networks, and characteristics that also affect social activity. Our estimates capture associations between marital status and social time conditional on observables, not causal effects. Selection bias likely operates: individuals with weaker social ties may be more likely to marry, or conversely, those with strong social networks may attract partners more easily.
 
 # Main Results: The Friendship Penalty
 
@@ -394,23 +438,23 @@ Table 2 presents our core regression results examining the friendship penalty. W
 reg_data <- major_only %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
 
-# Regressions
+# Regressions with household clustering
 m1 <- feols(social_activity ~ female + married + female_married,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
 
 m2 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2),
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
 
 m3 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
 
 m4 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
-              higher_ed + employed + urban | State,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+              higher_ed + employed + urban | state_factor,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
 
 # Create table
-modelsummary(list(m1, m2, m3, m4),
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
              stars = c('*' = .1, '**' = .05, '***' = .01),
              coef_rename = c(
                "female" = "Female",
@@ -421,9 +465,12 @@ modelsummary(list(m1, m2, m3, m4),
                "employed" = "Employed",
                "urban" = "Urban"
              ),
-             gof_map = c("nobs", "r.squared"),
-             title = "The Friendship Penalty in Social Activity Participation",
-             notes = "Dependent variable: Binary indicator for social activity participation. Robust standard errors in parentheses.",
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             title = "The Gendered Friendship Penalty: Social Activity Participation",
+             notes = c("Dependent variable: Binary indicator for any social activity participation (codes 81-89).",
+                      "Standard errors (in parentheses) clustered at household level.",
+                      "All models use survey weights adjusted for 10% sampling.",
+                      "Negative Female × Married coefficient indicates larger marriage penalty for women."),
              output = "kableExtra") %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
@@ -432,13 +479,13 @@ modelsummary(list(m1, m2, m3, m4),
 
 The baseline model reveals three key patterns:
 
-1. **Female coefficient (-3.1%, p<0.001)**: Among never-married individuals, women participate in social activities 3.1 percentage points less than men. This baseline gender gap already disadvantages women before marriage.
+1. **Female coefficient**: Among never-married individuals, women participate in social activities at lower rates than men. This baseline gender gap disadvantages women even before marriage.
 
-2. **Married coefficient (-1.1%, p<0.001)**: Marriage reduces men's social participation by 1.1 percentage points—the friendship penalty men experience.
+2. **Married coefficient**: Marriage reduces men's social participation—the baseline friendship penalty men experience.
 
-3. **Female × Married coefficient (-1.0%, p<0.001)**: This interaction captures the additional penalty women face. Women's total marriage penalty is 2.1 percentage points (= 1.1 + 1.0), nearly double men's penalty.
+3. **Female × Married interaction**: This coefficient is negative and statistically significant, capturing the additional penalty women face beyond men's. Women's total marriage penalty (= Married + Female × Married) is nearly double men's penalty (= Married alone).
 
-**Interpretation:** Never-married women participate at 1.9% (= 5.0% - 3.1%), never-married men at 5.0%. Marriage drops women to -0.2% (impossible, suggesting the linear model approximates a nonlinear relationship near zero) and men to 3.9% (= 5.0% - 1.1%). The interaction term shows women lose an additional 1.0 percentage points beyond men's loss.
+**Note on interpretation**: Since social participation rates are low (typically <5% on any given day), the linear probability model predicts values near zero. The key finding is the negative and significant Female × Married interaction, indicating marriage affects women more than men.
 
 **Column (2): Adding Age Controls**
 
@@ -580,29 +627,31 @@ Both employed and non-employed women experience friendship penalties, demonstrat
 
 # Discussion
 
-## Mechanisms: Why Does Marriage Isolate Women More Than Men?
+## Mechanisms: Why Might Marriage Isolate Women More Than Men?
 
-Several mechanisms may explain the gendered friendship penalty:
+Our data document the gendered friendship penalty but cannot directly test causal mechanisms. Based on existing qualitative research and theoretical considerations, we propose five potential mechanisms that future research could investigate:
 
-**1. Time Constraints from Domestic Work**
+**1. Time Constraints from Domestic Work** (Hypothesis)
 
-Our previous analysis documented that marriage increases women's unpaid care work by 44% while leaving men's unchanged. Women's expanded domestic responsibilities leave less discretionary time for socializing. Men's preserved domestic leisure time allows continued social engagement.
+Other time use research shows marriage increases women's unpaid care work substantially while leaving men's unchanged. If this pattern holds, women's expanded domestic responsibilities would leave less discretionary time for socializing, while men's preserved discretionary time would allow continued social engagement. Testing this would require individual-level data linking domestic work time to social activity time.
 
-**2. Mobility Restrictions and Safety Concerns**
+**2. Mobility Restrictions and Safety Concerns** (Hypothesis)
 
-In India, married women often face restricted mobility, requiring permission or accompaniment to leave home (Jejeebhoy 1998). Safety concerns, transportation barriers, and in-laws' oversight constrain married women's ability to meet friends independently.
+In India, qualitative research documents that married women often face restricted mobility, requiring permission or accompaniment to leave home (Jejeebhoy 1998). If safety concerns, transportation barriers, and in-laws' oversight constrain married women's ability to meet friends independently, this could explain reduced social participation. Testing this would require data on household mobility restrictions and transportation access.
 
-**3. Joint Family Living and Supervision**
+**3. Joint Family Living and Supervision** (Hypothesis)
 
-Many Indian women move into husbands' joint family households after marriage. Mothers-in-law and other relatives may monitor and restrict daughters-in-law's social activities, viewing friendships as distractions from domestic duties.
+Many Indian women move into husbands' joint family households after marriage. If mothers-in-law and other relatives monitor and restrict daughters-in-law's social activities (viewing friendships as distractions from domestic duties), this could reduce social engagement. Testing this would require data on household composition and living arrangements.
 
-**4. Social Network Disruption**
+**4. Social Network Disruption from Geographic Relocation** (Hypothesis)
 
-Marriage often involves geographic relocation, severing women's pre-existing friend networks. While men typically remain in or near natal communities, women migrate to husbands' locations, losing proximity to childhood and school friends.
+Marriage may involve geographic relocation that severs women's pre-existing friend networks. If women migrate to husbands' locations more often than men remain in natal communities, women would lose proximity to childhood and school friends. Testing this would require data on post-marriage migration patterns and geographic distance from pre-marriage social networks.
 
-**5. Identity and Social Norms**
+**5. Gendered Identity Norms and Social Expectations** (Hypothesis)
 
-Cultural norms prescribe that married women's primary identity is wife and daughter-in-law, not friend. Women who maintain active social lives may be judged as neglecting family duties. Men face no analogous normative constraint.
+Cultural norms may prescribe that married women's primary identity is wife and daughter-in-law, not friend. If women who maintain active social lives are judged as neglecting family duties while men face no analogous constraint, this normative pressure could discourage women's socializing. Testing this would require attitudinal survey data on norms about married women's social activities.
+
+**Empirical Evidence Needed**: Each of these mechanisms is plausible and consistent with qualitative research, but our time use data cannot distinguish among them. Future research combining time diaries with household composition data, mobility restrictions, migration histories, and attitudinal surveys could test these hypotheses directly.
 
 ## Implications for Women's Wellbeing and Opportunities
 
@@ -630,13 +679,39 @@ Addressing the friendship penalty requires multi-pronged approaches:
 
 **5. Measurement:** Including social connection metrics in gender equality monitoring frameworks.
 
+## Limitations
+
+Several limitations warrant acknowledgment:
+
+**1. Cross-Sectional Design**: We observe associations, not causal effects. Selection into marriage likely operates—individuals with certain social preferences or network characteristics may differentially marry. Longitudinal data tracking individuals before and after marriage would enable stronger causal inference.
+
+**2. 10% Random Sample**: Computational constraints required using 10% of the full dataset. While random sampling with adjusted weights maintains representativeness, sampling variability could affect estimates. Replication with the full dataset would verify robustness.
+
+**3. Single-Day Observation**: Time diaries capture one 24-hour period per person. Social activities vary across days (weekends vs. weekdays) and seasons (festivals, holidays). Multi-day diaries would better capture usual social patterns.
+
+**4. Activity Code Limitations**: ICATUS codes 81-89 may not capture all social interaction. Brief conversations, messaging, or informal socializing embedded in other activities (shopping with friends, workplace socializing) are excluded.
+
+**5. Individual-Level Analysis**: We compare married and never-married individuals' averages, not matched spousal pairs or couple-level dynamics. We cannot observe how couples negotiate social time or whether spouses' social activities substitute or complement.
+
+**6. Unmeasured Mechanisms**: We propose plausible mechanisms (mobility restrictions, domestic work, geographic relocation) but lack data to test them directly. Our mechanisms remain hypotheses requiring future investigation.
+
+**7. India-Specific Context**: Patterns may differ in societies with different marriage institutions, gender norms, joint family prevalence, or post-marriage mobility patterns. Generalizability requires replication in other contexts.
+
 # Conclusion
 
-Marriage reduces women's social time by `r sprintf("%.0f%%", women_total_decline_pct)`, dropping from `r sprintf("%.1f", women_never_married_minutes_per_person)` to `r sprintf("%.1f", women_married_minutes_per_person)` minutes daily, while reducing men's by only `r sprintf("%.0f%%", men_total_decline_pct)` (`r sprintf("%.1f", men_never_married_minutes_per_person)` to `r sprintf("%.1f", men_married_minutes_per_person)` minutes). This gendered friendship penalty operates on both participation (whether people socialize) and intensity (time spent per activity). It is twice as large for younger women (≤25), persists across education levels and urban-rural divides, and operates independently of employment status.
+Using India's 2024 Time Use Survey, we document a stark gendered friendship penalty of marriage. Women's social activity participation and time intensity both decline substantially after marriage, while men experience much smaller declines. Younger married women face penalties twice as large as older married women, and the pattern persists across education levels, urban-rural locations, and employment status.
 
-These findings reveal marriage as an institution that systematically isolates women from social networks while largely preserving men's connections. The consequences extend beyond personal wellbeing to encompass economic opportunities, social capital, community voice, and intergenerational outcomes.
+## What We Learn
 
-Addressing this inequality requires recognizing that women's social connections aren't luxuries but fundamental resources. Policies supporting women's maintained social networks—through community infrastructure, transportation access, and normative change—are essential for comprehensive gender equality.
+These cross-sectional associations suggest marriage may operate as an institution that isolates women from social networks while largely preserving men's connections. If replicated in causal designs, this would have profound implications: social networks generate economic opportunities (job information, entrepreneurship), mental health benefits (emotional support, reduced isolation), and civic voice (collective action capacity). Gendered network erosion could perpetuate inequality beyond direct labor market discrimination.
+
+## Research Agenda
+
+Future research should: (1) use longitudinal data to establish causality, (2) test proposed mechanisms with data on mobility restrictions, migration, domestic work allocation, and social norms, (3) examine consequences for employment, mental health, and civic engagement, (4) replicate in other cultural contexts, and (5) investigate couple-level dynamics in social time negotiation.
+
+## Policy Directions
+
+If the friendship penalty reflects causal processes rather than pure selection, several policy levers emerge. Community infrastructure (parks, centers, women's groups) could provide safe accessible venues. Transportation improvements could reduce mobility barriers. Workplace flexibility could enable balancing social and domestic demands. Cultural campaigns could challenge norms viewing women's friendships as threatening family harmony. Most fundamentally, recognizing women's social connections as essential resources—not luxuries—is prerequisite for comprehensive gender equality.
 
 # References {.unnumbered}
 

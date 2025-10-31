@@ -66,7 +66,17 @@ data <- read_dta("TimeUse106PER.dta",
                                Highest_Education, Sector, Principal_Activity_Status,
                                State, FSU_Serial_No, Sample_HH_No))
 
-# Process data - filter to major activities only to reduce memory usage
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+# The full dataset (10.2M observations) exceeds memory limits during compilation
+# Random sampling maintains representativeness while enabling analysis
+set.seed(123)  # For reproducibility
+data <- data %>% slice_sample(prop = 0.1)
+
+# Adjust survey weights to reflect sampling
+# Each observation now represents 10x its original weight
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data - filter to major activities only
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
