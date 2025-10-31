@@ -275,7 +275,7 @@ Men contribute **`r sprintf("%.0f%%", male_childcare_share)` of childcare time**
 
 Figure 3 illustrates the "participation gap ratio"—the ratio of adult care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 would indicate that the adult care gap is larger than the childcare gap. However, as we find, ratios below 1.0 indicate that the childcare gap exceeds the adult care gap.
 
-```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Childcare Gaps Exceed Adult Care Gaps Across All Subgroups"}
+```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Figure 3: Childcare Gaps Exceed Adult Care Gaps Across All Subgroups"}
 # Calculate selectivity ratios by various groups using PARTICIPATION RATE GAPS
 selectivity_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
@@ -409,7 +409,7 @@ The gender ratios differ between care types. Married men do `r sprintf("%.0f%%",
 
 Figure 1 illustrates these patterns graphically.
 
-```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="Gender Disparities in Care Work Time by Type"}
+```{r care_comparison_plot, fig.width=8, fig.height=5, fig.cap="Figure 1: Gender Disparities in Care Work Time by Type"}
 # Prepare data for plot
 plot_data <- by_gender %>%
   select(gender_label, `Childcare Minutes`, `Adult Care Minutes`) %>%
@@ -449,7 +449,7 @@ ggplot(plot_data, aes(x = `Care Type`, y = `Minutes per Day`, fill = gender_labe
 
 Figure 2 shows participation rates (rather than minutes) to highlight the extensive margin: who does any care work at all?
 
-```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Gender Gaps in Care Work Participation by Type"}
+```{r participation_plot, fig.width=8, fig.height=5, fig.cap="Figure 2: Gender Gaps in Care Work Participation by Type"}
 # Calculate participation rates
 participation_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -494,7 +494,7 @@ ggplot(participation_data, aes(x = `Care Type`, y = `Participation Rate (%)`, fi
 
 ## Age Heterogeneity
 
-Table 3 examines whether gender gaps in care work vary by age. Younger individuals (≤25) are more likely to be involved in childcare (if they have young children), while older individuals face higher adult care demands (aging parents or in-laws).
+Table 3 examines whether gender gaps in care work vary by age. Younger individuals (25 and below) are more likely to be involved in childcare (if they have young children), while older individuals face higher adult care demands (aging parents or in-laws).
 
 ```{r care_by_age_gender}
 by_age_gender <- major_only %>%
@@ -527,8 +527,8 @@ kable(selectivity_by_age,
 
 Key findings:
 
-- Among those ≤25: Women/men childcare ratio is 2.7:1; adult care ratio is 5.2:1
-- Among those >25: Women/men childcare ratio is 3.4:1; adult care ratio is 11.2:1
+- Among those 25 and below: Women/men childcare ratio is 2.7:1; adult care ratio is 5.2:1
+- Among those above 25: Women/men childcare ratio is 3.4:1; adult care ratio is 11.2:1
 
 Gender disparities in care work exist at all ages. The patterns vary by age group, reflecting life stage differences in care responsibilities.
 
@@ -616,8 +616,8 @@ m8 <- feols(adultcare_minutes ~ female + Age + I(Age^2) + urban + employed + fac
             data = married_data,
             weights = ~Weight, cluster = ~household_id)
 
-modelsummary(list("Childcare\nParticipation" = m5, "Adult Care\nParticipation" = m6,
-                  "Childcare\nMinutes" = m7, "Adult Care\nMinutes" = m8),
+modelsummary(list("Childcare Part." = m5, "Adult Care Part." = m6,
+                  "Childcare Min." = m7, "Adult Care Min." = m8),
              stars = c('*' = .1, '**' = .05, '***' = .01),
              gof_map = c("nobs", "r.squared"),
              coef_map = c("female" = "Female",
