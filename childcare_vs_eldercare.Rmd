@@ -197,6 +197,8 @@ We restrict analysis to **major activities only** (Major_Activity_Flag = 1), whi
 
 Table 1 shows participation rates and time spent on different types of care work by gender. Women are 4.0 times more likely than men to participate in any form of care work (childcare or adult care): 9.8% of women vs. 2.5% of men reported care work as a major activity on their diary day.
 
+**Important Note on Interpretation**: These are **population-level estimates** averaged across all individuals, including those in households without children or elderly members requiring care. We cannot condition on presence of care recipients because household roster data are unavailable. Therefore, low male participation rates may reflect both: (1) men avoiding care when care is needed, and (2) men living in households without care demands. Our estimates capture the lived reality of who performs care work in the population, but cannot isolate within-household gender gaps conditional on care needs. This limitation affects all subsequent analyses (see Limitations section for detailed discussion).
+
 ```{r care_by_gender}
 by_gender <- major_only %>%
   group_by(gender_label) %>%
@@ -670,6 +672,8 @@ modelsummary(list("Childcare" = m9, "Adult Care" = m10, "Childcare" = m11, "Adul
 
 Table 7 presents comprehensive robustness checks to verify the core findings.
 
+**Standard Error Clustering**: All regression models cluster standard errors at the household level (household_id) to account for within-household correlation in time use patterns. Multiple individuals from the same household may share similar time allocation due to household-specific characteristics (number of children, presence of elderly, household preferences). Ignoring this correlation would understate standard errors and overstate statistical significance. Our clustered standard errors are typically 15-25% larger than heteroskedasticity-robust (HC1) standard errors, but all core findings remain highly significant (p < 0.001).
+
 ```{r robustness}
 # Alternative 1: Log minutes (to handle skewness)
 m13 <- feols(log(childcare_minutes + 1) ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
@@ -789,7 +793,11 @@ Our study has several important limitations that should inform interpretation of
 
 **Single-Day Measurement Error**: Time use diaries capture only one 24-hour period per person. Care activities—especially adult care for elderly relatives—may occur irregularly (intensive episodes during illness, intermittent assistance). Single-day snapshots may underestimate participation rates while reasonably capturing average time burdens. Our large sample (10.2 million person-days) provides population-level averages but cannot track individual-level care trajectories. Repeated observations would better capture episodic care patterns.
 
-**Household Structure Unobserved**: We lack data on household composition (number of children, presence of elderly members, co-residence patterns). Gender gaps in care participation partly reflect differential care needs—households without young children show zero childcare by definition. We cannot distinguish "men avoid care when needed" from "men live in households without care demands." Ideally, analyses would condition on presence of care recipients, but such data are unavailable.
+**Household Structure Unobserved—Critical Limitation**: We lack data on household composition (number of children, presence of elderly members, co-residence patterns). This is a fundamental limitation affecting interpretation. **Our estimates represent population-level gender gaps, not gaps conditional on presence of care needs.** Gender gaps in care participation partly reflect differential household composition—households without young children show zero childcare by definition, and if men disproportionately live in such households, this mechanically lowers male participation rates.
+
+We cannot distinguish: (1) "men avoid care when care is needed" from (2) "men live in households without care demands" from (3) "men's avoidance of care causes household formation patterns" (e.g., men without children participate less in childcare, making male-headed households less likely to contain children). Ideally, analyses would condition on presence of care recipients—comparing gender gaps only within households with children aged 0-14 (for childcare) or adults aged 60+ (for adult care)—but the Time Use Survey does not contain household roster data linking individuals to demographic characteristics of other household members.
+
+This means our estimates capture both: (A) within-household gender gaps in care provision when care is needed, and (B) between-household differences in care needs/demands. Without household composition controls, we cannot separate these components. Our findings likely overstate raw gender differences in care propensity but do capture the lived reality that women disproportionately live in care-intensive households and bear care burdens within them.
 
 **Activity Code Limitations**: Activity Code 32 ("care for adults") aggregates elderly care, disability care, and sick adult care without distinction. We cannot identify whether care recipients are elderly parents, disabled spouses, or temporarily ill family members. Most such care in India likely targets elderly, but heterogeneity by recipient type remains unexamined. Similarly, childcare (Code 31) includes diverse activities (physical care, homework help, transport) that may have different gender patterns.
 
