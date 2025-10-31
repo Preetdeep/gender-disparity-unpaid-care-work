@@ -381,7 +381,8 @@ by_marriage_simple <- by_marriage_gender %>%
 kable(by_marriage_simple, digits = 2,
       caption = "Social Activity Participation by Gender and Marital Status",
       col.names = c("Gender", "Married", "Never Married", "Married", "Never Married"),
-      booktabs = TRUE) %>%
+      booktabs = TRUE,
+      escape = FALSE) %>%
   kable_styling(latex_options = c("HOLD_position")) %>%
   add_header_above(c(" " = 1, "Participation (%)" = 2, "Minutes per Person" = 2))
 ```
@@ -537,7 +538,8 @@ kable(by_age_marriage_women %>%
       digits = 2,
       caption = "Women's Friendship Penalty by Age Group",
       col.names = c("Age", "Never Married", "Married", "Penalty (pp)", "Never Married", "Married"),
-      booktabs = TRUE) %>%
+      booktabs = TRUE,
+      escape = FALSE) %>%
   kable_styling(latex_options = c("HOLD_position")) %>%
   add_header_above(c(" " = 1, "Participation (%)" = 3, "Minutes per Person" = 2))
 ```
