@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Does wealth enable household gender equality? Using a 10% random sample of India's 2019 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
+  Does wealth enable household gender equality? Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
 
   Contrary to resource bargaining predictions, gender gaps are 33% larger in high-SES households (122 minutes/day) than low-SES households (92 minutes). This "wealth paradox" occurs because affluent men exit domestic work entirely (63 to 14 minutes/day decline) while women shift from execution to management with minimal time reduction (155 to 136 minutes). Even among dual-earners, wealth widens gaps.
 
@@ -12,9 +12,9 @@ abstract: |
 
   **JEL Classification:** J16, D13, J12, I32
 
-  **Keywords:** gender inequality, wealth, household bargaining, class, domestic work, India, time use survey 2019
+  **Keywords:** gender inequality, wealth, household bargaining, class, domestic work, India
 
-  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
 
 output:
   pdf_document:
