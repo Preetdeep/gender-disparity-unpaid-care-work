@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we document a stark marriage penalty in unpaid care work: marriage substantially increases women's care work participation while having zero effect on men's participation. This penalty is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
+  Using a 10% random sample of India's 2024 Time Use Survey (approximately 836,000 person-day observations from 9,969 households), we document a stark marriage penalty in unpaid care work: marriage substantially increases women's care work participation while having zero effect on men's participation. This penalty is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
 
   **JEL Classification:** J12, J16, J22, D13
 
@@ -106,7 +106,10 @@ major_only <- data %>%
     # Interaction terms
     female_married = female * married,
     female_married_young = female * married * age_25_or_less,
-    female_married_older = female * married * age_over_25
+    female_married_older = female * married * age_over_25,
+
+    # Household ID for clustering standard errors
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
   )
 
 # Free memory
@@ -138,7 +141,7 @@ men_never_married_participation <- major_only %>%
   pull(rate) * 100
 
 men_married_participation <- major_only %>%
-  filter(Gender == 2, Marital_Status == 2) %>%
+  filter(Gender == 1, Marital_Status == 2) %>%  # FIX: Changed from Gender == 2 (Female) to Gender == 1 (Male) - Critical bug fix!
   summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
@@ -346,18 +349,18 @@ reg_data <- major_only %>%
 
 # Regressions
 m1 <- feols(care_work ~ female + married + female_married,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, vcov = ~household_id)
 
 m2 <- feols(care_work ~ female + married + female_married + Age + I(Age^2),
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, vcov = ~household_id)
 
 m3 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, vcov = ~household_id)
 
 m4 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban | State,
-            data = reg_data, weights = ~Weight, vcov = "HC1")
+            data = reg_data, weights = ~Weight, vcov = ~household_id)
 
 # Extract coefficients for inline reporting
 female_coef_m1 <- coef(m1)["female"] * 100
@@ -553,17 +556,17 @@ reg_data_age <- reg_data %>%
 
 m_age1 <- feols(care_work ~ female + married + female_married +
                   young + female_young + married_young + female_married_young,
-                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+                data = reg_data_age, weights = ~Weight, vcov = ~household_id)
 
 m_age2 <- feols(care_work ~ female + married + female_married +
                   young + female_young + married_young + female_married_young +
                   Age + I(Age^2) + higher_ed + employed + urban,
-                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+                data = reg_data_age, weights = ~Weight, vcov = ~household_id)
 
 m_age3 <- feols(care_work ~ female + married + female_married +
                   young + female_young + married_young + female_married_young +
                   Age + I(Age^2) + higher_ed + employed + urban | State,
-                data = reg_data_age, weights = ~Weight, vcov = "HC1")
+                data = reg_data_age, weights = ~Weight, vcov = ~household_id)
 
 modelsummary(list(m_age1, m_age2, m_age3),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -606,7 +609,7 @@ age_robust_results <- lapply(age_cutoffs, function(cutoff) {
   m <- feols(care_work ~ female + married + female_married +
                young_temp + female * young_temp + married * young_temp +
                female_married_young_temp + Age + I(Age^2) + higher_ed + employed + urban | State,
-             data = reg_data_temp, weights = ~Weight, vcov = "HC1")
+             data = reg_data_temp, weights = ~Weight, vcov = ~household_id)
 
   # Extract coefficient and standard error
   coef_val <- coef(m)["female_married_young_temp"]
@@ -750,19 +753,19 @@ Table \ref{tab:robustness_regs} presents regression results for key subsamples, 
 # Subsamples
 m_rural <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
                    higher_ed + employed | State,
-                 data = filter(reg_data, urban == 0), weights = ~Weight, vcov = "HC1")
+                 data = filter(reg_data, urban == 0), weights = ~Weight, vcov = ~household_id)
 
 m_urban <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
                    higher_ed + employed | State,
-                 data = filter(reg_data, urban == 1), weights = ~Weight, vcov = "HC1")
+                 data = filter(reg_data, urban == 1), weights = ~Weight, vcov = ~household_id)
 
 m_employed <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
                       higher_ed + urban | State,
-                    data = filter(reg_data, employed == 1), weights = ~Weight, vcov = "HC1")
+                    data = filter(reg_data, employed == 1), weights = ~Weight, vcov = ~household_id)
 
 m_not_employed <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
                           higher_ed + urban | State,
-                        data = filter(reg_data, employed == 0), weights = ~Weight, vcov = "HC1")
+                        data = filter(reg_data, employed == 0), weights = ~Weight, vcov = ~household_id)
 
 modelsummary(list("Rural" = m_rural, "Urban" = m_urban,
                   "Employed" = m_employed, "Not Employed" = m_not_employed),
