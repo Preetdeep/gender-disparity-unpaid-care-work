@@ -69,6 +69,9 @@ data <- data %>% mutate(Weight = Weight / 0.1)
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    # Create household cluster ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
     # Gender variables
     gender_label = case_when(
       Gender == 1 ~ "Male",
@@ -146,14 +149,15 @@ male_weekend_pct <- by_gender_day_stats %>%
   filter(gender_label == "Male", day_type == "Weekend") %>%
   pull(participation_pct)
 
-# Calculate percentage changes
+# Calculate percentage changes (WITHIN gender)
 female_pct_change <- 100 * (female_weekend_pct - female_weekday_pct) / female_weekday_pct
 male_pct_change <- 100 * (male_weekend_pct - male_weekday_pct) / male_weekday_pct
 
-# Calculate gender gaps
+# Calculate gender gaps (in percentage points)
 weekday_gap_pp <- female_weekday_pct - male_weekday_pct
 weekend_gap_pp <- female_weekend_pct - male_weekend_pct
-gap_increase_pct <- 100 * (weekend_gap_pp - weekday_gap_pp) / weekday_gap_pp
+gap_change_pp <- weekend_gap_pp - weekday_gap_pp  # Absolute change in gap
+gap_increase_pct <- 100 * gap_change_pp / weekday_gap_pp  # Relative change in gap
 
 # Minutes per day
 female_weekday_min <- by_gender_day_stats %>%
@@ -169,14 +173,17 @@ male_weekend_min <- by_gender_day_stats %>%
   filter(gender_label == "Male", day_type == "Weekend") %>%
   pull(minutes_per_day)
 
-# Calculate minute changes
+# Calculate minute changes (WITHIN gender)
 female_min_change_pct <- 100 * (female_weekend_min - female_weekday_min) / female_weekday_min
 male_min_change_pct <- 100 * (male_weekend_min - male_weekday_min) / male_weekday_min
+female_min_change_abs <- female_weekend_min - female_weekday_min
+male_min_change_abs <- male_weekend_min - male_weekday_min
 
 # Gender gaps in minutes
 weekday_gap_min <- female_weekday_min - male_weekday_min
 weekend_gap_min <- female_weekend_min - male_weekend_min
-gap_min_increase_pct <- 100 * (weekend_gap_min - weekday_gap_min) / weekday_gap_min
+gap_min_change_abs <- weekend_gap_min - weekday_gap_min  # Absolute change in gap
+gap_min_increase_pct <- 100 * gap_min_change_abs / weekday_gap_min  # Relative change in gap
 
 # Married individuals statistics
 by_gender_day_married <- major_only %>%
@@ -202,40 +209,53 @@ male_weekend_min_married <- by_gender_day_married %>%
   filter(gender_label == "Male", day_type == "Weekend") %>%
   pull(minutes_per_day)
 
-# Married changes
+# Married changes (WITHIN gender)
 female_min_change_pct_married <- 100 * (female_weekend_min_married - female_weekday_min_married) / female_weekday_min_married
 male_min_change_pct_married <- 100 * (male_weekend_min_married - male_weekday_min_married) / male_weekday_min_married
+female_min_change_abs_married <- female_weekend_min_married - female_weekday_min_married
+male_min_change_abs_married <- male_weekend_min_married - male_weekday_min_married
 
 # Married gender gaps
 weekday_gap_min_married <- female_weekday_min_married - male_weekday_min_married
 weekend_gap_min_married <- female_weekend_min_married - male_weekend_min_married
-gap_min_increase_pct_married <- 100 * (weekend_gap_min_married - weekday_gap_min_married) / weekday_gap_min_married
+gap_min_change_abs_married <- weekend_gap_min_married - weekday_gap_min_married  # Absolute change
+gap_min_increase_pct_married <- 100 * gap_min_change_abs_married / weekday_gap_min_married  # Relative change
 additional_min_married <- female_weekend_min_married - female_weekday_min_married
 
-# By education level for table
+# By education level for table - FIXED
 by_education_day <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
   group_by(education_level, gender_label, day_type) %>%
   summarise(
     care_minutes = weighted.mean(care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = c(gender_label, day_type),
-              values_from = care_minutes) %>%
-  mutate(
-    weekday_gap = Female_Weekday - Male_Weekday,
-    weekend_gap = Female_Weekend - Male_Weekend,
-    weekend_penalty = weekend_gap - weekday_gap
   )
 
-# Extract education-specific penalties
-primary_penalty <- by_education_day %>%
+# Reshape properly for table
+by_education_day_table <- by_education_day %>%
+  pivot_wider(names_from = day_type,
+              values_from = care_minutes) %>%
+  pivot_wider(names_from = gender_label,
+              values_from = c(Weekday, Weekend),
+              names_sep = "_") %>%
+  mutate(
+    weekday_gap = Weekday_Female - Weekday_Male,
+    weekend_gap = Weekend_Female - Weekend_Male,
+    weekend_penalty = weekend_gap - weekday_gap
+  ) %>%
+  select(education_level,
+         Female_Weekday = Weekday_Female, Male_Weekday = Weekday_Male, weekday_gap,
+         Female_Weekend = Weekend_Female, Male_Weekend = Weekend_Male, weekend_gap,
+         weekend_penalty)
+
+# Extract education-specific penalties - FIXED
+primary_penalty <- by_education_day_table %>%
   filter(education_level == "Primary or less") %>%
   pull(weekend_penalty)
-secondary_penalty <- by_education_day %>%
+secondary_penalty <- by_education_day_table %>%
   filter(education_level == "Secondary") %>%
   pull(weekend_penalty)
-higher_penalty <- by_education_day %>%
+higher_penalty <- by_education_day_table %>%
   filter(education_level == "Higher education") %>%
   pull(weekend_penalty)
 
@@ -450,11 +470,12 @@ kable(by_gender_day_married %>% select(-n),
 ```
 
 Among married individuals:
-- **Women**: `r sprintf("%.1f", female_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", female_weekend_min_married)` minutes weekends (`r sprintf("%+.0f%%", female_min_change_pct_married)` increase)
+- **Women**: `r sprintf("%.1f", female_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", female_weekend_min_married)` minutes weekends (`r sprintf("%+.0f%%", female_min_change_pct_married)` change)
 - **Men**: `r sprintf("%.1f", male_weekday_min_married)` minutes weekdays → `r sprintf("%.1f", male_weekend_min_married)` minutes weekends (`r sprintf("%+.0f%%", male_min_change_pct_married)` change)
-- **Gender gap**: `r sprintf("%.1f", weekday_gap_min_married)` minutes weekdays → `r sprintf("%.1f", weekend_gap_min_married)` minutes weekends (**`r sprintf("%.0f%%", gap_min_increase_pct_married)` larger**)
+- **Gender gap**: `r sprintf("%.1f", weekday_gap_min_married)` minutes weekdays → `r sprintf("%.1f", weekend_gap_min_married)` minutes weekends (`r sprintf("%+.1f%%", gap_min_increase_pct_married)` change)
+- **Absolute changes**: Women +`r sprintf("%.2f", female_min_change_abs_married)` min, Men +`r sprintf("%.2f", male_min_change_abs_married)` min
 
-The weekend penalty is even more extreme among married couples. Married women shoulder an additional `r sprintf("%.1f", additional_min_married)` minutes of care work on weekends, while married men's increases are much more modest, widening the gender gap substantially.
+Among married individuals, both men and women increase care work on weekends, with men actually increasing slightly more in relative terms (`r sprintf("%.1f%%", male_min_change_pct_married)` vs. `r sprintf("%.1f%%", female_min_change_pct_married)`). The gender gap remains substantial but changes little between weekdays and weekends, suggesting that weekend patterns for married couples mirror weekday patterns.
 
 ## Regression Results: Quantifying the Weekend Penalty
 
@@ -464,26 +485,26 @@ Table 3 presents linear probability models testing whether the gender gap in car
 # Full sample regression
 m1 <- feols(care_work ~ female * weekend,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # With controls
 m2 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
                         factor(Highest_Education),
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # With state fixed effects
 m3 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
                         factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # Married only
 m4 <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban + employed +
                         factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                         Marital_Status == 2),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("All Adults" = m1, "All Adults" = m2, "All Adults" = m3, "Married Only" = m4),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -492,7 +513,7 @@ modelsummary(list("All Adults" = m1, "All Adults" = m2, "All Adults" = m3, "Marr
                          "weekend" = "Weekend",
                          "female:weekend" = "Female × Weekend"),
              title = "Weekend Penalty in Care Work Participation",
-             notes = "Robust standard errors in parentheses. Models 3-4 include state fixed effects. Model 4 restricts to currently married individuals. Controls include age, age squared, urban, employed, and education dummies.")
+             notes = "Standard errors clustered at household level in parentheses. Models 3-4 include state fixed effects. Model 4 restricts to currently married individuals. Controls include age, age squared, urban, employed, and education dummies.")
 ```
 
 ```{r extract_reg_coefs, include=FALSE}
@@ -522,24 +543,24 @@ Table 4 examines minutes spent on care work (rather than just participation).
 # Minutes spent on care work
 m5 <- feols(care_minutes ~ female * weekend,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 m6 <- feols(care_minutes ~ female * weekend + Age + I(Age^2) + urban + employed +
                            factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 m7 <- feols(care_minutes ~ female * weekend + Age + I(Age^2) + urban + employed +
                            factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                         Marital_Status == 2),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # Log transformation (to handle skewness)
 m8 <- feols(log(care_minutes + 1) ~ female * weekend + Age + I(Age^2) + urban + employed +
                                      factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Minutes" = m5, "Minutes" = m6, "Minutes\n(Married)" = m7, "Log(Minutes+1)" = m8),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -548,7 +569,7 @@ modelsummary(list("Minutes" = m5, "Minutes" = m6, "Minutes\n(Married)" = m7, "Lo
                          "weekend" = "Weekend",
                          "female:weekend" = "Female × Weekend"),
              title = "Weekend Penalty in Care Work Time (Minutes per Day)",
-             notes = "Robust standard errors in parentheses. Models 2-4 include age, age squared, urban, employed, education, and state fixed effects. Model 3 restricts to married individuals.")
+             notes = "Standard errors clustered at household level in parentheses. Models 2-4 include age, age squared, urban, employed, education, and state fixed effects. Model 3 restricts to married individuals.")
 ```
 
 ```{r extract_minute_coefs, include=FALSE}
@@ -578,20 +599,20 @@ Table 5 examines whether the weekend penalty differs between employed and non-em
 m9 <- feols(care_work ~ female * weekend * employed + Age + I(Age^2) + urban +
                         factor(Highest_Education) | state_factor,
             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
-            weights = ~Weight, vcov = "HC1")
+            weights = ~Weight, cluster = ~household_id)
 
 # Separate samples
 m10_emp <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban +
                              factor(Highest_Education) | state_factor,
                  data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                               employed == 1),
-                 weights = ~Weight, vcov = "HC1")
+                 weights = ~Weight, cluster = ~household_id)
 
 m10_notemp <- feols(care_work ~ female * weekend + Age + I(Age^2) + urban +
                                 factor(Highest_Education) | state_factor,
                     data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                                  employed == 0),
-                    weights = ~Weight, vcov = "HC1")
+                    weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("All (Triple Interaction)" = m9, "Employed Only" = m10_emp,
                   "Not Employed" = m10_notemp),
@@ -605,7 +626,7 @@ modelsummary(list("All (Triple Interaction)" = m9, "Employed Only" = m10_emp,
                          "weekend:employed" = "Weekend × Employed",
                          "female:weekend:employed" = "Female × Weekend × Employed"),
              title = "Weekend Penalty by Employment Status",
-             notes = "Robust standard errors. All models include age, age squared, urban, education, and state FE.")
+             notes = "Standard errors clustered at household level. All models include age, age squared, urban, education, and state FE.")
 ```
 
 ```{r extract_employment_coefs, include=FALSE}
@@ -632,14 +653,14 @@ m11_urban <- feols(care_work ~ female * weekend + Age + I(Age^2) + employed +
                                factor(Highest_Education) | state_factor,
                    data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                                 urban == 1),
-                   weights = ~Weight, vcov = "HC1")
+                   weights = ~Weight, cluster = ~household_id)
 
 # Rural subsample
 m11_rural <- feols(care_work ~ female * weekend + Age + I(Age^2) + employed +
                                factor(Highest_Education) | state_factor,
                    data = major_only %>% filter(gender_label %in% c("Male", "Female"),
                                                 urban == 0),
-                   weights = ~Weight, vcov = "HC1")
+                   weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Urban" = m11_urban, "Rural" = m11_rural),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -648,7 +669,7 @@ modelsummary(list("Urban" = m11_urban, "Rural" = m11_rural),
                          "weekend" = "Weekend",
                          "female:weekend" = "Female × Weekend"),
              title = "Weekend Penalty: Urban vs. Rural",
-             notes = "Robust standard errors. Both models include age, age squared, employed, education, and state fixed effects.")
+             notes = "Standard errors clustered at household level. Both models include age, age squared, employed, education, and state fixed effects.")
 ```
 
 ```{r extract_urban_coefs, include=FALSE}
@@ -666,32 +687,16 @@ Difference is statistically indistinguishable, suggesting the weekend penalty is
 ## Education and the Weekend Penalty
 
 ```{r heterogeneity_education}
-# By education level
-by_education_day <- major_only %>%
-  filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
-  group_by(education_level, gender_label, day_type) %>%
-  summarise(
-    `Care Minutes` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
-    n = n(),
-    .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = c(gender_label, day_type),
-              values_from = `Care Minutes`) %>%
-  mutate(
-    `Weekday Gap` = Female_Weekday - Male_Weekday,
-    `Weekend Gap` = Female_Weekend - Male_Weekend,
-    `Weekend Penalty` = `Weekend Gap` - `Weekday Gap`
-  )
-
-kable(by_education_day %>% select(education_level, Female_Weekday, Male_Weekday,
-                                   `Weekday Gap`, Female_Weekend, Male_Weekend,
-                                   `Weekend Gap`, `Weekend Penalty`),
+# Display education table using pre-calculated data
+kable(by_education_day_table,
       digits = 2,
-      caption = "Weekend Penalty by Education Level",
+      caption = "Weekend Penalty by Education Level (Minutes per Day)",
       col.names = c("Education", "Female", "Male", "Gap", "Female", "Male", "Gap", "Penalty"),
       booktabs = TRUE) %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"), font_size = 9) %>%
-  add_header_above(c(" " = 1, "Weekday Minutes" = 3, "Weekend Minutes" = 3, " " = 1))
+  add_header_above(c(" " = 1, "Weekday Minutes" = 3, "Weekend Minutes" = 3, " " = 1)) %>%
+  footnote(general = "Positive penalty indicates gender gap widens on weekends. Negative indicates gap narrows.",
+           general_title = "Note:")
 ```
 
 The weekend penalty exists at **all education levels**:
