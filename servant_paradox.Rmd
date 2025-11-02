@@ -4,11 +4,11 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we examine whether household help—domestic workers, cooks, cleaners—actually reduces women's unpaid work burden or merely transforms it from physical labor to management and supervision. Comparing households with and without domestic help across wealth quintiles, we find a striking paradox: affluent women with household help spend only modestly less time on total domestic work than women without help, despite substantial reductions in cooking and cleaning time. The missing time is absorbed by dramatic increases in household management (Activity Code 35) and shopping/procurement (Activity Code 34). We term this the "management penalty"—wealthy women shift from doing domestic work to managing those who do it. Men's domestic time remains unchanged regardless of household help availability. These findings suggest that domestic help does not liberate women from household responsibilities but rather transforms them into household managers, preserving gender inequality even as class privilege provides escape from physical labor.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we examine how women's unpaid domestic work varies by socioeconomic status. Using education level and urban residence as proxies for wealth and household resources (actual consumption and household help variables are not available in these data), we document a striking paradox: higher-SES women spend only modestly less total time on domestic work than lower-SES women, despite substantial reductions in cooking and cleaning time. The missing time is absorbed by dramatic increases in household management and shopping/procurement activities. We term this the "management penalty"—higher-SES women appear to shift from doing domestic work to managing household operations. Men's domestic time remains low and unchanged across all socioeconomic groups. These findings suggest that socioeconomic resources may transform rather than eliminate women's domestic responsibilities, with implications for understanding how class privilege intersects with gender inequality. Our results are limited by the use of education×urban status as a crude proxy for household wealth and the inability to directly observe household help employment.
 
   **JEL Classification:** J16, D13, J22, O15
 
-  **Keywords:** domestic work, household help, servants, gender inequality, wealth, India, management burden
+  **Keywords:** domestic work, gender inequality, socioeconomic status, India, time use, management burden
 
 output:
   pdf_document:
@@ -64,7 +64,11 @@ data <- read_dta("TimeUse106PER.dta",
 # Use 10% sample for faster processing
 set.seed(123)
 data <- data %>% slice_sample(prop = 0.1)
-data <- data %>% mutate(Weight = Weight / 0.1)
+data <- data %>% mutate(
+  Weight = Weight / 0.1,
+  # Create household identifier for clustering
+  household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
+)
 
 # Process data
 major_only <- data %>%
@@ -106,9 +110,11 @@ major_only <- data %>%
     care_work_total = childcare_minutes + eldercare_minutes,
     total_domestic = physical_domestic + cognitive_domestic + care_work_total,
 
-    # TODO: Create wealth quintile from consumption data
-    # wealth_quintile = ntile(Monthly_Consumption, 5)
-    # has_help = as.numeric(Household_Help == "Yes")
+    # NOTE: Wealth quintile and household help variables do not exist in TUS 2024
+    # Using education × urban as proxy for socioeconomic status instead
+    # Ideal variables would be:
+    #   wealth_quintile = ntile(Monthly_Consumption, 5)
+    #   has_help = as.numeric(Household_Help == "Yes")
 
     urban = as.numeric(Sector == 2),
     education_level = case_when(
@@ -133,17 +139,19 @@ But does household help actually reduce women's domestic work burden? Or does it
 
 We call this the **"servant paradox"**: the possibility that affluent women escape physical domestic labor only to become household managers, coordinating servants' schedules, supervising quality, planning purchases, and maintaining household standards. If true, class privilege provides escape from backbreaking labor but preserves women's primary responsibility for household functioning—the "mental load" persists even when physical tasks are outsourced.
 
-Using India's 2024 Time Use Survey with 10.2 million person-day observations, we test this paradox by comparing time use across wealth quintiles and household types. Our findings are striking:
+Using India's 2024 Time Use Survey with 10.2 million person-day observations, we examine this question by comparing time use across socioeconomic groups. **Important methodological note**: Because the Time Use Survey does not include direct measures of household consumption/wealth or household help employment, we use education level and urban residence as proxies for socioeconomic status. While imperfect, higher education combined with urban residence strongly correlates with household resources and likelihood of employing domestic help. Our findings should be interpreted as suggestive patterns requiring validation with direct wealth and household help measures.
 
-**Physical vs. Cognitive Labor Substitution**: Women in the highest wealth quintile spend 60% less time on cooking and cleaning than women in the lowest quintile (45 vs. 112 minutes/day). However, they spend 180% more time on household management and 140% more on shopping/procurement. Total domestic time decreases only 15% (from 165 to 140 minutes).
+With this caveat, we document striking patterns:
 
-**The Management Penalty**: Affluent women allocate 28 minutes/day to shopping and household management, compared to 10 minutes for poor women—a 2.8x difference. This "management time" increases sharply with wealth, suggesting that hiring help creates new supervisory and coordination demands.
+**Physical vs. Cognitive Labor Substitution**: Women with higher education in urban areas spend substantially less time on cooking and cleaning than less-educated rural women, but spend considerably more time on household management and shopping/procurement. Total domestic time decreases modestly, suggesting a transformation rather than elimination of domestic work.
 
-**Men Unchanged**: Men's domestic time shows no relationship with household wealth or help availability. Across all quintiles, men average 18-22 minutes/day on domestic work. Household help liberates men from nothing because they were doing little to begin with.
+**The Management Penalty**: Higher-SES women allocate more time to shopping and household management activities. This "management time" increases with socioeconomic status, consistent with the hypothesis that employing household help creates supervisory and coordination demands.
 
-**Employment Asymmetry**: Among employed women, household help enables labor force participation but does not equalize domestic burden. Employed women in affluent households spend 125 minutes/day on domestic work; unemployed women in poor households spend 170 minutes—a 27% reduction, not liberation.
+**Men Unchanged**: Men's domestic time shows little variation across socioeconomic groups. Men contribute minimal time to domestic work regardless of household resources, suggesting that whatever household help does, it doesn't change men's behavior.
 
-**Care Work Persistence**: Childcare time shows no significant decrease with wealth or help. Affluent mothers spend 42 minutes/day on childcare, poor mothers 38 minutes. Care work, especially child-rearing, remains mothers' inalienable responsibility regardless of resources.
+**Employment Facilitation**: Among employed women, higher SES is associated with lower domestic work time, but the reduction is modest. Higher-SES employed women still spend substantial time on domestic work, particularly management and care activities.
+
+**Care Work Persistence**: Childcare time shows less socioeconomic variation than cooking/cleaning, suggesting that care work is less easily outsourced or transformed.
 
 These findings challenge the assumption that economic resources translate to gender equality within households. Instead, we document a **class gradient in the form, not quantity, of women's domestic labor**. Wealthy women trade cooking and scrubbing for planning, supervising, and managing—work that is less physically demanding but remains time-consuming, mentally taxing, and exclusively female.
 
@@ -202,37 +210,38 @@ For this analysis, we focus on major activities (Major_Activity_Flag = 1) and us
 - **Cognitive domestic work**: Shopping (Code 34), household management (Code 35)
 - **Care work**: Childcare (Code 31), elder care (Code 32)
 
-**Wealth Indicators**:
-NOTE: The following variables need to be verified in the dataset:
+**Socioeconomic Status Proxy**:
+The TUS 2024 does not include direct measures of:
 - Household monthly consumption expenditure
-- Asset ownership (TV, refrigerator, washing machine, car)
+- Asset ownership or wealth indices
 - Presence of domestic help/servants
 
-For this draft, we create proxy wealth quintiles. **Data team**: Please confirm availability of wealth/consumption variables.
+We therefore use **education level × urban residence** as a proxy for socioeconomic status. This proxy is imperfect but reasonable: higher education combined with urban residence strongly correlates with household income, consumption, and likelihood of employing domestic workers. Our analysis should be interpreted as exploratory, with findings requiring validation using direct wealth and household help measures.
 
 **Household Help**:
-Ideally: Binary indicator for presence of domestic workers, or count of domestic workers.
-Proxy: Wealth quintile (top quintile likely has help).
+Ideally, we would directly measure whether households employ domestic workers (cooks, cleaners, nannies, drivers) and the intensity of such employment. The TUS 2024 does not include this information. We infer household help indirectly through the education×urban proxy, assuming that higher-SES households are more likely to employ help. This is a significant limitation.
 
 ## Measurement Challenges
 
-1. **Household help variable**: May not be directly measured in TUS. We use wealth as proxy.
+1. **Household help variable**: Not measured in TUS 2024. We use education×urban as a crude proxy, which introduces measurement error and limits causal interpretation.
 
-2. **Management time**: Shopping and household management codes capture observable management but miss informal supervision.
+2. **Wealth measurement**: No direct consumption, income, or asset data. Education×urban captures some SES variation but is imperfect.
 
-3. **Quality vs. quantity**: Affluent women may do less housework but maintain higher standards, not captured in time use.
+3. **Management time**: Shopping (Code 34) and household management (Code 35) capture observable activities but miss informal supervision, mental planning, and emotional labor—the "mental load."
 
-4. **Causality**: Wealth enables help, but families hiring help may differ in preferences. We cannot definitively establish causal effects.
+4. **Quality vs. quantity**: Time use captures duration but not intensity, quality standards, or multitasking. Affluent women may do less but maintain higher standards.
+
+5. **Causality**: Cross-sectional data cannot establish whether SES/help causes work transformation or whether certain household preferences drive both help-seeking and time allocation patterns.
 
 # Descriptive Patterns
 
-## Domestic Work by Wealth Quintile
+## Domestic Work by Socioeconomic Status
 
-NOTE: The following analyses assume wealth quintile variables are available or can be constructed. If not available, we can use education × urban × employment as wealth proxy.
+NOTE: Because wealth and household help variables are not available in TUS 2024, we use education × urban status as a proxy for socioeconomic status. Higher education + urban residence likely correlates with greater household resources and probability of employing domestic help.
 
 ```{r wealth_quintile_analysis}
-# TODO: Create wealth quintiles from consumption data
-# For now, using education × sector as proxy
+# NOTE: Using education × urban as proxy for socioeconomic status
+# Wealth and household help variables not available in TUS 2024
 
 by_wealth_gender <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -325,23 +334,24 @@ kable(by_ses_male,
 # Regression Analysis
 
 ```{r regression_main}
-# NOTE: Replace education × urban with actual wealth quintile once available
+# NOTE: Using education × urban interaction as proxy for SES
+# Future research should validate with actual wealth/household help data
 
 # Women only: effect of SES on different types of work
 m1_physical <- feols(physical_domestic ~ factor(education_level) * urban + Age + I(Age^2) +
                                           married + employed | state_factor,
                      data = major_only %>% filter(gender_label == "Female"),
-                     weights = ~Weight, vcov = "HC1")
+                     weights = ~Weight, cluster = ~household_id)
 
 m1_cognitive <- feols(cognitive_domestic ~ factor(education_level) * urban + Age + I(Age^2) +
                                             married + employed | state_factor,
                       data = major_only %>% filter(gender_label == "Female"),
-                      weights = ~Weight, vcov = "HC1")
+                      weights = ~Weight, cluster = ~household_id)
 
 m1_total <- feols(total_domestic ~ factor(education_level) * urban + Age + I(Age^2) +
                                     married + employed | state_factor,
                   data = major_only %>% filter(gender_label == "Female"),
-                  weights = ~Weight, vcov = "HC1")
+                  weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Physical\nDomestic" = m1_physical,
                   "Cognitive\nDomestic" = m1_cognitive,
@@ -352,7 +362,7 @@ modelsummary(list("Physical\nDomestic" = m1_physical,
                          "urban" = "Urban",
                          "factor(education_level)Higher education:urban" = "Higher edu × Urban"),
              title = "Effect of SES on Women's Domestic Work (Minutes per Day)",
-             notes = "Women only. Robust standard errors. State fixed effects included.")
+             notes = "Women only. Standard errors clustered by household. State fixed effects included.")
 ```
 
 **Interpretation**:
@@ -392,20 +402,31 @@ Our findings complicate narratives about women's empowerment through economic de
 
 ## Limitations
 
-1. **Wealth measurement**: Without direct consumption or help variables, our SES proxies are imperfect.
-2. **Selection**: Families hiring help may differ in preferences (e.g., career-oriented women).
-3. **Quality**: Time use doesn't capture intensity or quality of supervision.
-4. **Causality**: Cross-sectional data can't establish whether help reduces work or whether women with less work hire more help.
+This study has several important limitations that readers should consider when interpreting our findings:
+
+1. **No Direct Measure of Household Help**: The TUS 2024 does not include variables indicating whether households employ domestic workers. Our entire analysis assumes that higher education × urban residence proxies for household help employment. This assumption may not hold uniformly—some educated urban households lack help, while some less-educated households may employ help. Without direct measurement, we cannot definitively establish the "servant paradox."
+
+2. **Wealth Measurement**: We lack direct household consumption, income, or wealth data. Education and urban residence are crude proxies that capture socioeconomic status broadly but imperfectly. Actual wealth quintiles might show different patterns.
+
+3. **Selection and Preferences**: Families who employ help may differ systematically in preferences (e.g., career orientation, cleanliness standards, child-rearing philosophy). Cross-sectional data cannot distinguish whether help changes behavior or whether certain households select into hiring help.
+
+4. **Management Time Measurement**: Activity codes for "shopping" (34) and "household management" (35) capture observable activities but may miss informal supervision and the "mental load" of planning and coordinating. Our measures likely underestimate true management burden.
+
+5. **Causality**: We document associations between SES and domestic work patterns but cannot establish causal effects. Does wealth enable help which transforms work, or do women who prefer management roles seek household arrangements enabling that?
+
+6. **Generalizability**: Our sample covers all of India but concentrates educated urban households in major cities. Patterns may differ across regions, cities, and cultural contexts.
+
+7. **Time Use Methodology**: 24-hour time diaries rely on recall and categorization. Quality, intensity, and multitasking (e.g., supervising while cooking) are not captured.
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document a striking paradox: household help transforms but barely reduces women's domestic work burden. Affluent women escape physical labor—cooking and cleaning—only to become household managers, allocating time to shopping, planning, and supervision. Total domestic time decreases only 15% from poorest to richest quintiles, while management time increases 180%.
+Using India's 2024 Time Use Survey, we document suggestive evidence of a striking paradox: higher socioeconomic status (measured via education×urban residence as a proxy for wealth and household help) transforms but only modestly reduces women's domestic work burden. Higher-SES women spend substantially less time on physical labor—cooking and cleaning—but spend considerably more time on management activities like shopping and household organization. Total domestic time decreases modestly across SES groups.
 
-Men's domestic time remains unchanged across all wealth levels, suggesting that household help liberates men from nothing. The promise of liberation through economic resources proves illusory: women trade one form of domestic labor (physical) for another (cognitive/managerial).
+Men's domestic time remains low and unchanged across socioeconomic groups, suggesting that whatever benefits household resources provide, they don't change men's minimal contributions. Women trade one form of domestic labor (physical) for another (cognitive/managerial).
 
-These findings challenge theories predicting that wealth increases women's bargaining power and reduces domestic burden. Instead, we find that gender norms about household responsibility persist even as class privilege transforms the nature of work. The servant paradox reveals that economic development, while alleviating physical hardship, may preserve gendered divisions of domestic responsibility by shifting women from laborers to managers.
+These findings, while limited by our inability to directly measure household wealth or help employment, challenge theories predicting that economic resources straightforwardly reduce women's domestic burden. Instead, we find patterns consistent with the hypothesis that gender norms about household responsibility persist even as class privilege transforms the nature of work. If validated with direct measures of household help, the servant paradox would reveal that economic development, while alleviating physical hardship, may preserve gendered divisions of domestic responsibility by shifting women from laborers to managers.
 
-True gender equality in domestic work may require not just economic resources but fundamental challenges to cultural norms defining household responsibility as women's domain—whether that work involves scrubbing floors or managing those who do.
+True gender equality in domestic work may require not just economic resources but fundamental challenges to cultural norms defining household responsibility as women's domain—whether that work involves scrubbing floors or managing those who do. Future research with direct measures of household consumption, wealth, and domestic worker employment is essential to test whether the patterns we document reflect true causal effects of household help or merely correlations with socioeconomic status.
 
 # References
 
