@@ -543,7 +543,8 @@ plot_data_comprehensive <- bind_rows(
 
   # By education
   by_education_gender %>%
-    pivot_longer(cols = c(Female, Male), names_to = "gender_label", values_to = "Shopping Minutes") %>%
+    pivot_longer(cols = c(`Female (min)`, `Male (min)`), names_to = "gender_label", values_to = "Shopping Minutes") %>%
+    mutate(gender_label = ifelse(gender_label == "Female (min)", "Female", "Male")) %>%
     select(group = education_level, gender_label, `Shopping Minutes`) %>%
     mutate(category = "Education"),
 
