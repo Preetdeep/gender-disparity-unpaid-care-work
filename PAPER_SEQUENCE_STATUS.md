@@ -1,7 +1,8 @@
 # Research Paper Sequence - Status Update
 
-**Date**: October 29, 2025
-**Session**: claude/session-011CUZmw7tCKXQYcDZp5W1Ck
+**Date**: November 2, 2025
+**Session**: claude/review-son-preference-paper-011CUj9GbBGe6LQvSfM4qQue
+**Previous Session**: claude/session-011CUZmw7tCKXQYcDZp5W1Ck
 
 ---
 
@@ -81,7 +82,56 @@ Based on RESEARCH_QUESTIONS_IDEAS.md, you selected papers **1, 3, 4, and 5** to 
 
 ---
 
-## Blocked Paper
+## Blocked Papers
+
+### ❌ Son Preference in Parental Time
+
+**File**: `son_preference_care.Rmd`
+
+**Title**: "Son Preference in Parental Time: Do Families Invest More Care in Male Children?"
+
+**Research Question**: Does India's well-documented son preference extend to differential parental time investment? Do families with sons receive more total parental time than families with daughters?
+
+**Why Blocked**: **CRITICAL DATA UNAVAILABILITY**
+
+The TUS 2024 dataset **does not include household roster data**. We cannot observe:
+- Number of children per household
+- Gender of children in each household
+- Ages of children in each household
+- Household child composition (only sons, only daughters, mixed)
+
+**Evidence**:
+From `childcare_vs_eldercare.Rmd`:
+> "We cannot observe household composition (number/ages of children, presence of elderly members), so our estimates represent population-level gender gaps, not gaps conditional on care needs being present."
+
+> "We cannot condition on presence of care recipients because household roster data are unavailable."
+
+**Current Paper Status**:
+- Lines 54-58: TODO comments showing missing variables cannot be created
+- Lines 89-103, 109-123: Uses placeholder/illustrative data with hardcoded numbers
+- Line 178: Conclusion explicitly marked incomplete "[To be completed after confirming data availability]"
+- **No real analysis possible**
+
+**Documents Created**:
+- `EDITORIAL_REVIEW_son_preference_care.md` - Comprehensive JFE editorial review
+- `PAPER_STATUS_son_preference_care.md` - Detailed blocking issue documentation
+
+**Alternative Approaches Considered**:
+1. ❌ Find household roster variables - confirmed unavailable
+2. ❌ Use activity sub-codes for recipient gender - unlikely to exist
+3. ❌ Link to external dataset (NFHS) - different sampling frames
+4. ⚠️ Pivot to state-level sex ratio proxy - answers weaker research question
+5. ⚠️ Use India Human Development Survey (IHDS) - requires new dataset
+
+**Recommendation**:
+- **BLOCK** this paper permanently unless new dataset obtained
+- Do NOT soft-code numbers (they're fabricated examples)
+- Do NOT compile PDF (contains fake results)
+- Move to papers feasible with available TUS data
+
+**Review Completed**: November 2, 2025
+
+---
 
 ### ❌ The Weekend Effect (Priority #3)
 
@@ -130,8 +180,9 @@ Based on RESEARCH_QUESTIONS_IDEAS.md, you selected papers **1, 3, 4, and 5** to 
 ## Summary Statistics
 
 **Papers Completed**: 2 out of 4 requested
-**Papers Blocked**: 1 (Weekend Effect - data limitation)
+**Papers Blocked**: 2 (Weekend Effect - no day variable; Son Preference - no household roster data)
 **Papers Remaining**: 1 (Shopping and Mental Load)
+**Papers Under Review**: Son Preference (editorial review completed, paper blocked)
 
 **Total Activity Codes Analyzed**:
 - Codes 81-89: Social life and communication ✅
