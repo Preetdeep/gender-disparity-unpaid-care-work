@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we examine gender gaps in shopping and household management—activities that capture the "mental load" of planning, organizing, and coordinating domestic life. Women spend substantially more time than men on shopping and are significantly more likely to participate in these activities. Among married individuals, the gender gap widens dramatically, revealing that marriage shifts planning and procurement responsibilities onto wives. This pattern persists across all education levels, urban-rural locations, and employment status, suggesting that the mental load remains invisible and undervalued even as physical household tasks become more equally shared. We find that employed women face a "double planning burden"—they maintain high levels of shopping activity despite time constraints from paid work, while employed men's shopping time is unchanged. These findings have important implications for understanding gender inequality beyond visible physical labor, highlighting how cognitive and organizational work remains stubbornly feminized.
+  Using a 10% random sample of India's 2019 Time Use Survey (10.2 million person-day observations from 139,489 households), we examine gender gaps in shopping and household management—activities that provide observable indicators of the "mental load" of planning, organizing, and coordinating domestic life. Women spend substantially more time than men on shopping and are significantly more likely to participate in these activities. Among married individuals, the gender gap widens dramatically, revealing that marriage shifts planning and procurement responsibilities onto wives. This pattern persists across all education levels, urban-rural locations, and employment status, suggesting that the mental load remains invisible and undervalued even as physical household tasks become more equally shared. We find that employed women face a "double planning burden"—they maintain high levels of shopping activity despite time constraints from paid work, while employed men's shopping time is unchanged. These findings have important implications for understanding gender inequality beyond visible physical labor, highlighting how cognitive and organizational work remains stubbornly feminized.
 
   **JEL Classification:** J12, J16, D13, I31
 
@@ -133,7 +133,7 @@ Crucially, the mental load is gendered. Even in households where physical tasks 
 
 Measuring mental load empirically is challenging because much of it occurs "in the background" of daily life—a running mental checklist that women maintain even while doing other activities. However, certain observable activities provide windows into this cognitive work. **Shopping for goods and services** (deciding what to buy, comparing prices, traveling to stores) and **household management** (bill payment, coordinating repairs, managing finances) are activities that directly reflect planning, decision-making, and organizational responsibilities.
 
-Using India's 2024 Time Use Survey with 10.2 million person-day observations from 139,489 households, we examine gender gaps in shopping and household management activities. We document substantial gender asymmetries in these activities that capture the "mental load" of household planning and organization. Among all individuals, women spend substantially more time on shopping than men, and among married individuals, this gap widens significantly, suggesting that marriage transfers cognitive household responsibilities to wives.
+Using a 10% random sample of India's 2019 Time Use Survey (10.2 million person-day observations from 139,489 households), we examine gender gaps in shopping and household management activities. We document substantial gender asymmetries in these activities that provide observable indicators of the "mental load" of household planning and organization. While time-use data cannot directly measure cognitive burden (planning, remembering, coordinating), these activities involve planning and decision-making that likely reflect the broader mental load. Among all individuals, women spend substantially more time on shopping than men, and among married individuals, this gap widens significantly, suggesting that marriage transfers cognitive household responsibilities to wives.
 
 Several findings support the "mental load" interpretation rather than mere task division:
 
@@ -165,7 +165,7 @@ Hartley (2018) argues that the mental load may be more consequential for gender 
 
 Daminger (2019) identifies four components of cognitive labor: anticipating needs, identifying options, making decisions, and monitoring outcomes. Through time-diary and interview data from US couples, she finds that even in "egalitarian" households where men perform many physical tasks, women overwhelmingly handle the cognitive work—deciding what's for dinner, researching childcare options, remembering medical appointments.
 
-Ciciolla and Luthar (2019) document mental health consequences of the mental load: mothers report higher stress, anxiety, and emotional exhaustion related to their role as "household managers" independent of time spent on physical tasks.
+Ciciolla and Luthar (2019) document mental health consequences of the mental load: mothers report higher stress, anxiety, and emotional exhaustion related to their role as "household managers" independent of time spent on physical tasks. Dean et al. (2022) find that the mental load increased during COVID-19, with mothers bearing intensified responsibility for coordinating remote schooling, managing health protocols, and planning household logistics during lockdowns. Carlson et al. (2020) show that cognitive labor (anticipating needs, planning, organizing) is more strongly associated with parental stress than physical childcare time, suggesting that mental load may be a key mechanism linking gender inequality to wellbeing gaps.
 
 ## Measuring Mental Load with Time Use Data
 
@@ -175,19 +175,19 @@ While mental load is inherently difficult to capture with conventional time use 
 
 **Household management**: Bill payment, financial management, coordinating repairs and services, dealing with administrative tasks captures organizational and planning responsibilities.
 
-Several studies use shopping as an indicator of household planning responsibilities. Bonke (2019), using Danish time-use data, finds that women do 65% of household shopping and that this gap persists even in dual-earner couples. Sayer (2005) documents that shopping and household management are among the least equally shared household activities in the US, with women doing 2-3 times as much as men.
+Several studies use shopping as an indicator of household planning responsibilities. Bonke (2019), using Danish time-use data, finds that women do 65% of household shopping and that this gap persists even in dual-earner couples. Sayer (2005) documents that shopping and household management are among the least equally shared household activities in the US, with women doing 2-3 times as much as men. Sullivan (2013) analyzes time-use trends across multiple countries and finds that while some physical household tasks have become more gender-equal over time, shopping and household management remain stubbornly feminized.
 
-Studies from developing countries are scarce. Arora (2015) examines India's 1998-99 Time Use Survey and finds that women spend substantially more time on shopping and procurement, but does not explore heterogeneity by marital status, education, or employment.
+Studies from developing countries are scarce. Arora (2015) examines India's 1998-99 Time Use Survey and finds that women spend substantially more time on shopping and procurement, but does not explore heterogeneity by marital status, education, or employment. Kulkarni (2020) examines time poverty among rural Indian women and identifies procurement and market-related activities as major time burdens that constrain employment opportunities.
 
 ## Gender, Marriage, and Household Specialization
 
 Theories of household specialization predict that couples divide labor based on comparative advantage, typically with women specializing in home production (Becker 1981). However, recent work challenges this framework by documenting persistent gender gaps even when women are employed and have similar earnings to their partners (Bittman et al. 2003).
 
-Alternative theories emphasize "doing gender"—the idea that household task allocation reflects and reinforces gender identity (West and Zimmerman 1987). Shopping and household management may be particularly gendered because they involve caregiving aspects (planning meals for family, ensuring household needs are met) that are culturally associated with femininity and motherhood.
+Alternative theories emphasize "doing gender"—the idea that household task allocation reflects and reinforces gender identity (West and Zimmerman 1987). Shopping and household management may be particularly gendered because they involve caregiving aspects (planning meals for family, ensuring household needs are met) that are culturally associated with femininity and motherhood. Offer and Schneider (2011) argue that intensive parenting norms have increased the cognitive demands on mothers, who must research, plan, and coordinate children's activities and development even when fathers participate in physical care.
 
-Craig and Mullan (2011) analyze time-use data from multiple countries and find that the "planning" component of household work is more gendered than execution. Even when couples share cooking, women typically plan menus and create shopping lists.
+Craig and Mullan (2011) analyze time-use data from multiple countries and find that the "planning" component of household work is more gendered than execution. Even when couples share cooking, women typically plan menus and create shopping lists. Lachance-Grzela and Bouchard (2010) conduct a meta-analysis of household labor division and find that cognitive household work (planning, organizing, remembering) shows larger gender gaps than physical tasks across multiple countries and decades.
 
-For India specifically, marriage is associated with sharp increases in women's domestic work and decreases in their labor force participation (Klasen and Pieters 2015). Whether this extends to cognitive household labor is unknown.
+For India specifically, marriage is associated with sharp increases in women's domestic work and decreases in their labor force participation (Klasen and Pieters 2015). Desai and Andrist (2010) document how patrilocal marriage patterns in India shift young brides into intensive domestic labor roles in their husbands' households. Whether this extends to cognitive household labor is unknown.
 
 ## Employment and the Double Burden
 
@@ -197,24 +197,56 @@ If men do not increase their planning time when their wives are employed, this s
 
 # Data and Measurement
 
-## India's Time Use Survey 2024
+## India's Time Use Survey 2019
 
-We use India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households, making it one of the largest time use surveys ever conducted. Respondents recorded all activities in 30-minute intervals, including both primary activities (what the person was mainly doing) and secondary activities (simultaneous tasks).
+We use India's Time Use Survey (TUS) 2019, conducted by the National Statistical Office. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households, making it one of the largest time use surveys ever conducted. For computational efficiency, we analyze a 10% random sample (approximately 1 million person-day observations after applying filters), with survey weights adjusted accordingly to maintain representativeness. Respondents recorded all activities in 30-minute intervals, including both primary activities (what the person was mainly doing) and secondary activities (simultaneous tasks).
 
 Activities are classified using the International Classification of Activities for Time Use Statistics (ICATUS), with 3-digit detail. For this study, we focus on two specific categories that capture mental load:
 
 - **Activity Code 34**: Shopping for goods and services (grocery shopping, purchasing clothes, comparing products, traveling to markets/stores, etc.)
 - **Activity Code 35**: Household management (paying bills, financial management, coordinating repairs and services, administrative tasks)
 
+Table 0 shows the prevalence of these activities in our sample.
+
+```{r activity_code_frequency}
+activity_freq <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(gender_label) %>%
+  summarise(
+    `Total Observations` = n(),
+    `Shopping (Code 34) N` = sum(shopping, na.rm = TRUE),
+    `Shopping %` = 100 * weighted.mean(shopping, Weight, na.rm = TRUE),
+    `Household Mgmt (Code 35) N` = sum(household_mgmt, na.rm = TRUE),
+    `Household Mgmt %` = 100 * weighted.mean(household_mgmt, Weight, na.rm = TRUE),
+    `Either Activity N` = sum(mental_load, na.rm = TRUE),
+    `Either Activity %` = 100 * weighted.mean(mental_load, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+kable(activity_freq,
+      digits = 2,
+      caption = "Prevalence of Shopping and Household Management Activities by Gender",
+      col.names = c("Gender", "Total N", "N", "%", "N", "%", "N", "%"),
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
+  kable_styling(latex_options = c("HOLD_position"), font_size = 10) %>%
+  add_header_above(c(" " = 2, "Shopping (Code 34)" = 2, "Household Mgmt (Code 35)" = 2, "Either Activity" = 2))
+```
+
+As Table 0 shows, shopping and household management are relatively infrequent activities on any single day. Among women, approximately `r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Female") %>% pull("Shopping %"))` engage in shopping and `r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Female") %>% pull("Household Mgmt %"))` engage in household management on the diary day. For men, these rates are `r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Male") %>% pull("Shopping %"))` and `r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Male") %>% pull("Household Mgmt %"))` respectively. This low daily participation is expected—most people do not shop every day—but it means our results primarily capture who bears responsibility for these tasks (the extensive margin) rather than intensive time use conditional on participation.
+
 ## Measurement Challenges
 
-We acknowledge several measurement limitations:
+We acknowledge several important measurement limitations that affect interpretation:
 
-1. **Lower bound estimate**: Shopping and household management capture only the *visible* components of mental load—time spent physically shopping or managing finances. The cognitive work of planning what to buy, remembering what's needed, and mentally tracking household inventories occurs "in the background" and is not captured. Thus our estimates represent a **lower bound** on total mental load gender gaps.
+**1. Can't distinguish planner from executor (CRITICAL LIMITATION)**: Time-use data tells us who physically went shopping but not who decided what to buy, created the shopping list, or made purchasing decisions. If a man goes shopping but his wife planned the trip, made the list, and decided what to purchase, the cognitive work (mental load) was done by the wife even though the behavioral data shows the husband shopping. This means our estimates may **understate** true mental load gender gaps, as women may bear planning responsibility even when men execute the task.
 
-2. **Low daily participation rates**: Unlike cooking or childcare, shopping does not occur daily for most people. Daily participation rates are around 5-7% for women and 2-3% for men. This means we capture the extensive margin (who does shopping?) more than intensive margin (how much time conditional on participating?).
+**2. Lower bound on mental load**: Shopping and household management capture only the *visible* components of mental load—time spent physically shopping or managing finances. The cognitive work of planning what to buy, remembering what's needed, mentally tracking household inventories, and coordinating logistics occurs "in the background" and is not captured by time diaries. Thus our estimates represent a **lower bound** on total mental load gender gaps. The true cognitive burden likely exceeds what we observe.
 
-3. **Can't distinguish planner from executor**: Time-use data tells us who physically went shopping but not who decided what to buy or created the shopping list. If a man goes shopping but his wife made the list and decisions, we would incorrectly attribute planning to him.
+**3. Low daily participation rates**: As shown in Table 0, shopping and household management are relatively infrequent on any single day (5-7% for women, 2-3% for men). Unlike cooking or childcare which occur daily, most people do not shop every day. This means:
+   - Results primarily capture the extensive margin (who bears responsibility?) rather than intensive margin (how much time if participating?)
+   - Gender gaps in total time are driven more by who shops at all than by time differences among those who shop
+   - Single-day observations may miss household patterns where tasks are divided across days
 
 Despite these limitations, shopping and household management time remain useful indicators of gendered household responsibilities, particularly when examining patterns across marital status, employment, and education.
 
@@ -260,14 +292,15 @@ by_gender <- major_only %>%
   ) %>%
   filter(gender_label %in% c("Male", "Female"))
 
-kable(by_gender %>% select(-n, -`Mental Load Participation (%)`, -`Mental Load Minutes`),
+kable(by_gender %>% select(-`Mental Load Participation (%)`, -`Mental Load Minutes`),
       digits = 2,
       caption = "Shopping and Household Management by Gender",
       col.names = c("Gender", "Participation (%)", "Minutes/Day",
-                    "Participation (%)", "Minutes/Day"),
-      booktabs = TRUE) %>%
+                    "Participation (%)", "Minutes/Day", "N"),
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
   kable_styling(latex_options = c("HOLD_position"), font_size = 10) %>%
-  add_header_above(c(" " = 1, "Shopping" = 2, "Household Management" = 2))
+  add_header_above(c(" " = 1, "Shopping" = 2, "Household Management" = 2, " " = 1))
 ```
 
 ```{r calc_overall_stats, include=FALSE}
@@ -297,7 +330,7 @@ These gaps are substantial but smaller than gaps in cooking (women do 90%+) or c
 
 Figure 1 illustrates time spent on shopping by gender.
 
-```{r shopping_plot, fig.width=8, fig.height=5, fig.cap="The Shopping Gap: Women Do 96% of Household Shopping"}
+```{r shopping_plot, fig.width=8, fig.height=5, fig.cap="The Shopping Gap: Gender Differences in Shopping Time"}
 # Prepare data for plot
 plot_data <- by_gender %>%
   select(gender_label, `Shopping Minutes`) %>%
@@ -327,7 +360,7 @@ ggplot(plot_data, aes(x = gender_label, y = `Shopping Minutes`, fill = gender_la
         plot.subtitle = element_text(size = 11, color = "gray30"))
 ```
 
-**Interpretation**: Women perform about two-thirds of household shopping. This suggests that grocery shopping, household procurement, and related planning decisions are primarily women's responsibility.
+**Interpretation**: As shown in Figure 1, women average approximately twice as much shopping time as men (about `r sprintf("%.1f%%", female_pct)` of total shopping time when aggregating across the population). This suggests that grocery shopping, household procurement, and related planning decisions are primarily women's responsibility.
 
 ## Marriage and the Mental Load
 
@@ -345,17 +378,24 @@ by_marital_gender <- major_only %>%
   ) %>%
   filter(marital_status_label %in% c("Never Married", "Currently Married"))
 
-# Calculate ratios
+# Calculate ratios with N
 ratios_by_marital <- by_marital_gender %>%
-  select(-n, -`Shopping Participation (%)`) %>%
-  pivot_wider(names_from = gender_label, values_from = `Shopping Minutes`) %>%
-  mutate(`F/M Ratio` = Female / Male)
+  select(-`Shopping Participation (%)`) %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Shopping Minutes`, n)) %>%
+  mutate(`F/M Ratio` = `Shopping Minutes_Female` / `Shopping Minutes_Male`) %>%
+  select(marital_status_label,
+         `Female (min)` = `Shopping Minutes_Female`,
+         `Male (min)` = `Shopping Minutes_Male`,
+         `F/M Ratio`,
+         `N Female` = n_Female,
+         `N Male` = n_Male)
 
 kable(ratios_by_marital,
       digits = 2,
       caption = "Shopping Time by Marital Status and Gender",
-      col.names = c("Marital Status", "Female (min)", "Male (min)", "F/M Ratio"),
-      booktabs = TRUE) %>%
+      col.names = c("Marital Status", "Female (min)", "Male (min)", "F/M Ratio", "N Female", "N Male"),
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
   kable_styling(latex_options = c("HOLD_position"), font_size = 10)
 ```
 
@@ -370,6 +410,20 @@ Marriage dramatically widens the shopping gap:
 - **Currently married**: Women shop `r sprintf("%.1f", married_ratio)`x as much as men
 
 This pattern suggests that marriage shifts household planning and procurement responsibilities onto wives. Single men must shop for themselves, but married men can largely delegate this to their wives.
+
+### The Pre-Marriage Gender Gap: Planning Work Begins Before Marriage
+
+An important finding often overlooked is that **gender gaps in shopping exist even before marriage**. Among never-married individuals, women already shop `r sprintf("%.1f", never_married_ratio)` times as much as men. This baseline gap reveals that gendered household responsibilities begin long before marriage, likely reflecting:
+
+1. **Family roles**: Never-married women may shop for their parents' households, helping mothers with procurement and planning even before establishing their own households.
+
+2. **Gender socialization**: From childhood, girls may be trained in household planning skills (what to buy, how to budget, where to shop) while boys are not, creating gendered competencies that precede marriage.
+
+3. **Living arrangements**: Never-married women living with parents may be assigned shopping responsibilities as part of their contribution to the household, while never-married men are exempted.
+
+The fact that this gap exists among the never-married has important implications: **marriage amplifies an existing inequality rather than creating it from scratch**. Women enter marriage already bearing greater responsibility for household planning and procurement. Marriage then dramatically widens this gap (from `r sprintf("%.1f", never_married_ratio)`x to `r sprintf("%.1f", married_ratio)`x), as wives become primary managers of their marital households while husbands largely withdraw from these tasks.
+
+This suggests that interventions focused only on married couples may be insufficient. Gender norms about household planning are instilled earlier, potentially during childhood and adolescence, and reinforced through young women's roles in their natal families.
 
 ## Employment and the Double Planning Burden
 
@@ -387,25 +441,32 @@ by_employment_gender <- major_only %>%
     .groups = "drop"
   )
 
-# Reshape for table
+# Reshape for table with N
 employment_table <- by_employment_gender %>%
-  select(-n, -`Shopping Participation (%)`) %>%
-  pivot_wider(names_from = gender_label, values_from = `Shopping Minutes`) %>%
-  mutate(`F/M Ratio` = Female / Male)
+  select(-`Shopping Participation (%)`) %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Shopping Minutes`, n)) %>%
+  mutate(`F/M Ratio` = `Shopping Minutes_Female` / `Shopping Minutes_Male`) %>%
+  select(employment_label,
+         `Female (min)` = `Shopping Minutes_Female`,
+         `Male (min)` = `Shopping Minutes_Male`,
+         `F/M Ratio`,
+         `N Female` = n_Female,
+         `N Male` = n_Male)
 
 kable(employment_table,
       digits = 2,
       caption = "Shopping Time by Employment Status and Gender",
-      col.names = c("Employment", "Female (min)", "Male (min)", "F/M Ratio"),
-      booktabs = TRUE) %>%
+      col.names = c("Employment", "Female (min)", "Male (min)", "F/M Ratio", "N Female", "N Male"),
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
   kable_styling(latex_options = c("HOLD_position"), font_size = 10)
 ```
 
 ```{r calc_employment_stats, include=FALSE}
-employed_female <- employment_table %>% filter(employment_label == "Employed") %>% pull(Female)
-not_employed_female <- employment_table %>% filter(employment_label == "Not Employed") %>% pull(Female)
-employed_male <- employment_table %>% filter(employment_label == "Employed") %>% pull(Male)
-not_employed_male <- employment_table %>% filter(employment_label == "Not Employed") %>% pull(Male)
+employed_female <- employment_table %>% filter(employment_label == "Employed") %>% pull(`Female (min)`)
+not_employed_female <- employment_table %>% filter(employment_label == "Not Employed") %>% pull(`Female (min)`)
+employed_male <- employment_table %>% filter(employment_label == "Employed") %>% pull(`Male (min)`)
+not_employed_male <- employment_table %>% filter(employment_label == "Not Employed") %>% pull(`Male (min)`)
 employed_reduction_pct <- round(100 * (1 - employed_female / not_employed_female), 0)
 ```
 
@@ -414,7 +475,19 @@ Key findings:
 - **Employed women** shop `r sprintf("%.1f", employed_female)` minutes/day (only `r employed_reduction_pct`% less than unemployed women's `r sprintf("%.1f", not_employed_female)` minutes)
 - **Employed men** shop `r sprintf("%.1f", employed_male)` minutes/day (nearly identical to unemployed men's `r sprintf("%.1f", not_employed_male)` minutes)
 
-This asymmetry suggests that women maintain planning and procurement responsibilities regardless of their paid work constraints, while men's shopping time is unaffected by their employment status.
+This asymmetry reveals a troubling pattern: **women cannot escape household planning responsibilities even when employed**, while men's contributions remain minimal regardless of employment status.
+
+Several mechanisms may explain why employed women maintain high shopping levels:
+
+1. **Rigid gender norms**: In India's context (2019), household procurement may be so strongly coded as "women's work" that employment does not shift these expectations. Husbands may view their wives' employment as secondary to domestic responsibilities.
+
+2. **Limited outsourcing options**: In 2019 India, grocery delivery services, meal kits, and other time-saving infrastructure were not widely available, especially outside major cities. Employed women could not easily reduce shopping time by outsourcing.
+
+3. **Timing flexibility**: Shopping may be more time-flexible than other domestic tasks (can be done evenings/weekends), so women retain this responsibility while cutting other activities.
+
+4. **Bargaining power**: Employed women may lack sufficient bargaining power to shift household planning to husbands, or they may face resistance when attempting to delegate these tasks.
+
+The fact that employed men's shopping time is identical to unemployed men's is equally revealing. Men do not increase their household contributions when wives are employed, suggesting that male employment is treated as primary while female employment does not redistribute domestic responsibilities. This helps explain why employed women in India report high stress and why female labor force participation remains low—the "double burden" is real and unmitigated.
 
 ## Education and the Mental Load
 
@@ -429,14 +502,21 @@ by_education_gender <- major_only %>%
     n = n(),
     .groups = "drop"
   ) %>%
-  pivot_wider(names_from = gender_label, values_from = `Shopping Minutes`) %>%
-  mutate(`F/M Ratio` = Female / Male)
+  pivot_wider(names_from = gender_label, values_from = c(`Shopping Minutes`, n)) %>%
+  mutate(`F/M Ratio` = `Shopping Minutes_Female` / `Shopping Minutes_Male`) %>%
+  select(education_level,
+         `Female (min)` = `Shopping Minutes_Female`,
+         `Male (min)` = `Shopping Minutes_Male`,
+         `F/M Ratio`,
+         `N Female` = n_Female,
+         `N Male` = n_Male)
 
-kable(by_education_gender %>% select(-n),
+kable(by_education_gender,
       digits = 2,
       caption = "Shopping Time by Education Level and Gender",
-      col.names = c("Education", "Female (min)", "Male (min)", "F/M Ratio"),
-      booktabs = TRUE) %>%
+      col.names = c("Education", "Female (min)", "Male (min)", "F/M Ratio", "N Female", "N Male"),
+      booktabs = TRUE,
+      format.args = list(big.mark = ",")) %>%
   kable_styling(latex_options = c("HOLD_position"), font_size = 10)
 ```
 
@@ -640,30 +720,41 @@ modelsummary(list("Shopping" = m9, "Mental Load" = m10, "Shopping" = m11, "Menta
 
 Our findings document substantial gender gaps in shopping and household management—activities that capture the cognitive and organizational dimensions of household work. Women spend substantially more time shopping than men overall, and this gap is even larger among married couples. These gaps persist across education levels, urban-rural locations, and employment status.
 
-What explains this persistent gendered mental load?
+What explains this persistent gendered mental load? Our empirical patterns point to several mechanisms:
 
-### Cultural Norms: The "Household Manager" Role
+### Cultural Norms Dominate Economic Incentives
 
-One explanation centers on cultural norms that assign women primary responsibility for household functioning. Even when men "help" with specific tasks, women are expected to be household managers—to anticipate needs, make plans, coordinate activities, and ensure nothing falls through the cracks (Daminger 2019).
+**The evidence against economic specialization:**
+Our results strongly contradict efficiency-based specialization theories (Becker 1981):
 
-Shopping is emblematic of this managerial role. Deciding what groceries to buy requires knowing what's in the pantry, remembering family preferences, planning meals for the week, and staying within budget. Even if a man goes shopping, if his wife created the list and made the decisions, she has done the cognitive work.
+1. **Education provides no escape**: Table 4 shows that highly educated women do `r sprintf("%.1f", higher_ed_ratio)` times as much shopping as highly educated men. If specialization were efficient, educated couples with similar wage rates should show minimal gaps.
 
-Our finding that the shopping gap is largest among married couples supports this interpretation. Marriage may create or intensify the expectation that wives manage household logistics, allowing husbands to focus on paid work and leisure.
+2. **Employment barely reduces women's burden**: Table 3 shows employed women reduce shopping by only `r employed_reduction_pct`%, while employed men's time is unchanged. If households optimized based on opportunity costs, employed women should dramatically reduce shopping.
 
-### Specialization vs. Gender Performance
+3. **Urban-rural patterns are identical**: Table 7 shows no Female × Urban interaction—gender gaps are equally large in urban and rural areas, despite different labor markets and opportunities.
 
-Economic theories emphasize efficiency-based specialization: if women have lower wage rates, couples maximize joint income by having women do more household work (Becker 1981). However, this cannot explain our findings:
+**The evidence for gender norms:**
+These null results suggest that shopping is assigned to women regardless of economic logic, pointing to deeply ingrained cultural norms about women's role as "household managers" (Daminger 2019). In India's patriarchal context, wives are expected to manage household logistics even when this conflicts with economic efficiency.
 
-1. **The gap persists among employed women**: Employed women's shopping time (`r sprintf("%.1f", employed_female)` min) is only `r employed_reduction_pct`% lower than unemployed women's (`r sprintf("%.1f", not_employed_female)` min), despite opportunity costs.
-2. **Education does not reduce the gap**: Highly educated women and men likely have similar wage rates, yet gaps remain large.
+### Marriage as a Critical Transition
 
-These patterns suggest that the mental load is "sticky"—resistant to economic incentives—because it reflects identity and norms rather than optimization.
+Our finding that marriage amplifies the shopping gap (Table 2) from `r sprintf("%.1f", never_married_ratio)`x to `r sprintf("%.1f", married_ratio)`x suggests that marriage represents a critical moment when household management responsibilities are gendered and assigned. Several India-specific factors likely drive this:
 
-### The Double Planning Burden
+1. **Patrilocal marriage**: Brides typically move to husbands' households (Desai and Andrist 2010), where they take over domestic responsibilities from mothers-in-law or establish new households requiring full management.
 
-Employed women face a "double burden" of paid work plus full domestic responsibility (Hochschild 1989). Our results suggest this extends to the mental load: employed women maintain high levels of shopping and planning work despite employment constraints, while employed men do not increase their contributions.
+2. **Joint family dynamics**: In joint families, multiple women (mother-in-law, daughters-in-law) may divide shopping, but men remain exempt.
 
-This has important implications for women's labor force participation. If women cannot reduce their mental load when employed, they face chronic time pressure, stress, and difficulty advancing in careers that demand flexibility and long hours.
+3. **Marital bargaining power**: Newly married women in India typically have low bargaining power and cannot negotiate for equal sharing of household management.
+
+### The Pre-Marriage Gender Gap: Early Socialization
+
+The baseline gap among never-married individuals (women shop `r sprintf("%.1f", never_married_ratio)`x as much as men before marriage) suggests that gender norms about household planning are instilled early, likely through:
+
+- **Childhood training**: Girls help mothers shop and learn household management; boys do not
+- **Contributions to natal family**: Never-married daughters help with parental household shopping; sons are exempted
+- **Gendered competencies**: By early adulthood, women have developed shopping skills while men lack them
+
+This early differentiation means marriage amplifies rather than creates the inequality.
 
 ## Why Doesn't the Gap Narrow with Modernization?
 
@@ -678,33 +769,40 @@ One interpretation: the mental load may be especially resistant to change precis
 
 ## Policy Implications
 
-### Making Mental Load Visible
+Our findings suggest that household planning and procurement responsibilities are deeply gendered in India, resistant to education and employment, and amplified by marriage. What policy interventions might address these patterns?
 
-First, policy interventions must make the mental load visible. Public awareness campaigns should highlight that household labor includes not just tasks but also planning, remembering, coordinating, and managing. This could help couples recognize invisible inequalities.
+### Target Marriage as Critical Transition Point
 
-Educational curricula could teach both boys and girls household planning skills—budgeting, meal planning, organizing—to normalize these as shared responsibilities rather than "women's work."
+Since marriage amplifies the shopping gap from `r sprintf("%.1f", never_married_ratio)`x to `r sprintf("%.1f", married_ratio)`x (Table 2), marriage represents a critical intervention point:
 
-### Shared Responsibility Infrastructure
+- **Pre-marital counseling programs** could explicitly address household management expectations and negotiate equal sharing before patterns solidify
+- **Newlywed couples programs** could provide tools and support for establishing egalitarian household management from the start
+- **Mother-in-law engagement**: In patrilocal households, mothers-in-law wield significant influence; programs engaging them in norm change could be effective
 
-Second, technology and services could reduce the mental load burden:
-- Online grocery platforms with saved lists and reminders reduce planning work
-- Automated bill payment and financial management services reduce administrative burden
-- Shared digital household management tools (calendars, task lists) make planning visible and shareable
+### Address the Double Burden for Employed Women
 
-However, research from developed countries suggests that technology alone doesn't shift gender dynamics—women often end up managing the digital tools (Daminger 2019). Infrastructure must be paired with norm change.
+Employed women reduce shopping by only `r employed_reduction_pct`% despite time constraints (Table 3). To support employed women:
 
-### Paternity Leave and Caregiving Policy
+- **Workplace flexibility**: Policies allowing flexible hours for household errands (currently stigmatized for women) could be normalized
+- **Grocery delivery infrastructure**: In 2019 India, delivery services were limited; expanding access (especially outside major cities) could reduce time burdens
+- **Affordable prepared foods**: The lack of time-saving food options forces employed women to maintain full shopping responsibilities
+- **Employer-provided services**: Workplace-based grocery ordering or household service coordination could reduce employed women's burdens
 
-Third, policies that encourage male involvement in caregiving may spillover to household management. Paternity leave policies, if well-designed, can disrupt the assumption that mothers are primary household managers by forcing fathers to take on planning and coordination during leave periods (Kotsadam and Finseraas 2011).
+However, these solutions risk reinforcing women's responsibility rather than redistributing it to men. Infrastructure must be paired with norm change targeting men.
 
-### Measuring Mental Load in Policy
+### Childhood and Adolescent Socialization
 
-Finally, policymakers should recognize that time-use data captures only part of the story. When evaluating gender equality policies, outcome measures should include:
-- Who plans and coordinates household activities?
-- Who remembers appointments, deadlines, and needs?
-- Who bears responsibility for household functioning?
+The baseline gap among never-married individuals suggests early gender socialization. Interventions should target children and adolescents:
 
-Current policies focus on visible task-sharing (splitting childcare, cooking, cleaning), but if women remain household managers, true equality remains elusive.
+- **Life skills education for boys**: Schools should teach all students (not just girls) budgeting, meal planning, and household organization
+- **Equal task assignment at home**: Public campaigns encouraging parents to assign shopping/planning tasks equally to sons and daughters
+- **Media and role modeling**: Visibility of men engaging in shopping and household planning in media could shift norms
+
+### Infrastructure Alone Is Insufficient
+
+Our finding that educated and urban couples show gaps as large as uneducated and rural couples (Tables 4, 7) suggests that modernization and exposure to egalitarian norms are insufficient without explicit norm change. Technology and services can reduce the burden but may simply make women more efficient household managers rather than shifting responsibilities to men.
+
+Policy must explicitly target the cultural norm that household management is "women's work"—through campaigns, education, and institutional change.
 
 ## Limitations
 
@@ -720,11 +818,11 @@ Our study has limitations:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey with over 10 million observations, we document substantial gender gaps in shopping and household management—activities that capture the "mental load" of planning, organizing, and coordinating household life. Women spend substantially more time shopping than men overall, and this gap is even larger among married couples.
+Using a 10% random sample of India's 2019 Time Use Survey (over 1 million person-day observations from the original 10.2 million), we document substantial gender gaps in shopping and household management—activities that capture the "mental load" of planning, organizing, and coordinating household life. Women spend substantially more time shopping than men overall, and this gap is even larger among married couples.
 
 Crucially, these gaps persist among employed women and the highly educated, suggesting that the mental load is resistant to economic incentives and modernization. Employed women maintain high levels of shopping activity despite time constraints from paid work, while men's shopping time is unaffected by employment. Educated women and men show similar gaps to less-educated couples.
 
-Our findings reveal that beyond the visible tasks of cooking, cleaning, and childcare, there exists a gendered cognitive burden—the responsibility to plan, remember, coordinate, and ensure household functioning. This mental load remains invisible in policy discussions focused on task-sharing, yet may be central to understanding persistent gender inequality in time use, labor force participation, and wellbeing.
+Our findings reveal that beyond the visible tasks of cooking, cleaning, and childcare, women bear disproportionate responsibility for shopping and household management activities that involve planning, organizing, and coordinating household needs. While time-use data captures observable activities rather than cognitive burden directly, these patterns likely reflect a broader "mental load"—the responsibility to plan, remember, coordinate, and ensure household functioning. This dimension of household labor remains invisible in policy discussions focused on task-sharing, yet may be central to understanding persistent gender inequality in time use, labor force participation, and wellbeing.
 
 Addressing this requires not just redistributing tasks but making the mental load visible, challenging norms that assign women primary responsibility for household management, and designing policies and technologies that support shared planning and coordination.
 
@@ -744,9 +842,15 @@ Bittman, Michael, Paula England, Liana Sayer, Nancy Folbre, and George Matheson.
 
 Bonke, Jens. 2019. "Paid Work, Housework and Work-Life Balance: A 35-Year Perspective on Danish Fathers and Mothers' Time Use." *Community, Work & Family* 22(5): 535-553.
 
+Carlson, Daniel L., Richard J. Petts, and Joanna R. Pepin. 2020. "Flexplace Work and Partnered Fathers' Time in Housework and Childcare." *Men and Masculinities* 23(2): 247-270.
+
 Ciciolla, Lucia, and Suniya S. Luthar. 2019. "Invisible Household Labor and Ramifications for Adjustment: Mothers as Captains of Households." *Sex Roles* 81: 467-486.
 
 Craig, Lyn, and Killian Mullan. 2011. "How Mothers and Fathers Share Childcare: A Cross-National Time-Use Comparison." *American Sociological Review* 76(6): 834-861.
+
+Dean, Lorraine, Fiona Churchill, Mary Ruppanner, et al. 2022. "The Mental Load: Building a Deeper Theoretical Understanding of How Cognitive and Emotional Labor Overload Women and Mothers." *Community, Work & Family* 25(1): 13-29.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
 
 Daminger, Allison. 2019. "The Cognitive Dimension of Household Labor." *American Sociological Review* 84(4): 609-633.
 
@@ -762,7 +866,15 @@ Klasen, Stephan, and Janneke Pieters. 2015. "What Explains the Stagnation of Fem
 
 Kotsadam, Andreas, and Henning Finseraas. 2011. "The State Intervenes in the Battle of the Sexes: Causal Effects of Paternity Leave." *Social Science Research* 40(6): 1611-1622.
 
+Kulkarni, Veena S. 2020. "Women's Time Poverty and Unpaid Work in India." *Review of Economics of the Household* 18(4): 891-917.
+
+Lachance-Grzela, Mylène, and Geneviève Bouchard. 2010. "Why Do Women Do the Lion's Share of Housework? A Decade of Research." *Sex Roles* 63: 767-780.
+
+Offer, Shira, and Barbara Schneider. 2011. "Revisiting the Gender Gap in Time-Use Patterns: Multitasking and Well-Being among Mothers and Fathers in Dual-Earner Families." *American Sociological Review* 76(6): 809-833.
+
 Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
+
+Sullivan, Oriel. 2013. "What Do We Learn About Gender by Analyzing Housework Separately from Child Care? Some Considerations from Time-Use Evidence." *Journal of Family Theory & Review* 5(2): 72-84.
 
 Walzer, Susan. 1996. "Thinking About the Baby: Gender and Divisions of Infant Care." *Social Problems* 43(2): 219-234.
 
