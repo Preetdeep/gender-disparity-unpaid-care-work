@@ -59,21 +59,93 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# Load time use data
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
+
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Check for activity code column
+if ("Activity_Code_3Digit" %in% all_cols) {
+  act_col <- "Activity_Code_3Digit"
+} else if ("Activity_Code_2Digit" %in% all_cols) {
+  act_col <- "Activity_Code_2Digit"
+  cat("Warning: Using 2-digit activity codes (3-digit not available)\n")
+} else {
+  stop("ERROR: No activity code column found!")
+}
+
+# Check for multitasking columns
+multi_flag_cols <- grep("multiple|Multiple|MULTIPLE", all_cols, value = TRUE, ignore.case = TRUE)
+simul_flag_cols <- grep("simultaneous|Simultaneous|SIMULTANEOUS", all_cols, value = TRUE, ignore.case = TRUE)
+
+has_multi_flag <- length(multi_flag_cols) > 0
+has_simul_flag <- length(simul_flag_cols) > 0
+
+multi_col <- if(has_multi_flag) multi_flag_cols[1] else NULL
+simul_col <- if(has_simul_flag) simul_flag_cols[1] else NULL
+
+# Check for day and location columns
+day_cols <- grep("day.*week|Day.*Week|DAY.*WEEK", all_cols, value = TRUE, ignore.case = TRUE)
+location_cols <- grep("location|Location|LOCATION", all_cols, value = TRUE, ignore.case = TRUE)
+
+has_day <- length(day_cols) > 0
+has_location <- length(location_cols) > 0
+
+day_col <- if(has_day) day_cols[1] else NULL
+location_col <- if(has_location) location_cols[1] else NULL
+
+cat(sprintf("Using activity column: %s\n", act_col))
+if(has_multi_flag) cat(sprintf("Multiple activity flag: %s\n", multi_col))
+if(has_simul_flag) cat(sprintf("Simultaneous activity flag: %s\n", simul_col))
+if(has_day) cat(sprintf("Day of week: %s\n", day_col))
+if(has_location) cat(sprintf("Location: %s\n", location_col))
+
+# Clean up
+rm(data_full)
+
+# STEP 2: Load data with available columns
+required_cols <- c("Gender", act_col, "time_spent", "Weight",
+                  "Major_Activity_Flag", "Age", "Marital_Status",
+                  "Highest_Education", "Sector", "Principal_Activity_Status",
+                  "State", "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No")
+
+optional_cols <- c(multi_col, simul_col, day_col, location_col)
+optional_cols <- optional_cols[!is.null(optional_cols)]
+
+all_cols_to_load <- c(required_cols, optional_cols)
+
 data <- read_dta("TimeUse106PER.dta",
-                 col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
-                               Major_Activity_Flag, Age, Marital_Status,
-                               Highest_Education, Sector, Principal_Activity_Status,
-                               State, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
-                               Multiple_Activity_Flag, Simultaneous_Activity_Flag,
-                               Day_of_Week, Location_of_Activity))
+                 col_select = all(of(all_cols_to_load)))
+
+# Rename to standard names
+if (act_col != "Activity_Code_3Digit") {
+  data <- data %>% rename(Activity_Code_3Digit = !!sym(act_col))
+}
+if (has_multi_flag && multi_col != "Multiple_Activity_Flag") {
+  data <- data %>% rename(Multiple_Activity_Flag = !!sym(multi_col))
+}
+if (has_simul_flag && simul_col != "Simultaneous_Activity_Flag") {
+  data <- data %>% rename(Simultaneous_Activity_Flag = !!sym(simul_col))
+}
+if (has_day && day_col != "Day_of_Week") {
+  data <- data %>% rename(Day_of_Week = !!sym(day_col))
+}
+if (has_location && location_col != "Location_of_Activity") {
+  data <- data %>% rename(Location_of_Activity = !!sym(location_col))
+}
 
 # METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
 set.seed(123)
-data <- data %>% slice_sample(prop = 0.1)
-data <- data %>% mutate(Weight = Weight / 0.1)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
 
-# Create household size variable
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
+# STEP 3: Create household size variable
 household_size_df <- data %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
@@ -81,7 +153,9 @@ household_size_df <- data %>%
 data <- data %>%
   left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
 
-# Process data
+rm(household_size_df)
+
+# STEP 4: Process data
 processed_data <- data %>%
   mutate(
     # Gender variables
@@ -102,9 +176,6 @@ processed_data <- data %>%
     # Identify if eating is major or minor activity
     eating_major = as.numeric(eating == 1 & Major_Activity_Flag == 1),
     eating_minor = as.numeric(eating == 1 & Major_Activity_Flag == 0),
-
-    # Simultaneous activity flag
-    is_simultaneous = as.numeric(Simultaneous_Activity_Flag == 1),
 
     # Activity categories for understanding what activities are done while eating
     activity_category = case_when(
@@ -140,37 +211,58 @@ processed_data <- data %>%
     # Marital status
     married = as.numeric(Marital_Status == 2),
 
-    # Day of week
-    weekend = as.numeric(Day_of_Week %in% c(6, 7)),
-    day_label = case_when(
-      Day_of_Week == 1 ~ "Monday",
-      Day_of_Week == 2 ~ "Tuesday",
-      Day_of_Week == 3 ~ "Wednesday",
-      Day_of_Week == 4 ~ "Thursday",
-      Day_of_Week == 5 ~ "Friday",
-      Day_of_Week == 6 ~ "Saturday",
-      Day_of_Week == 7 ~ "Sunday"
-    ),
-
-    # Location
-    location_label = case_when(
-      Location_of_Activity == 1 ~ "Home",
-      Location_of_Activity == 2 ~ "Outside (fixed)",
-      Location_of_Activity == 3 ~ "Outside (mobile)"
-    ),
-
     # State fixed effects
     state_factor = as.factor(State)
   )
 
-# Create eating episode level data
+# Add optional variables if they exist
+if ("Simultaneous_Activity_Flag" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(is_simultaneous = as.numeric(Simultaneous_Activity_Flag == 1))
+} else {
+  processed_data <- processed_data %>%
+    mutate(is_simultaneous = NA_real_)
+  cat("Note: Simultaneous activity flag not available in dataset\n")
+}
+
+if ("Day_of_Week" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(
+      weekend = as.numeric(Day_of_Week %in% c(6, 7)),
+      day_label = case_when(
+        Day_of_Week == 1 ~ "Monday",
+        Day_of_Week == 2 ~ "Tuesday",
+        Day_of_Week == 3 ~ "Wednesday",
+        Day_of_Week == 4 ~ "Thursday",
+        Day_of_Week == 5 ~ "Friday",
+        Day_of_Week == 6 ~ "Saturday",
+        Day_of_Week == 7 ~ "Sunday"
+      )
+    )
+} else {
+  processed_data <- processed_data %>%
+    mutate(weekend = NA_real_, day_label = NA_character_)
+  cat("Note: Day of week not available in dataset\n")
+}
+
+if ("Location_of_Activity" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(
+      location_label = case_when(
+        Location_of_Activity == 1 ~ "Home",
+        Location_of_Activity == 2 ~ "Outside (fixed)",
+        Location_of_Activity == 3 ~ "Outside (mobile)"
+      )
+    )
+} else {
+  processed_data <- processed_data %>%
+    mutate(location_label = NA_character_)
+  cat("Note: Location not available in dataset\n")
+}
+
+# STEP 5: Create eating episode level data
 eating_episodes <- processed_data %>%
-  filter(eating == 1) %>%
-  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age, female,
-         married, employed, higher_education, education_level, sector_label, urban,
-         household_id, household_size, state_factor, weekend, location_label,
-         eating_major, eating_minor, is_simultaneous, Major_Activity_Flag,
-         activity_category, Activity_Code_3Digit, Weight)
+  filter(eating == 1)
 
 # Create person-day aggregates for those with eating episodes
 person_day_eating <- eating_episodes %>%

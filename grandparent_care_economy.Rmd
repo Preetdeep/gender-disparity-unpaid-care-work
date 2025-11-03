@@ -59,35 +59,107 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# Load demographic data to identify household structure
-demo_data <- read_dta("TimeUse106DEMO.dta",
-                      col_select = c(FSU_Serial_No, Sample_HH_No, Person_Serial_No,
-                                    Relation_to_Head, Age, Gender, Marital_Status,
-                                    Highest_Education, Principal_Activity_Status))
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
 
-# Create household-level grandparent indicators
-household_structure <- demo_data %>%
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+
+# Check for relationship variable (might have different name)
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Search for relationship-related columns
+relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
+                          all_cols, value = TRUE, ignore.case = TRUE)
+cat("Relationship-related columns found:\n")
+print(relationship_cols)
+
+# Determine correct column name
+if ("Relationship_to_Head" %in% all_cols) {
+  rel_col <- "Relationship_to_Head"
+} else if ("Relation_to_Head" %in% all_cols) {
+  rel_col <- "Relation_to_Head"
+} else if ("Rel_to_Head" %in% all_cols) {
+  rel_col <- "Rel_to_Head"
+} else if (length(relationship_cols) > 0) {
+  rel_col <- relationship_cols[1]
+  cat(sprintf("\nUsing column: %s\n", rel_col))
+} else {
+  stop("ERROR: No relationship-to-head column found in dataset!")
+}
+
+cat(sprintf("Using relationship column: %s\n", rel_col))
+
+# Check for activity code column
+activity_cols <- grep("Activity.*3|activity.*3|3.*digit", all_cols, value = TRUE, ignore.case = TRUE)
+if ("Activity_Code_3Digit" %in% all_cols) {
+  act_col <- "Activity_Code_3Digit"
+} else if (length(activity_cols) > 0) {
+  act_col <- activity_cols[1]
+} else {
+  act_col <- "Activity_Code_2Digit"  # Fallback
+}
+
+cat(sprintf("Using activity column: %s\n", act_col))
+
+# Clean up
+rm(data_full)
+
+# STEP 2: Load data with correct column selection
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c("Gender", act_col, "time_spent", "Weight",
+                               "Major_Activity_Flag", "Age", "Marital_Status",
+                               "Highest_Education", "Sector", "Principal_Activity_Status",
+                               "State", "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No",
+                               rel_col))
+
+# Rename to standard names
+if (rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+if (act_col != "Activity_Code_3Digit") {
+  data <- data %>% rename(Activity_Code_3Digit = !!sym(act_col))
+}
+
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
+
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
+# STEP 3: Create household-level grandparent indicators
+cat("\nConstructing household structure...\n")
+cat("Relationship_to_Head values in data:\n")
+print(table(data$Relationship_to_Head, useNA = "ifany"))
+
+household_structure <- data %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(
     # Grandparent presence (parent/parent-in-law of head, code 7)
-    has_grandparent = any(Relation_to_Head == 7),
-    n_grandparents = sum(Relation_to_Head == 7),
+    has_grandparent = any(Relationship_to_Head == 7, na.rm = TRUE),
+    n_grandparents = sum(Relationship_to_Head == 7, na.rm = TRUE),
 
     # Gender of grandparents
-    has_grandmother = any(Relation_to_Head == 7 & Gender == 2),
-    has_grandfather = any(Relation_to_Head == 7 & Gender == 1),
-    grandmother_only = any(Relation_to_Head == 7 & Gender == 2) & !any(Relation_to_Head == 7 & Gender == 1),
-    grandfather_only = any(Relation_to_Head == 7 & Gender == 1) & !any(Relation_to_Head == 7 & Gender == 2),
-    both_grandparents = any(Relation_to_Head == 7 & Gender == 2) & any(Relation_to_Head == 7 & Gender == 1),
+    has_grandmother = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE),
+    has_grandfather = any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
+    grandmother_only = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE) &
+                       !any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
+    grandfather_only = any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE) &
+                       !any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE),
+    both_grandparents = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE) &
+                        any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
 
-    # Grandparent age (average age of grandparents)
-    grandparent_avg_age = ifelse(any(Relation_to_Head == 7),
-                                  mean(Age[Relation_to_Head == 7], na.rm = TRUE),
+    # Grandparent age
+    grandparent_avg_age = ifelse(any(Relationship_to_Head == 7, na.rm = TRUE),
+                                  mean(Age[Relationship_to_Head == 7], na.rm = TRUE),
                                   NA),
 
-    # Presence of children (grandchildren, married children, unmarried children)
-    has_children = any(Relation_to_Head %in% c(3, 5, 6)),
-    n_children = sum(Relation_to_Head %in% c(5, 6)), # unmarried children + grandchildren
+    # Children presence (codes 3, 5, 6)
+    has_children = any(Relationship_to_Head %in% c(3, 5, 6), na.rm = TRUE),
+    n_children = sum(Relationship_to_Head %in% c(5, 6), na.rm = TRUE),
 
     # Household size
     household_size = n(),
@@ -95,24 +167,15 @@ household_structure <- demo_data %>%
     .groups = "drop"
   )
 
-# Load time use data
-time_data <- read_dta("TimeUse106PER.dta",
-                      col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
-                                    Major_Activity_Flag, Age, Marital_Status,
-                                    Highest_Education, Sector, Principal_Activity_Status,
-                                    State, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
-                                    Relation_to_Head))
+cat(sprintf("Households with grandparents: %s (%.1f%%)\n",
+            format(sum(household_structure$has_grandparent), big.mark = ","),
+            100 * mean(household_structure$has_grandparent)))
 
-# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
-set.seed(123)
-time_data <- time_data %>% slice_sample(prop = 0.1)
-time_data <- time_data %>% mutate(Weight = Weight / 0.1)
-
-# Merge household structure with time use data
-data <- time_data %>%
+# STEP 4: Merge household structure back to data
+data <- data %>%
   left_join(household_structure, by = c("FSU_Serial_No", "Sample_HH_No"))
 
-# Process data - filter to major activities only
+# STEP 5: Process data - filter to major activities only
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
@@ -178,7 +241,7 @@ person_day_data <- major_only %>%
   )
 
 # Clean up
-rm(data, time_data, demo_data, household_structure)
+rm(data, household_structure, major_only)
 invisible(gc())
 ```
 
