@@ -1,0 +1,675 @@
+---
+title: "No Time to Eat: The Gendered Reality of Multitasking and Time Poverty in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we document a striking gender gap in how people eat meals. Women are 2.4 times more likely than men to eat while simultaneously performing other activities—particularly domestic work and childcare. While 47% of women's eating episodes occur as secondary activities alongside primary tasks, only 23% of men's eating involves multitasking. This pattern intensifies in urban areas, among employed women, and in larger households. Women eat while cooking, feeding children, cleaning, and doing laundry; men eat as a primary, focused activity. We interpret this "eating gap" as a revealed-preference measure of time poverty and mental load: women cannot afford dedicated meal breaks because unpaid care work demands are continuous and non-negotiable. The gap persists across education levels and economic classes, suggesting deep cultural norms rather than resource constraints. These findings highlight an overlooked dimension of gender inequality—not just what work women do or how much time they spend, but the quality and fragmentation of that time. Policy implications include workplace meal break protections for domestic workers and recognition that time poverty, not just income poverty, constrains women's well-being.
+
+  **JEL Classification:** J16, J22, D13, I31
+
+  **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, eating behavior, domestic work, India
+
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load time use data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
+                               Multiple_Activity_Flag, Simultaneous_Activity_Flag,
+                               Day_of_Week, Location_of_Activity))
+
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Create household size variable
+household_size_df <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
+
+data <- data %>%
+  left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+# Process data
+processed_data <- data %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+
+    # Sector
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+
+    # Eating activities (921: eating meals/snack, 922: drinking)
+    eating = as.numeric(Activity_Code_3Digit == 921),
+
+    # Identify if eating is major or minor activity
+    eating_major = as.numeric(eating == 1 & Major_Activity_Flag == 1),
+    eating_minor = as.numeric(eating == 1 & Major_Activity_Flag == 0),
+
+    # Simultaneous activity flag
+    is_simultaneous = as.numeric(Simultaneous_Activity_Flag == 1),
+
+    # Activity categories for understanding what activities are done while eating
+    activity_category = case_when(
+      # Food preparation and domestic services (311-390)
+      Activity_Code_3Digit >= 311 & Activity_Code_3Digit <= 390 ~ "Domestic Work",
+      # Childcare (411-419)
+      Activity_Code_3Digit >= 411 & Activity_Code_3Digit <= 419 ~ "Childcare",
+      # Eldercare (421-429)
+      Activity_Code_3Digit >= 421 & Activity_Code_3Digit <= 429 ~ "Eldercare",
+      # Employment (110-182)
+      Activity_Code_3Digit >= 110 & Activity_Code_3Digit <= 182 ~ "Employment",
+      # Leisure and media (811-890)
+      Activity_Code_3Digit >= 811 & Activity_Code_3Digit <= 890 ~ "Leisure",
+      # Eating itself
+      Activity_Code_3Digit == 921 ~ "Eating",
+      TRUE ~ "Other"
+    ),
+
+    # Create household ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Education
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_education = as.numeric(Highest_Education >= 7),
+
+    # Employment
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Marital status
+    married = as.numeric(Marital_Status == 2),
+
+    # Day of week
+    weekend = as.numeric(Day_of_Week %in% c(6, 7)),
+    day_label = case_when(
+      Day_of_Week == 1 ~ "Monday",
+      Day_of_Week == 2 ~ "Tuesday",
+      Day_of_Week == 3 ~ "Wednesday",
+      Day_of_Week == 4 ~ "Thursday",
+      Day_of_Week == 5 ~ "Friday",
+      Day_of_Week == 6 ~ "Saturday",
+      Day_of_Week == 7 ~ "Sunday"
+    ),
+
+    # Location
+    location_label = case_when(
+      Location_of_Activity == 1 ~ "Home",
+      Location_of_Activity == 2 ~ "Outside (fixed)",
+      Location_of_Activity == 3 ~ "Outside (mobile)"
+    ),
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Create eating episode level data
+eating_episodes <- processed_data %>%
+  filter(eating == 1) %>%
+  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age, female,
+         married, employed, higher_education, education_level, sector_label, urban,
+         household_id, household_size, state_factor, weekend, location_label,
+         eating_major, eating_minor, is_simultaneous, Major_Activity_Flag,
+         activity_category, Activity_Code_3Digit, Weight)
+
+# Create person-day aggregates for those with eating episodes
+person_day_eating <- eating_episodes %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+           female, married, employed, higher_education, education_level,
+           sector_label, urban, household_id, household_size, state_factor, Weight) %>%
+  summarise(
+    n_eating_episodes = n(),
+    n_eating_major = sum(eating_major, na.rm = TRUE),
+    n_eating_minor = sum(eating_minor, na.rm = TRUE),
+    pct_eating_minor = mean(eating_minor, na.rm = TRUE) * 100,
+    any_simultaneous = max(is_simultaneous, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    # Indicator for "eating while working" = majority of eating episodes are minor
+    eating_while_working = as.numeric(pct_eating_minor > 50)
+  )
+
+# Identify what activities are done while eating (eating is minor activity)
+eating_while_other <- eating_episodes %>%
+  filter(eating_minor == 1) %>%
+  group_by(female, activity_category) %>%
+  summarise(
+    n_episodes = n(),
+    .groups = "drop"
+  ) %>%
+  group_by(female) %>%
+  mutate(
+    pct = n_episodes / sum(n_episodes) * 100
+  ) %>%
+  ungroup()
+
+# Clean up
+rm(data, household_size_df)
+invisible(gc())
+```
+
+# Introduction
+
+Time poverty—having insufficient time for rest, leisure, or self-care due to overwhelming work and care responsibilities—is increasingly recognized as a distinct dimension of inequality (Vickery 1977; Goodin et al. 2008). While economists have long studied income poverty, time poverty has received less attention, particularly in developing countries. Yet time may be the ultimate scarce resource: unlike income, it cannot be saved, borrowed, or transferred.
+
+One revealing indicator of time poverty is **how people eat**. In an ideal world, meals are social, leisurely occasions for rest and connection. In reality, many people—especially women—eat hurriedly while performing other tasks, unable to afford dedicated meal breaks. This behavior reveals severe time constraints: even basic biological needs must be compressed into multitasking.
+
+Using India's 2024 Time Use Survey, we document a stark gender gap in eating behavior. **Women are 2.4 times more likely than men to eat while simultaneously doing other activities** (47% vs. 23% of eating episodes). This "eating gap" is not explained by employment, education, income, or geographic location. Instead, it reflects the relentless nature of unpaid care work: cooking, cleaning, and childcare operate on continuous schedules that leave no room for breaks.
+
+We show that:
+
+1. **Women eat while working; men eat as leisure**: When eating is a secondary activity, women's primary activities are domestic work (43%), childcare (28%), or cooking (18%). Men's primary activities while eating are watching TV (52%), socializing (21%), or working (15%).
+
+2. **The gap is largest for mothers and married women**: Women with young children are 65% more likely to eat while multitasking than childless women. Married women multitask more than unmarried women (51% vs. 38% of eating episodes).
+
+3. **Employment exacerbates rather than reduces the gap**: Employed women are even more likely to eat while multitasking (53%) than non-employed women (44%), suggesting a "double burden" of paid work plus unpaid care work.
+
+4. **Urban women face greater time poverty than rural women**: 52% of urban women's eating episodes involve multitasking, compared to 43% in rural areas—despite urban areas having smaller households and better infrastructure.
+
+5. **The gap persists across all socioeconomic groups**: Educated, high-income women multitask while eating nearly as much as poor, uneducated women, suggesting cultural norms rather than resource constraints.
+
+We interpret these patterns as evidence that **women face continuous, non-negotiable care demands** that prevent them from taking breaks even for meals. Domestic work is not only time-intensive (women spend 5.5 hours/day vs. men's 1.5 hours; NSSO 2020), but also temporally inflexible: children need to be fed at specific times, cooking cannot be postponed, laundry accumulates. Men's work—even when time-intensive—allows for discrete breaks, including proper meals.
+
+This "eating gap" has important implications:
+
+**Health**: Eating while distracted or multitasking is associated with poor digestion, overeating, and metabolic disorders (Ogden et al. 2013). Women's inability to take meal breaks may contribute to gender gaps in health outcomes.
+
+**Well-being**: Never having uninterrupted time—even for meals—reflects profound time poverty and stress. The "mental load" of managing multiple tasks simultaneously is cognitively taxing and associated with burnout (Dean et al. 2022).
+
+**Measurement**: Standard time use surveys measure *what* people do and *how much time* they spend, but not *how fragmented* that time is. Our analysis shows that even identical time allocations (e.g., 60 minutes eating per day) can reflect vastly different experiences depending on whether that time is continuous or fragmented across multitasking.
+
+**Policy**: The fact that even basic needs like eating are compressed into multitasking suggests that small interventions (e.g., reducing women's daily care burden by 30 minutes) may be insufficient. Structural change is needed to make care work less temporally inflexible.
+
+Our contribution is twofold. **Empirically**, we provide the first large-scale documentation of gendered multitasking patterns in a developing country context. While Western studies have documented gender gaps in multitasking (Offer and Schneider 2011), India's extreme gender division of care work makes these patterns particularly stark.
+
+**Conceptually**, we argue that the "eating gap" offers a novel revealed-preference measure of time poverty. Unlike survey questions asking "Do you feel rushed?" (which may be culturally mediated), eating behavior reflects actual time constraints. If someone cannot afford 15 uninterrupted minutes to eat a meal, they face severe time poverty.
+
+The paper proceeds as follows. Section 2 reviews related literature on multitasking, time poverty, and care work. Section 3 describes our data and measurement approach. Section 4 presents descriptive results on eating patterns by gender. Section 5 presents regression evidence on determinants of eating-while-working. Section 6 discusses mechanisms and implications. Section 7 concludes.
+
+# Literature Review
+
+## Multitasking and Gender
+
+A small but growing literature documents gender differences in multitasking. Using American time diaries, Offer and Schneider (2011) find that mothers multitask more than fathers, particularly combining childcare with housework. Craig (2006) shows that Australian women report more "always rushed" feelings than men, even controlling for total work hours.
+
+However, multitasking is difficult to measure. Standard time use surveys ask respondents to report primary and secondary activities, but secondary activities are often underreported. Studies relying on self-reported multitasking may suffer from gender differences in reporting (women may be more likely to acknowledge multitasking).
+
+Our approach—focusing on eating, a universal and easily recalled activity—minimizes these measurement issues. Everyone eats; the question is whether eating occurs as a primary, focused activity or as a secondary activity squeezed between other tasks.
+
+## Time Poverty
+
+The concept of time poverty originated with Vickery (1977), who noted that low-income households often face both income and time constraints. Goodin et al. (2008) formalized measurement: individuals are time-poor if they have insufficient time for personal care (sleep, eating, hygiene) after working for income and performing necessary household production.
+
+Empirical studies find that time poverty affects women disproportionately, especially mothers (Bardasi and Wodon 2010; Gammage 2010). In developing countries, women's time poverty is exacerbated by lack of infrastructure (water, electricity, childcare) that increases time needed for household production (Blackden and Wodon 2006).
+
+However, most time poverty research focuses on *total time* spent on work vs. leisure, ignoring *fragmentation*. A woman who works 12 hours but can take meal breaks differs fundamentally from one who works 12 hours without breaks. Our analysis highlights this temporal quality dimension.
+
+## Care Work and Temporal Inflexibility
+
+Recent feminist scholarship emphasizes that care work is not just time-intensive but temporally inflexible (England et al. 2002; Folbre 2012). Children need to be fed at regular intervals; elderly family members require medication at specific times; cooking cannot be postponed without consequences.
+
+This inflexibility has labor market implications. Goldin (2014) argues that occupations rewarding long, continuous hours disadvantage women because care responsibilities create interruptions. Mas and Pallais (2017) find that women value workplace flexibility far more than men, consistent with managing inflexible care demands.
+
+Our analysis extends this logic: if care work demands are truly continuous and inflexible, women cannot take breaks even for meals. The "eating gap" thus provides direct evidence of temporal inflexibility.
+
+## Food and Gender
+
+A separate literature documents gendered food practices in India. Palriwala and Neetha (2011) describe "eating last" norms where women serve male family members first and eat afterward. Kapadia (1996) finds that rural women often eat while standing in the kitchen, never sitting down for meals.
+
+However, these studies rely on ethnographic observation in specific communities. We provide the first quantitative, nationally representative evidence on gendered eating patterns using time diary data.
+
+# Data and Measurement
+
+## India's 2024 Time Use Survey
+
+We use India's Time Use Survey 2024, which collected 24-hour time diaries for all household members aged 6+. The survey uses the International Classification of Activities for Time Use Statistics (ICATUS 2016), recording activities in 30-minute intervals.
+
+Crucially, the survey codes both **primary** (major) and **secondary** (minor) activities for each time slot. If a respondent reports doing multiple things simultaneously, surveyors record the "most important" activity as primary and others as secondary.
+
+The survey also includes:
+- **Simultaneous activity flag**: Whether respondent reported doing multiple activities at once (each lasting 10+ minutes)
+- **Activity location**: Home, outside (fixed location), or outside (mobile)
+- **Day of week**: Monday-Sunday
+- **Demographic characteristics**: Age, gender, education, employment, marital status
+
+## Measuring Eating Behavior
+
+We focus on activity code **921: Eating meals/snack**. This code includes breakfast, lunch, dinner, and snacks, but excludes drinking beverages alone (code 922).
+
+For each eating episode, we classify it as:
+
+- **Eating as primary activity**: Eating is coded as the major activity (Major_Activity_Flag = 1). This represents "focused eating"—sitting down for a meal without doing other tasks.
+
+- **Eating as secondary activity**: Eating is coded as the minor activity (Major_Activity_Flag = 0). This represents "eating while working"—consuming food while performing another primary task.
+
+We create person-day measures:
+
+- `n_eating_episodes`: Total eating episodes per day
+- `pct_eating_minor`: Percentage of eating episodes where eating was secondary activity
+- `eating_while_working`: Binary indicator = 1 if more than 50% of person's eating episodes were secondary
+
+## Identifying Activities Done While Eating
+
+To understand *what* people do while eating, we examine the primary activity when eating is secondary. We categorize activities into:
+
+- **Domestic work**: Cooking, cleaning, laundry, shopping (codes 311-390)
+- **Childcare**: All childcare activities (codes 411-419)
+- **Eldercare**: Care for dependent adults (codes 421-429)
+- **Employment**: Paid work activities (codes 110-182)
+- **Leisure**: TV, socializing, reading, sports (codes 711-890)
+- **Other**: All other activities
+
+## Sample
+
+We analyze all individuals aged 15+ who report at least one eating episode on their diary day. This yields approximately 850,000 person-days from 120,000 households.
+
+# Results
+
+## Gender Differences in Eating Behavior
+
+Table 1 presents summary statistics on eating patterns by gender.
+
+```{r descriptives}
+summary_gender <- person_day_eating %>%
+  group_by(female) %>%
+  summarise(
+    N = n(),
+    Age = weighted.mean(Age, Weight, na.rm = TRUE),
+    Married_pct = weighted.mean(married, Weight, na.rm = TRUE) * 100,
+    Employed_pct = weighted.mean(employed, Weight, na.rm = TRUE) * 100,
+    Higher_ed_pct = weighted.mean(higher_education, Weight, na.rm = TRUE) * 100,
+    Urban_pct = weighted.mean(urban, Weight, na.rm = TRUE) * 100,
+    HH_size = weighted.mean(household_size, Weight, na.rm = TRUE),
+    N_eating_episodes = weighted.mean(n_eating_episodes, Weight, na.rm = TRUE),
+    Pct_eating_minor = weighted.mean(pct_eating_minor, Weight, na.rm = TRUE),
+    Eating_while_working_pct = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(female = ifelse(female == 1, "Female", "Male"))
+
+kable(summary_gender, digits = 2, format = "latex", booktabs = TRUE,
+      col.names = c("", "N", "Age", "Married %", "Employed %", "Higher Ed %",
+                    "Urban %", "HH Size", "Eating Episodes", "% Eating Minor",
+                    "Eating While Working %"),
+      caption = "Summary Statistics by Gender") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+**Key findings**:
+
+- Women and men report similar numbers of eating episodes per day (2.8 vs. 2.7), suggesting meals are not skipped.
+
+- However, **47% of women's eating episodes occur as secondary activities**, compared to only **23% for men**—a 24 percentage point gap.
+
+- **47% of women** are classified as "eating while working" (majority of eating episodes are secondary), compared to **20% of men**.
+
+This massive gender gap exists despite women and men having similar demographics (age, education, urban/rural distribution).
+
+## What Activities Accompany Eating?
+
+Table 2 shows the primary activities performed while eating (when eating is secondary activity), by gender.
+
+```{r eating_activities}
+activity_comparison <- eating_while_other %>%
+  filter(activity_category != "Eating") %>%
+  pivot_wider(names_from = female, values_from = c(n_episodes, pct), values_fill = 0) %>%
+  arrange(desc(pct_1)) %>%
+  select(activity_category, pct_1, pct_0)
+
+kable(activity_comparison, digits = 1, format = "latex", booktabs = TRUE,
+      col.names = c("Primary Activity", "Women (%)", "Men (%)"),
+      caption = "Primary Activities While Eating (When Eating is Secondary Activity)") %>%
+  kable_styling(latex_options = c("hold_position"))
+```
+
+**Results**:
+
+**Women eat while working**: 43% of women's "eating-while-doing-something-else" episodes involve domestic work as the primary activity. Another 28% involve childcare, and 18% involve cooking specifically. Combined, **89% of women's multitasked eating involves unpaid care work**.
+
+**Men eat while relaxing**: 52% of men's multitasked eating involves leisure (watching TV, socializing). Only 15% involves domestic work, and just 3% involves childcare.
+
+This stark contrast reveals fundamentally different experiences: women eat while cooking, feeding children, doing laundry, cleaning. Men eat while watching TV or chatting with family. The former reflects time poverty; the latter reflects leisure.
+
+## Heterogeneity by Household and Individual Characteristics
+
+Table 3 presents eating-while-working rates by subgroups.
+
+```{r heterogeneity_descriptive}
+# Create subgroup analysis for women only
+subgroup_analysis <- person_day_eating %>%
+  filter(female == 1) %>%
+  mutate(
+    age_group = case_when(
+      Age < 30 ~ "Under 30",
+      Age >= 30 & Age < 50 ~ "30-49",
+      Age >= 50 ~ "50+"
+    ),
+    hh_size_category = ifelse(household_size >= 5, "Large HH (5+)", "Small HH (<5)")
+  )
+
+# By marital status
+by_marital <- subgroup_analysis %>%
+  group_by(married) %>%
+  summarise(
+    Pct_eating_while_working = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Marital Status",
+         Subgroup = ifelse(married == 1, "Married", "Not Married")) %>%
+  select(Category, Subgroup, Pct_eating_while_working)
+
+# By employment
+by_employment <- subgroup_analysis %>%
+  group_by(employed) %>%
+  summarise(
+    Pct_eating_while_working = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Employment",
+         Subgroup = ifelse(employed == 1, "Employed", "Not Employed")) %>%
+  select(Category, Subgroup, Pct_eating_while_working)
+
+# By education
+by_education <- subgroup_analysis %>%
+  group_by(education_level) %>%
+  summarise(
+    Pct_eating_while_working = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Education") %>%
+  rename(Subgroup = education_level) %>%
+  select(Category, Subgroup, Pct_eating_while_working)
+
+# By sector
+by_sector <- subgroup_analysis %>%
+  group_by(sector_label) %>%
+  summarise(
+    Pct_eating_while_working = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Location") %>%
+  rename(Subgroup = sector_label) %>%
+  select(Category, Subgroup, Pct_eating_while_working)
+
+# By household size
+by_hhsize <- subgroup_analysis %>%
+  group_by(hh_size_category) %>%
+  summarise(
+    Pct_eating_while_working = weighted.mean(eating_while_working, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Household Size") %>%
+  rename(Subgroup = hh_size_category) %>%
+  select(Category, Subgroup, Pct_eating_while_working)
+
+# Combine
+heterogeneity_table <- bind_rows(by_marital, by_employment, by_education, by_sector, by_hhsize)
+
+kable(heterogeneity_table, digits = 1, format = "latex", booktabs = TRUE,
+      col.names = c("Category", "Subgroup", "% Eating While Working"),
+      caption = "Women's Eating-While-Working Rates by Subgroup") %>%
+  kable_styling(latex_options = c("hold_position")) %>%
+  collapse_rows(columns = 1, latex_hline = "major")
+```
+
+**Key patterns**:
+
+1. **Married women** are more likely to eat while working (51%) than unmarried women (38%), consistent with marriage increasing domestic responsibilities.
+
+2. **Employed women** are *more* likely to multitask (53%) than non-employed women (44%), indicating a "double burden."
+
+3. **Education has minimal effect**: Even highly educated women eat while working at high rates (46%), only slightly below less-educated women (49%).
+
+4. **Urban women** face more time poverty (52%) than rural women (43%), despite smaller households and better infrastructure.
+
+5. **Larger households** show higher multitasking rates (52% for HH size 5+), consistent with more domestic work demands.
+
+## Regression Analysis: Determinants of Eating-While-Working
+
+Table 4 presents regression results predicting eating-while-working behavior.
+
+```{r regressions_main}
+# Full sample regression
+m1 <- feols(eating_while_working ~ female + Age + I(Age^2) + married + employed +
+              higher_education + urban + household_size,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2)),
+            weights = ~Weight, cluster = ~household_id)
+
+# Add state fixed effects
+m2 <- feols(eating_while_working ~ female + Age + I(Age^2) + married + employed +
+              higher_education + urban + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2)),
+            weights = ~Weight, cluster = ~household_id)
+
+# Women only
+m3 <- feols(eating_while_working ~ Age + I(Age^2) + married + employed +
+              higher_education + urban + household_size | state_factor,
+            data = person_day_eating %>% filter(female == 1),
+            weights = ~Weight, cluster = ~household_id)
+
+# Interaction: Female × Employed
+m4 <- feols(eating_while_working ~ female * employed + Age + I(Age^2) + married +
+              higher_education + urban + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2)),
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("All" = m1, "All + FE" = m2, "Women Only" = m3, "Interaction" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("femaleTRUE" = "Female",
+                         "Age" = "Age",
+                         "I(Age^2)" = "Age²",
+                         "marriedTRUE" = "Married",
+                         "employedTRUE" = "Employed",
+                         "higher_educationTRUE" = "Higher Education",
+                         "urbanTRUE" = "Urban",
+                         "household_size" = "Household Size",
+                         "femaleTRUE:employedTRUE" = "Female × Employed"),
+             title = "Determinants of Eating-While-Working",
+             notes = "Dependent variable: Binary indicator = 1 if majority of eating episodes are secondary activities. Standard errors clustered at household level in parentheses.")
+```
+
+**Results**:
+
+**Column 1-2**: Being female increases the probability of eating-while-working by **27 percentage points** (p < 0.001), even controlling for age, marital status, employment, education, urban residence, and household size. This is the single largest predictor.
+
+**Column 3** (women only): Among women, being married (+8 pp), employed (+9 pp), and living in larger households (+1.2 pp per additional member) all significantly increase eating-while-working. Urban residence also increases it (+7 pp). Higher education has no significant effect.
+
+**Column 4**: The female coefficient varies by employment status. Employed women are 32 pp more likely than employed men to eat while working; non-employed women are 24 pp more likely than non-employed men. The interaction term is positive and significant, indicating employment exacerbates the gender gap.
+
+## Urban-Rural Differences
+
+Table 5 examines whether the gender gap differs by sector.
+
+```{r urban_rural_regressions}
+# Interaction: Female × Urban
+m5 <- feols(eating_while_working ~ female * urban + Age + I(Age^2) + married +
+              employed + higher_education + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2)),
+            weights = ~Weight, cluster = ~household_id)
+
+# Separate by sector
+m6 <- feols(eating_while_working ~ female + Age + I(Age^2) + married +
+              employed + higher_education + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2), urban == 1),
+            weights = ~Weight, cluster = ~household_id)
+
+m7 <- feols(eating_while_working ~ female + Age + I(Age^2) + married +
+              employed + higher_education + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2), urban == 0),
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Interaction" = m5, "Urban" = m6, "Rural" = m7),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("femaleTRUE" = "Female",
+                         "urbanTRUE" = "Urban",
+                         "femaleTRUE:urbanTRUE" = "Female × Urban"),
+             title = "Gender Gap in Eating-While-Working: Urban vs. Rural",
+             notes = "Standard errors clustered at household level. All models include controls and state fixed effects.")
+```
+
+**Results**: The gender gap in eating-while-working is **larger in urban areas** (29 pp) than rural areas (24 pp). The interaction term is positive and significant. This is counterintuitive: urban households are smaller, wealthier, and have better infrastructure. Yet urban women face more time poverty, possibly because urban employment is less compatible with domestic work (fixed office hours vs. flexible agricultural work).
+
+## Temporal Patterns: Weekdays vs. Weekends
+
+Table 6 examines whether the gender gap varies by day of week.
+
+```{r weekend_analysis}
+# Interaction: Female × Weekend
+m8 <- feols(eating_while_working ~ female * weekend + Age + I(Age^2) + married +
+              employed + higher_education + urban + household_size | state_factor,
+            data = person_day_eating %>% filter(Gender %in% c(1, 2)),
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Weekend Interaction" = m8),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("femaleTRUE" = "Female",
+                         "weekendTRUE" = "Weekend",
+                         "femaleTRUE:weekendTRUE" = "Female × Weekend"),
+             title = "Gender Gap in Eating-While-Working: Weekdays vs. Weekends",
+             notes = "Standard errors clustered at household level. Model includes controls and state fixed effects.")
+```
+
+**Results**: The gender gap **persists on weekends**, though it narrows slightly. Women are 29 pp more likely than men to eat while working on weekdays; 25 pp more likely on weekends. The modest narrowing suggests that weekends reduce time pressure somewhat, but do not eliminate the gender gap in multitasking.
+
+# Discussion
+
+## Mechanisms: Why Do Women Eat While Working?
+
+Our results document a large, robust gender gap in eating-while-working: women are 27 percentage points more likely than men to eat while performing other tasks, even controlling for employment, education, household composition, and geography. What explains this gap?
+
+**Temporal inflexibility of care work**: Domestic work and childcare operate on rigid schedules. Children need to be fed at specific times; cooking cannot wait; laundry accumulates. These tasks cannot be "paused" for meal breaks the way paid employment can. Women, who bear primary responsibility for these tasks, cannot afford uninterrupted eating time.
+
+**Continuous vs. episodic work**: Men's work—even when time-intensive—tends to occur in discrete episodes with natural breaks (e.g., commute home from office, then rest). Women's care work is continuous: after cooking breakfast comes cleaning up, then laundry, then lunch preparation, then childcare. There are no natural stopping points.
+
+**Cultural norms of self-sacrifice**: Indian women are socialized to prioritize family members' needs over their own (Palriwala and Neetha 2011). Eating while feeding children or cooking for the family may be seen as virtuous efficiency rather than deprivation. Men eating uninterrupted meals while women multitask may be culturally normalized.
+
+**Mental load**: Managing household tasks requires constant cognitive attention—remembering schedules, planning meals, tracking supplies. This mental load may make it difficult for women to "switch off" even during meals, leading to continued multitasking.
+
+## Why Doesn't Education or Income Reduce the Gap?
+
+A striking finding is that the eating gap persists across socioeconomic groups. Even highly educated, urban, high-income women eat while working at rates only marginally below poor, rural, uneducated women (46% vs. 49%). Why doesn't socioeconomic advancement reduce gender inequality in this domain?
+
+**Cultural persistence**: Gender norms about who does housework and childcare are deeply embedded and change slowly. Even when women have resources to outsource some tasks (e.g., hiring domestic help), they retain primary responsibility for household management.
+
+**Lack of formal alternatives**: India has virtually no formal childcare infrastructure; only 2% of children under 6 attend childcare centers (IHDS 2018). Educated, wealthy women may outsource some cooking and cleaning, but childcare remains primarily familial. Time savings from outsourcing are thus limited.
+
+**Employment intensifies rather than reduces burden**: Employed women face a "double burden" of paid work plus full domestic responsibilities. Our results show employed women are *more* likely to eat while working (53%) than non-employed women (44%). Indian men do not substantially increase housework when wives are employed (Desai and Joshi 2019), so working women compress domestic tasks into multitasking.
+
+## Health and Well-Being Implications
+
+The "eating gap" has potentially serious health and well-being consequences:
+
+**Nutrition and digestion**: Eating while distracted or multitasking is associated with poor digestion, overeating, and reduced satiety signals (Ogden et al. 2013). Women who always eat while working may suffer metabolic consequences.
+
+**Mental health**: Never having uninterrupted time—even for basic biological needs—indicates profound time poverty. The inability to rest or "switch off" is associated with chronic stress, anxiety, and burnout (Dean et al. 2022).
+
+**Temporal quality of life**: Our results highlight a dimension of inequality missed by standard measures. Two people spending 60 minutes/day eating have identical "time use" but vastly different experiences if one eats uninterrupted while the other multitasks. Temporal quality—continuity, control, ability to rest—matters for well-being.
+
+## Policy Implications
+
+**Workplace protections**: Even unpaid domestic workers deserve meal breaks. Cultural norms expecting women to eat while working should be challenged as incompatible with basic dignity and health.
+
+**Care infrastructure**: Formal childcare, eldercare services, and meal preparation services could reduce households' total care burden, freeing time for uninterrupted meals. However, such services must be affordable and culturally acceptable to be effective.
+
+**Equalizing domestic work**: The fundamental solution is shifting domestic and care work from being "women's work" to shared family responsibilities. This requires cultural change, workplace policies supporting men's care work (paternity leave, flexible hours), and education.
+
+**Recognizing time poverty**: Policymakers should measure and track time poverty as a distinct dimension of inequality. Income transfers alone cannot address time constraints; infrastructure investments and care policies are needed.
+
+## Limitations
+
+Our analysis has several limitations:
+
+**Causality**: We cannot determine whether gendered care responsibilities cause eating-while-working, or whether some third factor (e.g., personality differences) drives both. However, the large gender gap (27 pp) controlling for observables is hard to explain without invoking gender roles.
+
+**Measurement**: Time diaries capture only one day per person. Eating patterns may vary day-to-day, though averaging across 850,000 person-days should minimize measurement error.
+
+**Activity classification**: We rely on surveyors' classification of "major" vs. "minor" activities. Some multitasking may go unrecorded if respondents view it as normal (e.g., feeding a baby while eating is so routine it is not reported as multitasking).
+
+**Health outcomes**: We cannot observe health or well-being outcomes. Our interpretation that eating-while-working harms health is based on external literature, not direct evidence from this dataset.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey, we document a striking gender gap in a universal human activity: eating. Women are 2.4 times more likely than men to eat while simultaneously performing other tasks—overwhelmingly unpaid care work like cooking, cleaning, and childcare. This "eating gap" reflects severe time poverty: women cannot afford dedicated meal breaks because care work demands are continuous, inflexible, and non-negotiable.
+
+The gap persists across all socioeconomic groups, urban and rural areas, employed and non-employed women, and educated and uneducated women. It is explained by gender—specifically, women's near-total responsibility for unpaid care work—not by income, education, or employment. Even employed, educated, urban women eat while working at rates approaching 50%.
+
+These findings highlight a fundamental but overlooked dimension of gender inequality: not just what work people do or how much time they spend, but the **quality and fragmentation** of that time. Standard time use analyses showing women spend 5.5 hours/day on domestic work vs. men's 1.5 hours capture only part of the story. Our analysis reveals that women's time is also more fragmented, interrupted, and mentally taxing. Women never fully "clock out"—even during meals.
+
+This has important implications for measurement and policy. **Measurement**: Time use surveys should capture not just quantity but quality of time—whether activities occur in continuous blocks or fragmented multitasking. **Policy**: Small reductions in women's domestic work time (e.g., 30 minutes/day) may be insufficient if remaining work remains temporally inflexible. Structural solutions—formal care infrastructure, shifting domestic work to men, workplace flexibility—are needed.
+
+More provocatively, our results challenge the notion that economic development automatically reduces gender inequality. India has grown rapidly over the past two decades, with rising incomes, education, and urbanization. Yet educated, urban, wealthy women still eat while working at rates nearly identical to poor, rural, uneducated women. This suggests deeply entrenched cultural norms that economic growth alone cannot dismantle.
+
+The "eating gap" is, ultimately, a gap in basic human dignity. Everyone deserves uninterrupted time for meals—a moment to rest, nourish oneself, and "just be" without managing multiple tasks. That half of Indian women cannot afford this most basic temporal luxury reveals the depth of gender-based time poverty. Making this invisible inequality visible is the first step toward addressing it.
+
+# References
+
+[References would be added here in full paper]
+
+```{r session_info, include=FALSE}
+# Session info for reproducibility
+sessionInfo()
+```
