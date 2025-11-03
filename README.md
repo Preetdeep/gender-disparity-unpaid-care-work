@@ -18,6 +18,32 @@ The repository includes analyses covering:
 
 ---
 
+## 🎉 Recent Updates (November 2, 2025)
+
+### Major Discovery: Weekend Paper Unblocked!
+
+**Previously thought to be blocked** due to missing day-of-week variable, the Weekend Effect paper (`weekend_effect.Rmd`) is **actually complete and uses the `Day_of_Week` variable** that exists in the dataset!
+
+**Key Variable Found:**
+- `Day_of_Week`: Codes day of week (Saturday = 6, Sunday = 7)
+- Used in line 59 of `weekend_effect.Rmd`
+- Enables weekday vs weekend comparison analysis
+
+**Status**: Paper exists, substantially complete, needs editorial review. See `CRITIQUE_weekend_effect_REQUIRED_CHANGES.md` for issues to address.
+
+### Son Preference Paper: Investigation Ongoing
+
+**New Finding**: The TUS 2024 data dictionary documents a `Relationship_to_Head` variable that includes:
+- Code 5 = unmarried child
+- Code 6 = grandchild
+- Combined with Gender + Age, this *may* enable household composition analysis
+
+**Action Required**: Investigate if `Relationship_to_Head` exists in TimeUse106PER.dta or separate household roster file. If available, son preference analysis becomes feasible!
+
+See `PAPER_STATUS_son_preference_care.md` for detailed investigation plan.
+
+---
+
 ## 🎯 Research Questions by Paper
 
 This repository contains code and analysis for the following research papers:
@@ -69,6 +95,26 @@ This repository contains code and analysis for the following research papers:
 
 ---
 
+### 6. **Son Preference in Parental Time** (`son_preference_care.Rmd`) ⚠️
+**Research Questions:**
+- Does India's well-documented son preference extend to differential parental time investment?
+- Do families invest more childcare time when sons are present compared to daughters?
+- How does son preference in time allocation vary by socioeconomic status?
+- What are the implications for gender inequality reproduction across generations?
+
+**Status**: ⚠️ **Under Investigation** - Requires household roster data (Relationship_to_Head variable). Paper currently contains placeholder data pending data availability confirmation. See `PAPER_STATUS_son_preference_care.md` for investigation details.
+
+---
+
+### 7. **Shopping and Mental Load** (`shopping_mental_load.Rmd`)
+**Research Questions:**
+- Who bears the burden of shopping and household management tasks?
+- How does the "mental load" of household management differ by gender?
+- Does marriage increase the mental load burden for women?
+- What are the implications for women's employment and time use?
+
+---
+
 ## 📊 Repository Contents
 
 ```
@@ -76,9 +122,11 @@ This repository contains code and analysis for the following research papers:
 ├── gender_disparity_enhanced.Rmd                # Paper 1: Gender disparities analysis
 ├── marriage_care_penalty.Rmd                    # Paper 2: Marriage penalty analysis
 ├── friendship_penalty.Rmd                       # Paper 3: Friendship/social time analysis
-├── weekend_effect.Rmd                           # Paper 4: Weekend patterns analysis
+├── weekend_effect.Rmd                           # Paper 4: Weekend patterns analysis ✅
 ├── childcare_vs_eldercare.Rmd                   # Paper 5: Care type comparison
-├── PAPER_SEQUENCE_STATUS.md                     # Research pipeline status
+├── son_preference_care.Rmd                      # Paper 6: Son preference (under investigation) ⚠️
+├── shopping_mental_load.Rmd                     # Paper 7: Shopping and mental load
+├── PAPER_SEQUENCE_STATUS.md                     # Research pipeline status (UPDATED Nov 2)
 ├── RESEARCH_QUESTIONS_IDEAS.md                  # Additional research ideas
 ├── HOW_TO_RUN_MARRIAGE_PENALTY.md              # Detailed replication guide
 ├── DataDictionaryTimeUseSurvey.xlsx            # TUS 2024 data dictionary
@@ -282,6 +330,34 @@ SOFTWARE.
 ---
 
 ## 📝 Change Log & Quality Improvements
+
+### November 2, 2025 - Major Data Dictionary Investigation & Paper Unblocking
+
+#### Papers Status Updated:
+
+**✅ Weekend Effect Paper UNBLOCKED:**
+- **Discovery**: `Day_of_Week` variable EXISTS in dataset (Saturday=6, Sunday=7)
+- **Location**: Used in `weekend_effect.Rmd` line 59
+- **Status**: Paper substantially complete, needs editorial review
+- **Action**: Fix statistical interpretation issues documented in `CRITIQUE_weekend_effect_REQUIRED_CHANGES.md`
+
+**⚠️ Son Preference Paper Investigation Initiated:**
+- **Discovery**: `Relationship_to_Head` variable documented in data dictionary
+  - Code 5 = unmarried child
+  - Code 6 = grandchild
+- **Potential**: Combined with Gender + Age, may enable household composition analysis
+- **Action Required**: Check if variable exists in TimeUse106PER.dta or separate roster file
+- **Documents Created**:
+  - `EDITORIAL_REVIEW_son_preference_care.md` - Comprehensive JFE editorial review
+  - `PAPER_STATUS_son_preference_care.md` - Investigation plan and status
+
+**Key Documentation Created:**
+- `PAPER_SEQUENCE_STATUS.md` - Fully updated with weekend unblocking and son preference investigation
+- README.md - This file updated with recent discoveries
+
+**Key Insight**: Always check data dictionary AND existing completed code - the weekend paper was already done but marked as blocked!
+
+---
 
 ### October 31, 2025 - Comprehensive Review & Fixes
 
