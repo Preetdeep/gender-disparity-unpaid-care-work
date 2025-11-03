@@ -54,13 +54,64 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# STEP 1: Load full dataset with household composition variables
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
+
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+
+# Check for relationship variable (might have different name)
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Search for relationship-related columns
+relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
+                          all_cols, value = TRUE, ignore.case = TRUE)
+cat("Relationship-related columns found:\n")
+print(relationship_cols)
+
+# Search for household member columns
+member_cols <- grep("member|Member|MEMBER|person|Person|PERSON",
+                    all_cols, value = TRUE, ignore.case = TRUE)
+cat("\nMember-related columns found:\n")
+print(member_cols)
+
+# Now load with correct column name (try common variations)
+# Common possibilities: Relation_to_Head, Rel_to_Head, Relationship, etc.
+
+# Determine correct column name
+if ("Relationship_to_Head" %in% all_cols) {
+  rel_col <- "Relationship_to_Head"
+} else if ("Relation_to_Head" %in% all_cols) {
+  rel_col <- "Relation_to_Head"
+} else if ("Rel_to_Head" %in% all_cols) {
+  rel_col <- "Rel_to_Head"
+} else if (length(relationship_cols) > 0) {
+  rel_col <- relationship_cols[1]  # Use first match
+  cat(sprintf("\nUsing column: %s\n", rel_col))
+} else {
+  stop("ERROR: No relationship-to-head column found in dataset!
+
+Available columns: ", paste(all_cols, collapse = ", "))
+}
+
+cat(sprintf("Using relationship column: %s\n", rel_col))
+
+# Now load data with correct column selection
 data <- read_dta("TimeUse106PER.dta",
-                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
-                               Major_Activity_Flag, Age, Marital_Status,
-                               Highest_Education, Sector, Principal_Activity_Status,
-                               State, FSU_Serial_No, Sample_HH_No,
-                               Relationship_to_Head))  # KEY VARIABLE!
+                 col_select = c("Gender", "Activity_Code_2Digit", "time_spent", "Weight",
+                               "Major_Activity_Flag", "Age", "Marital_Status",
+                               "Highest_Education", "Sector", "Principal_Activity_Status",
+                               "State", "FSU_Serial_No", "Sample_HH_No",
+                               rel_col))  # Use detected column name
+
+# Rename to standard name for rest of analysis
+if (rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+
+# Clean up
+rm(data_full)
 
 # Use 10% sample for computational feasibility
 set.seed(123)
@@ -68,11 +119,15 @@ data <- data %>%
   slice_sample(prop = 0.1) %>%
   mutate(Weight = Weight / 0.1)
 
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
 # STEP 2: Construct household child gender composition
 # Identify children: Relationship_to_Head = 5 (unmarried child) or 6 (grandchild)
 # Use age < 18 to define children
 
-cat("Constructing household child composition...\n")
+cat("\nConstructing household child composition...\n")
+cat("Relationship_to_Head values in data:\n")
+print(table(data$Relationship_to_Head, useNA = "ifany"))
 
 household_composition <- data %>%
   filter(Relationship_to_Head %in% c(5, 6),  # unmarried child or grandchild
@@ -96,7 +151,7 @@ household_composition <- data %>%
     has_children = 1
   )
 
-cat(sprintf("Households with children: %s\n",
+cat(sprintf("\nHouseholds with children: %s\n",
             format(nrow(household_composition), big.mark = ",")))
 cat(sprintf("  Only sons: %s (%.1f%%)\n",
             format(sum(household_composition$only_sons), big.mark = ","),
@@ -197,24 +252,24 @@ fathers_mixed <- main_results %>%
   pull(mean_minutes)
 
 # Calculate gaps
-mothers_gap_pct <- ifelse(mothers_only_daughters > 0,
+mothers_gap_pct <- ifelse(length(mothers_only_daughters) > 0 && mothers_only_daughters > 0,
                           100 * (mothers_only_sons - mothers_only_daughters) / mothers_only_daughters,
                           NA)
 
-fathers_gap_pct <- ifelse(fathers_only_daughters > 0,
+fathers_gap_pct <- ifelse(length(fathers_only_daughters) > 0 && fathers_only_daughters > 0,
                           100 * (fathers_only_sons - fathers_only_daughters) / fathers_only_daughters,
                           NA)
 
 # Store in results list for inline reporting
 results <- list(
-  mothers_only_sons = mothers_only_sons,
-  mothers_only_daughters = mothers_only_daughters,
-  mothers_mixed = mothers_mixed,
+  mothers_only_sons = ifelse(length(mothers_only_sons) > 0, mothers_only_sons, NA),
+  mothers_only_daughters = ifelse(length(mothers_only_daughters) > 0, mothers_only_daughters, NA),
+  mothers_mixed = ifelse(length(mothers_mixed) > 0, mothers_mixed, NA),
   mothers_gap_pct = mothers_gap_pct,
 
-  fathers_only_sons = fathers_only_sons,
-  fathers_only_daughters = fathers_only_daughters,
-  fathers_mixed = fathers_mixed,
+  fathers_only_sons = ifelse(length(fathers_only_sons) > 0, fathers_only_sons, NA),
+  fathers_only_daughters = ifelse(length(fathers_only_daughters) > 0, fathers_only_daughters, NA),
+  fathers_mixed = ifelse(length(fathers_mixed) > 0, fathers_mixed, NA),
   fathers_gap_pct = fathers_gap_pct
 )
 
@@ -249,11 +304,11 @@ low_ses_daughters <- class_results %>%
   pull(mean_minutes)
 
 # Class gradient gaps
-high_ses_gap <- ifelse(high_ses_daughters > 0,
+high_ses_gap <- ifelse(length(high_ses_daughters) > 0 && high_ses_daughters > 0,
                        100 * (high_ses_sons - high_ses_daughters) / high_ses_daughters,
                        NA)
 
-low_ses_gap <- ifelse(low_ses_daughters > 0,
+low_ses_gap <- ifelse(length(low_ses_daughters) > 0 && low_ses_daughters > 0,
                       100 * (low_ses_sons - low_ses_daughters) / low_ses_daughters,
                       NA)
 
