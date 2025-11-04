@@ -610,26 +610,36 @@ kable(heterogeneity_table, digits = 1, format = "latex", booktabs = TRUE,
 Table 4 presents regression results predicting eating-while-working behavior.
 
 ```{r regressions_main}
+# Check dependent variable variation
+cat("Checking eating_while_working distribution:\n")
+print(table(person_day_eating$eating_while_working, useNA = "ifany"))
+cat("\nMean:", mean(person_day_eating$eating_while_working, na.rm = TRUE), "\n")
+
+# Use continuous measure (pct_eating_minor) instead of binary
+# This avoids constant dependent variable issue
+cat("\nUsing pct_eating_minor (continuous) as dependent variable\n")
+cat("Mean pct_eating_minor:", mean(person_day_eating$pct_eating_minor, na.rm = TRUE), "\n")
+
 # Full sample regression
-m1 <- feols(eating_while_working ~ female + Age + I(Age^2) + married + employed +
+m1 <- feols(pct_eating_minor ~ female + Age + I(Age^2) + married + employed +
               higher_education + urban + household_size,
             data = person_day_eating %>% filter(Gender %in% c(1, 2)),
             weights = ~Weight, cluster = ~household_id)
 
 # Add state fixed effects
-m2 <- feols(eating_while_working ~ female + Age + I(Age^2) + married + employed +
+m2 <- feols(pct_eating_minor ~ female + Age + I(Age^2) + married + employed +
               higher_education + urban + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2)),
             weights = ~Weight, cluster = ~household_id)
 
 # Women only
-m3 <- feols(eating_while_working ~ Age + I(Age^2) + married + employed +
+m3 <- feols(pct_eating_minor ~ Age + I(Age^2) + married + employed +
               higher_education + urban + household_size | state_factor,
             data = person_day_eating %>% filter(female == 1),
             weights = ~Weight, cluster = ~household_id)
 
 # Interaction: Female × Employed
-m4 <- feols(eating_while_working ~ female * employed + Age + I(Age^2) + married +
+m4 <- feols(pct_eating_minor ~ female * employed + Age + I(Age^2) + married +
               higher_education + urban + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2)),
             weights = ~Weight, cluster = ~household_id)
@@ -646,8 +656,8 @@ modelsummary(list("All" = m1, "All + FE" = m2, "Women Only" = m3, "Interaction" 
                          "urbanTRUE" = "Urban",
                          "household_size" = "Household Size",
                          "femaleTRUE:employedTRUE" = "Female × Employed"),
-             title = "Determinants of Eating-While-Working",
-             notes = "Dependent variable: Binary indicator = 1 if majority of eating episodes are secondary activities. Standard errors clustered at household level in parentheses.")
+             title = "Determinants of Eating-While-Working (Percentage of Eating as Secondary Activity)",
+             notes = "Dependent variable: Percentage of eating episodes that are secondary activities (0-100). Standard errors clustered at household level in parentheses.")
 ```
 
 **Results**:
@@ -664,18 +674,18 @@ Table 5 examines whether the gender gap differs by sector.
 
 ```{r urban_rural_regressions}
 # Interaction: Female × Urban
-m5 <- feols(eating_while_working ~ female * urban + Age + I(Age^2) + married +
+m5 <- feols(pct_eating_minor ~ female * urban + Age + I(Age^2) + married +
               employed + higher_education + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2)),
             weights = ~Weight, cluster = ~household_id)
 
 # Separate by sector
-m6 <- feols(eating_while_working ~ female + Age + I(Age^2) + married +
+m6 <- feols(pct_eating_minor ~ female + Age + I(Age^2) + married +
               employed + higher_education + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2), urban == 1),
             weights = ~Weight, cluster = ~household_id)
 
-m7 <- feols(eating_while_working ~ female + Age + I(Age^2) + married +
+m7 <- feols(pct_eating_minor ~ female + Age + I(Age^2) + married +
               employed + higher_education + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2), urban == 0),
             weights = ~Weight, cluster = ~household_id)
@@ -698,7 +708,7 @@ Table 6 examines whether the gender gap varies by day of week.
 
 ```{r weekend_analysis}
 # Interaction: Female × Weekend
-m8 <- feols(eating_while_working ~ female * weekend + Age + I(Age^2) + married +
+m8 <- feols(pct_eating_minor ~ female * weekend + Age + I(Age^2) + married +
               employed + higher_education + urban + household_size | state_factor,
             data = person_day_eating %>% filter(Gender %in% c(1, 2)),
             weights = ~Weight, cluster = ~household_id)
