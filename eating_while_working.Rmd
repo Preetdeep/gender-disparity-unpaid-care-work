@@ -463,16 +463,44 @@ This massive gender gap exists despite women and men having similar demographics
 Table 2 shows the primary activities performed while eating (when eating is secondary activity), by gender.
 
 ```{r eating_activities}
-activity_comparison <- eating_while_other %>%
-  filter(activity_category != "Eating") %>%
-  pivot_wider(names_from = female, values_from = c(n_episodes, pct), values_fill = 0) %>%
-  arrange(desc(pct_1)) %>%
-  select(activity_category, pct_1, pct_0)
+# Check if eating_while_other has data
+if (nrow(eating_while_other) > 0) {
+  activity_comparison <- eating_while_other %>%
+    filter(activity_category != "Eating") %>%
+    pivot_wider(names_from = female, values_from = c(n_episodes, pct), values_fill = 0)
 
-kable(activity_comparison, digits = 1, format = "latex", booktabs = TRUE,
-      col.names = c("Primary Activity", "Women (%)", "Men (%)"),
-      caption = "Primary Activities While Eating (When Eating is Secondary Activity)") %>%
-  kable_styling(latex_options = c("hold_position"))
+  # Check which columns were created
+  cat("Columns after pivot_wider:", paste(names(activity_comparison), collapse = ", "), "\n")
+
+  # Rename columns to standard names
+  # female = 1 is women, female = 0 is men
+  if ("pct_1" %in% names(activity_comparison)) {
+    activity_comparison <- activity_comparison %>%
+      arrange(desc(pct_1)) %>%
+      select(activity_category, pct_1, pct_0)
+
+    kable(activity_comparison, digits = 1, format = "latex", booktabs = TRUE,
+          col.names = c("Primary Activity", "Women (%)", "Men (%)"),
+          caption = "Primary Activities While Eating (When Eating is Secondary Activity)") %>%
+      kable_styling(latex_options = c("hold_position"))
+  } else if ("pct_TRUE" %in% names(activity_comparison)) {
+    # In case female is TRUE/FALSE instead of 0/1
+    activity_comparison <- activity_comparison %>%
+      arrange(desc(pct_TRUE)) %>%
+      select(activity_category, pct_TRUE, pct_FALSE)
+
+    kable(activity_comparison, digits = 1, format = "latex", booktabs = TRUE,
+          col.names = c("Primary Activity", "Women (%)", "Men (%)"),
+          caption = "Primary Activities While Eating (When Eating is Secondary Activity)") %>%
+      kable_styling(latex_options = c("hold_position"))
+  } else {
+    cat("Warning: Expected pct columns not found. Available columns:",
+        paste(names(activity_comparison), collapse = ", "), "\n")
+    print(head(activity_comparison))
+  }
+} else {
+  cat("Warning: No eating while other activities data available\n")
+}
 ```
 
 **Results**:
