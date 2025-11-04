@@ -118,7 +118,7 @@ optional_cols <- optional_cols[!is.null(optional_cols)]
 all_cols_to_load <- c(required_cols, optional_cols)
 
 data <- read_dta("TimeUse106PER.dta",
-                 col_select = all(of(all_cols_to_load)))
+                 col_select = all_of(all_cols_to_load))
 
 # Rename to standard names
 if (act_col != "Activity_Code_3Digit") {

@@ -227,7 +227,7 @@ major_only <- data %>%
 person_day_data <- major_only %>%
   group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
            female, married, employed, higher_education, sector_label, urban,
-           state_factor, household_id, Relation_to_Head,
+           state_factor, household_id, Relationship_to_Head,
            has_grandparent, has_grandmother, has_grandfather,
            grandmother_only, grandfather_only, both_grandparents,
            grandparent_avg_age, has_children, household_size, Weight) %>%
