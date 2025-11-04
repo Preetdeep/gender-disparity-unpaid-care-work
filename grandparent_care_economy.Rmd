@@ -175,6 +175,24 @@ cat(sprintf("Households with grandparents: %s (%.1f%%)\n",
 data <- data %>%
   left_join(household_structure, by = c("FSU_Serial_No", "Sample_HH_No"))
 
+# STEP 4b: Create household-level moderator variables
+household_moderators <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    # Has servant/employee in household (relationship code 9)
+    has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
+
+    # Young children (under 6)
+    has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+    n_young_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+
+    .groups = "drop"
+  )
+
+# Merge moderators back
+data <- data %>%
+  left_join(household_moderators, by = c("FSU_Serial_No", "Sample_HH_No"))
+
 # STEP 5: Process data - filter to major activities only
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
@@ -216,6 +234,16 @@ major_only <- data %>%
     # Employment
     employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
 
+    # Employment type (for moderator analysis)
+    employment_type = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-employed",
+      Principal_Activity_Status %in% c(21, 31) ~ "Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual labor",
+      TRUE ~ "Not employed"
+    ),
+    self_employed = as.numeric(Principal_Activity_Status %in% c(11, 12)),
+    salaried = as.numeric(Principal_Activity_Status %in% c(21, 31)),
+
     # Marital status
     married = as.numeric(Marital_Status == 2),
 
@@ -230,7 +258,9 @@ person_day_data <- major_only %>%
            state_factor, household_id, Relationship_to_Head,
            has_grandparent, has_grandmother, has_grandfather,
            grandmother_only, grandfather_only, both_grandparents,
-           grandparent_avg_age, has_children, household_size, Weight) %>%
+           grandparent_avg_age, has_children, household_size, Weight,
+           has_servant, has_young_children, n_young_children,
+           employment_type, self_employed, salaried) %>%
   summarise(
     childcare_minutes = sum(childcare_minutes, na.rm = TRUE),
     eldercare_minutes = sum(eldercare_minutes, na.rm = TRUE),
@@ -395,11 +425,53 @@ kable(summary_stats, digits = 2, format = "latex", booktabs = TRUE,
 
 **Key patterns**: Households with grandparents are larger (5.8 vs. 4.2 members) and have slightly higher employment rates (suggesting grandparents enable work). Women in grandparent households spend less time on childcare (62 vs. 87 minutes) but more on eldercare (18 vs. 3 minutes), consistent with trading childcare reduction for eldercare responsibilities.
 
+```{r diagnostics, include=TRUE}
+# DIAGNOSTICS: Check data distribution and variation
+cat("=== DIAGNOSTIC: Data Quality Checks ===\n\n")
+
+# Check grandparent presence variation
+cat("Grandparent presence distribution:\n")
+print(table(analysis_sample$has_grandparent, useNA = "ifany"))
+cat(sprintf("Proportion with grandparents: %.3f\n\n", mean(analysis_sample$has_grandparent, na.rm = TRUE)))
+
+# Check childcare minutes distribution
+cat("Childcare minutes summary (full sample):\n")
+print(summary(analysis_sample$childcare_minutes))
+cat(sprintf("SD: %.2f\n", sd(analysis_sample$childcare_minutes, na.rm = TRUE)))
+cat(sprintf("% with any childcare: %.1f%%\n\n", 100 * mean(analysis_sample$childcare_minutes > 0, na.rm = TRUE)))
+
+# Women aged 20-50 specifically
+main_sample_diag <- analysis_sample %>% filter(female == 1, Age >= 20, Age <= 50)
+
+cat("Childcare minutes for women aged 20-50:\n")
+print(summary(main_sample_diag$childcare_minutes))
+cat(sprintf("SD: %.2f\n\n", sd(main_sample_diag$childcare_minutes, na.rm = TRUE)))
+
+# By grandparent presence
+cat("Childcare minutes by grandparent presence (women 20-50):\n")
+by_gp <- main_sample_diag %>%
+  group_by(has_grandparent) %>%
+  summarise(
+    N = n(),
+    Mean = mean(childcare_minutes, na.rm = TRUE),
+    SD = sd(childcare_minutes, na.rm = TRUE),
+    Median = median(childcare_minutes, na.rm = TRUE),
+    .groups = "drop"
+  )
+print(by_gp)
+cat(sprintf("\nRaw difference in means: %.2f minutes\n", diff(by_gp$Mean)))
+cat("\n")
+```
+
 ## Grandparents Reduce Women's Childcare Time
 
 Table 2 presents our main results: regressions of daily childcare minutes on grandparent presence for urban women aged 20-50.
 
 ```{r main_results}
+# NOTE: Check regression output carefully - previous PDF showed coefficients near zero
+# which suggests either: (1) data coding issue, (2) sample selection issue, or
+# (3) true null effect. Diagnostics above should help identify the issue.
+
 # Restrict to women aged 20-50 in urban households with children
 main_sample <- analysis_sample %>%
   filter(female == 1, Age >= 20, Age <= 50)
@@ -597,6 +669,88 @@ modelsummary(list("Childcare Minutes" = m12),
 ```
 
 **Results**: Women with grandparents under age 70 spend **significantly less time on childcare** than those with grandparents over 70. This is consistent with age-related physical capacity constraints limiting older grandparents' ability to provide active childcare (chasing toddlers, lifting children).
+
+## Robustness Checks
+
+### Heterogeneity by Household Servant Presence
+
+Table 7 examines whether the grandparent dividend differs in households with domestic servants.
+
+```{r servant_heterogeneity}
+# Interaction with servant presence
+m13 <- feols(childcare_minutes ~ has_grandparent * has_servant + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = main_sample,
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m13),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "has_servantTRUE" = "Has Servant",
+                         "has_grandparentTRUE:has_servantTRUE" = "Grandparent × Servant",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Servant Presence",
+             notes = "Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: The grandparent dividend may differ in households with domestic servants, who can also provide childcare assistance. This analysis examines whether grandparents' childcare contribution is substitutive or complementary to paid domestic help.
+
+### Heterogeneity by Young Children Presence
+
+Table 8 tests whether the grandparent effect is stronger in households with young children (under age 6).
+
+```{r young_children_heterogeneity}
+# Interaction with young children
+m14 <- feols(childcare_minutes ~ has_grandparent * has_young_children + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = main_sample,
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m14),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "has_young_childrenTRUE" = "Has Young Children",
+                         "has_grandparentTRUE:has_young_childrenTRUE" = "Grandparent × Young Children",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Young Children Presence",
+             notes = "Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: Young children (under 6) require more intensive care than older children. We test whether grandparents provide greater childcare support in households with young children, where the need is greatest.
+
+### Heterogeneity by Employment Type
+
+Table 9 examines whether the grandparent dividend differs by mothers' employment type (self-employed vs. salaried).
+
+```{r employment_type_heterogeneity}
+# Restrict to employed women, compare employment types
+employed_sample <- main_sample %>% filter(employed == 1)
+
+# Separate by employment type
+m15 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + higher_education + household_size | state_factor,
+             data = employed_sample %>% filter(self_employed == 1),
+             weights = ~Weight, cluster = ~household_id)
+
+m16 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + higher_education + household_size | state_factor,
+             data = employed_sample %>% filter(salaried == 1),
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Self-Employed" = m15, "Salaried" = m16),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Mother's Employment Type",
+             notes = "Sample: Employed women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: Self-employed women may have more flexible schedules than salaried employees, potentially reducing their need for grandparent childcare. Conversely, salaried employees with fixed office hours may rely more heavily on grandparent support. This analysis tests whether the grandparent dividend differs by employment type.
 
 # Discussion
 
