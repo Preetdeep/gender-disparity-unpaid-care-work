@@ -438,7 +438,7 @@ cat(sprintf("Proportion with grandparents: %.3f\n\n", mean(analysis_sample$has_g
 cat("Childcare minutes summary (full sample):\n")
 print(summary(analysis_sample$childcare_minutes))
 cat(sprintf("SD: %.2f\n", sd(analysis_sample$childcare_minutes, na.rm = TRUE)))
-cat(sprintf("% with any childcare: %.1f%%\n\n", 100 * mean(analysis_sample$childcare_minutes > 0, na.rm = TRUE)))
+cat(sprintf("%% with any childcare: %.1f%%\n\n", 100 * mean(analysis_sample$childcare_minutes > 0, na.rm = TRUE)))
 
 # Women aged 20-50 specifically
 main_sample_diag <- analysis_sample %>% filter(female == 1, Age >= 20, Age <= 50)
