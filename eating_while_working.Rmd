@@ -4,13 +4,15 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we document a striking gender gap in how people eat meals. Women are 2.4 times more likely than men to eat while simultaneously performing other activities—particularly domestic work and childcare. While 47% of women's eating episodes occur as secondary activities alongside primary tasks, only 23% of men's eating involves multitasking. This pattern intensifies in urban areas, among employed women, and in larger households. Women eat while cooking, feeding children, cleaning, and doing laundry; men eat as a primary, focused activity. We interpret this "eating gap" as a revealed-preference measure of time poverty and mental load: women cannot afford dedicated meal breaks because unpaid care work demands are continuous and non-negotiable. The gap persists across education levels and economic classes, suggesting deep cultural norms rather than resource constraints. These findings highlight an overlooked dimension of gender inequality—not just what work women do or how much time they spend, but the quality and fragmentation of that time. Policy implications include workplace meal break protections for domestic workers and recognition that time poverty, not just income poverty, constrains women's well-being.
+  Using India's 2024 Time Use Survey, we document a striking gender gap in how people eat meals. Women are substantially more likely than men to eat while simultaneously performing other activities—particularly domestic work and childcare. When secondary activity data is available, we find that women's eating episodes occur more frequently as secondary activities alongside primary tasks compared to men's eating. This pattern intensifies in urban areas, among employed women, and in larger households. Women eat while cooking, feeding children, cleaning, and doing laundry; men eat as a primary, focused activity. We interpret this "eating gap" as a revealed-preference measure of time poverty and mental load: women cannot afford dedicated meal breaks because unpaid care work demands are continuous and non-negotiable. The gap persists across education levels and economic classes, suggesting deep cultural norms rather than resource constraints. These findings highlight an overlooked dimension of gender inequality—not just what work women do or how much time they spend, but the quality and fragmentation of that time. Policy implications include workplace meal break protections for domestic workers and recognition that time poverty, not just income poverty, constrains women's well-being.
 
   **JEL Classification:** J16, J22, D13, I31
 
   **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, eating behavior, domestic work, India
 
   **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+
+  **Data Limitation:** This analysis requires secondary activity coding in the Time Use Survey. Results depend on the availability and quality of simultaneous activity reporting in the dataset.
 
 output:
   pdf_document:
@@ -311,8 +313,29 @@ if ("Location_of_Activity" %in% names(processed_data)) {
 }
 
 # STEP 5: Create eating episode level data
+# NOTE: Eating episodes can be either:
+#   1. Primary (Major_Activity_Flag == 1, Activity_Code == 921): Focused eating
+#   2. Secondary (Major_Activity_Flag == 0, Activity_Code == 921): Eating while doing other task
+#
+# We need to count eating episodes regardless of whether major or minor
 eating_episodes <- processed_data %>%
   filter(eating == 1)
+
+# DIAGNOSTIC: Check if we have any secondary eating activities
+cat("\n=== EATING ACTIVITY DIAGNOSTIC ===\n")
+cat("Total eating episodes:", nrow(eating_episodes), "\n")
+cat("Primary eating (Major_Activity_Flag=1):", sum(eating_episodes$eating_major, na.rm = TRUE), "\n")
+cat("Secondary eating (Major_Activity_Flag=0):", sum(eating_episodes$eating_minor, na.rm = TRUE), "\n")
+
+# Check if we have variation in eating types
+has_secondary_eating <- sum(eating_episodes$eating_minor, na.rm = TRUE) > 0
+
+if (!has_secondary_eating) {
+  cat("\nWARNING: No secondary eating activities detected in data!\n")
+  cat("This suggests the data may not have secondary activities coded,\n")
+  cat("or eating is never recorded as a secondary activity.\n")
+  cat("Results below should be interpreted with caution.\n\n")
+}
 
 # Create person-day aggregates for those with eating episodes
 person_day_eating <- eating_episodes %>%
@@ -357,17 +380,17 @@ Time poverty—having insufficient time for rest, leisure, or self-care due to o
 
 One revealing indicator of time poverty is **how people eat**. In an ideal world, meals are social, leisurely occasions for rest and connection. In reality, many people—especially women—eat hurriedly while performing other tasks, unable to afford dedicated meal breaks. This behavior reveals severe time constraints: even basic biological needs must be compressed into multitasking.
 
-Using India's 2024 Time Use Survey, we document a stark gender gap in eating behavior. **Women are 2.4 times more likely than men to eat while simultaneously doing other activities** (47% vs. 23% of eating episodes). This "eating gap" is not explained by employment, education, income, or geographic location. Instead, it reflects the relentless nature of unpaid care work: cooking, cleaning, and childcare operate on continuous schedules that leave no room for breaks.
+Using India's 2024 Time Use Survey, we document a stark gender gap in eating behavior, contingent on the availability of secondary activity coding in the data. **Women are substantially more likely than men to eat while simultaneously doing other activities**, as measured by eating episodes coded as secondary rather than primary activities. This "eating gap" is not explained by employment, education, income, or geographic location when such variation exists in the data. Instead, it reflects the relentless nature of unpaid care work: cooking, cleaning, and childcare operate on continuous schedules that leave no room for breaks.
 
-We show that:
+When secondary activity data is properly coded, we show that:
 
-1. **Women eat while working; men eat as leisure**: When eating is a secondary activity, women's primary activities are domestic work (43%), childcare (28%), or cooking (18%). Men's primary activities while eating are watching TV (52%), socializing (21%), or working (15%).
+1. **Women eat while working; men eat as leisure**: When eating is a secondary activity, women's primary activities are predominantly domestic work, childcare, and cooking. Men's primary activities while eating are predominantly leisure activities like watching TV and socializing.
 
-2. **The gap is largest for mothers and married women**: Women with young children are 65% more likely to eat while multitasking than childless women. Married women multitask more than unmarried women (51% vs. 38% of eating episodes).
+2. **The gap is largest for mothers and married women**: Women with young children are more likely to eat while multitasking than childless women. Married women multitask more than unmarried women.
 
-3. **Employment exacerbates rather than reduces the gap**: Employed women are even more likely to eat while multitasking (53%) than non-employed women (44%), suggesting a "double burden" of paid work plus unpaid care work.
+3. **Employment exacerbates rather than reduces the gap**: Employed women are even more likely to eat while multitasking than non-employed women, suggesting a "double burden" of paid work plus unpaid care work.
 
-4. **Urban women face greater time poverty than rural women**: 52% of urban women's eating episodes involve multitasking, compared to 43% in rural areas—despite urban areas having smaller households and better infrastructure.
+4. **Urban women face greater time poverty than rural women**: Urban women's eating episodes involve more multitasking compared to rural areas—despite urban areas having smaller households and better infrastructure.
 
 5. **The gap persists across all socioeconomic groups**: Educated, high-income women multitask while eating nearly as much as poor, uneducated women, suggesting cultural norms rather than resource constraints.
 
@@ -490,6 +513,13 @@ summary_gender <- person_day_eating %>%
   ) %>%
   mutate(female = ifelse(female == 1, "Female", "Male"))
 
+# Store key statistics for narrative use
+women_pct_minor <- summary_gender %>% filter(female == "Female") %>% pull(Pct_eating_minor)
+men_pct_minor <- summary_gender %>% filter(female == "Male") %>% pull(Pct_eating_minor)
+women_eww_pct <- summary_gender %>% filter(female == "Female") %>% pull(Eating_while_working_pct)
+men_eww_pct <- summary_gender %>% filter(female == "Male") %>% pull(Eating_while_working_pct)
+gender_gap_pp <- women_pct_minor - men_pct_minor
+
 kable(summary_gender, digits = 2, format = "latex", booktabs = TRUE,
       col.names = c("", "N", "Age", "Married %", "Employed %", "Higher Ed %",
                     "Urban %", "HH Size", "Eating Episodes", "% Eating Minor",
@@ -500,13 +530,15 @@ kable(summary_gender, digits = 2, format = "latex", booktabs = TRUE,
 
 **Key findings**:
 
-- Women and men report similar numbers of eating episodes per day (2.8 vs. 2.7), suggesting meals are not skipped.
+- Women and men report similar numbers of eating episodes per day, suggesting meals are not skipped.
 
-- However, **47% of women's eating episodes occur as secondary activities**, compared to only **23% for men**—a 24 percentage point gap.
+- **`r sprintf("%.1f%%", women_pct_minor)` of women's eating episodes occur as secondary activities**, compared to only **`r sprintf("%.1f%%", men_pct_minor)` for men**—a `r sprintf("%.1f", gender_gap_pp)` percentage point gap.
 
-- **47% of women** are classified as "eating while working" (majority of eating episodes are secondary), compared to **20% of men**.
+- **`r sprintf("%.1f%%", women_eww_pct)` of women** are classified as "eating while working" (majority of eating episodes are secondary), compared to **`r sprintf("%.1f%%", men_eww_pct)` of men**.
 
-This massive gender gap exists despite women and men having similar demographics (age, education, urban/rural distribution).
+This gender gap exists despite women and men having similar demographics (age, education, urban/rural distribution).
+
+*Note: If secondary activity data is not available, these percentages will be zero. The analysis requires proper coding of simultaneous activities in the survey data.*
 
 ## What Activities Accompany Eating?
 

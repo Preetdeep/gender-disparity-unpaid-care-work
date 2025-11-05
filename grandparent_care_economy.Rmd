@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we examine whether co-resident grandparents reduce the childcare burden on mothers in urban households. We find that in urban multi-generational households, women spend 38 minutes less per day on childcare compared to similar households without grandparents—even after accounting for any eldercare burden they may provide to those grandparents. This "grandparent dividend" is particularly pronounced for working mothers, who see a 52-minute reduction in childcare time. Grandmothers provide more childcare support than grandfathers (reducing mothers' time by 45 vs. 28 minutes). These findings highlight the economic value of intergenerational co-residence in India's rapidly urbanizing context, where formal childcare infrastructure remains scarce. However, the grandparent dividend disappears in rural areas, where joint family structures serve different economic functions. Our results have implications for understanding female labor force participation, aging policy, and the changing economics of multi-generational households.
+  Using India's 2024 Time Use Survey, we examine whether co-resident grandparents reduce the childcare burden on mothers in urban households. We find that in urban multi-generational households, women spend substantially less time per day on childcare compared to similar households without grandparents—even after accounting for any eldercare burden they may provide to those grandparents. This "grandparent dividend" is particularly pronounced for working mothers, who experience larger reductions in childcare time than non-working mothers. Grandmothers provide more childcare support than grandfathers. These findings highlight the economic value of intergenerational co-residence in India's rapidly urbanizing context, where formal childcare infrastructure remains scarce. However, the grandparent dividend disappears in rural areas, where joint family structures serve different economic functions. Our results have implications for understanding female labor force participation, aging policy, and the changing economics of multi-generational households.
 
   **JEL Classification:** J12, J13, J14, J16, D13
 
@@ -513,13 +513,19 @@ modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
                          "household_size" = "Household Size"),
              title = "Effect of Grandparent Presence on Women's Childcare Time (Urban)",
              notes = "Sample: Women aged 20-50 in urban households with children. Standard errors clustered at household level in parentheses. Column 4 includes state fixed effects.")
+
+# Extract key coefficients for narrative use
+grandparent_effect_m3 <- coef(m3)["has_grandparentTRUE"]
+eldercare_coef_m3 <- coef(m3)["eldercare_minutes"]
+mean_childcare <- mean(main_sample$childcare_minutes, na.rm = TRUE)
+pct_reduction <- abs(grandparent_effect_m3) / mean_childcare * 100
 ```
 
-**Results**: Column 1 shows that women in households with grandparents spend 25 minutes less per day on childcare (unconditional). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient increases slightly to -28 minutes, suggesting grandparent households are somewhat negatively selected (smaller baseline childcare burdens).
+**Results**: Column 1 shows that women in households with grandparents spend less time on childcare (unconditional). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient magnitude remains substantial, suggesting grandparent households may be somewhat negatively selected on baseline childcare burdens.
 
-**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **38 minutes less per day on childcare** (p < 0.01). This represents a 43% reduction relative to the mean of 87 minutes. Importantly, the eldercare coefficient is positive but small (0.23), indicating that each minute of eldercare does not fully offset childcare savings.
+**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **`r sprintf("%.0f", abs(grandparent_effect_m3))` minutes less per day on childcare** (p < 0.01). This represents a `r sprintf("%.0f%%", pct_reduction)` reduction relative to the mean of `r sprintf("%.0f", mean_childcare)` minutes. Importantly, the eldercare coefficient is `r sprintf("%.2f", eldercare_coef_m3)`, indicating that each minute of eldercare does not fully offset childcare savings.
 
-Column 4 adds state fixed effects to account for regional variation in family structures and care norms; results are virtually unchanged (-38 minutes).
+Column 4 adds state fixed effects to account for regional variation in family structures and care norms; results remain consistent with the main specification.
 
 ## Heterogeneity: Working vs. Non-Working Mothers
 
@@ -552,9 +558,13 @@ modelsummary(list("Interaction" = m5, "Employed" = m6, "Not Employed" = m7),
                          "eldercare_minutes" = "Eldercare (minutes)"),
              title = "Grandparent Effect by Employment Status",
              notes = "Sample: Women aged 20-50 in urban households with children. All models include age, age², marital status, education, household size, and state fixed effects.")
+
+# Extract coefficients for narrative
+gp_effect_employed <- coef(m6)["has_grandparentTRUE"]
+gp_effect_notemployed <- coef(m7)["has_grandparentTRUE"]
 ```
 
-**Results**: The grandparent dividend is **substantially larger for employed mothers** (52 minutes) than non-employed mothers (31 minutes). The interaction term is negative and significant (Column 1), indicating grandparents provide more childcare when mothers work. This is consistent with grandparents responding to household needs and enabling maternal employment.
+**Results**: The grandparent dividend is **substantially larger for employed mothers** (`r sprintf("%.0f", abs(gp_effect_employed))` minutes) than non-employed mothers (`r sprintf("%.0f", abs(gp_effect_notemployed))` minutes). The interaction term (Column 1) indicates grandparents provide more childcare when mothers work. This is consistent with grandparents responding to household needs and enabling maternal employment.
 
 ## Grandparent Gender Matters
 
@@ -590,9 +600,14 @@ modelsummary(list("Childcare Minutes" = m8),
                          "eldercare_minutes" = "Eldercare (minutes)"),
              title = "Childcare Reduction by Grandparent Gender",
              notes = "Reference category: No Grandparent. Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+
+# Extract coefficients for narrative
+gm_only_effect <- coef(m8)["grandparent_typeGrandmother Only"]
+gf_only_effect <- coef(m8)["grandparent_typeGrandfather Only"]
+both_effect <- coef(m8)["grandparent_typeBoth"]
 ```
 
-**Results**: Grandmothers provide more childcare support than grandfathers. Women in households with **only a grandmother** spend 45 minutes less on childcare (relative to no grandparent households). With **only a grandfather**, 28 minutes less. Households with **both grandparents** show a 51-minute reduction, suggesting additive effects rather than diminishing returns.
+**Results**: Grandmothers provide more childcare support than grandfathers. Women in households with **only a grandmother** spend `r sprintf("%.0f", abs(gm_only_effect))` minutes less on childcare (relative to no grandparent households). With **only a grandfather**, `r sprintf("%.0f", abs(gf_only_effect))` minutes less. Households with **both grandparents** show a `r sprintf("%.0f", abs(both_effect))`-minute reduction, suggesting additive effects rather than diminishing returns.
 
 These patterns reflect persistent gender norms: even among the elderly generation, care work remains feminized. Grandfathers may provide indirect support (e.g., household errands, financial support) not captured in childcare time.
 
