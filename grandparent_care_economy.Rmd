@@ -285,19 +285,19 @@ The role of grandparents in providing childcare has gained renewed attention as 
 
 Using India's 2024 Time Use Survey, we compare urban households with and without co-resident grandparents (defined as parents or parents-in-law of the household head). We focus on urban areas because: (1) urban women face higher opportunity costs of time spent on childcare, given better labor market opportunities; (2) urban areas lack the extended kin networks available in villages; (3) formal childcare remains prohibitively expensive for most urban households (Desai and Joshi 2019).
 
-We find strong evidence of a **grandparent childcare dividend** in urban India:
+Our analysis reveals **limited evidence of a grandparent childcare dividend** in urban India:
 
-1. **Women in urban households with grandparents spend 38 minutes less per day on childcare** compared to similar women in households without grandparents, even after controlling for eldercare burden.
+1. **Women in urban households with grandparents show no statistically significant reduction in childcare time** compared to similar women in households without grandparents (coefficient: 0.05 minutes, SE: 0.59, p > 0.10), even after controlling for eldercare burden.
 
-2. **The dividend is larger for working mothers** (52 minutes less) than non-working mothers (31 minutes less), suggesting grandparents enable female employment.
+2. **Employment heterogeneity shows mixed results**: Employed mothers in grandparent households show a non-significant reduction (-0.34 minutes, SE: 0.64), while non-employed mothers show a non-significant increase (+0.25 minutes, SE: 0.79).
 
-3. **Grandmothers provide more childcare support than grandfathers**: Women in households with only a grandmother spend 45 minutes less on childcare; with only a grandfather, 28 minutes less.
+3. **Grandparent gender effects are near zero and not significant**: Women in households with only a grandmother show virtually no difference in childcare (-0.01 minutes, SE: 0.64); with only a grandfather, -0.10 minutes (SE: 2.03); with both, +0.20 minutes (SE: 2.00).
 
-4. **The dividend disappears in rural areas**, where joint families serve different economic functions (agricultural labor pooling) rather than childcare specialization.
+4. **Urban-rural comparison shows significant difference** but driven by rural areas having *negative* effects (-1.74 minutes, SE: 0.31, p < 0.001), suggesting different household dynamics.
 
-5. **Younger grandparents (60-70) provide more support** than older grandparents (70+), consistent with age-related capacity constraints.
+5. **Younger grandparents show higher childcare time for mothers** (+4.21 minutes, SE: 1.40, p < 0.01), contrary to the hypothesized support mechanism.
 
-These findings have important implications. First, they highlight the **economic value of multi-generational co-residence** in contexts where formal childcare is scarce. Second, they suggest that policies supporting aging-in-place (e.g., elderly-friendly housing, healthcare access) may indirectly support female labor force participation by enabling grandparent childcare contributions. Third, they document substantial heterogeneity by grandparent gender, consistent with gendered care norms extending across generations.
+These findings have important implications. First, they challenge assumptions about the **economic value of multi-generational co-residence** as informal childcare provision—average effects are near zero, though heterogeneity may mask important subgroup effects. Second, they suggest that formal childcare infrastructure cannot be replaced by informal family arrangements. Third, they highlight the need for better measurement tools to capture grandparent contributions beyond time diary data.
 
 Our results contribute to several literatures. We extend research on **grandparent childcare provision** (Hank and Buber 2009; Arpino et al. 2014) to the Indian context, where multi-generational households are normative rather than exceptional. We inform debates on **female labor force participation in India** (Klasen and Pieters 2015; Afridi et al. 2018) by quantifying how family structure affects women's time constraints. And we add to emerging scholarship on **aging and care work in developing countries** (Rajan and Kumar 2003; Vera-Sanso 2006).
 
@@ -521,11 +521,13 @@ mean_childcare <- mean(main_sample$childcare_minutes, na.rm = TRUE)
 pct_reduction <- abs(grandparent_effect_m3) / mean_childcare * 100
 ```
 
-**Results**: Column 1 shows that women in households with grandparents spend less time on childcare (unconditional). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient magnitude remains substantial, suggesting grandparent households may be somewhat negatively selected on baseline childcare burdens.
+**Results**: Column 1 shows that women in households with grandparents spend similar time on childcare as those without (coefficient: 0.34 minutes, SE: 0.60). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient drops to near zero (0.04 minutes), suggesting minimal unconditional association.
 
-**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **`r sprintf("%.0f", abs(grandparent_effect_m3))` minutes less per day on childcare** (p < 0.01). This represents a `r sprintf("%.0f%%", pct_reduction)` reduction relative to the mean of `r sprintf("%.0f", mean_childcare)` minutes. Importantly, the eldercare coefficient is `r sprintf("%.2f", eldercare_coef_m3)`, indicating that each minute of eldercare does not fully offset childcare savings.
+**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **`r sprintf("%.2f", grandparent_effect_m3)` minutes difference per day on childcare** (SE: `r sprintf("%.2f", 0.594)`, p > 0.10), which is not statistically significant. This represents a `r sprintf("%.1f%%", pct_reduction)` change relative to the mean of `r sprintf("%.1f", mean_childcare)` minutes. The eldercare coefficient is `r sprintf("%.2f", eldercare_coef_m3)`, also not significant.
 
-Column 4 adds state fixed effects to account for regional variation in family structures and care norms; results remain consistent with the main specification.
+Column 4 adds state fixed effects; the grandparent coefficient remains near zero and non-significant (-0.002 minutes, SE: 0.59).
+
+**Interpretation**: The data do not support a substantial grandparent childcare dividend in urban India. The effects are economically small (< 0.1 minutes) and statistically indistinguishable from zero.
 
 ## Heterogeneity: Working vs. Non-Working Mothers
 
@@ -564,7 +566,9 @@ gp_effect_employed <- coef(m6)["has_grandparentTRUE"]
 gp_effect_notemployed <- coef(m7)["has_grandparentTRUE"]
 ```
 
-**Results**: The grandparent dividend is **substantially larger for employed mothers** (`r sprintf("%.0f", abs(gp_effect_employed))` minutes) than non-employed mothers (`r sprintf("%.0f", abs(gp_effect_notemployed))` minutes). The interaction term (Column 1) indicates grandparents provide more childcare when mothers work. This is consistent with grandparents responding to household needs and enabling maternal employment.
+**Results**: The grandparent effect differs by employment status but neither is statistically significant. Employed mothers show a coefficient of `r sprintf("%.2f", gp_effect_employed)` minutes (SE: 0.64, p > 0.10), while non-employed mothers show `r sprintf("%.2f", gp_effect_notemployed)` minutes (SE: 0.79, p > 0.10). The interaction term (Column 1: 0.28, SE: 0.79) is also not significant.
+
+**Interpretation**: There is no clear evidence that grandparents differentially support employed vs. non-employed mothers in terms of childcare time reduction. Both effects are near zero and not statistically distinguishable from zero or from each other.
 
 ## Grandparent Gender Matters
 
@@ -607,9 +611,9 @@ gf_only_effect <- coef(m8)["grandparent_typeGrandfather Only"]
 both_effect <- coef(m8)["grandparent_typeBoth"]
 ```
 
-**Results**: Grandmothers provide more childcare support than grandfathers. Women in households with **only a grandmother** spend `r sprintf("%.0f", abs(gm_only_effect))` minutes less on childcare (relative to no grandparent households). With **only a grandfather**, `r sprintf("%.0f", abs(gf_only_effect))` minutes less. Households with **both grandparents** show a `r sprintf("%.0f", abs(both_effect))`-minute reduction, suggesting additive effects rather than diminishing returns.
+**Results**: Grandparent gender shows minimal effects on mothers' childcare time. Women in households with **only a grandmother** spend `r sprintf("%.2f", gm_only_effect)` minutes differently on childcare (SE: 0.64, p > 0.10). With **only a grandfather**, `r sprintf("%.2f", gf_only_effect)` minutes (SE: 2.03, p > 0.10). Households with **both grandparents** show `r sprintf("%.2f", both_effect)` minutes (SE: 2.00, p > 0.10). None of these effects are statistically significant.
 
-These patterns reflect persistent gender norms: even among the elderly generation, care work remains feminized. Grandfathers may provide indirect support (e.g., household errands, financial support) not captured in childcare time.
+**Interpretation**: The data do not support differential childcare support by grandparent gender. All effects are near zero and highly uncertain, with large standard errors particularly for grandfather-only households (likely due to small sample size).
 
 ## Rural-Urban Comparison
 
@@ -651,9 +655,9 @@ modelsummary(list("Interaction" = m9, "Urban" = m10, "Rural" = m11),
              notes = "Sample: Women aged 20-50 in households with children. All models include controls and state fixed effects.")
 ```
 
-**Results**: The grandparent dividend is **specific to urban areas**. In urban households, grandparents reduce mothers' childcare by 38 minutes (Column 2). In rural households, the effect is close to zero and statistically insignificant (Column 3). The interaction term (Column 1) confirms this difference is significant.
+**Results**: Urban and rural areas show different patterns. In urban households, the grandparent effect is near zero (-0.002 minutes, SE: 0.59, Column 2). In rural households, the effect is negative and significant (-1.74 minutes, SE: 0.31, p < 0.001, Column 3). The interaction term (Column 1: -1.77, SE: 0.31, p < 0.001) confirms this difference is statistically significant.
 
-**Interpretation**: In rural areas, multi-generational households serve different functions—pooling agricultural labor, maintaining land ownership, providing old-age security. Childcare specialization is less salient when households operate family farms where children can be supervised while adults work. In contrast, urban mothers face strict work-family incompatibility (office jobs with fixed hours), making grandparent childcare essential.
+**Interpretation**: Contrary to our hypothesis, grandparents in rural areas are associated with *increased* maternal childcare time (mothers spend more time on childcare when grandparents are present). This may reflect: (1) selection effects where households with higher childcare needs co-reside with grandparents, (2) grandparents requiring care themselves while children still need supervision, or (3) measurement error. In urban areas, there is no detectable effect in either direction.
 
 ## Grandparent Age and Capacity Constraints
 
@@ -683,7 +687,9 @@ modelsummary(list("Childcare Minutes" = m12),
              notes = "Sample: Women aged 20-50 in urban households with grandparents present. Reference category: Grandparent age ≥ 70.")
 ```
 
-**Results**: Women with grandparents under age 70 spend **significantly less time on childcare** than those with grandparents over 70. This is consistent with age-related physical capacity constraints limiting older grandparents' ability to provide active childcare (chasing toddlers, lifting children).
+**Results**: Women with grandparents under age 70 spend **significantly more time on childcare** than those with grandparents over 70 (+4.21 minutes, SE: 1.40, p < 0.01). This is contrary to the hypothesized capacity mechanism.
+
+**Interpretation**: This unexpected finding may reflect: (1) younger grandparents co-reside with families that have younger children requiring more intensive care, (2) reverse causality where high childcare burden attracts younger grandparents to co-reside, or (3) younger grandparents being more likely to be working themselves and less available for childcare. This warrants further investigation.
 
 ## Robustness Checks
 
@@ -771,19 +777,30 @@ modelsummary(list("Self-Employed" = m15, "Salaried" = m16),
 
 ## Mechanisms
 
-Our results document a substantial grandparent childcare dividend in urban India: co-resident grandparents reduce mothers' childcare burden by 38 minutes per day (43% of mean), even after accounting for eldercare responsibilities. What mechanisms drive this effect?
+Our results reveal **no evidence of a substantial grandparent childcare dividend** in urban India: co-resident grandparents show near-zero effects on mothers' childcare time (coefficient: 0.05 minutes, SE: 0.59, p > 0.10), even after accounting for eldercare responsibilities. Why do we observe null effects?
 
-**Direct time substitution**: Grandparents provide childcare hours that would otherwise be borne by mothers. Time diary data (not shown) indicate grandparents in our sample spend an average of 47 minutes per day on childcare—almost exactly the observed reduction in mothers' time. This suggests nearly one-for-one substitution.
+**Potential explanations**:
 
-**Coordination and supervision**: Even when not directly providing care, grandparents' presence may enable mothers to multitask (e.g., cooking while grandmother supervises children). Our measure of "major activities" may undercount such coordination benefits.
+1. **Measurement limitations**: Our focus on major activities may miss coordination benefits or passive supervision by grandparents.
 
-**Labor force participation**: The larger dividend for employed mothers (52 vs. 31 minutes) suggests grandparents enable maternal employment. However, we cannot determine causality: does grandparent presence enable work, or do working mothers selectively co-reside with grandparents? Panel data would be needed to adjudicate.
+2. **Selection bias**: Families with higher childcare burdens may selectively co-reside with grandparents, masking true causal effects.
+
+3. **Heterogeneous effects**: Some grandparents may substantially reduce maternal childcare while others increase it (e.g., if frail and requiring care themselves), yielding near-zero average effects.
+
+4. **Data quality**: With only 7.2% of urban households having grandparents present, we have limited statistical power to detect small effects.
+
+5. **Alternative contributions**: Grandparents may contribute in ways not captured by childcare time (financial support, emotional support, household management).
 
 ## Eldercare Trade-offs
 
-A key concern is whether grandparent childcare comes at the cost of increased eldercare burdens on mothers. We find **limited evidence of such trade-offs**. Women in grandparent households spend 15 more minutes per day on eldercare—far less than the 38-minute childcare reduction. Moreover, eldercare is less time-intensive than childcare for young children; much consists of "passive care" (supervision) that can be combined with other activities.
+A key concern is whether grandparent presence increases eldercare burdens that offset any childcare benefits. The regression coefficient for eldercare is small and not statistically significant (-0.01 to -0.02 minutes per minute of eldercare), suggesting eldercare burden does not explain the null childcare findings.
 
-This asymmetry likely reflects grandparents' functional capacity. In our sample, grandparents average 67 years old—relatively young and healthy. Most can perform daily living tasks independently and actively provide childcare. Eldercare burdens rise sharply only after age 75-80, by which time grandchildren are often older and require less intensive care.
+**Diagnostic analysis** shows:
+- Raw difference in childcare means between grandparent/no-grandparent households: -0.11 minutes
+- Mean childcare for women aged 20-50: 6.05 minutes per day
+- Only 4.9% of the sample reports any childcare activity
+
+These low baseline rates suggest most women in the sample may not have young children requiring intensive care, limiting our ability to observe grandparent effects.
 
 ## Policy Implications
 
@@ -813,15 +830,27 @@ Our analysis has several limitations:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document a substantial "grandparent dividend" in urban households: co-resident grandparents reduce mothers' daily childcare burden by 38 minutes (43% of mean), even after accounting for eldercare responsibilities. This dividend is larger for employed mothers, greater when grandmothers rather than grandfathers are present, stronger for younger grandparents, and entirely absent in rural areas.
+Using India's 2024 Time Use Survey, we find **no evidence of a substantial "grandparent dividend"** in urban households: co-resident grandparents show near-zero effects on mothers' daily childcare time (0.05 minutes, SE: 0.59, p > 0.10), even after accounting for eldercare responsibilities. Effects do not differ significantly by maternal employment, grandparent gender, or grandparent age. In rural areas, grandparent presence is paradoxically associated with *increased* maternal childcare time.
 
-These findings highlight the economic importance of multi-generational co-residence in contexts where formal childcare infrastructure is scarce. Grandparents effectively subsidize their adult children's households by providing unpaid childcare, enabling maternal employment and reducing mothers' time poverty. However, this system depends on grandparents' health and availability, making it vulnerable to demographic aging and urbanization-driven household fragmentation.
+These null findings challenge the assumption that multi-generational co-residence primarily functions as informal childcare provision in urban India. While individual grandparents may provide substantial support, average effects across all grandparent households are near zero. This suggests:
 
-As India continues to urbanize and age, policymakers face a choice: invest in formal childcare and elderly care infrastructure, or rely on increasingly strained family networks. Our results suggest that the current system—while functional for some families—cannot scale to accommodate future demographic change. A 70-year-old grandmother can chase toddlers; an 85-year-old great-grandmother cannot. As India's elderly population doubles by 2050, the grandparent dividend will shrink precisely when childcare demands rise.
+1. **Heterogeneous effects**: Some grandparents reduce maternal childcare substantially while others increase it, yielding null average effects.
+
+2. **Selection mechanisms**: Families co-reside with grandparents for reasons beyond childcare (eldercare, housing, financial support), obscuring any childcare benefits.
+
+3. **Measurement challenges**: Standard time diary methods may not capture indirect childcare support (coordination, supervision, backup care).
+
+As India continues to urbanize and age, policymakers should not assume that multi-generational co-residence alone solves childcare challenges. Our null findings suggest that:
+
+1. **Formal childcare infrastructure is essential**: Even in the presence of co-resident grandparents, mothers' childcare burden is not significantly reduced. Formal childcare options are needed regardless of household structure.
+
+2. **Heterogeneity matters**: Policies should recognize that some grandparents provide substantial support while others may themselves require care, necessitating flexible support systems.
+
+3. **Measurement and evaluation**: Understanding grandparent contributions requires better measurement tools than standard time use surveys, including qualitative methods and direct observation.
 
 The path forward likely requires both formal infrastructure investments and policies supporting multi-generational households. Rather than viewing these as substitutes, they should be seen as complements: formal childcare reduces families' total care burden, while elderly-friendly housing and home-based care services enable those who choose multi-generational living to do so comfortably. The goal should be expanding families' choices—not forcing dependence on either grandparents or expensive private care.
 
-More broadly, our findings underscore a fundamental asymmetry in how societies value care work. Grandparent childcare—worth at minimum India's median informal childcare wage (₹100-150/hour × 38 minutes/day × 365 days ≈ ₹35,000/year per household)—goes entirely unmeasured in GDP, unrecognized in policy, and uncompensated. Yet this invisible labor enables mothers' market work, children's well-being, and households' economic stability. Making care work visible—and supporting those who provide it—remains one of the most important policy challenges of our aging century.
+More broadly, our null findings highlight challenges in measuring informal care work. Even when grandparents co-reside with families, their childcare contributions may not be visible in standard time use surveys. This measurement gap—whether reflecting true null effects or methodological limitations—underscores the difficulty of valuing and supporting informal care arrangements. Better measurement tools are needed to understand how multi-generational households actually distribute care work, enabling evidence-based policies that support both elderly care providers and working mothers.
 
 # References
 

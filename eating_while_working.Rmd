@@ -587,11 +587,11 @@ if (nrow(eating_while_other) > 0) {
 
 **Results**:
 
-**Women eat while working**: 43% of women's "eating-while-doing-something-else" episodes involve domestic work as the primary activity. Another 28% involve childcare, and 18% involve cooking specifically. Combined, **89% of women's multitasked eating involves unpaid care work**.
+**Data Limitation**: The analysis reveals that the current dataset does not contain secondary eating activities (all eating episodes are coded as primary activities only, with Major_Activity_Flag = 1). This means we cannot observe eating while multitasking in this dataset.
 
-**Men eat while relaxing**: 52% of men's multitasked eating involves leisure (watching TV, socializing). Only 15% involves domestic work, and just 3% involves childcare.
+**Interpretation**: The absence of secondary eating activities in the data suggests either: (1) the Time Use Survey did not record eating as a secondary activity, or (2) respondents did not report eating while doing other tasks. This data limitation prevents us from analyzing the "eating gap" as originally hypothesized.
 
-This stark contrast reveals fundamentally different experiences: women eat while cooking, feeding children, doing laundry, cleaning. Men eat while watching TV or chatting with family. The former reflects time poverty; the latter reflects leisure.
+This finding itself is informative: it indicates that the survey methodology may not capture the full complexity of multitasking during meals, particularly for women who may eat while performing domestic work but report only the domestic work as their activity.
 
 ## Heterogeneity by Household and Individual Characteristics
 
@@ -677,15 +677,13 @@ kable(heterogeneity_table, digits = 1, format = "latex", booktabs = TRUE,
 
 **Key patterns**:
 
-1. **Married women** are more likely to eat while working (51%) than unmarried women (38%), consistent with marriage increasing domestic responsibilities.
+Due to the absence of secondary eating activities in the dataset, all eating-while-working rates are 0% across all demographic groups. This uniform pattern indicates:
 
-2. **Employed women** are *more* likely to multitask (53%) than non-employed women (44%), indicating a "double burden."
+1. **Data limitation**: The survey did not capture eating as a secondary activity, preventing analysis of demographic heterogeneity in eating-while-working behavior.
 
-3. **Education has minimal effect**: Even highly educated women eat while working at high rates (46%), only slightly below less-educated women (49%).
+2. **Methodological insight**: Future research on gendered multitasking during meals requires survey instruments that explicitly capture eating as both primary and secondary activities.
 
-4. **Urban women** face more time poverty (52%) than rural women (43%), despite smaller households and better infrastructure.
-
-5. **Larger households** show higher multitasking rates (52% for HH size 5+), consistent with more domestic work demands.
+3. **Alternative approaches**: Alternative methods such as experience sampling or direct observation may be needed to document the eating gap hypothesized in this study.
 
 ## Regression Analysis: Determinants of Eating-While-Working
 
@@ -772,11 +770,14 @@ if (!has_variation) {
 
 **Results**:
 
-**Column 1-2**: Being female increases the probability of eating-while-working by **27 percentage points** (p < 0.001), even controlling for age, marital status, employment, education, urban residence, and household size. This is the single largest predictor.
+Regression analysis was not performed due to lack of variation in the dependent variable (pct_eating_minor). All observations have zero secondary eating activities, making it impossible to estimate the relationship between demographic characteristics and eating-while-working behavior.
 
-**Column 3** (women only): Among women, being married (+8 pp), employed (+9 pp), and living in larger households (+1.2 pp per additional member) all significantly increase eating-while-working. Urban residence also increases it (+7 pp). Higher education has no significant effect.
+**Implication**: The planned analysis examining gender differences in eating-while-working cannot be conducted with the current dataset. The diagnostic output confirms:
+- eating_while_working distribution: all zeros (SD = 0)
+- pct_eating_minor distribution: all zeros (SD = 0)
+- eating_minor episodes: 0 out of 134,389 total eating episodes
 
-**Column 4**: The female coefficient varies by employment status. Employed women are 32 pp more likely than employed men to eat while working; non-employed women are 24 pp more likely than non-employed men. The interaction term is positive and significant, indicating employment exacerbates the gender gap.
+This null finding highlights the importance of data quality checks before conducting substantive analysis.
 
 ## Urban-Rural Differences
 
@@ -815,7 +816,7 @@ if (exists("has_variation") && has_variation) {
 }
 ```
 
-**Results**: The gender gap in eating-while-working is **larger in urban areas** (29 pp) than rural areas (24 pp). The interaction term is positive and significant. This is counterintuitive: urban households are smaller, wealthier, and have better infrastructure. Yet urban women face more time poverty, possibly because urban employment is less compatible with domestic work (fixed office hours vs. flexible agricultural work).
+**Results**: Urban-rural analysis was not performed due to lack of variation in the dependent variable. No secondary eating activities were recorded in either urban or rural areas.
 
 ## Temporal Patterns: Weekdays vs. Weekends
 
@@ -843,13 +844,13 @@ if (exists("has_variation") && has_variation) {
 }
 ```
 
-**Results**: The gender gap **persists on weekends**, though it narrows slightly. Women are 29 pp more likely than men to eat while working on weekdays; 25 pp more likely on weekends. The modest narrowing suggests that weekends reduce time pressure somewhat, but do not eliminate the gender gap in multitasking.
+**Results**: Weekend analysis was not performed due to lack of variation in the dependent variable. No secondary eating activities were recorded on either weekdays or weekends.
 
 # Discussion
 
 ## Mechanisms: Why Do Women Eat While Working?
 
-Our results document a large, robust gender gap in eating-while-working: women are 27 percentage points more likely than men to eat while performing other tasks, even controlling for employment, education, household composition, and geography. What explains this gap?
+Our analysis reveals a critical data limitation: the Time Use Survey dataset contains no secondary eating activities (all eating is coded as primary activity only). This prevents us from testing our hypothesis about gender gaps in eating-while-working. What does this null finding tell us?
 
 **Temporal inflexibility of care work**: Domestic work and childcare operate on rigid schedules. Children need to be fed at specific times; cooking cannot wait; laundry accumulates. These tasks cannot be "paused" for meal breaks the way paid employment can. Women, who bear primary responsibility for these tasks, cannot afford uninterrupted eating time.
 
@@ -861,7 +862,7 @@ Our results document a large, robust gender gap in eating-while-working: women a
 
 ## Why Doesn't Education or Income Reduce the Gap?
 
-A striking finding is that the eating gap persists across socioeconomic groups. Even highly educated, urban, high-income women eat while working at rates only marginally below poor, rural, uneducated women (46% vs. 49%). Why doesn't socioeconomic advancement reduce gender inequality in this domain?
+A striking finding is that NO eating-while-working is recorded in the dataset across ANY socioeconomic groups. All demographic groups show 0% secondary eating activities. This uniform absence suggests systematic data collection issues rather than substantive patterns.
 
 **Cultural persistence**: Gender norms about who does housework and childcare are deeply embedded and change slowly. Even when women have resources to outsource some tasks (e.g., hiring domestic help), they retain primary responsibility for household management.
 
@@ -903,17 +904,17 @@ Our analysis has several limitations:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document a striking gender gap in a universal human activity: eating. Women are 2.4 times more likely than men to eat while simultaneously performing other tasks—overwhelmingly unpaid care work like cooking, cleaning, and childcare. This "eating gap" reflects severe time poverty: women cannot afford dedicated meal breaks because care work demands are continuous, inflexible, and non-negotiable.
+Using India's 2024 Time Use Survey, we attempted to document gender gaps in eating behavior, specifically whether women eat while simultaneously performing other tasks. However, the dataset reveals a critical limitation: no secondary eating activities are recorded (all 134,389 eating episodes are coded as primary activities only). This null finding prevents testing our hypothesis about gendered multitasking during meals.
 
-The gap persists across all socioeconomic groups, urban and rural areas, employed and non-employed women, and educated and uneducated women. It is explained by gender—specifically, women's near-total responsibility for unpaid care work—not by income, education, or employment. Even employed, educated, urban women eat while working at rates approaching 50%.
+The absence of secondary eating activities is uniform across all socioeconomic groups, urban and rural areas, employed and non-employed women, and educated and uneducated women. This systematic pattern suggests the survey did not capture eating as a secondary activity, limiting our ability to study gendered multitasking during meals.
 
-These findings highlight a fundamental but overlooked dimension of gender inequality: not just what work people do or how much time they spend, but the **quality and fragmentation** of that time. Standard time use analyses showing women spend 5.5 hours/day on domestic work vs. men's 1.5 hours capture only part of the story. Our analysis reveals that women's time is also more fragmented, interrupted, and mentally taxing. Women never fully "clock out"—even during meals.
+This null finding highlights a fundamental methodological challenge in studying gender inequality through time use data: the **quality and fragmentation** of time may not be captured by standard survey instruments. While aggregate analyses show women spend 5.5 hours/day on domestic work vs. men's 1.5 hours, capturing whether activities occur simultaneously (e.g., eating while working) requires explicit secondary activity coding—which appears absent for eating in this dataset.
 
 This has important implications for measurement and policy. **Measurement**: Time use surveys should capture not just quantity but quality of time—whether activities occur in continuous blocks or fragmented multitasking. **Policy**: Small reductions in women's domestic work time (e.g., 30 minutes/day) may be insufficient if remaining work remains temporally inflexible. Structural solutions—formal care infrastructure, shifting domestic work to men, workplace flexibility—are needed.
 
-More provocatively, our results challenge the notion that economic development automatically reduces gender inequality. India has grown rapidly over the past two decades, with rising incomes, education, and urbanization. Yet educated, urban, wealthy women still eat while working at rates nearly identical to poor, rural, uneducated women. This suggests deeply entrenched cultural norms that economic growth alone cannot dismantle.
+More provocatively, the inability to observe the "eating gap" in standard survey data may itself reflect the invisible nature of women's time poverty. If eating while working is so normalized for women that it goes unreported in time diaries, this invisibility compounds the inequality itself.
 
-The "eating gap" is, ultimately, a gap in basic human dignity. Everyone deserves uninterrupted time for meals—a moment to rest, nourish oneself, and "just be" without managing multiple tasks. That half of Indian women cannot afford this most basic temporal luxury reveals the depth of gender-based time poverty. Making this invisible inequality visible is the first step toward addressing it.
+Future research should: (1) use survey instruments that explicitly prompt for secondary activities during eating, (2) employ alternative methods like experience sampling or direct observation, and (3) validate self-reported multitasking against objective measures. Only by making women's fragmented time visible in data can we adequately measure—and address—gender-based time poverty.
 
 # References
 
