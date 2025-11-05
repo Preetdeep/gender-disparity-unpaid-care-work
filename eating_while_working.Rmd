@@ -150,10 +150,28 @@ household_size_df <- data %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
 
-data <- data %>%
-  left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
+# STEP 3b: Create household-level moderator variables
+household_chars <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    # Has servant/employee in household
+    has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
 
-rm(household_size_df)
+    # Has children (unmarried child code 5, grandchild code 6, married child code 3)
+    has_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+    n_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+
+    # Young children (under 6)
+    has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+
+    .groups = "drop"
+  )
+
+data <- data %>%
+  left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  left_join(household_chars, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+rm(household_size_df, household_chars)
 
 # STEP 4: Process data
 processed_data <- data %>%
@@ -207,6 +225,16 @@ processed_data <- data %>%
 
     # Employment
     employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Employment type (for heterogeneity analysis)
+    employment_type = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-employed",
+      Principal_Activity_Status %in% c(21, 31) ~ "Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual labor",
+      TRUE ~ "Not employed"
+    ),
+    self_employed = as.numeric(Principal_Activity_Status %in% c(11, 12)),
+    salaried = as.numeric(Principal_Activity_Status %in% c(21, 31)),
 
     # Marital status
     married = as.numeric(Marital_Status == 2),
