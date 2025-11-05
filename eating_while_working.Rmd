@@ -107,10 +107,20 @@ if(has_location) cat(sprintf("Location: %s\n", location_col))
 rm(data_full)
 
 # STEP 2: Load data with available columns
+# Check for relationship column (needed for household characteristics)
+rel_cols <- grep("Relationship.*Head|Relation.*Head", all_cols, value = TRUE, ignore.case = TRUE)
+rel_col <- if(length(rel_cols) > 0) rel_cols[1] else NULL
+
 required_cols <- c("Gender", act_col, "time_spent", "Weight",
                   "Major_Activity_Flag", "Age", "Marital_Status",
                   "Highest_Education", "Sector", "Principal_Activity_Status",
                   "State", "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No")
+
+# Add relationship column if available
+if (!is.null(rel_col)) {
+  required_cols <- c(required_cols, rel_col)
+  cat(sprintf("Relationship column: %s\n", rel_col))
+}
 
 optional_cols <- c(multi_col, simul_col, day_col, location_col)
 optional_cols <- optional_cols[!is.null(optional_cols)]
@@ -123,6 +133,9 @@ data <- read_dta("TimeUse106PER.dta",
 # Rename to standard names
 if (act_col != "Activity_Code_3Digit") {
   data <- data %>% rename(Activity_Code_3Digit = !!sym(act_col))
+}
+if (!is.null(rel_col) && rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
 }
 if (has_multi_flag && multi_col != "Multiple_Activity_Flag") {
   data <- data %>% rename(Multiple_Activity_Flag = !!sym(multi_col))
@@ -150,28 +163,37 @@ household_size_df <- data %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
 
-# STEP 3b: Create household-level moderator variables
-household_chars <- data %>%
-  group_by(FSU_Serial_No, Sample_HH_No) %>%
-  summarise(
-    # Has servant/employee in household
-    has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
+# STEP 3b: Create household-level moderator variables (if relationship column available)
+if ("Relationship_to_Head" %in% names(data)) {
+  household_chars <- data %>%
+    group_by(FSU_Serial_No, Sample_HH_No) %>%
+    summarise(
+      # Has servant/employee in household
+      has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
 
-    # Has children (unmarried child code 5, grandchild code 6, married child code 3)
-    has_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
-    n_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+      # Has children (unmarried child code 5, grandchild code 6, married child code 3)
+      has_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+      n_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
 
-    # Young children (under 6)
-    has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+      # Young children (under 6)
+      has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
 
-    .groups = "drop"
-  )
+      .groups = "drop"
+    )
 
-data <- data %>%
-  left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
-  left_join(household_chars, by = c("FSU_Serial_No", "Sample_HH_No"))
+  data <- data %>%
+    left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+    left_join(household_chars, by = c("FSU_Serial_No", "Sample_HH_No"))
 
-rm(household_size_df, household_chars)
+  rm(household_size_df, household_chars)
+} else {
+  cat("Note: Relationship_to_Head not available, skipping household characteristics\n")
+
+  data <- data %>%
+    left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+  rm(household_size_df)
+}
 
 # STEP 4: Process data
 processed_data <- data %>%
