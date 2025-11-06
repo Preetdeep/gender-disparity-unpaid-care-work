@@ -710,15 +710,15 @@ if (has_variation) {
   modelsummary(list("All" = m1, "All + FE" = m2, "Women Only" = m3, "Interaction" = m4),
                stars = c('*' = .1, '**' = .05, '***' = .01),
                gof_map = c("nobs", "r.squared"),
-               coef_map = c("femaleTRUE" = "Female",
+               coef_map = c("female" = "Female",
                            "Age" = "Age",
                            "I(Age^2)" = "Age²",
-                           "marriedTRUE" = "Married",
-                           "employedTRUE" = "Employed",
-                           "higher_educationTRUE" = "Higher Education",
-                           "urbanTRUE" = "Urban",
+                           "married" = "Married",
+                           "employed" = "Employed",
+                           "higher_education" = "Higher Education",
+                           "urban" = "Urban",
                            "household_size" = "Household Size",
-                           "femaleTRUE:employedTRUE" = "Female × Employed"),
+                           "female:employed" = "Female × Employed"),
                title = "Determinants of Multitasking (% of Time Spent in Simultaneous Activities)",
                notes = "Dependent variable: Percentage of time spent multitasking (0-100). Standard errors clustered at household level in parentheses.")
 } else {
@@ -761,9 +761,9 @@ if (has_variation) {
   modelsummary(list("Interaction" = m5, "Urban" = m6, "Rural" = m7),
              stars = c('*' = .1, '**' = .05, '***' = .01),
              gof_map = c("nobs", "r.squared"),
-             coef_map = c("femaleTRUE" = "Female",
-                         "urbanTRUE" = "Urban",
-                         "femaleTRUE:urbanTRUE" = "Female × Urban"),
+             coef_map = c("female" = "Female",
+                         "urban" = "Urban",
+                         "female:urban" = "Female × Urban"),
              title = "Gender Gap in Multitasking: Urban vs. Rural",
              notes = "Standard errors clustered at household level. All models include controls and state fixed effects.")
 } else {
@@ -802,9 +802,9 @@ if (has_variation && "weekend" %in% names(person_day_data)) {
   modelsummary(list("Weekend Interaction" = m8),
              stars = c('*' = .1, '**' = .05, '***' = .01),
              gof_map = c("nobs", "r.squared"),
-             coef_map = c("femaleTRUE" = "Female",
-                         "weekendTRUE" = "Weekend",
-                         "femaleTRUE:weekendTRUE" = "Female × Weekend"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "female:weekend" = "Female × Weekend"),
              title = "Gender Gap in Multitasking: Weekdays vs. Weekends",
              notes = "Standard errors clustered at household level. Model includes controls and state fixed effects.")
 } else {
