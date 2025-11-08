@@ -57,19 +57,82 @@ This document provides comprehensive descriptive statistics for India's Time Use
 # Data Overview
 
 ```{r load_data}
-# Load data with 10% random sample for computational feasibility
-set.seed(12345)
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
 
-data <- read_dta("TimeUse106PER.dta",
-                 col_select = c(
-                   "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No",
-                   "Gender", "Age", "Marital_Status", "Highest_Education",
-                   "Sector", "Principal_Activity_Status",
-                   "Activity_Code_2Digit", "Activity_Code_3Digit",
-                   "time_spent", "Weight", "Major_Activity_Flag",
-                   "Unpaid_Paid_Status", "Day_of_Week",
-                   "Relationship_to_Head", "State", "Household_Size"
-                 ))
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+
+# Check for relationship variable (might have different name)
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Detect relationship column name
+relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
+                          all_cols, value = TRUE, ignore.case = TRUE)
+
+if ("Relationship_to_Head" %in% all_cols) {
+  rel_col <- "Relationship_to_Head"
+} else if ("Relation_to_Head" %in% all_cols) {
+  rel_col <- "Relation_to_Head"
+} else if ("Rel_to_Head" %in% all_cols) {
+  rel_col <- "Rel_to_Head"
+} else if (length(relationship_cols) > 0) {
+  rel_col <- relationship_cols[1]  # Use first match
+} else {
+  rel_col <- NULL  # Will create dummy variable
+  cat("WARNING: No relationship-to-head column found. Some analyses will be limited.\n")
+}
+
+# Detect household size column
+hh_size_cols <- grep("household.*size|Household.*Size|HH.*Size|hhsize",
+                     all_cols, value = TRUE, ignore.case = TRUE)
+
+if ("Household_Size" %in% all_cols) {
+  hh_size_col <- "Household_Size"
+} else if ("HH_Size" %in% all_cols) {
+  hh_size_col <- "HH_Size"
+} else if (length(hh_size_cols) > 0) {
+  hh_size_col <- hh_size_cols[1]
+} else {
+  hh_size_col <- NULL
+  cat("WARNING: No household size column found.\n")
+}
+
+# Build column selection vector
+cols_to_select <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No",
+                    "Gender", "Age", "Marital_Status", "Highest_Education",
+                    "Sector", "Principal_Activity_Status",
+                    "Activity_Code_2Digit", "Activity_Code_3Digit",
+                    "time_spent", "Weight", "Major_Activity_Flag",
+                    "Unpaid_Paid_Status", "Day_of_Week", "State")
+
+if (!is.null(rel_col)) cols_to_select <- c(cols_to_select, rel_col)
+if (!is.null(hh_size_col)) cols_to_select <- c(cols_to_select, hh_size_col)
+
+# Clean up
+rm(data_full)
+gc()
+
+# Load data with correct column selection
+set.seed(12345)
+data <- read_dta("TimeUse106PER.dta", col_select = cols_to_select)
+
+# Rename to standard names if needed
+if (!is.null(rel_col) && rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+if (!is.null(hh_size_col) && hh_size_col != "Household_Size") {
+  data <- data %>% rename(Household_Size = !!sym(hh_size_col))
+}
+
+# Create dummy variables if columns don't exist
+if (is.null(rel_col)) {
+  data <- data %>% mutate(Relationship_to_Head = NA_real_)
+}
+if (is.null(hh_size_col)) {
+  data <- data %>% mutate(Household_Size = NA_real_)
+}
 
 # 10% random sample
 sampled_data <- data %>%
