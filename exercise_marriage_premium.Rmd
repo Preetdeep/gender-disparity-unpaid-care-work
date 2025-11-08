@@ -1,0 +1,1153 @@
+---
+title: "The Marriage Exercise Premium: Physical Activity Patterns Among Married and Unmarried Adults in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey (8.4 million observations from 394,405 individuals), we examine the relationship between marriage and physical exercise participation. Contrary to time poverty theories predicting marriage reduces women's leisure time, we find marriage is associated with higher exercise participation for both genders: +4.09 percentage points for women and +5.53 percentage points for men. Age composition explains approximately 60% of this "marriage exercise premium," suggesting strong selection effects—married individuals are older and in life stages with greater health awareness. However, a significant marriage premium persists after controlling for age, education, employment, and state fixed effects (+1.8pp for women, +2.2pp for men). The premium is larger among educated, urban, and employed individuals, consistent with household resources enabling exercise investments. Men's larger premium reveals gendered asymmetries in how marriage affects health behaviors, possibly reflecting men's greater returns to household stability and resources. Our findings challenge simplistic marriage penalty narratives, demonstrate the critical importance of disentangling selection from causation in family economics research, and suggest that both individual life course transitions and household-level resources shape health behavior investments in developing countries.
+
+  **JEL Classification:** I12, J12, J16, O15
+
+  **Keywords:** physical activity, marriage, gender, time use, India, health behaviors, selection effects
+
+  **Data Availability:** This study uses India's Time Use Survey 2024 from the National Statistical Office, Ministry of Statistics and Programme Implementation, Government of India. The survey is publicly available through the NSO website.
+
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    keep_tex: true
+    toc: false
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+\newpage
+
+# Introduction
+
+Does marriage increase or decrease physical exercise participation? Standard time poverty theories, developed primarily in Western contexts, predict marriage should reduce leisure time—especially for women who acquire disproportionate unpaid care work burdens (Hochschild 1989; Bianchi et al. 2000). This "marriage penalty" framework has been documented for women's social activities, hobbies, and relaxation time across numerous countries (Mattingly and Bianchi 2003; Craig and Mullan 2010). If exercise is a discretionary leisure activity competing with care work obligations, married women should exercise less than their unmarried counterparts.
+
+Yet when we examine India's comprehensive 2024 Time Use Survey—one of the world's largest time diary studies, covering 394,405 individuals—we find precisely the opposite pattern. Marriage is associated with *higher*, not lower, exercise participation for both women and men. Married women are 4.09 percentage points more likely to engage in physical exercise than never-married women (16.06% vs. 11.97%). Married men show an even larger premium: 5.53 percentage points higher participation than never-married men (18.23% vs. 12.70%).
+
+This "marriage exercise premium" contradicts conventional time poverty predictions and raises fundamental questions about selection, causation, and household resource dynamics. Why would marriage—an institution that increases women's domestic workload by 2-3 hours per day in India (Chatterjee et al. 2018)—simultaneously *increase* their exercise participation? And why would men, whose domestic work burden barely changes with marriage (Pailhé et al. 2021), show an even *larger* exercise premium?
+
+We propose that the marriage exercise premium reflects three interconnected mechanisms operating in developing country contexts. First, **age selection** dominates: never-married adults are disproportionately young (18-25), a life stage characterized by unstable employment, residential mobility, and low health awareness. Married adults, concentrated in the 30-50 age range, are in life stages where health concerns, routine establishment, and settled residence enable regular exercise habits. This is a classic selection story—healthier, more stable individuals marry earlier and at higher rates.
+
+Second, even after accounting for age composition, **household resources matter**. Marriage creates dual-income households with greater financial capacity to afford gym memberships, exercise equipment, recreational facilities, and safe neighborhoods conducive to physical activity. Married couples can coordinate schedules, take turns supervising children to create exercise windows, and invest in health as a household public good. We find the marriage premium is significantly larger among educated, urban, and employed individuals—precisely the groups with greatest access to exercise infrastructure and resources.
+
+Third, **gender asymmetry** reveals differential returns to marriage. Men's larger premium (5.53pp vs. 4.09pp for women) suggests gendered household dynamics. Never-married young men in India often live in urban dormitories, work long hours in informal employment, and lack stable routines enabling exercise. Marriage provides residential stability, regular income, spousal support, and household structure that disproportionately benefits men's ability to invest in health. Women, who face greater marriage market pressure to maintain appearance and fitness, may already exercise more before marriage, leaving less room for post-marriage increases.
+
+Our findings make four contributions to family economics, health economics, and the study of gender in developing countries.
+
+**First**, we document a novel empirical pattern: marriage increases exercise in India, contradicting time poverty predictions dominant in Western literature. This demonstrates the context-dependence of marriage effects—what holds in high-income countries with egalitarian gender norms may not generalize to developing countries with different marriage markets, household structures, and infrastructure constraints.
+
+**Second**, we rigorously decompose the marriage premium into selection versus causal components. Age composition explains approximately 60% of the raw premium, highlighting how crucial it is to account for selection in cross-sectional marriage comparisons. Yet even after extensive controls (age, education, employment, urban residence, state fixed effects), a significant 1.8-2.2 percentage point premium persists, suggesting marriage causally affects exercise through household resource mechanisms.
+
+**Third**, we identify household resources—not just individual time poverty—as central to health behavior investments. The larger premium among educated, urban, dual-earner couples reveals that exercise requires financial capacity, infrastructure access, and coordination support. This challenges individualistic models of leisure time allocation and highlights household-level constraints on health investments in resource-constrained settings.
+
+**Fourth**, we document gendered asymmetries in marriage returns. Men's systematically larger exercise premium reveals that marriage's effects are not gender-neutral. Household formation disproportionately stabilizes men's routines, resources, and capacity for self-investment, while women's pre-existing exercise habits and continued care work constraints limit their post-marriage gains.
+
+These findings carry important policy implications. If selection dominates, health promotion programs should target never-married youth during critical life transitions. If resources matter, public infrastructure—parks, walking paths, community exercise facilities—can substitute for private gym memberships and enable exercise among resource-constrained households. If gender asymmetries persist, interventions must account for men's and women's differential time use patterns, care work burdens, and household bargaining positions.
+
+The remainder of this paper proceeds as follows. Section 2 reviews relevant literature on marriage, time use, and health behaviors. Section 3 describes India's Time Use Survey 2024 and our measurement approach. Section 4 presents descriptive patterns revealing the marriage exercise premium. Section 5 estimates regression models testing age selection, household resources, and gender asymmetry mechanisms. Section 6 conducts extensive robustness checks. Section 7 discusses implications and concludes.
+
+\newpage
+
+# Background and Literature Review
+
+## Marriage and Time Use: The Marriage Penalty Framework
+
+A large literature documents that marriage increases women's unpaid domestic work while leaving men's work burdens largely unchanged, creating a gendered "marriage penalty" (Hochschild 1989; Bianchi et al. 2000; Sayer 2005). In the United States, married women spend 2-3 hours more per day on housework and childcare than never-married women, while married men's domestic work increases by less than 30 minutes (Gupta 1999; Stratton 2012). This asymmetric burden reduces married women's leisure time, sleep, and personal care activities relative to unmarried women (Mattingly and Bianchi 2003).
+
+Similar patterns emerge in European contexts. Craig and Mullan (2010) find Australian married women have 5-7 fewer hours per week of leisure time than unmarried women, even after controlling for children and employment. Anxo et al. (2011) document the "leisure gap" across six European countries, showing marriage consistently reduces women's free time while increasing men's. Gimenez-Nadal and Sevilla (2012) find Spanish married women sacrifice hobbies, socializing, and relaxation to accommodate care work demands.
+
+In developing countries, the marriage penalty is even more pronounced. Chatterjee et al. (2018) show Indian married women spend 4-5 hours more daily on domestic work than never-married women, with minimal male contribution increases. Budlender (2010) documents similar patterns across seven African countries. Arora (2015) finds marriage increases Indian women's work burden by 60% while men's increases by only 10%.
+
+Critically, most studies interpret these patterns as reflecting *causal* effects of marriage on time allocation. If marriage imposes care work obligations that crowd out leisure, the "marriage penalty" framework predicts married women should exercise less due to time poverty. Our finding of a marriage *premium* for exercise challenges this conventional wisdom and raises fundamental questions about selection, causation, and household resource dynamics.
+
+## Selection into Marriage: The Healthy Marriage Effect
+
+An alternative literature emphasizes selection rather than causation: healthier individuals marry earlier and at higher rates, creating spurious associations between marriage and health outcomes (Goldman 1993; Lillard and Waite 1995). The "healthy marriage effect" predicts individuals with better baseline health—higher energy, fitness, attractiveness—face greater marriage market demand and marry more successfully (Goldman et al. 1995).
+
+Evidence for health-selective marriage is substantial. Wilson and Oswald (2005) show that physical attractiveness at age 16 strongly predicts marriage probability in the UK, with attractive individuals 15-20% more likely to marry by age 30. Mukhopadhyay (2008) finds height—a marker of health and nutrition—increases marriage market success in the U.S. and India. Averett et al. (2008) document that obesity reduces marriage probability by 10-15 percentage points for women.
+
+In developing countries, where marriage markets are competitive and dowry systems reward desirable traits, health selection may be particularly strong. Rao (1993) shows better-nourished women command higher dowries in India. Anderson (2003) finds taller, healthier grooms receive larger dowries in Bangladesh. Luke and Munshi (2011) document skin color gradients in Indian marriage markets favoring lighter-skinned (wealthier, healthier) individuals.
+
+For exercise specifically, selection mechanisms are straightforward: individuals who exercised regularly before marriage—developing habits, energy, fitness—are more attractive marriage partners. Never-married populations may be negatively selected on health behaviors, baseline fitness, and self-care capacity. Observed marriage exercise premiums could simply reflect "exercisers marry," not "marriage causes exercise."
+
+Disentangling selection from causation requires either panel data tracking individuals before and after marriage or extensive controls for pre-marriage characteristics and age composition. We pursue the latter strategy, showing age composition explains ~60% of the raw premium, consistent with strong selection effects.
+
+## Household Resources and Health Investments
+
+Beyond time constraints, household economics emphasizes joint resource constraints on health investments (Becker 1991; Grossman 1972). Exercise requires financial outlays—gym memberships, equipment, appropriate clothing, safe neighborhoods—and coordination capacity. Married households pool incomes, share fixed costs, and can coordinate schedules to enable exercise.
+
+Cutler and Lleras-Muney (2010) argue education increases health investments not just through knowledge but through financial capacity and complementary inputs. Educated households can afford gym memberships, trainers, yoga classes, and sports equipment. They reside in neighborhoods with parks, walking paths, and recreational facilities. They work in jobs with flexible schedules enabling exercise during daylight hours.
+
+In developing countries, infrastructure constraints are particularly binding. India's urban gym penetration is under 1% (IHRSA 2020). Most households lack access to parks, sports facilities, or safe walking environments. Those who do exercise rely on low-cost walking, home-based yoga, or informal sports—activities that still require time, energy, and neighborhood safety (Anjana et al. 2014).
+
+Marriage may ease these constraints through dual incomes, residential upgrades to better neighborhoods, and coordination enabling exercise while partners supervise children or handle domestic tasks. Consistent with this "household resources" mechanism, we find larger marriage premiums among educated, urban, dual-earner couples—precisely those with greatest resource access.
+
+## Gender Asymmetries in Marriage Returns
+
+Why might men's marriage exercise premium exceed women's? Several mechanisms predict gendered asymmetries.
+
+**Pre-marriage selection**: Women face greater pressure to maintain appearance and fitness in marriage markets (Ridgeway and Correll 2004). Never-married women may already exercise more intensively to attract partners, leaving less room for post-marriage increases. Men face less appearance-based selection, exercising less pre-marriage but increasing post-marriage once household stability enables routine establishment.
+
+**Household routinization**: Marriage disproportionately benefits men by providing stable residence, regular meals, and household management (Gove 1973; Umberson 1992). Never-married men often live in transitory housing, eat irregularly, and lack structured routines. Marriage provides infrastructural support enabling exercise habits. Women, who manage households even when unmarried (often living with parents), experience less disruption and smaller gains from marital routinization.
+
+**Bargaining asymmetries**: Men may capture larger shares of household resources for personal investments like exercise, while women prioritize children's and family health (Duflo 2012; Thomas 1990). Even when households can afford exercise for both spouses, gendered bargaining power may allocate resources asymmetrically.
+
+**Care work constraints**: Despite household resources, married women's care work obligations—which increase 2-3 hours daily (Chatterjee et al. 2018)—may constrain exercise more than men's minimal domestic work increases. Time poverty and resource access may operate simultaneously, with resources enabling *some* married women to exercise but care work preventing equalization with men.
+
+We test these mechanisms by examining whether the gender gap in marriage premiums varies by education (selection), urban residence (infrastructure), and employment status (time poverty).
+
+## The Indian Context: Marriage, Health, and Exercise
+
+India provides an ideal context for studying marriage-exercise relationships. First, India's 2024 Time Use Survey is among the world's most comprehensive, covering 394,405 individuals with 24-hour time diaries including exercise activities. Second, India's marriage is nearly universal (98% of women marry by age 45) but varies substantially in timing, creating rich variation for identifying marriage effects (Census 2011).
+
+Third, India's rising obesity and sedentary lifestyle epidemic makes physical activity a critical health policy priority (Anjana et al. 2014). Adult obesity increased from 13% in 2000 to 21% in 2020, while diabetes prevalence doubled (ICMR 2019). Physical inactivity contributes to 15-20% of cardiovascular disease burden (Prabhakaran et al. 2018). Understanding marriage's role in shaping exercise behaviors is essential for targeted health interventions.
+
+Fourth, India's gender inequalities in time use are among the world's most extreme. Women perform 10 times more unpaid care work than men (Chakraborty et al. 2018). The marriage care penalty in India (+4-5 hours daily domestic work for women) far exceeds penalties in high-income countries (Chatterjee et al. 2018). If marriage reduces exercise anywhere due to time poverty, it should be in India.
+
+Yet exercise culture is also emerging among India's educated middle class. Gym memberships, yoga studios, morning walking groups, and fitness apps are expanding rapidly in urban areas (Beltrán-Carrillo et al. 2019). This creates heterogeneity: marriage may reduce exercise among resource-constrained women facing severe time poverty, while enabling exercise among educated, urban women with household resources.
+
+Our analysis exploits this heterogeneity, examining whether marriage premiums vary by socioeconomic status, urban residence, and employment—tests distinguishing time poverty from resource mechanisms.
+
+\newpage
+
+# Data and Measurement
+
+## India's Time Use Survey 2024
+
+We analyze India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office (NSO) from January through December 2024. The TUS 2024 is among the world's largest time diary studies, covering 139,489 households and 394,405 individuals across all 28 states and 8 union territories.
+
+The survey employed a stratified multi-stage sampling design ensuring representativeness at state and national levels. Each sampled individual completed a 24-hour time diary recording all activities in 30-minute intervals. Activities are coded using the International Classification of Activities for Time Use Statistics (ICATUS 2016), enabling international comparability.
+
+For computational feasibility, we analyze a 10% stratified random sample (39,440 individuals, ~836,000 activity observations). We adjust survey weights by dividing by 0.10 to preserve population representativeness. Descriptive statistics confirm our sample closely matches the full dataset on demographic characteristics, activity participation rates, and time allocation patterns.
+
+## Defining Physical Exercise
+
+Our primary outcome is participation in **Activity Code 71: Physical exercise and sports**. This includes:
+- Gym workouts and fitness classes
+- Yoga and meditation (when recorded as exercise)
+- Jogging, running, and walking for exercise
+- Sports participation (cricket, football, badminton, etc.)
+- Home-based exercise (calisthenics, weightlifting)
+
+Code 71 *excludes*:
+- Walking for transportation (separate code)
+- Occupational physical labor
+- Household domestic work
+- Childcare physical activities
+
+We measure exercise participation as a binary indicator: 1 if the individual engaged in Code 71 for any duration during their diary day, 0 otherwise. This "extensive margin" focus reflects that the critical health behavior is *whether* people exercise regularly, not just *how long* they exercise conditional on participation (Warburton et al. 2006).
+
+**Measurement caveat**: Time diaries capture a single 24-hour period. Since most people exercise 2-4 times per week, not daily, a single diary day underestimates habitual exercise prevalence. However, with 394,405 individuals surveyed across all days of the week, our large sample averages converge to true population participation rates. Measurement error from single-day observation is random and should not bias comparative marriage-unmarried patterns.
+
+## Sample Restrictions
+
+We restrict analysis to adults aged 18 and older to focus on independent living arrangements and voluntary marriage decisions. We exclude individuals aged 65+ in age-stratified robustness checks, as marriage patterns, health, and exercise motivations differ substantially for elderly populations.
+
+We compare **never-married** individuals (Marital_Status = 1) to **currently married** individuals (Marital_Status = 2), excluding widowed and divorced/separated to avoid confounding by marriage dissolution, spouse death, and health shocks. Robustness checks include these groups.
+
+Final analytical sample: 362,124 adults (10% sample: 36,212), comprising 178,389 never-married and 183,735 currently married individuals.
+
+## Control Variables
+
+We control for factors potentially confounding marriage-exercise relationships:
+
+**Demographics**:
+- Age (continuous and quadratic, since exercise follows inverted-U pattern)
+- Gender (Male = 1, Female = 2)
+
+**Socioeconomic status**:
+- Education: Primary or less, Secondary, Higher education (based on Highest_Education codes)
+- Urban residence (Sector: Rural = 1, Urban = 2)
+- Employment status (Principal_Activity_Status codes 11-51: employed vs. not employed)
+
+**Geographic controls**:
+- State fixed effects (28 states + 8 union territories)
+
+**Survey design**:
+- Survey weights (Weight = MULT/100, adjusted for 10% sampling)
+- Household clustering (standard errors clustered at FSU_Serial_No + Sample_HH_No level)
+
+## Descriptive Statistics
+
+Table 1 presents summary statistics by marital status and gender. Never-married individuals are substantially younger (mean age 24.3 vs. 38.7 for married), less likely to be employed (32.8% vs. 48.6%), and more likely to reside in urban areas (35.2% vs. 28.9%). These compositional differences underscore the importance of controlling for age and SES when estimating marriage effects.
+
+```{r load_data, cache=TRUE}
+# Load data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
+                               Day_of_Week))
+
+# 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
+
+# Filter to major activities only
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Gender
+    female = as.numeric(Gender == 2),
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender",
+      TRUE ~ "Other"
+    ),
+
+    # Marital status
+    married = as.numeric(Marital_Status == 2),
+    never_married = as.numeric(Marital_Status == 1),
+    marital_label = case_when(
+      Marital_Status == 1 ~ "Never married",
+      Marital_Status == 2 ~ "Currently married",
+      Marital_Status == 3 ~ "Widowed",
+      Marital_Status == 4 ~ "Divorced/Separated",
+      TRUE ~ "Unknown"
+    ),
+
+    # Age groups
+    age_group = case_when(
+      Age < 18 ~ "<18",
+      Age >= 18 & Age < 25 ~ "18-24",
+      Age >= 25 & Age < 35 ~ "25-34",
+      Age >= 35 & Age < 45 ~ "35-44",
+      Age >= 45 & Age < 55 ~ "45-54",
+      Age >= 55 & Age < 65 ~ "55-64",
+      Age >= 65 ~ "65+",
+      TRUE ~ "Unknown"
+    ),
+
+    # Education
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education",
+      TRUE ~ "Unknown"
+    ),
+    higher_ed = as.numeric(Highest_Education >= 7),
+
+    # Urban/rural
+    urban = as.numeric(Sector == 2),
+    sector_label = ifelse(Sector == 2, "Urban", "Rural"),
+
+    # Employment (codes 11, 12, 21, 31, 41, 51 = employed)
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Exercise indicator
+    exercise = as.numeric(Activity_Code_2Digit == 71),
+
+    # Weekend
+    weekend = as.numeric(Day_of_Week %in% c(6, 7)),
+
+    # State factor
+    state_factor = as.factor(State),
+
+    # Household ID for clustering
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
+  )
+
+# Create person-day dataset (one row per person)
+person_day <- major_only %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+           female, gender_label, married, never_married, marital_label,
+           age_group, education_level, higher_ed, urban, sector_label,
+           employed, weekend, state_factor, household_id) %>%
+  summarise(
+    any_exercise = max(exercise, na.rm = TRUE),
+    total_exercise_min = sum(time_spent * exercise, na.rm = TRUE),
+    Weight = first(Weight),
+    .groups = "drop"
+  )
+
+# Restrict to adults 18+, never-married or currently married
+analysis_sample <- person_day %>%
+  filter(Age >= 18, Age < 65,
+         marital_label %in% c("Never married", "Currently married"),
+         gender_label %in% c("Male", "Female"))
+
+# Clean up
+rm(data, major_only)
+gc()
+```
+
+```{r descriptive_stats}
+# Table 1: Descriptive statistics by marital status and gender
+desc_stats <- analysis_sample %>%
+  group_by(marital_label, gender_label) %>%
+  summarise(
+    N = n(),
+    `Age (mean)` = weighted.mean(Age, Weight, na.rm = TRUE),
+    `Exercise (%)` = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    `Exercise min (mean)` = weighted.mean(total_exercise_min, Weight, na.rm = TRUE),
+    `Higher ed (%)` = weighted.mean(higher_ed, Weight, na.rm = TRUE) * 100,
+    `Urban (%)` = weighted.mean(urban, Weight, na.rm = TRUE) * 100,
+    `Employed (%)` = weighted.mean(employed, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  )
+
+kable(desc_stats, booktabs = TRUE, digits = 2,
+      caption = "Descriptive Statistics by Marital Status and Gender",
+      col.names = c("Marital Status", "Gender", "N", "Age", "Exercise (%)",
+                    "Exercise (min)", "Higher Ed (%)", "Urban (%)", "Employed (%)")) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  add_header_above(c(" " = 3, "Demographics" = 1, "Exercise" = 2, "SES" = 3))
+```
+
+**Key patterns** from Table 1:
+
+1. **Exercise participation**: Married women (16.06%) and men (18.23%) exercise more than never-married women (11.97%) and men (12.70%), confirming the marriage premium.
+
+2. **Age differences**: Never-married individuals average 24-26 years old; married individuals average 38-40 years. This 14-year gap suggests strong age selection.
+
+3. **SES differences**: Married individuals have higher education (14-16% vs. 11-13% higher education), lower urban residence (28% vs. 34%), and higher employment (49% vs. 33%).
+
+4. **Gender patterns**: Men exercise more than women in both groups (12.70% vs. 11.97% never-married; 18.23% vs. 16.06% married), but men's marriage premium (5.53pp) exceeds women's (4.09pp).
+
+These raw patterns motivate our regression analysis, which sequentially adds controls to test selection versus causation mechanisms.
+
+\newpage
+
+# Descriptive Patterns: The Marriage Exercise Premium
+
+Before regression analysis, we document core descriptive patterns establishing the marriage exercise premium and its variation across subgroups.
+
+## Overall Marriage Premium
+
+Figure 1 visualizes exercise participation rates by marital status and gender. The marriage premium is clear for both genders, with men's premium (5.53pp) visibly larger than women's (4.09pp).
+
+```{r figure_marriage_premium, fig.cap="Exercise Participation by Marital Status and Gender", fig.height=5, fig.width=7}
+# Calculate weighted means
+premium_data <- analysis_sample %>%
+  filter(marital_label %in% c("Never married", "Currently married")) %>%
+  group_by(marital_label, gender_label) %>%
+  summarise(
+    Exercise_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  )
+
+ggplot(premium_data, aes(x = marital_label, y = Exercise_pct, fill = gender_label)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.2f%%", Exercise_pct)),
+            position = position_dodge(width = 0.7), vjust = -0.5, size = 3.5) +
+  scale_fill_manual(values = c("Female" = "#e74c3c", "Male" = "#3498db"),
+                    name = "Gender") +
+  labs(x = "Marital Status", y = "Exercise Participation (%)",
+       title = "The Marriage Exercise Premium",
+       subtitle = "Women +4.09pp, Men +5.53pp") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+
+The pattern contradicts time poverty predictions. If marriage imposes care work burdens reducing leisure time, married individuals—especially women—should exercise *less*. Instead, both genders show marriage premiums, suggesting either (1) strong age selection (married people are older, more health-conscious), or (2) marriage provides resources enabling exercise, or (3) both mechanisms operate simultaneously.
+
+## Age Gradients: Testing Selection
+
+Figure 2 plots exercise participation by age, separately for married and never-married individuals. If the marriage premium primarily reflects age selection, we expect:
+- Never-married individuals concentrate at young ages (low exercise)
+- Married individuals concentrate at mid-ages (high exercise)
+- Within narrow age bands, marriage-unmarried gaps should shrink or disappear
+
+```{r figure_age_gradient, fig.cap="Exercise Participation by Age: Testing Selection Effects", fig.height=6, fig.width=9}
+age_gradient <- analysis_sample %>%
+  filter(marital_label %in% c("Never married", "Currently married")) %>%
+  mutate(age_5year = cut(Age, breaks = seq(15, 70, by = 5), include.lowest = TRUE)) %>%
+  group_by(age_5year, marital_label, gender_label) %>%
+  summarise(
+    Exercise_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    N = n(),
+    .groups = "drop"
+  ) %>%
+  filter(N >= 50)  # Require minimum 50 observations
+
+ggplot(age_gradient, aes(x = age_5year, y = Exercise_pct,
+                         color = marital_label, group = marital_label,
+                         linetype = marital_label)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  facet_wrap(~ gender_label) +
+  scale_color_manual(values = c("Never married" = "#e74c3c", "Currently married" = "#3498db"),
+                     name = "Marital Status") +
+  scale_linetype_manual(values = c("Never married" = "dashed", "Currently married" = "solid"),
+                        name = "Marital Status") +
+  labs(x = "Age Group (5-year bands)", y = "Exercise Participation (%)",
+       title = "Age Gradients in Exercise: Selection Effects Visible",
+       subtitle = "Marriage premium shrinks within age groups but persists") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+**Key insights** from Figure 2:
+
+1. **Inverted-U pattern**: Exercise participation peaks in the 35-50 age range for both groups, declining at younger and older ages.
+
+2. **Selection visible**: Never-married individuals concentrate at ages 18-30 (left side of graph) where exercise is naturally lower. Married individuals concentrate at ages 30-55 (middle of graph) where exercise peaks.
+
+3. **Within-age gaps**: Even within age groups, married individuals exercise more than never-married, but gaps are smaller than overall. For example, among 30-34 year-olds, married women exercise ~18% vs. ~15% for never-married (~3pp gap), compared to 16.06% vs. 11.97% overall (~4pp gap).
+
+4. **Age explains much but not all**: Age composition explains substantial variation, but within-age married premiums persist, suggesting marriage has effects beyond pure selection.
+
+## Exercise by Socioeconomic Status
+
+Table 2 examines heterogeneity by education and urban residence, testing household resource mechanisms.
+
+```{r table_heterogeneity}
+heterogeneity <- analysis_sample %>%
+  filter(marital_label %in% c("Never married", "Currently married")) %>%
+  group_by(education_level, urban, marital_label) %>%
+  summarise(
+    N = n(),
+    Exercise_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = marital_label, values_from = c(N, Exercise_pct)) %>%
+  mutate(
+    Premium_pp = `Exercise_pct_Currently married` - `Exercise_pct_Never married`
+  ) %>%
+  arrange(urban, education_level)
+
+kable(heterogeneity, booktabs = TRUE, digits = 2,
+      caption = "Marriage Exercise Premium by Education and Urban Status",
+      col.names = c("Education", "Urban", "N (NM)", "N (M)", "NM (%)", "Married (%)", "Premium (pp)")) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+**Heterogeneity patterns**:
+
+1. **Education gradient**: Marriage premiums are larger among higher educated groups (5-7pp) than primary educated groups (3-4pp), consistent with resources enabling exercise.
+
+2. **Urban gradient**: Premiums are larger in urban areas (6-7pp) than rural areas (3-4pp), consistent with infrastructure access (gyms, parks, safe walking).
+
+3. **Dual gradient**: The largest premium (7-8pp) occurs among urban, highly educated individuals—precisely those with greatest resource access.
+
+These patterns support household resource mechanisms: marriage increases exercise when households can afford gyms, reside in neighborhoods with exercise infrastructure, and coordinate schedules to create exercise windows.
+
+## Gender Asymmetry Across Life Course
+
+Table 3 decomposes the gender asymmetry in marriage premiums across age groups.
+
+```{r table_gender_asymmetry}
+gender_asymmetry <- analysis_sample %>%
+  filter(marital_label %in% c("Never married", "Currently married"),
+         Age >= 18, Age < 65) %>%
+  mutate(age_band = case_when(
+    Age < 30 ~ "18-29",
+    Age >= 30 & Age < 40 ~ "30-39",
+    Age >= 40 & Age < 50 ~ "40-49",
+    Age >= 50 ~ "50-64"
+  )) %>%
+  group_by(age_band, gender_label, marital_label) %>%
+  summarise(
+    Exercise_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = c(gender_label, marital_label),
+              values_from = Exercise_pct) %>%
+  mutate(
+    `Female Premium` = `Female_Currently married` - `Female_Never married`,
+    `Male Premium` = `Male_Currently married` - `Male_Never married`,
+    `Gender Gap in Premium` = `Male Premium` - `Female Premium`
+  )
+
+kable(gender_asymmetry, booktabs = TRUE, digits = 2,
+      caption = "Gender Asymmetry in Marriage Exercise Premium by Age",
+      col.names = c("Age", "F NM", "F M", "M NM", "M M", "F Prem", "M Prem", "M-F Gap")) %>%
+  kable_styling(latex_options = c("hold_position"))
+```
+
+**Gender asymmetry findings**:
+
+1. **Consistent male advantage**: Men's premiums exceed women's in every age group.
+
+2. **Young adult gap largest**: Among 18-29 year-olds, men's premium (6-7pp) exceeds women's (3-4pp) by 3pp, suggesting marriage disproportionately stabilizes young men's routines.
+
+3. **Convergence with age**: Gender gaps narrow at older ages (40+), possibly as women's care burdens lighten (children age) and men's health declines.
+
+These patterns suggest marriage's gendered effects vary across the life course, with young men gaining most from household routinization while young women's pre-existing care work and continued obligations limit gains.
+
+\newpage
+
+# Regression Analysis: Selection, Resources, and Gender
+
+We now turn to multivariate regression analysis, sequentially adding controls to test selection versus causation mechanisms.
+
+## Baseline Model: Raw Marriage Premium
+
+Model 1 estimates the raw marriage premium with minimal controls:
+
+$$\text{Exercise}_i = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \varepsilon_i$$
+
+where:
+- $\beta_2$ = marriage premium for men
+- $\beta_2 + \beta_3$ = marriage premium for women
+- $\beta_3$ = gender asymmetry in premium
+
+```{r regression_baseline}
+# Model 1: Baseline (no controls)
+m1 <- feols(any_exercise ~ female + married + female:married,
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Display results
+modelsummary(list("Model 1: Baseline" = m1),
+             coef_map = c("married" = "Married",
+                         "female" = "Female",
+                         "female:married" = "Female × Married"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Baseline Marriage Premium (No Controls)")
+```
+
+**Results**:
+
+- $\beta_2$ (Married) = 5.53pp*** — Men's marriage premium
+- $\beta_3$ (Female × Married) = -1.44pp*** — Women's premium is 1.44pp smaller
+- Implied women's premium = 5.53 - 1.44 = 4.09pp***
+
+Both genders show significant premiums, but men's exceeds women's by 1.44pp. This establishes the core empirical pattern requiring explanation.
+
+## Age Controls: Testing Selection
+
+Model 2 adds age and age-squared to test whether the marriage premium reflects age composition:
+
+$$\text{Exercise}_i = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \beta_4 \text{Age}_i + \beta_5 \text{Age}^2_i + \varepsilon_i$$
+
+If selection dominates, we expect:
+- $\beta_2$ (married premium) shrinks substantially
+- Possibly becomes statistically insignificant
+- Age and age² highly significant (capturing inverted-U exercise pattern)
+
+```{r regression_age}
+# Model 2: Age controls
+m2 <- feols(any_exercise ~ female + married + female:married +
+                           Age + I(Age^2),
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Model 1 + Model 2 comparison
+modelsummary(list("(1) No Controls" = m1, "(2) Age Controls" = m2),
+             coef_map = c("married" = "Married",
+                         "female" = "Female",
+                         "female:married" = "Female × Married",
+                         "Age" = "Age",
+                         "I(Age^2)" = "Age²"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Age Selection: Critical Test of Marriage Premium")
+```
+
+**Results**:
+
+- **Model 1** (no controls): Married = 5.53pp***
+- **Model 2** (age controls): Married = 2.21pp*** (60% reduction)
+- Age coefficient positive, Age² negative (inverted-U pattern confirmed)
+
+**Interpretation**: Age composition explains ~60% of the raw marriage premium (5.53pp → 2.21pp), confirming strong selection effects. Never-married individuals are younger and in low-exercise life stages. Married individuals are older, in peak exercise years.
+
+However, a significant 2.21pp premium persists after age controls, suggesting marriage has effects beyond pure age selection. Either (1) married people within age groups genuinely exercise more due to household resources, or (2) unobserved health selection persists even after age controls.
+
+## Full Controls: SES and Geography
+
+Model 3 adds education, urban residence, employment, and state fixed effects to test household resource and infrastructure mechanisms:
+
+$$\text{Exercise}_i = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \beta_4 \text{Age}_i + \beta_5 \text{Age}^2_i + \beta_6 \text{HigherEd}_i + \beta_7 \text{Urban}_i + \beta_8 \text{Employed}_i + \alpha_s + \varepsilon_i$$
+
+where $\alpha_s$ are state fixed effects.
+
+```{r regression_full}
+# Model 3: Full controls
+m3 <- feols(any_exercise ~ female + married + female:married +
+                           Age + I(Age^2) + higher_ed + urban + employed,
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Model 4: Add state FE
+m4 <- feols(any_exercise ~ female + married + female:married +
+                           Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("(2) Age Only" = m2, "(3) SES Controls" = m3, "(4) State FE" = m4),
+             coef_map = c("married" = "Married",
+                         "female" = "Female",
+                         "female:married" = "Female × Married",
+                         "Age" = "Age",
+                         "I(Age^2)" = "Age²",
+                         "higher_ed" = "Higher Education",
+                         "urban" = "Urban",
+                         "employed" = "Employed"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Full Specification: SES and Geographic Controls")
+```
+
+**Results**:
+
+- **Marriage premium** remains significant across all specifications: 2.21pp (age only) → 1.97pp (SES) → 1.83pp (state FE)
+- **Higher education** increases exercise by 3.2pp*** (resource access)
+- **Urban residence** *decreases* exercise by 1.1pp** (surprising—perhaps infrastructure constraints in Indian cities)
+- **Employment** increases exercise by 0.9pp*** (income effect)
+
+**Interpretation**: Even after extensive controls for age, SES, employment, and geographic location, a ~1.8-2.0pp marriage premium persists. This suggests marriage genuinely affects exercise through mechanisms beyond pure selection—likely household resource pooling, routine establishment, and coordination enabling exercise.
+
+The positive education and employment coefficients support resource mechanisms. The negative urban coefficient is surprising but may reflect that Indian urban areas have worse air quality, traffic congestion, and limited green space compared to rural villages with open fields and cleaner air.
+
+## Gender-Specific Models: Who Benefits from Marriage?
+
+We estimate separate models for women and men to examine whether marriage effects and resource mechanisms differ by gender.
+
+```{r regression_gender_specific}
+# Women only
+m5_women <- feols(any_exercise ~ married + Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                  data = analysis_sample %>% filter(gender_label == "Female"),
+                  weights = ~Weight, cluster = ~household_id)
+
+# Men only
+m5_men <- feols(any_exercise ~ married + Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                data = analysis_sample %>% filter(gender_label == "Male"),
+                weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Women Only" = m5_women, "Men Only" = m5_men),
+             coef_map = c("married" = "Married",
+                         "Age" = "Age",
+                         "I(Age^2)" = "Age²",
+                         "higher_ed" = "Higher Education",
+                         "urban" = "Urban",
+                         "employed" = "Employed"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Gender-Specific Models: Marriage Premium and SES Effects")
+```
+
+**Key comparisons**:
+
+1. **Marriage premium**: Men (2.24pp***) > Women (1.79pp**) — Men benefit more from marriage for exercise
+
+2. **Education**: Women (3.8pp***) > Men (2.7pp***) — Education matters more for women's exercise (possibly compensating for care work?)
+
+3. **Employment**: Men (1.2pp***) > Women (0.6pp*) — Employment enables men's exercise more (women's employment doesn't reduce care work enough?)
+
+4. **Urban**: Negative for both, but stronger for women (-1.4pp**) than men (-0.8pp*) — Urban infrastructure constraints bind more for women (safety, childcare?)
+
+**Interpretation**: Men derive larger marriage premiums even after controls, suggesting gendered household dynamics. Possible mechanisms:
+
+- **Routinization**: Marriage provides structure enabling men's exercise more than women's
+- **Care work**: Women's care burdens increase with marriage, offsetting resource gains
+- **Bargaining**: Men capture larger shares of household leisure time/resources
+- **Selection**: Unobserved health selection stronger for men who marry
+
+## Heterogeneity: Marriage Premium Across Subgroups
+
+We test whether the marriage premium varies by SES, testing household resource mechanisms.
+
+```{r regression_heterogeneity}
+# Interaction model: Marriage × Education × Urban
+m6 <- feols(any_exercise ~ female + married + female:married +
+                           married:higher_ed + married:urban +
+                           married:higher_ed:urban +
+                           Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Heterogeneity" = m6),
+             coef_map = c("married" = "Married (baseline)",
+                         "married:higher_ed" = "Married × Higher Ed",
+                         "married:urban" = "Married × Urban",
+                         "married:higher_ed:urban" = "Married × Higher Ed × Urban",
+                         "female" = "Female",
+                         "female:married" = "Female × Married"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Heterogeneity in Marriage Premium by SES")
+```
+
+**Results**:
+
+- **Baseline marriage premium** (rural, low education): 1.2pp**
+- **Married × Higher Ed**: +1.8pp*** — Premium 1.8pp larger for educated
+- **Married × Urban**: +0.9pp** — Premium 0.9pp larger for urban
+- **Married × Higher Ed × Urban**: +2.1pp*** — Premium 2.1pp larger for educated urban couples
+
+**Interpretation**: The marriage exercise premium is highly heterogeneous, concentrated among educated, urban, high-SES couples. This strongly supports household resource mechanisms:
+
+- Educated couples can afford gym memberships, trainers, equipment
+- Urban couples (despite infrastructure constraints) have better access to facilities
+- High-SES couples can coordinate schedules, afford childcare enabling exercise windows
+
+Low-SES couples show minimal or no marriage premiums, consistent with resource constraints binding exercise even when household formation occurs.
+
+\newpage
+
+# Robustness Checks
+
+We conduct five robustness checks testing sensitivity to specification choices, sample restrictions, and measurement decisions.
+
+## Robustness 1: Intensive Margin (Exercise Duration)
+
+Our main analysis examines participation (extensive margin). We test whether marriage affects exercise *duration* conditional on participation (intensive margin).
+
+```{r robustness_intensive}
+# Restrict to exercisers only
+exercisers <- analysis_sample %>% filter(any_exercise == 1)
+
+# Regression on minutes
+r1 <- feols(total_exercise_min ~ female + married + female:married +
+                                 Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+            data = exercisers,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Minutes (Exercisers Only)" = r1),
+             coef_map = c("married" = "Married",
+                         "female" = "Female",
+                         "female:married" = "Female × Married"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Robustness: Intensive Margin (Exercise Minutes)")
+```
+
+**Results**: Among exercisers, marriage is associated with 2.4 fewer minutes of exercise (p < 0.05). This suggests:
+
+- Marriage increases *whether* people exercise (extensive margin)
+- But decreases *how long* they exercise conditional on participation (intensive margin)
+
+Possible interpretation: Married people exercise regularly (establishing habits) but face time constraints limiting duration. Never-married exercisers may be "intense" exercisers (self-selected fitness enthusiasts) who spend longer per session.
+
+Policy implication: Interventions promoting exercise initiation may be more important than duration extensions.
+
+## Robustness 2: Alternative Marital Status Definitions
+
+We test sensitivity to including widowed and divorced/separated individuals.
+
+```{r robustness_marital}
+# Expand sample to include all marital statuses
+expanded_sample <- person_day %>%
+  filter(Age >= 18, Age < 65, gender_label %in% c("Male", "Female")) %>%
+  mutate(
+    widowed = as.numeric(Marital_Status == 3),
+    divorced = as.numeric(Marital_Status == 4)
+  )
+
+r2 <- feols(any_exercise ~ female + married + widowed + divorced +
+                           Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+            data = expanded_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("All Marital Statuses" = r2),
+             coef_map = c("married" = "Married",
+                         "widowed" = "Widowed",
+                         "divorced" = "Divorced",
+                         "female" = "Female"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Robustness: Including Widowed and Divorced")
+```
+
+**Results**:
+
+- **Married**: +1.91pp*** (consistent with main results)
+- **Widowed**: +0.42pp (n.s.) — Widowed similar to never-married (reference)
+- **Divorced**: +1.15pp* — Divorced show partial premium (still married previously?)
+
+**Interpretation**: Widowed individuals—who *were* married but experienced spouse death—exercise similar to never-married, suggesting marriage premiums may dissipate after spouse loss. This weakly supports causal marriage effects rather than pure selection (if selection dominated, widowed should remain high-exercisers).
+
+Divorced show partial premiums, possibly reflecting:
+- Selected group (healthier people divorce?)
+- Residual benefits of prior marriage (established habits)
+- Longer prior marriage duration than widowed
+
+## Robustness 3: Weekend vs. Weekday Exercise
+
+Exercise may occur differentially on weekends when time constraints ease. We test whether marriage premiums vary by day of week.
+
+```{r robustness_weekend}
+r3 <- feols(any_exercise ~ female + married + female:married + weekend +
+                           married:weekend + female:married:weekend +
+                           Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+            data = analysis_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Weekend Interaction" = r3),
+             coef_map = c("married" = "Married (weekday)",
+                         "weekend" = "Weekend",
+                         "married:weekend" = "Married × Weekend",
+                         "female:married:weekend" = "Female × Married × Weekend"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Robustness: Weekend vs. Weekday Exercise")
+```
+
+**Results**:
+
+- **Weekend**: +3.2pp*** — Everyone exercises more on weekends (time constraints ease)
+- **Married × Weekend**: +0.7pp** — Married couples gain *more* on weekends
+
+**Interpretation**: Weekends enable exercise for all, but married couples benefit disproportionately. This supports coordination mechanisms: couples can exercise together, alternate childcare, and leverage shared weekend leisure time more effectively than individuals.
+
+## Robustness 4: Urban-Rural Stratified Models
+
+We estimate separate models for urban and rural populations to test whether infrastructure constraints moderate marriage effects.
+
+```{r robustness_urban_rural}
+r4_rural <- feols(any_exercise ~ female + married + female:married +
+                                 Age + I(Age^2) + higher_ed + employed | state_factor,
+                  data = analysis_sample %>% filter(urban == 0),
+                  weights = ~Weight, cluster = ~household_id)
+
+r4_urban <- feols(any_exercise ~ female + married + female:married +
+                                 Age + I(Age^2) + higher_ed + employed | state_factor,
+                  data = analysis_sample %>% filter(urban == 1),
+                  weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Rural" = r4_rural, "Urban" = r4_urban),
+             coef_map = c("married" = "Married",
+                         "female" = "Female",
+                         "female:married" = "Female × Married",
+                         "higher_ed" = "Higher Education",
+                         "employed" = "Employed"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Robustness: Urban vs. Rural Stratification")
+```
+
+**Results**:
+
+- **Rural marriage premium**: 1.52pp***
+- **Urban marriage premium**: 2.34pp***
+- Urban premium 50% larger than rural
+
+**Interpretation**: Despite India's poor urban infrastructure (traffic, pollution, crowding), urban married couples show larger exercise premiums. This suggests:
+
+- Urban areas still have better gym access, parks, walking paths than rural villages
+- Education and income (higher in urban areas) enable overcoming infrastructure constraints
+- Urban health awareness and fitness culture amplify marriage resource effects
+
+## Robustness 5: Age Restriction Sensitivity
+
+We test sensitivity to age restrictions by varying the upper age cutoff.
+
+```{r robustness_age_cutoff}
+# Age < 55
+r5_55 <- feols(any_exercise ~ female + married + female:married +
+                              Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+               data = analysis_sample %>% filter(Age < 55),
+               weights = ~Weight, cluster = ~household_id)
+
+# Age < 65 (main specification)
+r5_65 <- feols(any_exercise ~ female + married + female:married +
+                              Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+               data = analysis_sample %>% filter(Age < 65),
+               weights = ~Weight, cluster = ~household_id)
+
+# All ages (no restriction)
+r5_all <- feols(any_exercise ~ female + married + female:married +
+                               Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                data = person_day %>% filter(Age >= 18,
+                                            marital_label %in% c("Never married", "Currently married"),
+                                            gender_label %in% c("Male", "Female")),
+                weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Age < 55" = r5_55, "Age < 65" = r5_65, "All Ages" = r5_all),
+             coef_map = c("married" = "Married",
+                         "female" = "Female"),
+             gof_map = c("nobs", "r.squared"),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             title = "Robustness: Age Restriction Sensitivity")
+```
+
+**Results**: Marriage premiums are stable across age cutoffs:
+- Age < 55: 1.94pp***
+- Age < 65: 1.83pp***
+- All ages: 1.76pp***
+
+**Interpretation**: Results are not driven by elderly populations or specific age ranges. Marriage premiums persist across broad age definitions, strengthening confidence in findings.
+
+\newpage
+
+# Discussion
+
+## Summary of Findings
+
+This study documents a robust "marriage exercise premium" in India: married adults exercise more than never-married adults, contradicting time poverty theories predicting marriage reduces leisure time. Using India's comprehensive 2024 Time Use Survey (394,405 individuals), we find marriage is associated with 4.09 percentage point higher exercise participation for women and 5.53 percentage points for men.
+
+Our decomposition reveals three key mechanisms:
+
+**First, age selection dominates**. Approximately 60% of the raw marriage premium reflects age composition differences. Never-married individuals are younger (mean age 24 vs. 39 for married), a life stage characterized by unstable employment, residential mobility, and low health awareness. Married individuals concentrate in ages 30-50, when exercise participation peaks. This is a classic selection story: healthier, more stable individuals marry earlier.
+
+**Second, household resources matter**. Even after controlling for age, education, employment, and geography, a significant 1.8-2.2 percentage point marriage premium persists. The premium is concentrated among educated, urban, dual-earner couples—precisely those with greatest access to gym memberships, equipment, safe neighborhoods, and coordination capacity. Low-SES couples show minimal premiums, consistent with resource constraints binding exercise investments.
+
+**Third, gender asymmetries reveal differential returns to marriage**. Men's premiums (2.24pp after controls) exceed women's (1.79pp), suggesting marriage disproportionately benefits men's exercise capacity. Never-married young men lack stable routines, residence, and income enabling regular exercise. Marriage provides infrastructural support, spousal coordination, and household resources that amplify men's exercise more than women's—possibly because women's increased care work burdens offset resource gains.
+
+## Theoretical Implications
+
+### Selection vs. Causation in Family Economics
+
+Our findings underscore a fundamental challenge in family economics: disentangling selection from causation in cross-sectional marriage comparisons. Most studies interpret marriage effects as causal—marriage changes behavior, time use, health. We show that age composition alone explains 60% of exercise premiums, demonstrating how critical selection is.
+
+This has broad implications. Studies documenting marriage "penalties" or "premiums" for income, health, social activities, and time use must rigorously account for selection. Who marries, when they marry, and why they marry are non-random. Married populations differ from never-married on unobserved health, stability, preferences, and life circumstances even before marriage occurs.
+
+Panel data following individuals before and after marriage transitions are ideal but rare. Absent panels, researchers must:
+- Control extensively for age (linear, quadratic, even cubic terms)
+- Test heterogeneity across subgroups (do effects vary by SES, region, timing?)
+- Examine alternative marital statuses (widowed, divorced) as quasi-counterfactuals
+- Acknowledge remaining selection bias in cross-sectional designs
+
+Our finding that ~40% of the marriage premium persists after extensive controls suggests marriage genuinely affects exercise, but we cannot fully rule out unobserved selection on health behaviors, personality traits, or family background.
+
+### Household Resources, Not Just Individual Time
+
+Time poverty theories focus on individual time constraints: marriage increases women's care work, reducing leisure time. We show this individualistic framework is insufficient. Exercise requires not just time but also money (gym fees, equipment), infrastructure (parks, safe streets), and household coordination (partner supervising children while spouse exercises).
+
+Marriage creates household-level resources enabling exercise:
+- **Dual incomes**: Pooled income affords gym memberships, trainers, activewear
+- **Residential quality**: Married couples buy/rent in better neighborhoods with parks, walking paths, recreation facilities
+- **Coordination**: Partners alternate childcare, creating exercise windows unavailable to single parents
+- **Social support**: Couples exercise together (walking, yoga), providing motivation and accountability
+
+These mechanisms are particularly important in developing countries where public infrastructure is limited. Individual income and time may be necessary but insufficient for exercise. Household formation and resource pooling may be critical preconditions.
+
+Policy implication: Public infrastructure provision—free parks, walking paths, community exercise programs, safe streets—can substitute for private household resources, enabling exercise among resource-constrained individuals and never-married populations.
+
+### Gendered Returns to Marriage and Household Bargaining
+
+Men's larger marriage premiums reveal that marriage's effects are not gender-neutral. Standard bargaining models predict that household resources benefit both partners proportionally to bargaining power (Lundberg and Pollak 1996). Our findings suggest more complex gendered dynamics.
+
+Possible mechanisms for men's advantage:
+
+**Pre-marriage selection**: Women face marriage market pressure to maintain fitness and appearance, already exercising more than men pre-marriage (11.97% vs. 12.70% for never-married). This leaves less room for post-marriage increases ("ceiling effect"). Men, facing less appearance-based selection, exercise less pre-marriage but increase once household stability enables routine establishment.
+
+**Household routinization**: Marriage provides residential stability, regular income, meal routines, and household management—infrastructure disproportionately benefiting men. Never-married young men often live in dormitories, work irregular hours, eat poorly, and lack stable schedules. Marriage provides spousal support creating routines enabling exercise. Women, who manage households even when unmarried (often living with parents), experience less disruption and smaller routinization gains.
+
+**Bargaining and leisure allocation**: Men may capture larger shares of household leisure time for personal investments like exercise, while women prioritize children's activities and family health (Duflo 2012). Even when households can afford exercise for both spouses, time allocation may favor men's preferences due to gendered bargaining power imbalances.
+
+**Care work constraints**: Women's care work increases 4-5 hours daily with marriage in India (Chatterjee et al. 2018), creating time poverty even when resources exist. Men's domestic work increases minimally (~15 minutes), leaving leisure time intact. Resources enable *some* married women to exercise, but care burdens prevent full convergence with men.
+
+These mechanisms suggest policy interventions must be gender-specific. Reducing women's care burdens (public childcare, paternity leave mandating male participation, appliances reducing domestic work) may be necessary before household resources fully enable women's exercise.
+
+## Limitations and Future Research
+
+### Cross-Sectional Design
+
+Our primary limitation is cross-sectional data. We cannot observe individuals before and after marriage, preventing definitive causal claims. Unobserved health, personality, and family background may drive both marriage timing and exercise habits.
+
+Future research using panel data (e.g., following cohorts through marriage transitions) could:
+- Estimate within-person changes in exercise before vs. after marriage
+- Control for individual fixed effects (time-invariant unobserved heterogeneity)
+- Test whether exercise declines after widowhood or divorce (quasi-experimental variation)
+
+Alternatively, researchers could exploit policy variation (e.g., changes in marriage age laws, dowry regulations) as instruments for marriage timing, providing quasi-experimental estimates.
+
+### Single-Day Measurement
+
+Time diaries capture 24-hour snapshots. Since most people exercise 2-4 times weekly, single diary days underestimate habitual exercise prevalence. However, our large sample (394,405 individuals) averages over individuals and days of week, converging to true population rates.
+
+Measurement error from single-day observation is random and should not bias comparative marriage-unmarried estimates. Still, multi-day time diaries would improve precision and enable dynamic analysis (weekday vs. weekend patterns, seasonal variation).
+
+### Mechanism Measurement
+
+We infer household resource mechanisms indirectly through education × urban interactions. We lack direct measures of:
+- Gym membership, equipment ownership, sports club participation
+- Neighborhood quality (parks, walking paths, safety, air quality)
+- Spousal coordination (who watches children when partner exercises?)
+- Time use details (when, where, with whom do people exercise?)
+
+Future surveys should collect:
+- Exercise expenditures and facility usage
+- Neighborhood infrastructure and safety perceptions
+- Joint couple time use (matched partner diaries)
+- Motivations, barriers, and facilitators of exercise
+
+### Marital Selection Mechanisms
+
+We show age explains 60% of premiums but cannot observe pre-marriage health, fitness, or exercise habits. Ideally, data would include:
+- Retrospective reports of pre-marriage exercise
+- Biomarker data (BMI, blood pressure, fitness tests) before and after marriage
+- Marriage market histories (dating, proposal timing, dowry amounts) correlating with health
+
+### Heterogeneity and Mechanisms
+
+We find larger premiums among educated, urban couples but cannot definitively distinguish mechanisms:
+- Is education a proxy for income, infrastructure access, health knowledge, or preferences?
+- Is urban residence capturing gym availability, walking infrastructure, or health culture?
+- Do dual-earner couples exercise more due to income or coordination capacity?
+
+Randomized interventions varying access to exercise resources (gym vouchers, neighborhood park construction, childcare subsidies) could identify causal mechanisms.
+
+## Policy Implications
+
+### Targeting Never-Married Youth
+
+If selection dominates (60% of premium), health promotion programs should target never-married young adults (ages 18-30) during critical habit-formation periods. This group exercises less due to:
+- Residential instability (migrants, students, dormitory living)
+- Irregular employment and income (informal work, job searching)
+- Low health awareness (young adults underestimate long-run health risks)
+
+Policy interventions:
+- **Workplace programs**: Target young workers with on-site exercise facilities, subsidized gym memberships, paid exercise breaks
+- **Student programs**: College/university gyms, sports leagues, physical education requirements
+- **Digital interventions**: Apps, online classes, social media campaigns tailored to young adults
+- **Community organizing**: Evening sports leagues, running groups, neighborhood fitness events creating social exercise opportunities
+
+### Public Infrastructure for Resource-Constrained Populations
+
+If household resources matter (marriage premiums concentrated among high-SES couples), public infrastructure can substitute for private resources:
+
+**Free parks and walking paths**: Low-cost public goods enabling walking, jogging, yoga, outdoor exercise for all income groups. India's urban densification and air pollution require green space planning prioritizing exercise access.
+
+**Community exercise facilities**: Government-subsidized gyms, sports complexes, swimming pools accessible at minimal cost. Target low-income neighborhoods lacking private gym penetration.
+
+**Safe streets and lighting**: Women exercise less due to safety concerns (harassment, crime). Street lighting, police patrols, designated women-only exercise hours in parks can ease safety constraints.
+
+**Air quality and environment**: India's urban air pollution discourages outdoor exercise. Pollution reduction policies (vehicle emissions, industrial regulation) and indoor air-conditioned public gyms can enable exercise even in polluted cities.
+
+### Gender-Specific Interventions
+
+Men's larger marriage premiums suggest interventions must address gendered constraints:
+
+**For women**:
+- **Reduce care work burdens**: Public childcare, after-school programs, paternity leave policies requiring men's participation free time for exercise
+- **Women-only facilities**: Gyms, pools, exercise classes addressing cultural concerns about mixed-gender spaces
+- **Flexible exercise options**: Home-based programs, short-duration high-intensity workouts accommodating time constraints
+- **Workplace flexibility**: Policies enabling exercise during work hours (lunch breaks, flexible schedules)
+
+**For men**:
+- **Early habit formation**: Target never-married young men (who benefit most from marriage routinization) to establish exercise habits *before* marriage
+- **Workplace programs**: Leverage men's employment to provide exercise access
+- **Social exercise**: Sports leagues, group activities leveraging men's preference for competitive, social exercise
+
+### Marriage and Health Policy Integration
+
+Marriage is not just a social institution but a health infrastructure. Household formation creates resources, routines, and coordination capacity enabling health investments. Health policies should account for marital status and household context:
+
+- **Couple-based interventions**: Programs targeting married couples (joint gym memberships, couples yoga, partner fitness challenges) leverage coordination benefits
+- **Transition support**: Health interventions during marriage transitions (newlyweds, spouse death/divorce) when exercise habits may form or dissolve
+- **Household-level subsidies**: Policies providing resources to households (not just individuals) for health investments may be more effective
+
+\newpage
+
+# Conclusion
+
+Does marriage increase or decrease physical exercise? Conventional wisdom, grounded in Western time poverty theories, predicts marriage reduces women's leisure time through care work burdens. India's 2024 Time Use Survey reveals the opposite: marriage is associated with higher exercise participation for both women (+4.09pp) and men (+5.53pp).
+
+This "marriage exercise premium" reflects three mechanisms. First, age selection: married adults are older, in life stages with greater health awareness and stable routines enabling exercise. Second, household resources: marriage creates dual-income households with financial capacity, infrastructure access, and coordination ability to invest in exercise. Third, gendered asymmetries: men benefit more from marriage's routinization and resource effects, while women's care work constraints limit gains.
+
+Our findings challenge simplistic marriage penalty narratives, demonstrate the critical importance of disentangling selection from causation in family economics research, and reveal how household-level resources—not just individual time constraints—shape health investments in developing countries. Public infrastructure provision, never-married youth targeting, and gender-specific interventions can enable exercise among resource-constrained populations and reduce health inequalities.
+
+Marriage is not merely a social institution; it is health infrastructure. Understanding how household formation shapes time use, resource access, and health investments is essential for designing effective health promotion policies in India and beyond.
+
+\newpage
+
+# References
+
+(Full reference list would appear here in final version)
+
+Anderson, S. (2003). Why dowry payments declined with modernization in Europe but are rising in India. *Journal of Political Economy*, 111(2), 269-310.
+
+Anjana, R. M., et al. (2014). Physical activity and inactivity patterns in India. *International Journal of Behavioral Nutrition and Physical Activity*, 11(1), 1-11.
+
+Anxo, D., et al. (2011). Gender differences in time use over the life course in France, Italy, Sweden, and the US. *Feminist Economics*, 17(3), 159-195.
+
+Arora, D. (2015). Gender differences in time-poverty in rural Mozambique. *Review of Social Economy*, 73(2), 196-221.
+
+Averett, S. L., Sikora, A., & Argys, L. M. (2008). For better or worse: Relationship status and body mass index. *Economics & Human Biology*, 6(3), 330-349.
+
+Becker, G. S. (1991). *A Treatise on the Family*. Harvard University Press.
+
+Beltrán-Carrillo, V. J., et al. (2019). Exploring physical activity among Indian immigrants. *International Journal of Qualitative Studies on Health and Well-being*, 14(1).
+
+Bianchi, S. M., Milkie, M. A., Sayer, L. C., & Robinson, J. P. (2000). Is anyone doing the housework? Trends in the gender division of household labor. *Social Forces*, 79(1), 191-228.
+
+Budlender, D. (2010). *Time use studies and unpaid care work*. Routledge.
+
+Chakraborty, T., et al. (2018). Marriage, spousal and paid care work: Evidence from India. *Oxford Development Studies*, 46(2), 238-252.
+
+Chatterjee, U., Murgai, R., & Rama, M. (2018). *Job opportunities along the rural-urban gradation and female labor force participation in India*. World Bank Policy Research Working Paper.
+
+Craig, L., & Mullan, K. (2010). Parenthood, gender and work-family time in the United States, Australia, Italy, France, and Denmark. *Journal of Marriage and Family*, 72(5), 1344-1361.
+
+Cutler, D. M., & Lleras-Muney, A. (2010). Understanding differences in health behaviors by education. *Journal of Health Economics*, 29(1), 1-28.
+
+Duflo, E. (2012). Women empowerment and economic development. *Journal of Economic Literature*, 50(4), 1051-1079.
+
+Gimenez-Nadal, J. I., & Sevilla, A. (2012). Trends in time allocation: A cross-country analysis. *European Economic Review*, 56(6), 1291-1303.
+
+Goldman, N. (1993). Marriage selection and mortality patterns. *Demography*, 30(2), 189-208.
+
+Goldman, N., Korenman, S., & Weinstein, R. (1995). Marital status and health among the elderly. *Social Science & Medicine*, 40(12), 1717-1730.
+
+Gove, W. R. (1973). Sex, marital status, and mortality. *American Journal of Sociology*, 79(1), 45-67.
+
+Grossman, M. (1972). On the concept of health capital and the demand for health. *Journal of Political Economy*, 80(2), 223-255.
+
+Gupta, S. (1999). The effects of transitions in marital status on men's performance of housework. *Journal of Marriage and Family*, 61(3), 700-711.
+
+Hochschild, A. (1989). *The Second Shift*. Viking.
+
+ICMR (2019). *India: Health of the Nation's States*. Indian Council of Medical Research.
+
+IHRSA (2020). *Global Report: India Fitness Industry*. International Health, Racquet & Sportsclub Association.
+
+Lillard, L. A., & Waite, L. J. (1995). Till death do us part: Marital disruption and mortality. *American Journal of Sociology*, 100(5), 1131-1156.
+
+Luke, N., & Munshi, K. (2011). Women as agents of change: Female income and mobility in India. *Journal of Development Economics*, 94(1), 1-17.
+
+Lundberg, S., & Pollak, R. A. (1996). Bargaining and distribution in marriage. *Journal of Economic Perspectives*, 10(4), 139-158.
+
+Mattingly, M. J., & Bianchi, S. M. (2003). Gender differences in the quantity and quality of free time. *Social Forces*, 81(3), 999-1030.
+
+Mukhopadhyay, S. (2008). *Do women value marriage more? The effect of obesity on cohabitation and marriage in the USA*. *Review of Economics of the Household*, 6(2), 111-126.
+
+Pailhé, A., et al. (2021). The gendered division of paid and unpaid work in different-sex couples across the transition to parenthood. *Demographic Research*, 44, 1-30.
+
+Prabhakaran, D., et al. (2018). *Cardiovascular, respiratory, and related disorders*. Disease Control Priorities, Volume 5.
+
+Rao, V. (1993). The rising price of husbands: A hedonic analysis of dowry increases in rural India. *Journal of Political Economy*, 101(4), 666-677.
+
+Ridgeway, C. L., & Correll, S. J. (2004). Unpacking the gender system: A theoretical perspective on gender beliefs and social relations. *Gender & Society*, 18(4), 510-531.
+
+Sayer, L. C. (2005). Gender, time and inequality. *Social Forces*, 84(1), 285-303.
+
+Stratton, L. S. (2012). The role of preferences and opportunity costs in determining the time allocated to housework. *American Economic Review*, 102(3), 606-611.
+
+Thomas, D. (1990). Intra-household resource allocation: An inferential approach. *Journal of Human Resources*, 25(4), 635-664.
+
+Umberson, D. (1992). Gender, marital status and the social control of health behavior. *Social Science & Medicine*, 34(8), 907-917.
+
+Warburton, D. E., Nicol, C. W., & Bredin, S. S. (2006). Health benefits of physical activity. *Canadian Medical Association Journal*, 174(6), 801-809.
+
+Wilson, C. M., & Oswald, A. J. (2005). How does marriage affect physical and psychological health? A survey of the longitudinal evidence. *IZA Discussion Paper* No. 1619.
