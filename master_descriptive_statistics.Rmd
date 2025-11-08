@@ -229,6 +229,7 @@ activity_labels <- data.frame(
 )
 
 # Calculate participation for all 2-digit codes
+# NOTE: Using unweighted median to avoid memory overflow from weight replication
 participation_2digit <- major_only %>%
   group_by(Activity_Code_2Digit) %>%
   summarise(
@@ -236,7 +237,7 @@ participation_2digit <- major_only %>%
     N_people_participating = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
     Participation_rate_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_minutes = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_minutes = median(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_minutes = median(time_spent, na.rm = TRUE),  # Unweighted for memory efficiency
     Min_minutes = min(time_spent, na.rm = TRUE),
     Max_minutes = max(time_spent, na.rm = TRUE),
     .groups = "drop"
@@ -268,9 +269,9 @@ education_detail <- major_only %>%
     N_obs = n(),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
-    P25 = quantile(rep(time_spent, times = pmax(1, round(Weight))), 0.25),
-    P75 = quantile(rep(time_spent, times = pmax(1, round(Weight))), 0.75),
+    Median_min = median(time_spent, na.rm = TRUE),
+    P25 = quantile(time_spent, 0.25, na.rm = TRUE),
+    P75 = quantile(time_spent, 0.75, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
@@ -295,8 +296,8 @@ exercise_detail <- major_only %>%
     N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
-    SD_min = sd(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
+    SD_min = sd(time_spent, na.rm = TRUE),
     Min_min = min(time_spent),
     Max_min = max(time_spent)
   )
@@ -317,8 +318,8 @@ religious_detail <- major_only %>%
     N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
-    SD_min = sd(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
+    SD_min = sd(time_spent, na.rm = TRUE),
     Min_min = min(time_spent),
     Max_min = max(time_spent)
   )
@@ -563,7 +564,7 @@ kable(head_gender, booktabs = TRUE, digits = 2,
 head_age <- heads %>%
   summarise(
     Mean_age = weighted.mean(Age, Weight, na.rm = TRUE),
-    Median_age = median(rep(Age, times = pmax(1, round(Weight)))),
+    Median_age = median(Age, na.rm = TRUE),
     Min_age = min(Age, na.rm = TRUE),
     Max_age = max(Age, na.rm = TRUE)
   )
@@ -639,7 +640,7 @@ children_edu <- major_only %>%
     N_children_in_edu = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
     Total_observations = n(),
     Mean_minutes = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_minutes = median(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_minutes = median(time_spent, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -747,7 +748,7 @@ leisure_detail <- major_only %>%
     N_obs = n(),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
@@ -770,7 +771,7 @@ social_detail <- major_only %>%
     N_obs = n(),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
@@ -793,7 +794,7 @@ volunteer_detail <- major_only %>%
     N_obs = n(),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
@@ -1038,8 +1039,8 @@ all_activities <- major_only %>%
     N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
     Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
     Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(rep(time_spent, times = pmax(1, round(Weight)))),
-    SD_min = sd(rep(time_spent, times = pmax(1, round(Weight)))),
+    Median_min = median(time_spent, na.rm = TRUE),
+    SD_min = sd(time_spent, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   left_join(activity_labels, by = c("Activity_Code_2Digit" = "code")) %>%
