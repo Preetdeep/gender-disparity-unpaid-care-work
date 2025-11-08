@@ -285,7 +285,7 @@ major_only <- data %>%
 # Create person-day dataset (one row per person)
 person_day <- major_only %>%
   group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
-           female, gender_label, married, never_married, marital_label,
+           Marital_Status, female, gender_label, married, never_married, marital_label,
            age_group, education_level, higher_ed, urban, sector_label,
            employed, weekend, state_factor, household_id) %>%
   summarise(
