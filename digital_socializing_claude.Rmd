@@ -497,9 +497,9 @@ cat(sprintf("Ratio (Remote/In-person): %.1fx\n\n", participation_rates$ratio))
 overview_table <- data.frame(
   Activity = c("Remote Socializing", "In-Person Socializing", "Any Socializing"),
   Participation = c(
-    sprintf("%.2f%%", participation_rates$pct_remote),
-    sprintf("%.2f%%", participation_rates$pct_inperson),
-    sprintf("%.2f%%", participation_rates$pct_any)
+    sprintf("%.2f", participation_rates$pct_remote),
+    sprintf("%.2f", participation_rates$pct_inperson),
+    sprintf("%.2f", participation_rates$pct_any)
   ),
   N_Participants = c(
     format(round(participation_rates$n_remote), big.mark = ","),
@@ -624,7 +624,7 @@ demo_table <- bind_rows(
 
 demo_table <- demo_table %>%
   mutate(
-    Participation = sprintf("%.2f%%", pct_remote),
+    Participation = sprintf("%.2f", pct_remote),
     N = format(round(n), big.mark = ",")
   ) %>%
   select(Category, Group, Participation, N)
