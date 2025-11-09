@@ -631,15 +631,7 @@ demo_table <- demo_table %>%
 
 kable(demo_table,
       caption = "Remote Socializing Participation by Demographics",
-      booktabs = TRUE,
-      col.names = c("Category", "Group", "Participation (\\%)", "N (weighted)"),
-      format = "latex") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
-  pack_rows("Gender", 1, 2) %>%
-  pack_rows("Marital Status", 3, 6) %>%
-  pack_rows("Age Group", 7, 12) %>%
-  pack_rows("Education", 13, 15) %>%
-  pack_rows("Sector", 16, 17)
+      booktabs = TRUE)
 ```
 
 **Key Patterns**:
