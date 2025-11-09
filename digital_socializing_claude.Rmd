@@ -283,7 +283,7 @@ data <- data %>%
     marital_label = case_when(
       Marital_Status == 1 ~ "Currently married",
       Marital_Status == 2 ~ "Never married",
-      Marital_Status == 3 ~ "Divorced/Separated",
+      Marital_Status == 3 ~ "Divorced or Separated",
       Marital_Status == 4 ~ "Widowed",
       TRUE ~ NA_character_
     ),
