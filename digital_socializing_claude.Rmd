@@ -530,7 +530,7 @@ kable(overview_table,
            footnote_as_chunk = TRUE)
 ```
 
-**Finding 1**: Remote socializing is **`r round(participation_rates$ratio, 1)` times more common** than in-person socializing. On a typical day, `r sprintf("%.2f\\%%", participation_rates$pct_remote)` of adults engage in remote socializing compared to just `r sprintf("%.2f\\%%", participation_rates$pct_inperson)` who socialize in person.
+**Finding 1**: Remote socializing is **approximately 39 times more common** than in-person socializing (see Table 2 above for exact participation rates).
 
 ## Figure 1: The 39x Ratio
 
@@ -636,13 +636,13 @@ kable(demo_table,
 
 **Key Patterns**:
 
-1. **Gender**: Women participate slightly less than men (`r sprintf("%.2f\\%%", by_gender$pct_remote[by_gender$gender_label == "Female"])` vs `r sprintf("%.2f\\%%", by_gender$pct_remote[by_gender$gender_label == "Male"])`)
+1. **Gender**: Women participate slightly less than men (see table above)
 
-2. **Marriage**: Never married individuals participate more (`r sprintf("%.2f\\%%", by_marital$pct_remote[by_marital$marital_label == "Never married"])`) than currently married (`r sprintf("%.2f\\%%", by_marital$pct_remote[by_marital$marital_label == "Currently married"])`)
+2. **Marriage**: Never married individuals participate more than currently married (see table above)
 
-3. **Urban/Rural**: Large gap - urban `r sprintf("%.2f\\%%", by_sector$pct_remote[by_sector$sector_label == "Urban"])` vs rural `r sprintf("%.2f\\%%", by_sector$pct_remote[by_sector$sector_label == "Rural"])`
+3. **Urban/Rural**: Large gap between urban and rural participation (see table above)
 
-4. **Education**: Steep gradient from primary (`r sprintf("%.2f\\%%", by_education$pct_remote[by_education$education_level == "Primary or less"])`) to higher education (`r sprintf("%.2f\\%%", by_education$pct_remote[by_education$education_level == "Higher education"])`)
+4. **Education**: Steep gradient from primary to higher education (see table above)
 
 ## Figure 2: Remote Socializing by Gender and Marital Status
 
