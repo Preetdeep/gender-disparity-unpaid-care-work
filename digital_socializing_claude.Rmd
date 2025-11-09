@@ -521,7 +521,8 @@ overview_table <- data.frame(
 kable(overview_table,
       caption = "Participation Rates and Time Use: Remote vs In-Person Socializing",
       booktabs = TRUE,
-      col.names = c("Activity Type", "Participation (%)", "N Participants", "Mean (min)", "Median (min)"),
+      col.names = c("Activity Type", "Participation (\\%)", "N Participants", "Mean (min)", "Median (min)"),
+      escape = FALSE,
       align = c("l", "r", "r", "r", "r")) %>%
   kable_styling(latex_options = c("hold_position")) %>%
   footnote(general = "Conditional statistics (mean, median) calculated among participants only. Weighted estimates using survey weights.",
@@ -631,7 +632,8 @@ demo_table <- demo_table %>%
 kable(demo_table,
       caption = "Remote Socializing Participation by Demographics",
       booktabs = TRUE,
-      col.names = c("Category", "Group", "Participation (%)", "N (weighted)"),
+      col.names = c("Category", "Group", "Participation (\\%)", "N (weighted)"),
+      escape = FALSE,
       linesep = c("", "", "\\addlinespace", "", "", "", "\\addlinespace",
                   "", "", "", "", "", "\\addlinespace",
                   "", "", "\\addlinespace", "")) %>%
@@ -1189,7 +1191,8 @@ kable(summary_by_gender,
       caption = "Summary Statistics by Gender",
       digits = 2,
       booktabs = TRUE,
-      col.names = c("Gender", "N", "Remote (%)", "Married (%)", "Urban (%)", "Mean Age", "Higher Ed (%)")) %>%
+      escape = FALSE,
+      col.names = c("Gender", "N", "Remote (\\%)", "Married (\\%)", "Urban (\\%)", "Mean Age", "Higher Ed (\\%)")) %>%
   kable_styling(latex_options = c("hold_position"))
 ```
 
