@@ -98,7 +98,7 @@ Our main findings are:
 
 **Digital Divide**: Urban residents are 2.3 times more likely to socialize remotely than rural residents (2.1% vs 0.9% participation). This gap persists even after controlling for age, education, and gender.
 
-**Education Gradient**: Individuals with higher education are 80% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
+**Highest_Education Gradient**: Individuals with higher education are 80% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
 
 **Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at 1.8-2.0%, declining to 1.2% among youth (18-24) and elderly (65+). This U-shaped pattern differs from typical leisure activities.
 
@@ -170,19 +170,26 @@ if (!file.exists(data_path)) {
 
 # Load full data or 10% sample
 # For memory efficiency, we use 10% random sample
+set.seed(42)
 data_full <- read_dta(data_path)
 
 cat("Total observations in full dataset:", nrow(data_full), "\n")
 
-# Take 10% random sample
+# Take 10% random sample and create IDs
 data <- data_full %>%
   slice_sample(prop = 0.1) %>%
-  # Adjust weights for sampling
-  mutate(Weight = Weight / 0.1)
+  mutate(
+    # Create household ID
+    household_id = paste0(FSU_Serial_No, "_", Sample_HH_No),
+    # Create person ID
+    Person_ID = paste0(FSU_Serial_No, "_", Sample_HH_No, "_", Person_Serial_No),
+    # Adjust weights for sampling
+    Weight = Weight / 0.1
+  )
 
 cat("Observations in 10% sample:", nrow(data), "\n")
 cat("Unique individuals:", n_distinct(data$Person_ID), "\n")
-cat("Unique households:", n_distinct(data$HH_ID), "\n")
+cat("Unique households:", n_distinct(data$household_id), "\n")
 
 rm(data_full)  # Free memory
 gc()
@@ -212,13 +219,13 @@ data <- data %>%
   mutate(
     # In-person socializing
     socializing_inperson = if_else(
-      Activity_Code == INPERSON_CODE & Major_Activity_Flag == 1,
+      Activity_Code_2Digit == INPERSON_CODE & Major_Activity_Flag == 1,
       1, 0
     ),
 
     # Remote socializing
     socializing_remote = if_else(
-      Activity_Code == REMOTE_CODE & Major_Activity_Flag == 1,
+      Activity_Code_2Digit == REMOTE_CODE & Major_Activity_Flag == 1,
       1, 0
     ),
 
@@ -229,8 +236,8 @@ data <- data %>%
     ),
 
     # Time spent (in minutes)
-    time_inperson = if_else(socializing_inperson == 1, Time_Spent, 0),
-    time_remote = if_else(socializing_remote == 1, Time_Spent, 0)
+    time_inperson = if_else(socializing_inperson == 1, time_spent, 0),
+    time_remote = if_else(socializing_remote == 1, time_spent, 0)
   )
 
 cat("Activity codes defined successfully.\n")
@@ -295,9 +302,9 @@ data <- data %>%
 
     # Education
     education_level = case_when(
-      Education <= 5 ~ "Primary or less",
-      Education >= 6 & Education <= 10 ~ "Secondary",
-      Education >= 11 ~ "Higher education",
+      Highest_Education <= 5 ~ "Primary or less",
+      Highest_Education >= 6 & Highest_Education <= 10 ~ "Secondary",
+      Highest_Education >= 11 ~ "Higher education",
       TRUE ~ NA_character_
     ),
 
@@ -306,10 +313,10 @@ data <- data %>%
     sector_label = if_else(Sector == 1, "Urban", "Rural"),
 
     # Survey weight
-    Weight = MULT / 100,
+    Weight = Weight,
 
     # Household ID for clustering
-    household_id = HH_ID,
+    household_id = household_id,
 
     # Age squared for non-linear effects
     age_squared = Age^2
@@ -332,7 +339,7 @@ Table 1 presents summary statistics for our sample.
 summary_overall <- data_adults %>%
   summarise(
     N_obs = n(),
-    N_individuals = n_distinct(Person_ID),
+    N_individuals = n_distinct(Person_Serial_No),
     N_households = n_distinct(household_id),
     pct_female = weighted.mean(female, Weight, na.rm = TRUE) * 100,
     pct_married = weighted.mean(married, Weight, na.rm = TRUE) * 100,
@@ -347,8 +354,8 @@ summary_overall <- data_adults %>%
 summary_table <- data.frame(
   Variable = c("Observations", "Unique Individuals", "Unique Households",
                "Female (%)", "Married (%)", "Urban (%)", "Mean Age",
-               "Primary Education or Less (%)", "Secondary Education (%)",
-               "Higher Education (%)"),
+               "Primary Highest_Education or Less (%)", "Secondary Highest_Education (%)",
+               "Higher Highest_Education (%)"),
   Value = c(
     format(summary_overall$N_obs, big.mark = ","),
     format(summary_overall$N_individuals, big.mark = ","),
@@ -383,10 +390,10 @@ Our primary analysis uses person-level data, where each observation is a unique 
 ```{r person-level-data}
 # Create person-level dataset
 person_data <- data_adults %>%
-  group_by(Person_ID, HH_ID, household_id, Gender, female, gender_label,
+  group_by(Person_ID, household_id, Gender, female, gender_label,
            Marital_Status, married, never_married, widowed, divorced_separated, marital_label,
            Age, age_group, age_squared,
-           Education, education_level,
+           Highest_Education, education_level,
            Sector, urban, sector_label,
            State, Weight) %>%
   summarise(
@@ -441,7 +448,7 @@ We examine heterogeneity by:
 2. Marital status (separate models by marital status)
 3. Urban/rural (separate models by sector)
 4. Age groups (separate models by age)
-5. Education levels (separate models by education)
+5. Highest_Education levels (separate models by education)
 
 # Results
 
@@ -752,7 +759,7 @@ modelsummary(
   gof_map = c("nobs", "r.squared", "FE: State"),
   output = "kableExtra",
   title = "Determinants of Remote Socializing Participation (Linear Probability Model)",
-  notes = "Robust standard errors clustered at household level in parentheses. Dependent variable is binary indicator for any remote socializing. Reference categories: Male, Never Married, Primary Education or Less, Rural. All regressions weighted using survey weights."
+  notes = "Robust standard errors clustered at household level in parentheses. Dependent variable is binary indicator for any remote socializing. Reference categories: Male, Never Married, Primary Highest_Education or Less, Rural. All regressions weighted using survey weights."
 ) %>%
   kable_styling(latex_options = c("hold_position", "scale_down"))
 ```
@@ -765,7 +772,7 @@ modelsummary(
 
 3. **Urban Effect**: Urban residents are `r sprintf("%.2f", coef(reg3)["urban"] * 100)` percentage points more likely to socialize remotely, controlling for other factors.
 
-4. **Education Gradient**: Higher education increases participation by `r sprintf("%.2f", coef(reg3)["factor(education_level)Higher education"] * 100)` pp compared to primary education.
+4. **Highest_Education Gradient**: Higher education increases participation by `r sprintf("%.2f", coef(reg3)["factor(education_level)Higher education"] * 100)` pp compared to primary education.
 
 5. **Age Effect**: Nonlinear relationship - participation increases with age initially, then declines (positive Age, negative Age²).
 
@@ -869,7 +876,7 @@ ggplot(by_age_gender, aes(x = age_group, y = pct_remote,
 
 ### By Education
 
-```{r heterogeneity-education, fig.cap="Remote Socializing Participation by Education and Gender", fig.height=5}
+```{r heterogeneity-education, fig.cap="Remote Socializing Participation by Highest_Education and Gender", fig.height=5}
 # Participation by education and gender
 by_edu_gender <- person_data %>%
   filter(!is.na(education_level)) %>%
@@ -891,9 +898,9 @@ ggplot(by_edu_gender, aes(x = education_level, y = pct_remote, fill = gender_lab
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)),
                      labels = function(x) paste0(x, "%")) +
-  labs(title = "The Education Gradient in Remote Socializing",
+  labs(title = "The Highest_Education Gradient in Remote Socializing",
        subtitle = "Higher education dramatically increases digital social engagement",
-       x = "Education Level",
+       x = "Highest_Education Level",
        y = "Participation Rate (%)",
        fill = "Gender") +
   theme(legend.position = "bottom",
