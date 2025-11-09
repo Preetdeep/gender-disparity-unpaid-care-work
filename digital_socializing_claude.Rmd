@@ -98,7 +98,7 @@ Our main findings are:
 
 **Digital Divide**: Urban residents are 2.3 times more likely to socialize remotely than rural residents (2.1% vs 0.9% participation). This gap persists even after controlling for age, education, and gender.
 
-**Highest_Education Gradient**: Individuals with higher education are 80% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
+**Education Gradient**: Individuals with higher education are 80% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
 
 **Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at 1.8-2.0%, declining to 1.2% among youth (18-24) and elderly (65+). This U-shaped pattern differs from typical leisure activities.
 
@@ -354,8 +354,8 @@ summary_overall <- data_adults %>%
 summary_table <- data.frame(
   Variable = c("Observations", "Unique Individuals", "Unique Households",
                "Female (percent)", "Married (percent)", "Urban (percent)", "Mean Age",
-               "Primary Highest_Education or Less (percent)", "Secondary Highest_Education (percent)",
-               "Higher Highest_Education (percent)"),
+               "Primary Education or Less (percent)", "Secondary Education (percent)",
+               "Higher Education (percent)"),
   Value = c(
     format(summary_overall$N_obs, big.mark = ","),
     format(summary_overall$N_individuals, big.mark = ","),
@@ -766,7 +766,7 @@ modelsummary(
 
 3. **Urban Effect**: Urban residents are `r sprintf("%.2f", coef(reg3)["urban"] * 100)` percentage points more likely to socialize remotely, controlling for other factors.
 
-4. **Highest_Education Gradient**: Higher education increases participation by `r sprintf("%.2f", coef(reg3)["factor(education_level)Higher education"] * 100)` pp compared to primary education.
+4. **Education Gradient**: Higher education increases participation by `r sprintf("%.2f", coef(reg3)["factor(education_level)Higher education"] * 100)` pp compared to primary education.
 
 5. **Age Effect**: Nonlinear relationship - participation increases with age initially, then declines (positive Age, negative Age²).
 
@@ -870,7 +870,7 @@ ggplot(by_age_gender, aes(x = age_group, y = pct_remote,
 
 ### By Education
 
-```{r heterogeneity-education, fig.cap="Remote Socializing Participation by Highest_Education and Gender", fig.height=5}
+```{r heterogeneity-education, fig.cap="Remote Socializing Participation by Education and Gender", fig.height=5}
 # Participation by education and gender
 by_edu_gender <- person_data %>%
   filter(!is.na(education_level)) %>%
@@ -891,9 +891,9 @@ ggplot(by_edu_gender, aes(x = education_level, y = pct_remote, fill = gender_lab
             position = position_dodge(width = 0.8), vjust = -0.5, size = 3.5) +
   scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
-  labs(title = "The Highest_Education Gradient in Remote Socializing",
+  labs(title = "The Education Gradient in Remote Socializing",
        subtitle = "Higher education dramatically increases digital social engagement",
-       x = "Highest_Education Level",
+       x = "Education Level",
        y = "Participation Rate (percent)",
        fill = "Gender") +
   theme(legend.position = "bottom",
