@@ -305,7 +305,6 @@ m_inperson_rural <- feols(in_person_social ~ female + married + female_married, 
 modelsummary(list("Remote (Urban)" = m_remote_urban, "In-Person (Urban)" = m_inperson_urban,
                   "Remote (Rural)" = m_remote_rural, "In-Person (Rural)" = m_inperson_rural),
              stars = TRUE, gof_map = "nobs", title = "Robustness Check: Effects by Urban/Rural Sector",
-             coef_rename = c("female_married" = "Female x Married"),
              output = "kableExtra") %>%
   kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
