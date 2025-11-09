@@ -1,7 +1,7 @@
 ---
 title: "Digital Distance: The Shift from In-Person to Remote Socializing in India"
 author:
-  - "Jules, Software Engineer"
+  - "Dr Preet Deep Singh^[Apna.co]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
   Using a 10% random sample of India's 2024 Time Use Survey, we uncover a dramatic shift in social interaction: remote socializing is nearly 40 times more prevalent than in-person socializing. Daily participation in remote social activities (e.g., phone calls, messaging) stands at 1.55%, while in-person community participation is just 0.04%. This paper investigates the demographic drivers of this digital transformation. We find that marriage is strongly associated with a shift towards remote socializing, particularly for women. While both married men and women reduce in-person social activities, they substitute towards remote channels, with the effect being more pronounced for women. Urban residence and higher education are also strong predictors of engaging in remote social life. These findings suggest that India's social fabric is being rewoven through digital means, a transition shaped by traditional social institutions like marriage and modern factors like urbanization. This shift carries significant implications for social capital, mental health, and the nature of community in the digital age.
