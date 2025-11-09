@@ -353,9 +353,9 @@ summary_overall <- data_adults %>%
 # Format table
 summary_table <- data.frame(
   Variable = c("Observations", "Unique Individuals", "Unique Households",
-               "Female (%)", "Married (%)", "Urban (%)", "Mean Age",
-               "Primary Highest_Education or Less (%)", "Secondary Highest_Education (%)",
-               "Higher Highest_Education (%)"),
+               "Female (percent)", "Married (percent)", "Urban (percent)", "Mean Age",
+               "Primary Highest_Education or Less (percent)", "Secondary Highest_Education (percent)",
+               "Higher Highest_Education (percent)"),
   Value = c(
     format(summary_overall$N_obs, big.mark = ","),
     format(summary_overall$N_individuals, big.mark = ","),
@@ -521,7 +521,7 @@ overview_table <- data.frame(
 kable(overview_table,
       caption = "Participation Rates and Time Use: Remote vs In-Person Socializing",
       booktabs = TRUE,
-      col.names = c("Activity Type", "Participation (\\%)", "N Participants", "Mean (min)", "Median (min)"),
+      col.names = c("Activity Type", "Participation (percent)", "N Participants", "Mean (min)", "Median (min)"),
       align = c("l", "r", "r", "r", "r"),
       escape = TRUE) %>%
   kable_styling(latex_options = c("hold_position")) %>%
