@@ -13,7 +13,7 @@ abstract: |
   **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
 output:
   pdf_document:
-    latex_engine: xelaxelatex
+    latex_engine: xelatex
     keep_tex: true
     number_sections: true
 header-includes:
