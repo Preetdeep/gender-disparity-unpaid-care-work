@@ -149,7 +149,7 @@ We analyze India's Time Use Survey (TUS) 2024, conducted by the National Statist
 
 The survey employed a stratified multi-stage sampling design ensuring representativeness at state and national levels. Each sampled individual completed a 24-hour time diary recording all activities in 30-minute intervals. Activities are coded using the International Classification of Activities for Time Use Statistics (ICATUS 2016), enabling international comparability.
 
-For computational feasibility, we analyze a 10% stratified random sample (39,440 individuals, ~836,000 activity observations). We adjust survey weights by dividing by 0.10 to preserve population representativeness. Descriptive statistics confirm our sample closely matches the full dataset on demographic characteristics, activity participation rates, and time allocation patterns.
+For computational feasibility, we analyze a 50% stratified random sample (197,202 individuals, ~4.2 million activity observations). We adjust survey weights by dividing by 0.50 to preserve population representativeness. The larger sample size ensures stable estimates for subgroup analyses and reduces sampling variability in participation rate estimates.
 
 ## Defining Physical Exercise
 
@@ -176,7 +176,7 @@ We restrict analysis to adults aged 18 and older to focus on independent living 
 
 We compare **never-married** individuals (Marital_Status = 1) to **currently married** individuals (Marital_Status = 2), excluding widowed and divorced/separated to avoid confounding by marriage dissolution, spouse death, and health shocks. Robustness checks include these groups.
 
-Final analytical sample: 362,124 adults (10% sample: 36,212), comprising 178,389 never-married and 183,735 currently married individuals.
+Final analytical sample: 362,124 adults (50% sample: ~181,000), comprising approximately 89,000 never-married and 92,000 currently married individuals in our analysis.
 
 ## Control Variables
 
@@ -211,11 +211,11 @@ data <- read_dta("TimeUse106PER.dta",
                                State, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
                                Day_of_Week))
 
-# 10% random sample for computational feasibility
+# 50% random sample for better precision while maintaining computational feasibility
 set.seed(123)
 data <- data %>%
-  slice_sample(prop = 0.1) %>%
-  mutate(Weight = Weight / 0.1)
+  slice_sample(prop = 0.5) %>%
+  mutate(Weight = Weight / 0.5)
 
 # Filter to major activities only
 major_only <- data %>%
