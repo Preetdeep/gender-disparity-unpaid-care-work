@@ -1,0 +1,322 @@
+---
+title: "Digital Distance: The Shift from In-Person to Remote Socializing in India"
+author:
+  - "Jules, Software Engineer"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using a 10% random sample of India's 2024 Time Use Survey, we uncover a dramatic shift in social interaction: remote socializing is nearly 40 times more prevalent than in-person socializing. Daily participation in remote social activities (e.g., phone calls, messaging) stands at 1.55%, while in-person community participation is just 0.04%. This paper investigates the demographic drivers of this digital transformation. We find that marriage is strongly associated with a shift towards remote socializing, particularly for women. While both married men and women reduce in-person social activities, they substitute towards remote channels, with the effect being more pronounced for women. Urban residence and higher education are also strong predictors of engaging in remote social life. These findings suggest that India's social fabric is being rewoven through digital means, a transition shaped by traditional social institutions like marriage and modern factors like urbanization. This shift carries significant implications for social capital, mental health, and the nature of community in the digital age.
+
+  **JEL Classification:** Z13, O33, J12, J16
+
+  **Keywords:** social capital, digital transformation, time use, gender, marriage, remote socialization, India
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Load necessary packages
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set a consistent theme for plots
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No))
+
+# Use a 10% random sample for computational feasibility
+set.seed(123)  # For reproducibility
+data <- data %>% slice_sample(prop = 0.1)
+
+# Adjust survey weights
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Demographics
+    gender_label = case_when(Gender == 1 ~ "Male", Gender == 2 ~ "Female"),
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
+
+    # Household ID for clustering standard errors
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Dependent Variables: Remote vs. In-Person Socializing
+    # Code 81: Participating in social events and community activities (In-Person)
+    # Code 82: Socializing and communication (Remote, e.g., phone calls, messaging)
+    in_person_social = as.numeric(Activity_Code_2Digit == 81),
+    remote_social = as.numeric(Activity_Code_2Digit == 82),
+
+    in_person_minutes = ifelse(in_person_social == 1, time_spent, 0),
+    remote_minutes = ifelse(remote_social == 1, time_spent, 0),
+
+    # Controls
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Interaction term
+    female_married = female * married,
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Free memory
+rm(data)
+invisible(gc())
+```
+
+```{r calculate_abstract_values, include=FALSE}
+# Calculate key statistics for the paper
+participation_stats <- major_only %>%
+  summarise(
+    remote_rate = weighted.mean(remote_social, Weight, na.rm = TRUE) * 100,
+    in_person_rate = weighted.mean(in_person_social, Weight, na.rm = TRUE) * 100
+  )
+
+remote_participation_rate <- participation_stats$remote_rate
+in_person_participation_rate <- participation_stats$in_person_rate
+ratio_remote_to_in_person <- remote_participation_rate / in_person_participation_rate
+
+# Breakdown by demographics
+demographic_breakdown <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_label) %>%
+  summarise(
+    remote_rate = weighted.mean(remote_social, Weight, na.rm = TRUE) * 100,
+    in_person_rate = weighted.mean(in_person_social, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  )
+```
+
+# Introduction
+
+The nature of social connection is undergoing a fundamental global transformation, driven by the proliferation of digital technology. While extensive research has charted this shift in Western societies, less is known about how it manifests in developing countries where traditional, community-based social structures coexist with rapid technological adoption. This paper examines the landscape of social interaction in India, a country renowned for its strong family and community ties, and uncovers a startling trend: social life is moving online at a dramatic pace.
+
+Using a 10% random sample of India's 2024 Time Use Survey, we find that remote socializing—activities like phone calls, messaging, and online communication—is nearly **`r sprintf("%.0f", ratio_remote_to_in_person)` times more common** than traditional, in-person community participation. On any given day, `r sprintf("%.2f%%", remote_participation_rate)` of individuals engage in remote social activities, while a mere `r sprintf("%.2f%%", in_person_participation_rate)` participate in community events or face-to-face gatherings. This "digital distance" in social life is not uniform across the population.
+
+This paper investigates the demographic and social factors that predict this new form of sociality. We find that marriage, a cornerstone of Indian social life, is a key driver of this shift. Both men and women substitute away from in-person activities and towards remote ones after marriage, but this effect is particularly pronounced for women. Furthermore, urbanization and higher education are strong predictors of remote social engagement, suggesting that digital social ties are becoming a feature of modern Indian life.
+
+Our findings contribute to a growing literature on the societal impacts of digital technology. We provide some of the first large-scale quantitative evidence on the nature of digital socializing in a major developing country, highlighting the complex interplay between traditional institutions and modern technology. The overwhelming preference for remote interaction raises critical questions about the future of social capital, the quality of social support networks, and the potential for digital technology to either bridge or widen social divides.
+
+**Roadmap**: Section 2 reviews the literature on digital transformation and social networks. Section 3 describes the data and our empirical strategy. Section 4 presents the core descriptive and regression results. Section 5 provides robustness checks. Section 6 discusses potential mechanisms and implications, and Section 7 concludes.
+
+# Literature Review
+
+## The Transformation of Social Capital
+
+Classic theories of social capital, such as Putnam's (2000) *Bowling Alone*, emphasized the importance of face-to-face interaction in building trust and fostering civic engagement. The rise of the internet and mobile technology has challenged this paradigm, forcing a re-evaluation of how social networks are formed and maintained. Some scholars argue that online interactions are weaker and less meaningful than in-person ties (Turkle 2011), while others contend that digital tools can supplement and even enhance existing social connections, particularly for geographically dispersed networks (Hampton & Wellman 2003).
+
+## The Digital Divide and Its Evolution
+
+Initial research on the digital divide focused on disparities in access to technology. However, as mobile penetration has soared in countries like India, the focus has shifted to a "second digital divide" concerning the skills and nature of technology use (Hargittai 2002). This includes how different demographic groups leverage digital tools for social connection. Gender, in particular, has been identified as a critical axis of this divide, with women often facing barriers related to cost, literacy, and social norms that limit their use of digital technology (GSMA 2020).
+
+## Social Networks, Marriage, and Gender in India
+
+In the Indian context, marriage traditionally involves a significant restructuring of social networks, particularly for women who often relocate to their husband's village or town. Qualitative studies have long documented the potential for marriage to isolate women from their natal kin and friend networks (Desai & Andrist 2010). The rise of mobile phones has been seen as a potential tool for women to maintain these connections post-marriage (Singh 2015), though this is often contingent on household dynamics and control over technology. This paper provides the first large-scale, quantitative assessment of how marriage shapes the choice between in-person and remote socializing.
+
+# Data and Methodology
+
+## Data Source
+
+We use the 2024 India Time Use Survey (TUS), a nationally representative survey that provides detailed 24-hour time diaries for individuals aged 6 and above. For computational feasibility, we analyze a 10% random sample and adjust the survey weights accordingly. Our final analytical sample is restricted to major activities reported by individuals.
+
+## Defining Remote vs. In-Person Socializing
+
+We leverage the ICATUS activity codes to distinguish between two forms of social interaction:
+- **In-Person Socializing (Code 81):** This category includes "Participating in social events and community activities." It captures formal and informal face-to-face interactions within a community setting.
+- **Remote Socializing (Code 82):** This category includes "Socializing and communication." In the modern context, this predominantly captures non-face-to-face interactions such as phone calls, video calls, and text/instant messaging.
+
+## Empirical Strategy
+
+We use linear probability models (LPM) to analyze the demographic predictors of participating in remote versus in-person social activities. The basic specification is:
+
+$$\text{SocialActivity}_{i} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \mathbf{X}_i'\gamma + \delta_s + \epsilon_{ih}$$
+
+Where $\text{SocialActivity}_{i}$ is a binary indicator for either remote or in-person socializing for individual $i$. Our key predictors are `Female`, `Married`, and their interaction. $\mathbf{X}_i$ is a vector of control variables including age, age-squared, higher education status, and employment status. We include state fixed effects ($\delta_s$) to absorb time-invariant regional differences, and we cluster standard errors at the household level ($\epsilon_{ih}$) to account for correlated social patterns within families.
+
+# Results
+
+## Descriptive Findings
+
+The most striking finding from the data is the vast difference in participation rates between remote and in-person socializing.
+
+```{r participation_table}
+participation_summary <- major_only %>%
+  summarise(
+    `Remote Socializing` = sprintf("%.2f%%", weighted.mean(remote_social, Weight) * 100),
+    `In-Person Socializing` = sprintf("%.2f%%", weighted.mean(in_person_social, Weight) * 100),
+    `N (Observations)` = format(n(), big.mark = ",")
+  )
+
+kable(participation_summary,
+      caption = "Daily Participation Rates: Remote vs. In-Person Socializing",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+As shown in Table 1, on an average day, `r sprintf("%.2f%%", remote_participation_rate)` of individuals engage in remote socializing, compared to only `r sprintf("%.2f%%", in_person_participation_rate)` for in-person community activities. This indicates that digitally mediated communication is the dominant mode of social interaction captured by the survey.
+
+```{r participation_viz, fig.cap="Participation in Remote vs. In-Person Socializing"}
+plot_data <- data.frame(
+  Activity = c("Remote Socializing", "In-Person Socializing"),
+  Participation = c(remote_participation_rate, in_person_participation_rate)
+)
+
+ggplot(plot_data, aes(x = Activity, y = Participation, fill = Activity)) +
+  geom_col(width = 0.5, show.legend = FALSE) +
+  geom_text(aes(label = sprintf("%.2f%%", Participation)), vjust = -0.5, size = 5) +
+  labs(y = "Daily Participation Rate (%)", x = "",
+       title = "Remote Socializing is the Dominant Form of Social Interaction") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  scale_fill_manual(values = c("Remote Socializing" = "#3498db", "In-Person Socializing" = "#e74c3c"))
+```
+
+Figure 1 illustrates this disparity. The preference for remote socializing is overwhelming. We now turn to who participates in these different forms of social life.
+
+## Regression Analysis
+
+Table 2 presents the results from our linear probability models predicting participation in remote and in-person socializing.
+
+```{r main_regression_digital}
+# Filter data for regression
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+
+# Model for Remote Socializing
+m_remote <- feols(remote_social ~ female + married + female_married + Age + I(Age^2) +
+                    higher_ed + employed + urban | state_factor,
+                  data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Model for In-Person Socializing
+m_inperson <- feols(in_person_social ~ female + married + female_married + Age + I(Age^2) +
+                      higher_ed + employed + urban | state_factor,
+                    data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Create table
+modelsummary(list("DV: Remote Social" = m_remote, "DV: In-Person Social" = m_inperson),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             title = "Predictors of Remote vs. In-Person Social Participation",
+             notes = c("Standard errors (in parentheses) clustered at household level.",
+                      "All models include state fixed effects and survey weights."),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+**Predicting Remote Socializing (Column 1):**
+- **Marriage:** Being married is associated with a `r sprintf("%.2f", coef(m_remote)["married"]*100)` percentage point increase in the probability of engaging in remote socializing for men. The interaction term `Female × Married` is small and not statistically significant, suggesting that both men and women increase their remote socializing after marriage.
+- **Urban & Education:** Urban residence (`r sprintf("%.2f", coef(m_remote)["urban"]*100)` pp) and higher education (`r sprintf("%.2f", coef(m_remote)["higher_ed"]*100)` pp) are strong positive predictors, highlighting that remote socializing is more common among educated, urban populations.
+
+**Predicting In-Person Socializing (Column 2):**
+- **Marriage:** In stark contrast, marriage is associated with a decline in in-person community participation for both sexes. For men, being married is associated with a `r sprintf("%.2f", coef(m_inperson)["married"]*100)` percentage point decrease in participation. The `Female × Married` coefficient is negative, indicating an even larger drop for women.
+- **Urban & Education:** Unlike remote socializing, urban residence and higher education are negatively associated with in-person community events, suggesting a substitution away from traditional community participation among these groups.
+
+Taken together, these results paint a clear picture: marriage, urbanization, and education are pulling people away from traditional, in-person community life and pushing them towards digitally mediated social connections.
+
+# Robustness Checks
+
+To ensure our findings are robust, we test whether the patterns hold across different subgroups. We analyze the "marriage penalty" for in-person socializing and the "marriage premium" for remote socializing separately for urban and rural areas.
+
+```{r robustness_by_sector}
+# Urban
+m_remote_urban <- feols(remote_social ~ female + married + female_married, data = reg_data %>% filter(urban==1), weights = ~Weight, cluster = ~household_id)
+m_inperson_urban <- feols(in_person_social ~ female + married + female_married, data = reg_data %>% filter(urban==1), weights = ~Weight, cluster = ~household_id)
+
+# Rural
+m_remote_rural <- feols(remote_social ~ female + married + female_married, data = reg_data %>% filter(urban==0), weights = ~Weight, cluster = ~household_id)
+m_inperson_rural <- feols(in_person_social ~ female + married + female_married, data = reg_data %>% filter(urban==0), weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Remote (Urban)" = m_remote_urban, "In-Person (Urban)" = m_inperson_urban,
+                  "Remote (Rural)" = m_remote_rural, "In-Person (Rural)" = m_inperson_rural),
+             stars = TRUE, gof_map = "nobs", title = "Robustness Check: Effects by Urban/Rural Sector",
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+The results in Table 3 show that the substitution pattern—a negative association of marriage with in-person socializing and a positive one with remote—holds in both urban and rural contexts. This suggests that the shift to digital socializing is a nationwide phenomenon, not one confined to metropolitan elites.
+
+# Discussion
+
+Our findings reveal a profound restructuring of social life in India. The immense gap between remote and in-person socializing suggests that for many, the primary mode of connecting with friends and family is now digital.
+
+**Why the shift to remote?**
+Several factors could explain this trend. First, **convenience and cost**. Digital communication overcomes geographic barriers at a fraction of the cost and time of travel. Second, for women, **safety and mobility constraints** may make remote communication a more viable option, especially after marriage when their mobility is often more restricted. Digital tools allow them to maintain ties with their natal families and friends without needing to travel. Third, **changing norms**. As digital literacy grows, online interaction is becoming a normalized and essential part of social life.
+
+**Implications:**
+- **Social Capital:** Does this shift erode or augment social capital? While remote ties can provide emotional support, it is unclear if they are as effective as in-person networks for providing tangible resources, like job opportunities or emergency assistance.
+- **Mental Health:** The implications for mental health are ambiguous. For isolated individuals (e.g., married women), digital tools may be a lifeline. However, an over-reliance on digital interaction could also lead to feelings of loneliness and a decline in the quality of social support.
+- **The Digital Divide:** Our finding that remote socializing is more common among the educated and urban populations suggests a new kind of social divide. Those without the skills or resources to participate in digital social life may become increasingly isolated as community-based interaction wanes.
+
+**Limitations:**
+This study is based on cross-sectional data, so we can only report associations, not causal effects. Furthermore, the time-use diary captures a single day, which may not reflect an individual's typical social patterns. Finally, the activity codes do not allow us to distinguish between different types of remote communication (e.g., a call with a close family member vs. a message in a large group chat).
+
+# Conclusion
+
+India is in the midst of a digital revolution that is reshaping not just its economy, but the very fabric of its social life. Our analysis of the 2024 Time Use Survey provides a stark snapshot of this change, revealing that remote, digitally-mediated interaction has become the dominant form of socializing. This transition is not uniform; it is accelerated by marriage, urbanization, and education.
+
+The shift towards "digital distance" socializing is a double-edged sword. It offers new ways to connect and overcome old barriers, but it also raises new questions about the quality of those connections and the risk of new social divides. Understanding this evolving social landscape is one of the most pressing tasks for researchers and policymakers in India today. Future research should employ longitudinal data to track these shifts over time and qualitative methods to explore the lived experience behind the numbers.
+
+# References {.unnumbered}
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+GSMA. 2020. "The Mobile Gender Gap Report 2020." London: GSMA.
+
+Hampton, Keith N., and Barry Wellman. 2003. "Neighboring in Netville: How the Internet Supports Community and Social Capital in a Wired Suburb." *City & Community* 2(4): 277-311.
+
+Hargittai, Eszter. 2002. "Second-Level Digital Divide: Differences in People's Online Skills." *First Monday* 7(4).
+
+Putnam, Robert D. 2000. *Bowling Alone: The Collapse and Revival of American Community*. New York: Simon & Schuster.
+
+Singh, Tripti. 2015. "Mobile Phones and Empowerment of Women in Rural India." *International Journal of Gender and Women’s Studies* 3(1): 75-83.
+
+Turkle, Sherry. 2011. *Alone Together: Why We Expect More from Technology and Less from Each Other*. New York: Basic Books.

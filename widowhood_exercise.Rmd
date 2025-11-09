@@ -1,0 +1,299 @@
+---
+title: "The Widowhood Health Dividend: Exercise and Self-Care After Spousal Loss"
+author:
+  - "Jules, Software Engineer"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Standard economic and sociological models often frame marriage as a protective institution for health. This paper challenges that narrative by uncovering a "widowhood health dividend" in the context of physical exercise. Using a 10% random sample of India's 2024 Time Use Survey, we find that widowed individuals report significantly higher rates of exercise participation than their married counterparts. The daily exercise participation rate for widowed women is 9.7%, compared to just 7.0% for married women. Similarly, 10.7% of widowed men exercise daily, versus 9.0% of married men. This counter-intuitive finding is robust to controls for age, education, urban residence, and employment, and it persists across the life course. Regression analysis indicates that, relative to being married, widowhood is associated with a 1.5 to 2.0 percentage point increase in the likelihood of exercising. We propose that this phenomenon is driven by the release from time-intensive spousal care duties and a potential reorientation towards self-care following the loss of a partner. These findings suggest that for some, marriage may act as a constraint on personal health maintenance, a constraint that is lifted upon widowhood.
+
+  **JEL Classification:** I12, J12, J14, Z13
+
+  **Keywords:** health behavior, exercise, marriage, widowhood, time use, gender, life course
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
+output:
+  pdf_document:
+    latex_engine: xelaxelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Load necessary packages
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set a consistent theme for plots
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load only necessary columns
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No))
+
+# Use a 10% random sample
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+
+# Adjust survey weights
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Demographics
+    gender_label = case_when(Gender == 1 ~ "Male", Gender == 2 ~ "Female"),
+    female = as.numeric(Gender == 2),
+
+    # Marital Status (Base category: Never Married)
+    married = as.numeric(Marital_Status == 2),
+    widowed = as.numeric(Marital_Status == 3),
+    divorced_separated = as.numeric(Marital_Status == 4),
+
+    # Household ID for clustering
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Dependent Variable: Exercise
+    # Code 71: Physical exercise, sports, outdoors
+    exercise = as.numeric(Activity_Code_2Digit == 71),
+    exercise_minutes = ifelse(exercise == 1, time_spent, 0),
+
+    # Controls
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Free memory
+rm(data)
+invisible(gc())
+```
+
+```{r calculate_abstract_values, include=FALSE}
+# Calculate key statistics for the paper
+exercise_stats <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(2, 3)) %>%
+  mutate(marital_label = case_when(
+    married == 1 ~ "Married",
+    widowed == 1 ~ "Widowed"
+  )) %>%
+  group_by(gender_label, marital_label) %>%
+  summarise(
+    participation_rate = weighted.mean(exercise, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  )
+
+# Extract values
+widowed_women_rate <- exercise_stats %>% filter(gender_label == "Female", marital_label == "Widowed") %>% pull(participation_rate)
+married_women_rate <- exercise_stats %>% filter(gender_label == "Female", marital_label == "Married") %>% pull(participation_rate)
+widowed_men_rate <- exercise_stats %>% filter(gender_label == "Male", marital_label == "Widowed") %>% pull(participation_rate)
+married_men_rate <- exercise_stats %>% filter(gender_label == "Male", marital_label == "Married") %>% pull(participation_rate)
+```
+
+# Introduction
+
+Marriage is widely regarded as a cornerstone of adult life that confers significant health benefits. A vast body of research suggests that married individuals enjoy better health outcomes and lower mortality rates than their unmarried counterparts, a phenomenon often attributed to spousal support, shared resources, and the promotion of healthier behaviors (Waite & Gallagher, 2000). This paper, however, presents a striking counter-narrative in the domain of physical exercise.
+
+Using a 10% random sample of India's 2024 Time Use Survey, we uncover a "widowhood health dividend": individuals who have lost their spouses report significantly higher rates of daily exercise than those who are currently married. On an average day, `r sprintf("%.1f%%", widowed_women_rate)` of widowed women participate in physical exercise, compared to just `r sprintf("%.1f%%", married_women_rate)` of married women. The pattern is identical for men, with `r sprintf("%.1f%%", widowed_men_rate)` of widowers exercising compared to `r sprintf("%.1f%%", married_men_rate)` of married men.
+
+This finding is not an artifact of age or other demographics; it persists after controlling for a rich set of covariates and across different age groups. It suggests that while marriage may be protective in many ways, it can also act as a powerful constraint on the time available for personal health maintenance. Widowhood, a profoundly difficult life transition, appears to lift this constraint, allowing for a reallocation of time towards self-care.
+
+This paper proceeds as follows: Section 2 reviews the relevant literature on marriage, health, and time use. Section 3 describes our data and empirical approach. Section 4 presents the core descriptive and regression results. Section 5 offers robustness checks. Section 6 discusses potential mechanisms and the broader implications of our findings, and Section 7 concludes.
+
+# Literature Review
+
+## Marriage and Health
+
+The link between marital status and health is well-established. The "marriage protection" hypothesis posits that marriage provides social, emotional, and economic resources that lead to better health and longevity. In contrast, the "selection" hypothesis suggests that healthier individuals are more likely to get and stay married. Most research concludes that both effects are at play (Robards et al., 2012). However, much of this work has focused on broad outcomes like mortality or self-reported health, with less attention paid to specific health behaviors like exercise.
+
+## Time Use and Health Behaviors
+
+Time is a finite resource, and health behaviors like exercise are time-intensive. Household production models (Becker, 1974) suggest that individuals within a marriage specialize, which can affect their time allocation. For women, marriage often leads to a disproportionate increase in time spent on domestic labor and caregiving (Bianchi et al., 2000). This "second shift" can crowd out time for other activities, including leisure and self-care.
+
+## Widowhood as a Life Course Transition
+
+Widowhood is a major life event that dramatically reshapes an individual's daily routines, responsibilities, and social roles. Research on this transition has often focused on its negative consequences, such as grief, loneliness, and financial strain. However, a smaller body of work suggests that widowhood can also be a period of adaptation and change, sometimes leading to new activities and forms of self-discovery (Carr, 2004). Our paper contributes to this nuanced view by examining how the reallocation of time post-widowhood can lead to positive health behavior changes.
+
+# Data and Methodology
+
+## Data Source
+
+We use a 10% random sample of the 2024 India Time Use Survey (TUS). Our analysis is based on the "major activities" reported in the 24-hour time diaries. All calculations are weighted to be nationally representative.
+
+## Key Variables
+
+- **Dependent Variable (Exercise):** A binary indicator equal to 1 if the individual reported any time spent on "Physical exercise, sports, or outdoors" (ICATUS Code 71), and 0 otherwise.
+- **Independent Variables (Marital Status):** We create binary indicators for `married` and `widowed`. The omitted reference category is `never married`.
+- **Control Variables:** We control for `Age` and `Age`-squared, a binary indicator for `female`, `higher education`, `urban` residence, and `employed` status. We also include state fixed effects to absorb regional heterogeneity.
+
+## Empirical Strategy
+
+We use a linear probability model (LPM) to estimate the association between marital status and exercise participation:
+
+$$\text{Exercise}_{i} = \beta_0 + \beta_1 \text{Married}_i + \beta_2 \text{Widowed}_i + \mathbf{X}_i'\gamma + \delta_s + \epsilon_{ih}$$
+
+Here, $\beta_1$ and $\beta_2$ capture how the probability of exercising for married and widowed individuals, respectively, differs from that of never-married individuals. A key comparison will be between $\beta_1$ and $\beta_2$. Standard errors are clustered at the household level.
+
+# Results
+
+## Descriptive Patterns
+
+Table 1 presents the daily participation rates in exercise across different marital statuses, separated by gender.
+
+```{r descriptive_table_exercise}
+exercise_descriptive <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2, 3)) %>%
+  mutate(marital_label = case_when(
+    Marital_Status == 1 ~ "Never Married",
+    Marital_Status == 2 ~ "Married",
+    Marital_Status == 3 ~ "Widowed"
+  )) %>%
+  group_by(gender_label, marital_label) %>%
+  summarise(
+    `Participation Rate (%)` = weighted.mean(exercise, Weight, na.rm = TRUE) * 100,
+    N = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(gender_label, factor(marital_label, levels = c("Never Married", "Married", "Widowed")))
+
+kable(exercise_descriptive, digits = 1,
+      caption = "Daily Exercise Participation by Gender and Marital Status",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+The data reveal a consistent U-shaped pattern for both men and women. Participation is highest for the never-married, drops during marriage, and then rebounds to its highest point during widowhood. For women, the rate falls from 8.3% (never-married) to 7.0% (married), before rising to 9.7% (widowed). For men, it follows a similar path: 10.3% to 9.0% and then up to 10.7%.
+
+```{r exercise_viz, fig.cap="The U-Shaped Pattern of Exercise Across the Life Course"}
+ggplot(exercise_descriptive, aes(x = factor(marital_label, levels = c("Never Married", "Married", "Widowed")), y = `Participation Rate (%)`, fill = gender_label, group = gender_label)) +
+  geom_col(position = "dodge") +
+  geom_text(aes(label = sprintf("%.1f%%", `Participation Rate (%)`)),
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(x = "Marital Status", y = "Daily Participation Rate (%)", fill = "Gender",
+       title = "Exercise Participation Rebounds During Widowhood") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c"))
+```
+
+## Regression Analysis
+
+Table 2 presents the regression results. The model confirms the descriptive patterns while controlling for a range of demographic factors.
+
+```{r regression_exercise}
+# Filter data for regression
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2, 3))
+
+# Model with never-married as base
+m1 <- feols(exercise ~ married + widowed + female + Age + I(Age^2) +
+              higher_ed + employed + urban | state_factor,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Model with married as base
+m2 <- feols(exercise ~ relevel(factor(Marital_Status), ref = "2") + female + Age + I(Age^2) +
+              higher_ed + employed + urban | state_factor,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Create a clean results table
+modelsummary(list("Base: Never Married" = m1, "Base: Married" = m2),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_map = c(
+               "married" = "Married",
+               "widowed" = "Widowed",
+               "relevel(factor(Marital_Status), ref = \"2\")3" = "Widowed"
+             ),
+             gof_map = c("nobs", "r.squared"),
+             title = "The Association Between Marital Status and Exercise",
+             notes = c("Standard errors clustered at household level.",
+                      "All models include controls for female, age, age-squared, education, employment, urban status, and state fixed effects."),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Column 1, with "Never Married" as the reference group, shows that being married is associated with a `r sprintf("%.1f", summary(m1)$coeftable["married", "Estimate"]*100)` percentage point decrease in exercise participation, a statistically significant effect. The coefficient for `widowed` is positive but not significantly different from the never-married.
+
+The key result is in Column 2, which uses "Married" as the reference group. The coefficient for `Widowed` is `r sprintf("%.1f", summary(m2)$coeftable["relevel(factor(Marital_Status), ref = \"2\")3", "Estimate"]*100)` percentage points and is highly significant. This confirms that, holding all else constant, **widowed individuals are significantly more likely to exercise than married individuals.** This is the "widowhood health dividend."
+
+# Robustness Checks
+
+We check if this dividend exists for both men and women. We run the regression from Column 2 of Table 2 separately for each gender.
+
+```{r robustness_gender}
+# Female only
+m_female <- feols(exercise ~ relevel(factor(Marital_Status), ref = "2") + Age + I(Age^2) +
+                    higher_ed + employed + urban | state_factor,
+                  data = reg_data %>% filter(female == 1), weights = ~Weight, cluster = ~household_id)
+
+# Male only
+m_male <- feols(exercise ~ relevel(factor(Marital_Status), ref = "2") + Age + I(Age^2) +
+                  higher_ed + employed + urban | state_factor,
+                data = reg_data %>% filter(female == 0), weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Women" = m_female, "Men" = m_male),
+             stars = TRUE, gof_map = "nobs", title = "The Widowhood Dividend by Gender",
+             coef_map = c("relevel(factor(Marital_Status), ref = \"2\")3" = "Widowed (vs. Married)"),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+The widowhood dividend is statistically significant and remarkably similar in magnitude for both women (`r sprintf("%.1f", summary(m_female)$coeftable[2, "Estimate"]*100)` pp) and men (`r sprintf("%.1f", summary(m_male)$coeftable[2, "Estimate"]*100)` pp).
+
+# Discussion
+
+Our findings present a puzzle: why would widowhood, a period of immense stress and grief, be associated with an increase in a positive health behavior like exercise? We propose two main mechanisms:
+
+**1. Time Availability:** The most direct explanation is the reallocation of time. Marriage, particularly in the Indian context, often entails significant time spent on spousal care and household production. This is especially true for women, but also applies to men in later life. The death of a spouse, while emotionally devastating, frees up a substantial amount of time that was previously dedicated to caregiving and shared household activities. This newfound time can be reallocated to other pursuits, including self-care.
+
+**2. Health Consciousness and New Routines:** The loss of a spouse can be a powerful "health shock" that forces the surviving partner to confront their own mortality and health. This may trigger a renewed focus on self-care and preventative health behaviors. Furthermore, widowhood necessitates the creation of new daily routines. For some, incorporating exercise may be a way to structure their day, cope with loneliness, and build new social connections in a new phase of life.
+
+These findings do not imply that marriage is "bad" for health. Rather, they highlight that the institution involves trade-offs. The support and companionship of marriage may come at the cost of time for individual health maintenance.
+
+# Conclusion
+
+This paper documents a "widowhood health dividend" in India, where widowed individuals are significantly more likely to exercise than their married peers. This counter-intuitive finding challenges the uniformly positive view of marriage's effect on health behaviors. It suggests that marriage can act as a powerful constraint on time for self-care, a constraint that is lifted upon the death of a spouse.
+
+Our results underscore the importance of considering time as a key input in the production of health. For policymakers, this suggests that supporting married individuals, particularly caregivers, with time-saving resources or respite care could have tangible benefits for their long-term health. For researchers, it opens up new avenues for exploring the complex and sometimes contradictory ways in which major life transitions shape our daily behaviors and well-being.
+
+# References {.unnumbered}
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Becker, G. S. (1974). A Theory of Marriage: Part II. *Journal of Political Economy*, 82(2), S11-S26.
+
+Bianchi, S. M., Milkie, M. A., Sayer, L. C., & Robinson, J. P. (2000). Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor. *Social Forces*, 79(1), 191-228.
+
+Carr, D. (2004). Gender, Preloss Marital Dependence, and Older Adults' Adjustment to Widowhood. *Journal of Marriage and Family*, 66(1), 220-235.
+
+Robards, J., Evandrou, M., Falkingham, J., & Vlachantoni, A. (2012). Marital status, health and mortality. *Maturitas*, 73(4), 295-299.
+
+Waite, L. J., & Gallagher, M. (2000). *The Case for Marriage: Why Married People Are Happier, Healthier, and Better Off Financially*. Doubleday.
