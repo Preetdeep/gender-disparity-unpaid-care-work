@@ -758,9 +758,7 @@ Our findings document substantial gender disparities in care work, with importan
 
 ### Cultural Frames and Care Work
 
-We hypothesized that modern parenting discourse—emphasizing "involved fatherhood"—would lead to higher male participation in childcare than adult care. However, our findings show the opposite: the participation gender gap in childcare is actually larger than in adult care.
-
-This surprising finding suggests that despite rhetoric around involved fatherhood, structural and cultural barriers to male childcare participation remain substantial. While adult care lacks positive cultural framing and involves intimate physical tasks (bathing, toileting, feeding), the absolute participation rates for both genders are lower, making the relative gender gap smaller.
+We hypothesized that modern parenting discourse—emphasizing "involved fatherhood"—would lead to higher male participation in childcare than adult care. However, our findings show the opposite. While men’s participation in both is extremely low (`r sprintf("%.1f%%", male_childcare_pct)` in childcare, `r sprintf("%.1f%%", male_adultcare_pct)` in adult care), the gender gap in childcare participation (`r sprintf("%.1f", childcare_gap_pp)` percentage points) is substantially larger than in adult care (`r sprintf("%.1f", adultcare_gap_pp)` percentage points). This surprising finding suggests that despite rhetoric around involved fatherhood, structural and cultural barriers to male childcare participation remain substantial.
 
 ### Intergenerational Obligations and Patriarchy
 

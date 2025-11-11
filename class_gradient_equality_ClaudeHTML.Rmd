@@ -381,6 +381,13 @@ kable(dual_earner_gaps,
 
 # Regression Analysis
 
+<div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+<h3 style="color: #721c24;">Author's Note: Critical Inconsistency Detected</h3>
+<p>There is a critical contradiction between the descriptive analysis and the regression results presented below. The paper's central thesis of a "wealth paradox"—that gender gaps are larger in high-SES households—is based on descriptive tables comparing <strong>High SES vs. Low SES</strong> groups (Table 1 shows a 122-minute gap vs. a 92-minute gap).</p>
+<p>However, the regression model (Model 2) compares <strong>High SES vs. a baseline of (Low + Middle) SES combined</strong>. The key interaction term, "Female × High SES," is <strong>negative and statistically significant (-1.371)</strong>, as shown in the regression table. This indicates that, after including controls and the Middle SES group, the gender gap is slightly <em>smaller</em> in high-SES households compared to the rest of the population. This result directly contradicts the main narrative of the paper.</p>
+<p>The following text and interpretation were part of the original analysis, which incorrectly describes the interaction as positive. This fundamental discrepancy means the paper's conclusions are not supported by the regression evidence and require a complete re-evaluation of the "wealth paradox" thesis.</p>
+</div>
+
 ## Model Specification and Controls
 
 We estimate linear models of daily domestic work minutes as a function of gender, SES, and their interaction. We include controls for age (linear and quadratic to capture non-linear life course patterns), employment status, and state fixed effects (which absorb all time-invariant state-level differences in culture, infrastructure, and economic development).
@@ -424,6 +431,11 @@ modelsummary(list("Full Interactions" = m1, "High vs All" = m2),
                       "Survey weights applied. Model 1 includes full education × urban × gender interactions (not all shown).",
                       "Positive Female × High SES coefficient indicates gender gap is larger in affluent households."))
 ```
+
+<div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-top: 15px; border-radius: 5px;">
+<h4 style="color: #856404;">Note on Interpretation</h4>
+<p>The original interpretation above is incorrect. The regression table clearly shows a <strong>negative and significant coefficient (-1.371)</strong> for the "Female × High SES" interaction term in Model 2. This means that, contrary to the paper's narrative, the gender gap is slightly <strong>smaller</strong> in high-SES households compared to the baseline (low and middle SES combined), once control variables are included. The descriptive finding of a "wealth paradox" does not hold up to a more rigorous regression analysis that includes the full population.</p>
+</div>
 
 **Interpretation**: The Female × High SES interaction in Model 2 is positive and statistically significant, confirming that gender gaps in domestic time are larger in affluent households, even after controlling for age, employment status, and state-level factors. The Female coefficient represents the baseline gender gap (across all SES levels), and the interaction shows the additional gap in high-SES households.
 
