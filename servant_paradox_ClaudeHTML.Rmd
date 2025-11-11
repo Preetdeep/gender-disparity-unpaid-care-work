@@ -248,15 +248,15 @@ kable(by_wealth_gender %>% select(-n) %>% head(12),
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE, font_size = 9)
 ```
 
-**Key Pattern**: As we move from lower to higher socioeconomic status (proxied by education × urban):
-- Women's physical domestic work decreases substantially
-- Women's cognitive domestic work (management) increases
-- Total domestic work decreases only modestly
-- Men's time remains flat across all groups
+**Key Pattern**: The descriptive data align with the regression findings. As we move from lower to higher socioeconomic status (proxied by education × urban):
+- Women's physical domestic work decreases substantially.
+- Women's cognitive/managerial work shows no significant change.
+- Consequently, women's total domestic work burden shows a marked decrease.
+- Men's time remains flat and low across all groups.
 
-## The Management Penalty Visualization
+## Visualizing the Work Composition Change
 
-```{r management_penalty_plot, fig.width=8, fig.height=6, fig.cap="The Servant Paradox: Physical Work Decreases but Management Work Increases"}
+```{r management_penalty_plot, fig.width=8, fig.height=6, fig.cap="Composition of Women's Domestic Work by Socioeconomic Status"}
 # Compare high vs low SES women
 plot_data <- major_only %>%
   filter(gender_label == "Female") %>%
@@ -283,8 +283,8 @@ ggplot(plot_data, aes(x = ses_group, y = `Minutes per Day`, fill = `Work Type`))
             position = position_stack(vjust = 0.5),
             size = 4, fontface = "bold", color = "white") +
   labs(x = "", y = "Minutes per Day",
-       title = "The Servant Paradox: Wealthy Women Trade Physical for Cognitive Labor",
-       subtitle = "Physical work decreases, management work increases, care work unchanged",
+       title = "No Evidence of a 'Management Penalty': High-SES Women See Net Reduction in Domestic Work",
+       subtitle = "Physical work decreases sharply, while cognitive/managerial work does not increase.",
        fill = "Type of Work") +
   scale_fill_manual(values = c("Physical" = "#e74c3c",
                                 "Cognitive" = "#9b59b6",

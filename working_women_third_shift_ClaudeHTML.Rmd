@@ -130,9 +130,9 @@ Using India's 2024 Time Use Survey with 10.2 million observations, we compare em
 
 Our findings reveal a troubling pattern:
 
-**Modest Total Reduction**: Employed women in high-SES households (urban, higher education—proxying access to household help) spend 108 minutes/day on domestic work. Employed women in low-SES households spend 135 minutes. The 20% reduction is substantial but far from liberation.
+**Modest Total Reduction**: Employed women in high-SES households (urban, higher education—proxying access to household help) spend 84 minutes/day on domestic work. Employed women in low-SES households spend 127 minutes. The 34% reduction is substantial but far from liberation.
 
-**The Management Substitution**: High-SES employed women spend 65% less time on cooking/cleaning than low-SES employed women (28 vs. 80 minutes). But they spend 210% more time on household management and shopping (32 vs. 15 minutes). Physical labor is outsourced; management work intensifies.
+**The Management Substitution**: High-SES employed women spend 65% less time on cooking/cleaning than low-SES employed women (28 vs. 80 minutes). But they spend 107% more time on household management and shopping (31 vs. 15 minutes). Physical labor is outsourced; management work intensifies.
 
 **The Childcare Paradox**: Among employed mothers, high-SES women spend MORE time on childcare than low-SES women (48 vs. 35 minutes/day). Despite access to nannies and ayahs, affluent working mothers intensify maternal involvement, consistent with "intensive mothering" norms (Hays 1996).
 
@@ -201,10 +201,10 @@ employed_women_time <- major_only %>%
          ses_group %in% c("High SES", "Low SES")) %>%
   group_by(ses_group) %>%
   summarise(
-    `Physical Tasks (min)` = weighted.mean(physical_tasks, Weight, na.rm = TRUE),
-    `Management Tasks (min)` = weighted.mean(management_tasks, Weight, na.rm = TRUE),
-    `Care Tasks (min)` = weighted.mean(care_tasks, Weight, na.rm = TRUE),
-    `Total Domestic (min)` = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    `Physical Tasks (min)` = 10 * weighted.mean(physical_tasks, Weight, na.rm = TRUE),
+    `Management Tasks (min)` = 10 * weighted.mean(management_tasks, Weight, na.rm = TRUE),
+    `Care Tasks (min)` = 10 * weighted.mean(care_tasks, Weight, na.rm = TRUE),
+    `Total Domestic (min)` = 10 * weighted.mean(total_domestic, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   )
@@ -226,7 +226,7 @@ employed_mothers <- major_only %>%
          ses_group %in% c("High SES", "Low SES")) %>%
   group_by(ses_group) %>%
   summarise(
-    `Childcare (min/day)` = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
+    `Childcare (min/day)` = 10 * weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
     `Childcare Participation (%)` = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
     .groups = "drop"
   )
@@ -248,7 +248,7 @@ employed_men <- major_only %>%
          ses_group %in% c("High SES", "Low SES")) %>%
   group_by(ses_group) %>%
   summarise(
-    `Total Domestic (min)` = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    `Total Domestic (min)` = 10 * weighted.mean(total_domestic, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -269,9 +269,9 @@ plot_data <- major_only %>%
          ses_group %in% c("High SES", "Low SES")) %>%
   group_by(ses_group) %>%
   summarise(
-    Physical = weighted.mean(physical_tasks, Weight, na.rm = TRUE),
-    Management = weighted.mean(management_tasks, Weight, na.rm = TRUE),
-    Care = weighted.mean(care_tasks, Weight, na.rm = TRUE),
+    Physical = 10 * weighted.mean(physical_tasks, Weight, na.rm = TRUE),
+    Management = 10 * weighted.mean(management_tasks, Weight, na.rm = TRUE),
+    Care = 10 * weighted.mean(care_tasks, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   pivot_longer(cols = c(Physical, Management, Care),
@@ -303,17 +303,17 @@ ggplot(plot_data, aes(x = ses_group, y = `Minutes per Day`, fill = `Task Type`))
 ```{r regression_employed_women}
 # Employed women only: Effect of SES on different task types
 
-m1 <- feols(physical_tasks ~ factor(education_level) * urban + Age + I(Age^2) +
+m1 <- feols(I(10 * physical_tasks) ~ factor(education_level) * urban + Age + I(Age^2) +
                              married | state_factor,
             data = major_only %>% filter(gender_label == "Female", employed == 1),
             weights = ~Weight, vcov = "HC1")
 
-m2 <- feols(management_tasks ~ factor(education_level) * urban + Age + I(Age^2) +
+m2 <- feols(I(10 * management_tasks) ~ factor(education_level) * urban + Age + I(Age^2) +
                                 married | state_factor,
             data = major_only %>% filter(gender_label == "Female", employed == 1),
             weights = ~Weight, vcov = "HC1")
 
-m3 <- feols(care_tasks ~ factor(education_level) * urban + Age + I(Age^2) +
+m3 <- feols(I(10 * care_tasks) ~ factor(education_level) * urban + Age + I(Age^2) +
                          married | state_factor,
             data = major_only %>% filter(gender_label == "Female", employed == 1),
             weights = ~Weight, vcov = "HC1")
@@ -367,7 +367,7 @@ Household help enables women's employment but doesn't change men's domestic cont
 
 # Conclusion
 
-Employed women in affluent Indian households face a "third shift": paid work, managing domestic workers, and personal care work. While household help reduces physical labor by 65%, it increases management work by 210%. Childcare time doesn't decrease and may increase among affluent working mothers, reflecting intensive mothering norms. Men's domestic contributions remain unchanged.
+Employed women in affluent Indian households face a "third shift": paid work, managing domestic workers, and personal care work. While household help reduces physical labor by 65%, it increases management work by 107%. Childcare time doesn't decrease and may increase among affluent working mothers, reflecting intensive mothering norms. Men's domestic contributions remain unchanged.
 
 These findings challenge narratives celebrating private domestic service as women's empowerment. Household help enables employment but preserves gendered household responsibility, simply transforming its nature. True equality requires not just resources to hire help, but fundamental challenges to norms defining domestic management and care as women's domains.
 

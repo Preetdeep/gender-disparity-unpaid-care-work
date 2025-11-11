@@ -14,7 +14,7 @@ output:
     highlight: tango
     code_folding: hide
 abstract: |
-  Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage reduces participation by 4.1 percentage points for women but only 0.5 percentage points for men. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social isolation, mental health, and digital inclusion policies.
+  Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage is associated with a 2.1 percentage point increase in participation for men and a 1.5 percentage point increase for women, suggesting a "marriage premium" in digital social engagement. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social networks, family ties, and digital inclusion policies.
 ---
 
 ```{r setup, include=FALSE}
@@ -75,7 +75,7 @@ We focus on three central questions:
 
 1. **Who socializes remotely?** How do participation rates vary across gender, marital status, age, education, and urban/rural residence?
 
-2. **Does marriage reduce remote socializing?** Is there a "marriage penalty" in digital social engagement, and does it differ by gender?
+2. **How does marriage shape remote socializing?** Is there a "marriage premium" in digital social engagement, and does it differ by gender?
 
 3. **What is the digital divide?** How large are the urban-rural and education gradients in remote socializing?
 
@@ -83,7 +83,7 @@ We focus on three central questions:
 
 Our main findings are:
 
-**Marriage Penalty**: Marriage reduces remote socializing participation by 4.1 percentage points (pp) for women but only 0.5 pp for men. This differential penalty suggests that marriage disproportionately constrains women's social connections.
+**Marriage Premium**: Marriage is associated with a 2.1 percentage point increase in participation for men and a 1.5 percentage point increase for women. This suggests that marriage may strengthen, rather than weaken, digital social ties, possibly through family networks.
 
 **Digital Divide**: Urban residents are 2.3 times more likely to socialize remotely than rural residents (2.1% vs 0.9% participation). This gap persists even after controlling for age, education, and gender.
 
@@ -101,7 +101,7 @@ This paper makes several contributions:
 
 **Second**, we document the heterogeneity in digital socializing across demographic groups. Understanding who socializes remotely—and who does not—is crucial for policies addressing social isolation and digital inclusion.
 
-**Third**, we extend the "marriage penalty" literature beyond care work and labor supply to social life. Our findings suggest that marriage constrains not just formal activities but also informal social connections, especially for women.
+**Third**, we contribute to the literature on marriage and social networks by documenting a "marriage premium" in digital socializing. Our findings suggest that marriage may facilitate, rather than constrain, certain forms of social connection in the digital age.
 
 **Fourth**, we quantify the digital divide in social connectivity. While much research focuses on internet access or device ownership, we examine actual digital social behavior—arguably a more relevant measure of digital inclusion.
 
@@ -121,11 +121,11 @@ Recent studies document declines in face-to-face social interaction in developed
 
 However, most research predates the smartphone era. We contribute by examining remote versus in-person socializing in the digital age, using 2024 data from India—a rapidly digitizing society.
 
-## The Marriage Penalty
+## Marriage and Social Networks
 
-Extensive research documents how marriage affects women's time allocation, particularly regarding unpaid care work and labor supply [@becker1981treatise; @folbre2006measuring; @burda2013total]. Married women spend substantially more time on housework and childcare than single women or men [@bittman2003when].
+The relationship between marriage and social life is complex. While some research highlights a "marriage penalty"—where marriage, particularly for women, leads to increased domestic responsibilities and reduced personal leisure time [@hamermesh2019spending; @bittman2003when]—other studies suggest that marriage expands social networks, primarily through the integration of spousal and family connections [@kalmijn2003shared].
 
-Recent work extends this to examine marriage effects on leisure and self-care. Hamermesh [-@hamermesh2019spending] finds that married individuals have less personal leisure time. Our contribution is to examine marriage effects on social engagement—an understudied dimension with implications for mental health and wellbeing.
+Our work contributes to this debate by examining how marriage shapes *digital* social engagement. While traditional, in-person socializing might decline due to time constraints, remote communication could increase as individuals maintain ties with a larger, more geographically dispersed network of family and in-laws. We investigate whether a "marriage premium" exists in the digital realm, offering a modern perspective on how marital status influences social connectivity.
 
 ## The Digital Divide
 
@@ -264,14 +264,14 @@ data <- data %>%
     ),
 
     # Marital status
-    married = if_else(Marital_Status == 1, 1, 0),
-    never_married = if_else(Marital_Status == 2, 1, 0),
+    married = if_else(Marital_Status == 2, 1, 0),
+    never_married = if_else(Marital_Status == 1, 1, 0),
     widowed = if_else(Marital_Status == 4, 1, 0),
     divorced_separated = if_else(Marital_Status == 3, 1, 0),
 
     marital_label = case_when(
-      Marital_Status == 1 ~ "Currently married",
-      Marital_Status == 2 ~ "Never married",
+      Marital_Status == 2 ~ "Currently married",
+      Marital_Status == 1 ~ "Never married",
       Marital_Status == 3 ~ "Divorced or Separated",
       Marital_Status == 4 ~ "Widowed",
       TRUE ~ NA_character_
@@ -1045,16 +1045,16 @@ Our findings document a profound shift in how Indians maintain social connection
 
 However, this digital transformation is highly unequal. Large gaps by urban/rural residence, education, and gender suggest that digital social connection is a privilege, not a universal experience.
 
-## The Marriage Penalty in Social Life
+## The Marriage Premium in Social Life
 
-Marriage substantially reduces remote socializing, especially for women. This extends the "marriage penalty" literature beyond care work to social connections. Mechanisms may include:
+Contrary to theories of a "marriage penalty," we find that marriage is associated with an increase in remote socializing for both men and women. This "marriage premium" suggests that digital tools may help married individuals maintain and expand their social networks. Mechanisms may include:
 
-1. **Time constraints**: Married women face intensive care work burdens
-2. **Social control**: Spousal restrictions on communication (especially for women)
-3. **Network shrinkage**: Marriage shifts social networks from friends to family
-4. **Privacy**: Lack of private space/time for phone calls in joint families
+1. **Network Integration**: Marriage combines two social networks, and digital tools are used to maintain contact with a larger set of in-laws and family friends.
+2. **Family Coordination**: Married couples may use remote communication more frequently for household and family coordination.
+3. **Life Stage Effects**: Marriage often coincides with life stages (e.g., parenthood) that increase the need for remote social support from family and peers.
+4. **Substitution**: While in-person socializing may decline due to domestic responsibilities, remote socializing serves as an efficient substitute.
 
-The gendered marriage penalty suggests that marriage constrains women's social autonomy more than men's.
+The smaller premium for women may still reflect the greater time constraints they face within marriage, but the overall positive effect challenges the notion that marriage inherently leads to social isolation in the digital age.
 
 ## The Digital Divide in Social Connectivity
 
@@ -1067,15 +1067,13 @@ The urban-rural gap (2:1) and education gradient (3:1 from primary to higher edu
 
 These divides have implications for social isolation and inequality. If remote socializing supplements (rather than replaces) in-person contact, then digitally excluded groups may face growing social isolation.
 
-## Implications for Mental Health and Wellbeing
+## Implications for Social Capital and Wellbeing
 
-Social connection is fundamental to mental health and wellbeing. Our findings raise several concerns:
+The shift to remote socializing has complex implications for social capital:
 
-1. **Married women's isolation**: The large marriage penalty for women may contribute to mental health issues
-
-2. **Rural isolation**: Low rural participation in both remote and in-person socializing suggests severe social isolation in rural areas
-
-3. **Digital vs. face-to-face quality**: If remote socializing is a poor substitute for in-person contact, India's digital shift may reduce social capital despite maintaining connection frequency
+1. **Bonding vs. Bridging Capital**: Remote socializing may strengthen "bonding" social capital (ties with close family) but weaken "bridging" capital (ties with diverse acquaintances).
+2. **Quality of Interaction**: The high frequency of remote contact may not compensate for the lower quality compared to face-to-face interaction.
+3. **Social Support**: For married individuals, the "marriage premium" in digital socializing could be a crucial source of social support, particularly for women who may be otherwise isolated.
 
 Future research should examine the quality and mental health consequences of remote versus in-person social connection.
 
@@ -1095,35 +1093,33 @@ The steep education gradient suggests that digital skills training could reduce 
 - Targeted programs for less-educated, older adults
 - Gender-sensitive training acknowledging women's constraints
 
-### 3. Women's Social Autonomy
+### 3. Leveraging Digital Tools for Social Support
 
-The marriage penalty for women suggests that social isolation is a dimension of gender inequality requiring policy attention:
-- Community programs facilitating women's social engagement
-- Awareness campaigns on women's right to social connections
-- Support groups for married women facing isolation
+The "marriage premium" suggests that digital tools are effectively used to maintain family networks. Policy could build on this:
+- Promoting digital platforms for community health and social support groups.
+- Using mobile messaging for public health campaigns and parental support networks.
 
-### 4. Mental Health Interventions
+### 4. Addressing Rural and Low-Education Isolation
 
-High-risk groups (married women, rural residents, less educated) should receive targeted mental health outreach:
-- Community-based social programs
-- Screening for social isolation and loneliness
-- Culturally appropriate interventions
+The digitally excluded—particularly rural and less-educated individuals—are at high risk of social isolation. Interventions should focus on:
+- Strengthening traditional community institutions (e.g., community centers, local clubs).
+- Promoting low-tech solutions for social connection where digital access is limited.
 
 # Conclusion
 
 Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing is 39 times more common than in-person socializing. This reflects India's rapid digital transformation but also reveals profound inequalities.
 
-Marriage reduces remote socializing more for women than men, suggesting that marriage constrains women's social autonomy. Urban residents socialize remotely at twice the rate of rural residents, and higher education increases participation by 80%, highlighting digital divides in social connectivity.
+We find a "marriage premium" in remote socializing, suggesting that marriage is associated with increased digital social engagement for both men and women. This challenges traditional "marriage penalty" theories and highlights the role of digital tools in maintaining family networks. Alongside this, stark digital divides persist: urban residents socialize remotely at twice the rate of rural residents, and higher education increases participation by 80%.
 
-Our findings raise important questions about the future of social life in India and other developing countries undergoing digital transformation. As face-to-face interaction declines and digital communication expands, who is included—and excluded—from digital social networks? How does this shift affect mental health, community cohesion, and social capital?
+Our findings raise important questions about the future of social life in India. As digital communication becomes the norm, who is included—and excluded—from these networks? How does this shift affect the nature of social capital, family ties, and individual wellbeing?
 
 Future research should examine:
 1. The quality and mental health consequences of remote versus in-person socializing
-2. Longitudinal trends in digital social connection
+2. The causal relationship between marriage and digital social behavior
 3. The role of specific platforms (WhatsApp, Facebook, Instagram) in shaping social networks
-4. Comparative analysis across countries at different stages of digital transformation
+4. Longitudinal trends to track the evolution of the digital transformation of social life
 
-Understanding the digital transformation of social life is crucial for policies promoting inclusive connectivity, mental health, and social wellbeing in the 21st century.
+Understanding these dynamics is crucial for policies promoting inclusive connectivity, strengthening social support systems, and enhancing wellbeing in the 21st century.
 
 # References {-}
 

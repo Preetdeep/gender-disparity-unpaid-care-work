@@ -88,17 +88,17 @@ major_only <- data %>%
     # All domestic work (Activity codes 31-35):
     # 31 = Childcare, 32 = Adult care, 33 = Cooking, 34 = Shopping, 35 = Household management
     domestic_work = as.numeric(Activity_Code_2Digit %in% c(31, 32, 33, 34, 35)),
-    domestic_minutes = ifelse(domestic_work == 1, time_spent, 0),
+    domestic_minutes = ifelse(domestic_work == 1, time_spent * 10, 0),
 
     # Specific categories
     cooking = as.numeric(Activity_Code_2Digit == 33),
-    cooking_minutes = ifelse(cooking == 1, time_spent, 0),
+    cooking_minutes = ifelse(cooking == 1, time_spent * 10, 0),
 
     shopping_mgmt = as.numeric(Activity_Code_2Digit %in% c(34, 35)),
-    shopping_mgmt_minutes = ifelse(shopping_mgmt == 1, time_spent, 0),
+    shopping_mgmt_minutes = ifelse(shopping_mgmt == 1, time_spent * 10, 0),
 
     childcare = as.numeric(Activity_Code_2Digit == 31),
-    childcare_minutes = ifelse(childcare == 1, time_spent, 0),
+    childcare_minutes = ifelse(childcare == 1, time_spent * 10, 0),
 
     # SES classification
     urban = as.numeric(Sector == 2),
