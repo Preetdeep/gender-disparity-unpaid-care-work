@@ -1190,13 +1190,3 @@ participants %>%
 ```
 
 ---
-
-**Session Info**
-
-```{r session-info}
-sessionInfo()
-```
-
-**Document compiled**: `r format(Sys.time(), '%B %d, %Y at %H:%M')`
-
-**Note**: All analyses use 10% random sample with adjusted weights. Standard errors clustered at household level. Results are nationally representative when using survey weights.
