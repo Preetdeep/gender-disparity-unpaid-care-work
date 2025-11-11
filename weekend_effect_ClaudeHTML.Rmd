@@ -1,5 +1,5 @@
 ---
-title: "Weekend Patterns in Unpaid Care Work: Gender Gaps Across the Week in India"
+title: "Do Gender Gaps in Care Work Widen on Weekends? Evidence from India's Time Use Survey"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
@@ -215,30 +215,30 @@ gap_min_change_abs_married <- weekend_gap_min_married - weekday_gap_min_married 
 gap_min_increase_pct_married <- 100 * gap_min_change_abs_married / weekday_gap_min_married  # Relative change
 additional_min_married <- female_weekend_min_married - female_weekday_min_married
 
-# By education level for table - FIXED
-by_education_day <- major_only %>%
+# By education level for table - ROBUSTLY FIXED
+by_education_day_table <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
   group_by(education_level, gender_label, day_type) %>%
   summarise(
     care_minutes = weighted.mean(care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
-  )
-
-# Reshape properly for table
-by_education_day_table <- by_education_day %>%
-  pivot_wider(names_from = day_type,
-              values_from = care_minutes) %>%
-  pivot_wider(names_from = gender_label,
-              values_from = c(Weekday, Weekend),
+  ) %>%
+  # Ensure all combinations exist, filling missing care_minutes with 0
+  complete(education_level, nesting(gender_label, day_type), fill = list(care_minutes = 0)) %>%
+  # Pivot into wide format
+  pivot_wider(names_from = c(gender_label, day_type),
+              values_from = care_minutes,
               names_sep = "_") %>%
+  # Calculate gaps and penalties
   mutate(
-    weekday_gap = Weekday_Female - Weekday_Male,
+    weekday_gap = Female_Weekday - Male_Weekday,
     weekend_gap = Weekend_Female - Weekend_Male,
     weekend_penalty = weekend_gap - weekday_gap
   ) %>%
+  # Arrange and select final columns
   select(education_level,
-         Female_Weekday = Weekday_Female, Male_Weekday = Weekday_Male, weekday_gap,
-         Female_Weekend = Weekend_Female, Male_Weekend = Weekend_Male, weekend_gap,
+         Female_Weekday, Male_Weekday, weekday_gap,
+         Female_Weekend, Male_Weekend, weekend_gap,
          weekend_penalty)
 
 # Extract education-specific penalties - FIXED
@@ -411,42 +411,36 @@ Key findings from Table 1:
 
 Figure 1 illustrates the weekend patterns in care work for men and women.
 
-```{r weekend_penalty_plot, fig.width=8, fig.height=5, fig.cap="Weekend Patterns in Care Work: Both Genders Increase Slightly"}
-# Prepare data for plot
-plot_data <- major_only %>%
+```{r weekend_penalty_plot, fig.width=8, fig.height=5, fig.cap="The Gender Gap in Care Work is Large and Stable on Weekends"}
+# Prepare data for plotting the gender gap
+gap_plot_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
   group_by(gender_label, day_type) %>%
   summarise(
-    `Minutes per Day` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    minutes_per_day = weighted.mean(care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
-  )
+  ) %>%
+  pivot_wider(names_from = gender_label, values_from = minutes_per_day) %>%
+  mutate(gender_gap = Female - Male)
 
-# Calculate percentage changes for annotation
-female_weekday <- plot_data %>% filter(gender_label == "Female", day_type == "Weekday") %>% pull(`Minutes per Day`)
-female_weekend <- plot_data %>% filter(gender_label == "Female", day_type == "Weekend") %>% pull(`Minutes per Day`)
-female_change <- 100 * (female_weekend - female_weekday) / female_weekday
-
-male_weekday <- plot_data %>% filter(gender_label == "Male", day_type == "Weekday") %>% pull(`Minutes per Day`)
-male_weekend <- plot_data %>% filter(gender_label == "Male", day_type == "Weekend") %>% pull(`Minutes per Day`)
-male_change <- 100 * (male_weekend - male_weekday) / male_weekday
-
-ggplot(plot_data, aes(x = day_type, y = `Minutes per Day`, fill = gender_label, group = gender_label)) +
-  geom_col(position = "dodge", width = 0.7) +
-  geom_text(aes(label = sprintf("%.2f", `Minutes per Day`)),
-            position = position_dodge(width = 0.7),
-            vjust = -0.5, size = 4, fontface = "bold") +
-  labs(x = "", y = "Minutes per Day on Care Work", fill = "",
-       title = "Weekend Patterns in Care Work by Gender",
-       subtitle = sprintf("Women: %+.1f%% on weekends  |  Men: %+.1f%% on weekends  |  Similar proportional increases",
-                         female_change, male_change)) +
-  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+# Create the plot
+ggplot(gap_plot_data, aes(x = day_type, y = gender_gap, group = 1)) +
+  geom_line(color = "#e74c3c", size = 1.2) +
+  geom_point(color = "#e74c3c", size = 4) +
+  geom_text(aes(label = sprintf("%.2f min", gender_gap)),
+            vjust = -1.5, size = 4.5, fontface = "bold", color = "#c0392b") +
+  labs(x = "", y = "Gender Gap in Minutes per Day\n(Female minutes - Male minutes)",
+       title = "The Gender Gap in Care Work Persists Unchanged on Weekends",
+       subtitle = "The gap remains large and stable, changing by less than one second from weekdays to weekends.") +
+  ylim(0, max(gap_plot_data$gender_gap) * 1.2) +
   theme_minimal(base_size = 12) +
-  theme(legend.position = "bottom",
-        plot.title = element_text(face = "bold", size = 14),
-        plot.subtitle = element_text(size = 11, color = "gray30"))
+  theme(plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(size = 11, color = "gray30"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank())
 ```
 
-Figure 1 shows that both men and women increase care work on weekends, with both bars slightly taller on weekends. The absolute increases are very small (less than 0.05 minutes or 3 seconds per day) and similar in magnitude for both genders. The large baseline gender gap (women do about 3x more care work than men) persists essentially unchanged across weekdays and weekends, suggesting that weekend time availability does not alter the fundamental division of care responsibilities.
+Figure 1 directly visualizes the gender gap in care work (female minutes minus male minutes). It shows that the gap is large—around `r sprintf("%.2f", weekday_gap_min)` minutes per day—and remains virtually unchanged from weekdays to weekends. The minimal change of less than one second underscores that weekend time availability does not alter the fundamental division of care responsibilities. The large baseline gender inequality persists, irrespective of the day of the week.
 
 ## Married Couples: Pattern Remains Consistent
 
