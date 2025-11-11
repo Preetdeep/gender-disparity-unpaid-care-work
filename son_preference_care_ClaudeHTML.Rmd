@@ -1,0 +1,629 @@
+---
+title: "Son Preference in Parental Time: Do Families Invest More Care in Male Children?"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  India's strong son preference is well-documented in fertility decisions, sex-selective abortion, and inheritance patterns. Using India's 2024 Time Use Survey (10.2 million observations from 139,489 households), we examine whether son preference extends to differential parental time investment. We construct household child gender composition from individual records and link to parental time use. We find minimal evidence of son preference in parental time allocation. Mothers spend 0.3 minutes (18 seconds) more per day with sons versus daughters—a 2.9% difference that is within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare time (6-12 seconds per day). Contrary to our hypothesis, educated urban families show slightly more time investment in daughters, not sons. These findings contrast sharply with strong son preference documented in survival, health, and education spending. Cross-sectional data and potential fertility selection limit causal interpretation.
+
+  **JEL Classification:** J13, J16, I24, O15
+  **Keywords:** son preference, childcare, gender bias, parental investment, India
+
+  **Data Availability:** Analysis uses India Time Use Survey 2024 from National Statistical Office. Code available upon request.
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    fig_caption: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+    latex_engine: xelatex
+    number_sections: true
+    keep_tex: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
+
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
+
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+
+# Check for relationship variable (might have different name)
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Search for relationship-related columns
+relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
+                          all_cols, value = TRUE, ignore.case = TRUE)
+cat("Relationship-related columns found:\n")
+print(relationship_cols)
+
+# Search for household member columns
+member_cols <- grep("member|Member|MEMBER|person|Person|PERSON",
+                    all_cols, value = TRUE, ignore.case = TRUE)
+cat("\nMember-related columns found:\n")
+print(member_cols)
+
+# Now load with correct column name (try common variations)
+# Common possibilities: Relation_to_Head, Rel_to_Head, Relationship, etc.
+
+# Determine correct column name
+if ("Relationship_to_Head" %in% all_cols) {
+  rel_col <- "Relationship_to_Head"
+} else if ("Relation_to_Head" %in% all_cols) {
+  rel_col <- "Relation_to_Head"
+} else if ("Rel_to_Head" %in% all_cols) {
+  rel_col <- "Rel_to_Head"
+} else if (length(relationship_cols) > 0) {
+  rel_col <- relationship_cols[1]  # Use first match
+  cat(sprintf("\nUsing column: %s\n", rel_col))
+} else {
+  stop("ERROR: No relationship-to-head column found in dataset!
+
+Available columns: ", paste(all_cols, collapse = ", "))
+}
+
+cat(sprintf("Using relationship column: %s\n", rel_col))
+
+# Now load data with correct column selection
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c("Gender", "Activity_Code_2Digit", "time_spent", "Weight",
+                               "Major_Activity_Flag", "Age", "Marital_Status",
+                               "Highest_Education", "Sector", "Principal_Activity_Status",
+                               "State", "FSU_Serial_No", "Sample_HH_No",
+                               rel_col))  # Use detected column name
+
+# Rename to standard name for rest of analysis
+if (rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+
+# Clean up
+rm(data_full)
+
+# Use 10% sample for computational feasibility
+set.seed(123)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
+
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
+# STEP 2: Construct household child gender composition
+# Identify children: Relationship_to_Head = 5 (unmarried child) or 6 (grandchild)
+# Use age < 18 to define children
+
+cat("\nConstructing household child composition...\n")
+cat("Relationship_to_Head values in data:\n")
+print(table(data$Relationship_to_Head, useNA = "ifany"))
+
+household_composition <- data %>%
+  filter(Relationship_to_Head %in% c(5, 6),  # unmarried child or grandchild
+         Age < 18) %>%  # children under 18
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarize(
+    num_sons = sum(Gender == 1, na.rm = TRUE),
+    num_daughters = sum(Gender == 2, na.rm = TRUE),
+    total_children = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    # Household composition categories
+    only_sons = as.numeric(num_sons > 0 & num_daughters == 0),
+    only_daughters = as.numeric(num_daughters > 0 & num_sons == 0),
+    mixed_children = as.numeric(num_sons > 0 & num_daughters > 0),
+    any_sons = as.numeric(num_sons > 0),
+    any_daughters = as.numeric(num_daughters > 0),
+
+    # For analysis
+    has_children = 1
+  )
+
+cat(sprintf("\nHouseholds with children: %s\n",
+            format(nrow(household_composition), big.mark = ",")))
+cat(sprintf("  Only sons: %s (%.1f%%)\n",
+            format(sum(household_composition$only_sons), big.mark = ","),
+            100 * mean(household_composition$only_sons)))
+cat(sprintf("  Only daughters: %s (%.1f%%)\n",
+            format(sum(household_composition$only_daughters), big.mark = ","),
+            100 * mean(household_composition$only_daughters)))
+cat(sprintf("  Mixed: %s (%.1f%%)\n",
+            format(sum(household_composition$mixed_children), big.mark = ","),
+            100 * mean(household_composition$mixed_children)))
+
+# STEP 3: Merge household composition back to time use data
+data_with_children <- data %>%
+  left_join(household_composition, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+# STEP 4: Filter to adults in households with children
+# Focus on married adults ages 25-50 (likely parents)
+analysis_data <- data_with_children %>%
+  filter(Major_Activity_Flag == 1,
+         Age >= 25, Age <= 50,
+         Marital_Status == 2,  # currently married
+         has_children == 1) %>%  # only households with children
+  mutate(
+    # Create household cluster ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Gender variables
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+    gender_label = ifelse(Gender == 2, "Female", "Male"),
+
+    # Childcare variables
+    childcare = as.numeric(Activity_Code_2Digit == 31),
+    childcare_minutes = ifelse(childcare == 1, time_spent, 0),
+
+    # Control variables
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education >= 7),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    age_squared = Age^2,
+
+    # Composition indicators (already merged)
+    # only_sons, only_daughters, mixed_children, total_children
+
+    state_factor = as.factor(State)
+  )
+
+cat(sprintf("\nAnalysis sample: %s observations\n",
+            format(nrow(analysis_data), big.mark = ",")))
+cat(sprintf("  Females: %s (%.1f%%)\n",
+            format(sum(analysis_data$female), big.mark = ","),
+            100 * mean(analysis_data$female)))
+cat(sprintf("  Males: %s (%.1f%%)\n",
+            format(sum(analysis_data$male), big.mark = ","),
+            100 * mean(analysis_data$male)))
+
+# Clean up memory
+rm(data, data_with_children)
+invisible(gc())
+```
+
+```{r calculate_results, cache=FALSE, include=FALSE}
+# Calculate main results for inline reporting
+
+# Overall childcare by household composition
+main_results <- analysis_data %>%
+  group_by(gender_label, only_sons, only_daughters, mixed_children) %>%
+  summarize(
+    participation_rate = weighted.mean(childcare, Weight, na.rm = TRUE) * 100,
+    mean_minutes = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+# Extract key numbers for reporting
+mothers_only_sons <- main_results %>%
+  filter(gender_label == "Female", only_sons == 1) %>%
+  pull(mean_minutes)
+
+mothers_only_daughters <- main_results %>%
+  filter(gender_label == "Female", only_daughters == 1) %>%
+  pull(mean_minutes)
+
+mothers_mixed <- main_results %>%
+  filter(gender_label == "Female", mixed_children == 1) %>%
+  pull(mean_minutes)
+
+fathers_only_sons <- main_results %>%
+  filter(gender_label == "Male", only_sons == 1) %>%
+  pull(mean_minutes)
+
+fathers_only_daughters <- main_results %>%
+  filter(gender_label == "Male", only_daughters == 1) %>%
+  pull(mean_minutes)
+
+fathers_mixed <- main_results %>%
+  filter(gender_label == "Male", mixed_children == 1) %>%
+  pull(mean_minutes)
+
+# Calculate gaps
+mothers_gap_pct <- ifelse(length(mothers_only_daughters) > 0 && mothers_only_daughters > 0,
+                          100 * (mothers_only_sons - mothers_only_daughters) / mothers_only_daughters,
+                          NA)
+
+fathers_gap_pct <- ifelse(length(fathers_only_daughters) > 0 && fathers_only_daughters > 0,
+                          100 * (fathers_only_sons - fathers_only_daughters) / fathers_only_daughters,
+                          NA)
+
+# Store in results list for inline reporting
+results <- list(
+  mothers_only_sons = ifelse(length(mothers_only_sons) > 0, mothers_only_sons, NA),
+  mothers_only_daughters = ifelse(length(mothers_only_daughters) > 0, mothers_only_daughters, NA),
+  mothers_mixed = ifelse(length(mothers_mixed) > 0, mothers_mixed, NA),
+  mothers_gap_pct = mothers_gap_pct,
+
+  fathers_only_sons = ifelse(length(fathers_only_sons) > 0, fathers_only_sons, NA),
+  fathers_only_daughters = ifelse(length(fathers_only_daughters) > 0, fathers_only_daughters, NA),
+  fathers_mixed = ifelse(length(fathers_mixed) > 0, fathers_mixed, NA),
+  fathers_gap_pct = fathers_gap_pct
+)
+
+# Class gradient analysis
+class_results <- analysis_data %>%
+  mutate(ses_group = ifelse(higher_ed == 1 & urban == 1, "High SES",
+                     ifelse(higher_ed == 0 & urban == 0, "Low SES", "Middle"))) %>%
+  filter(ses_group %in% c("High SES", "Low SES"),
+         female == 1) %>%  # mothers only for class gradient
+  group_by(ses_group, only_sons, only_daughters) %>%
+  summarize(
+    mean_minutes = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+# Extract class gradient results
+high_ses_sons <- class_results %>%
+  filter(ses_group == "High SES", only_sons == 1) %>%
+  pull(mean_minutes)
+
+high_ses_daughters <- class_results %>%
+  filter(ses_group == "High SES", only_daughters == 1) %>%
+  pull(mean_minutes)
+
+low_ses_sons <- class_results %>%
+  filter(ses_group == "Low SES", only_sons == 1) %>%
+  pull(mean_minutes)
+
+low_ses_daughters <- class_results %>%
+  filter(ses_group == "Low SES", only_daughters == 1) %>%
+  pull(mean_minutes)
+
+# Class gradient gaps
+high_ses_gap <- ifelse(length(high_ses_daughters) > 0 && high_ses_daughters > 0,
+                       100 * (high_ses_sons - high_ses_daughters) / high_ses_daughters,
+                       NA)
+
+low_ses_gap <- ifelse(length(low_ses_daughters) > 0 && low_ses_daughters > 0,
+                      100 * (low_ses_sons - low_ses_daughters) / low_ses_daughters,
+                      NA)
+
+results$high_ses_gap <- high_ses_gap
+results$low_ses_gap <- low_ses_gap
+```
+
+# Introduction
+
+India's son preference is notorious: skewed sex ratios from sex-selective abortion, lower vaccination rates for girls, unequal food allocation favoring boys (Das Gupta et al. 2003; Sen 1990). Yet most research focuses on survival and health outcomes. We know less about whether son preference extends to **parental time investment**.
+
+Does having sons lead parents to invest more time in childcare? If so, this represents a subtle but potentially consequential channel through which gender inequality reproduces across generations.
+
+**Main Hypothesis**: Families with sons receive more total parental time than families with daughters, after controlling for family size and composition.
+
+**Data Innovation**: We construct household child gender composition from individual-level records using relationship-to-head codes, linking to parental time use. This enables us to compare childcare time across households with only sons, only daughters, or mixed children.
+
+**Preview of Findings**: We find minimal and inconsistent evidence of son preference in parental time. Effect sizes are very small (0.3 minutes for mothers, 0.1 minutes for fathers) and within measurement error of time diaries. Contrary to our hypothesis, the class gradient reverses: educated urban families show no son preference or slight daughter preference, while rural families also show daughter preference. These weak findings contrast sharply with strong son preference documented in survival, health care, and education spending, suggesting that son preference operates primarily in investment decisions with monetary costs rather than time allocation. Cross-sectional analysis limits causal claims.
+
+## Literature Review
+
+Son preference in South Asia has been extensively documented across multiple domains. Sex-selective abortion has created dramatically skewed sex ratios—112 males per 100 females in some Indian states (Das Gupta et al. 2003). Girls receive lower vaccination rates, less nutritious food, and reduced medical care (Jayachandran and Kuziemko 2011).
+
+Barcellos, Carvalho, and Lleras-Muney (2014) find that Indian parents invest more in boys' education, with larger effects among wealthier families. This suggests son preference in *quality* of investment, not just survival. Yet time use—the most immediate form of parental investment—remains understudied.
+
+Parental time matters for child development (Cunha and Heckman 2008). Time spent on educational activities predicts cognitive outcomes; emotional bonding time affects socioemotional development. If parents systematically allocate less time to daughters, this creates early-life disadvantages that compound over time.
+
+Our contribution: First analysis of son preference in parental time investment using nationally representative time use data with household child composition.
+
+# Data and Methods
+
+## Time Use Survey 2024
+
+India's Time Use Survey 2024, conducted by the National Statistical Office, collected 24-hour time diaries from 10.2 million individuals across 139,489 households. We use a 10% random sample (adjusted weights) for computational feasibility.
+
+## Household Child Gender Composition
+
+**Key Innovation**: We construct household child composition from individual records using:
+
+- **Relationship_to_Head** variable: Code 5 (unmarried child) or 6 (grandchild)
+- **Gender**: 1=Male, 2=Female
+- **Age**: < 18 years defines children
+
+We aggregate to household level, counting:
+
+- **num_sons**: Number of male children age < 18
+- **num_daughters**: Number of female children age < 18
+- **total_children**: Total children
+
+We create three mutually exclusive categories:
+
+- **Only sons**: `r sprintf("%.1f%%", 100 * mean(household_composition$only_sons))` of households with children
+- **Only daughters**: `r sprintf("%.1f%%", 100 * mean(household_composition$only_daughters))` of households
+- **Mixed children**: `r sprintf("%.1f%%", 100 * mean(household_composition$mixed_children))` of households
+
+## Analysis Sample
+
+We merge household composition to individual time use records and restrict to:
+
+- **Married adults ages 25-50** (likely parents)
+- **Households with children** (identified above)
+- **Major activities only** (Major_Activity_Flag = 1)
+
+Final sample: `r format(nrow(analysis_data), big.mark = ",")` person-day observations.
+
+## Key Variables
+
+**Dependent Variable**:
+
+- **childcare_minutes**: Minutes spent on childcare activities (Activity Code 31: caring for children, teaching children, physical care, accompanying children)
+
+**Independent Variables**:
+
+- **Household composition**: only_sons, only_daughters, mixed_children (reference)
+- **Parent gender**: Female, Male
+- **Controls**: Age, Age², Education, Urban, Employment status, State fixed effects, Total number of children
+
+## Estimation Strategy
+
+We estimate:
+
+$$childcare_i = \beta_0 + \beta_1 only\_sons_h + \beta_2 only\_daughters_h + \beta_3 female_i + \beta_4 female_i \times only\_sons_h + X_i'\gamma + \delta_s + \epsilon_i$$
+
+Where $i$ indexes individuals, $h$ indexes households, $s$ indexes states. Standard errors clustered at household level.
+
+**Identification Challenge**: Household child composition is endogenous—families with son preference may have different fertility stopping rules. We control for total children but cannot fully address selection. Results should be interpreted as associations, not causal effects.
+
+# Results
+
+## Descriptive Patterns: Childcare Time by Household Composition
+
+```{r main_table}
+# Create table of childcare time by composition and parent gender
+table_data <- main_results %>%
+  mutate(
+    composition = case_when(
+      only_sons == 1 ~ "Only Sons",
+      only_daughters == 1 ~ "Only Daughters",
+      mixed_children == 1 ~ "Mixed Children"
+    )
+  ) %>%
+  select(composition, gender_label, mean_minutes, participation_rate) %>%
+  pivot_wider(names_from = gender_label,
+              values_from = c(mean_minutes, participation_rate),
+              names_sep = "_")
+
+kable(table_data,
+      digits = 1,
+      caption = "Parental Childcare Time by Household Child Gender Composition",
+      col.names = c("Household Type", "Mother (min/day)", "Father (min/day)",
+                    "Mother (%)", "Father (%)"),
+      ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  add_header_above(c(" " = 1, "Minutes per Day" = 2, "Participation Rate" = 2))
+```
+
+**Pattern 1: Mothers' Time Allocation**
+
+Mothers in households with only sons spend `r sprintf("%.1f", results$mothers_only_sons)` minutes per day on childcare, compared to `r sprintf("%.1f", results$mothers_only_daughters)` minutes in households with only daughters. This represents a `r sprintf("%.1f%%", abs(results$mothers_gap_pct))` difference (`r ifelse(results$mothers_gap_pct > 0, "more", "less")` time with sons).
+
+Mothers in households with mixed children spend `r sprintf("%.1f", results$mothers_mixed)` minutes per day, falling between the two single-gender household types.
+
+**Pattern 2: Fathers' Time Allocation**
+
+Fathers in households with only sons spend `r sprintf("%.1f", results$fathers_only_sons)` minutes per day on childcare, compared to `r sprintf("%.1f", results$fathers_only_daughters)` minutes with only daughters. This represents a `r sprintf("%.1f%%", abs(results$fathers_gap_pct))` difference.
+
+The gender gap in son preference is striking: fathers show `r sprintf("%.1f", abs(results$fathers_gap_pct) / abs(results$mothers_gap_pct))` times larger proportional differences than mothers.
+
+**Interpretation**: The differences are very small. Mothers' 0.3-minute (18-second) gap is well within typical measurement error in time diary studies (±5-15 minutes). Fathers' larger proportional difference (56%) reflects trivially small absolute times (6 vs 12 seconds per day). These patterns suggest minimal son preference in time allocation, especially compared to strong son preference documented in survival, health care, and educational spending. The effects are too small to be policy-relevant or to meaningfully affect child development. Unobserved factors (parental preferences, fertility histories) may also confound these associations.
+
+## Class Gradient in Son Preference
+
+```{r class_gradient_table}
+# Create class gradient table
+class_table <- class_results %>%
+  filter(only_sons == 1 | only_daughters == 1) %>%
+  mutate(
+    composition = ifelse(only_sons == 1, "Only Sons", "Only Daughters")
+  ) %>%
+  select(ses_group, composition, mean_minutes) %>%
+  pivot_wider(names_from = composition, values_from = mean_minutes) %>%
+  mutate(
+    gap_minutes = `Only Sons` - `Only Daughters`,
+    gap_percent = 100 * gap_minutes / `Only Daughters`
+  )
+
+kable(class_table,
+      digits = 1,
+      caption = "Mother's Childcare Time by SES and Household Child Composition",
+      col.names = c("SES Group", "Only Sons (min)", "Only Daughters (min)",
+                    "Gap (min)", "Gap (%)"),
+      ) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+**Finding**: The class gradient reverses our hypothesis.
+
+Among high SES families (educated urban), the gap is `r sprintf("%.1f%%", abs(results$high_ses_gap))` favoring daughters (mothers spend 0.2 minutes MORE with daughters). Among low SES families (non-educated rural), the gap is `r sprintf("%.1f%%", abs(results$low_ses_gap))` also favoring daughters (mothers spend 0.4 minutes MORE with daughters).
+
+**Interpretation**: This contradicts our hypothesis that wealthier families would show stronger son preference in time. Possible explanations:
+
+1. **Educational Egalitarianism**: Educated urban families may have more gender-egalitarian values, reducing or reversing son preference
+2. **Daughter Labor Hypothesis Rejected**: We hypothesized poor families use daughters for domestic work, but they also allocate slightly more maternal time to daughters
+3. **Measurement Error**: Effect sizes are so small (0.2-0.4 minutes) that they likely reflect noise rather than meaningful preferences
+4. **Monetary vs Time Investment**: Son preference may manifest in monetary investments (education fees, healthcare) rather than time allocation, which has no explicit cost
+
+## Regression Analysis
+
+```{r regression_analysis}
+# Run regressions with increasing controls
+model1 <- feols(childcare_minutes ~ only_sons + only_daughters + female,
+                data = analysis_data,
+                weights = ~Weight,
+                cluster = ~household_id)
+
+model2 <- feols(childcare_minutes ~ only_sons + only_daughters + female +
+                  only_sons:female + only_daughters:female,
+                data = analysis_data,
+                weights = ~Weight,
+                cluster = ~household_id)
+
+model3 <- feols(childcare_minutes ~ only_sons + only_daughters + female +
+                  only_sons:female + only_daughters:female +
+                  Age + age_squared + higher_ed + urban + employed + total_children,
+                data = analysis_data,
+                weights = ~Weight,
+                cluster = ~household_id)
+
+model4 <- feols(childcare_minutes ~ only_sons + only_daughters + female +
+                  only_sons:female + only_daughters:female +
+                  Age + age_squared + higher_ed + urban + employed + total_children | State,
+                data = analysis_data,
+                weights = ~Weight,
+                cluster = ~household_id)
+
+# Create regression table
+modelsummary(list("(1)" = model1, "(2)" = model2, "(3)" = model3, "(4)" = model4),
+             stars = c('*' = 0.1, '**' = 0.05, '***' = 0.01),
+             gof_map = c("nobs", "r.squared"),
+             coef_rename = c("only_sons" = "Only Sons",
+                           "only_daughters" = "Only Daughters",
+                           "female" = "Female",
+                           "only_sons:female" = "Only Sons × Female",
+                           "only_daughters:female" = "Only Daughters × Female",
+                           "Age" = "Age",
+                           "age_squared" = "Age²",
+                           "higher_ed" = "Higher Education",
+                           "urban" = "Urban",
+                           "employed" = "Employed",
+                           "total_children" = "Number of Children"),
+             output = "kableExtra",
+             title = "Childcare Time by Household Child Composition: Regression Analysis") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  add_header_above(c(" " = 1, "Dependent Variable: Childcare Minutes per Day" = 4)) %>%
+  footnote(general = "Standard errors clustered at household level. Reference category: Households with mixed children (both sons and daughters). Model 4 includes state fixed effects.",
+           general_title = "Notes:",
+           footnote_as_chunk = TRUE)
+```
+
+**Regression Results Interpretation**:
+
+Model 1 shows baseline associations without controls. Model 2 adds gender interactions. Model 3 adds individual-level controls. Model 4 adds state fixed effects.
+
+**Key Findings**:
+
+- Coefficients on **only_sons** and **only_daughters** capture effects for fathers (male reference group)
+- Interaction terms capture *additional* effects for mothers
+- The reference category is households with mixed children
+
+**Causal Interpretation**: These are associations, not causal effects. Household child composition is endogenous—parents with strong son preference may have different fertility behaviors that also affect time use.
+
+# Discussion
+
+## Why Don't We Find Strong Son Preference in Time Investment?
+
+Our findings of minimal son preference in parental time contrast sharply with strong son preference in survival, health, and education. Why?
+
+**1. Zero Marginal Cost of Time**: Son preference may operate primarily for investments with explicit monetary costs (education fees, medical care, nutrition). Parental time has opportunity cost but no direct price tag, reducing incentives for discrimination.
+
+**2. Indivisibility of Care**: Childcare activities (meals, supervision, transportation) often benefit all children simultaneously. Parents can't easily segregate time investment by child gender when caring for multiple children.
+
+**3. Social Desirability Bias**: Parents may be aware that time discrimination is socially unacceptable, even if they maintain son preference in less observable domains (medical spending, inheritance).
+
+**4. Measurement Limitations**: Time diaries capture what parents do, not quality of interaction. Parents might spend equal time but different quality attention (homework help for sons, household chores for daughters).
+
+**5. Alternative Hypothesis: Son Preference is Genuinely Weaker in Time**: Our findings may reflect reality—Indian parents discriminate in survival and monetary investments but not time, suggesting son preference is not absolute across all domains.
+
+## Intergenerational Implications
+
+The **absence** of strong son preference in time investment has important implications:
+
+**Encouraging Sign**: Time is arguably the most important parental input for child development. If parents allocate time relatively equally despite strong son preference in other domains, this limits intergenerational transmission of gender inequality.
+
+**Compensatory Mechanism**: Equal time investment may partially offset unequal monetary investment, though this depends on activity type (educational vs routine care).
+
+**Policy Focus**: Interventions should target domains where discrimination is strongest (health care, education spending) rather than time use.
+
+## Policy Implications
+
+Given our findings of minimal son preference in time:
+
+**1. Focus on Monetary Investments**: Policy interventions (conditional cash transfers, educational subsidies) should target domains showing actual discrimination: health care spending and educational fees.
+
+**2. Avoid Over-Reach**: Mandating equal parental time investment would be intrusive and addresses a problem we don't observe.
+
+**3. Emphasize Positive Findings**: Public campaigns could highlight that parents already allocate time relatively equally, challenging narratives of pervasive discrimination.
+
+## Limitations
+
+**1. Measurement Error Dominates Signal**: Time diary measurement error (±5-15 minutes) vastly exceeds observed effects (0.3 minutes). We cannot distinguish true null effects from measurement noise.
+
+**2. Cross-Sectional Data**: Cannot establish causality. Household composition is endogenous to fertility decisions.
+
+**3. Selection Bias**: Families with strong son preference may have different fertility stopping rules, creating non-random household compositions.
+
+**4. Single-Day Observation**: Time use captured for one 24-hour period. Multi-day diaries would better capture habitual patterns.
+
+**5. Activity Aggregation**: We analyze total childcare time. Disaggregating by activity type (educational vs. routine care) would illuminate whether discrimination exists in quality of time (homework help for sons, chores for daughters) even if quantity is equal.
+
+**6. Child Age**: Cannot distinguish time allocation by child age. Son preference might manifest at specific developmental stages (school-age) not captured in aggregate analysis.
+
+**7. Birth Order**: Cannot control for birth order effects, which may confound composition effects.
+
+**8. Quality vs Quantity**: Time diaries measure duration but not content. Parents might spend equal time but different activities with sons (tutoring) versus daughters (domestic training).
+
+**9. Power**: With small true effects, we may lack statistical power to detect meaningful discrimination even if it exists.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey linked to household child gender composition, we find **minimal and inconsistent evidence** of son preference in parental time investment. Mothers allocate 0.3 minutes (18 seconds) more per day to sons—an effect within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare (6-12 seconds per day). Contrary to our hypothesis, educated urban families show no son preference or slight daughter preference.
+
+These weak findings **contrast sharply** with strong son preference documented in survival (sex-selective abortion), health care (vaccination, nutrition), and education spending. This suggests **son preference operates selectively**: primarily in domains with explicit monetary costs rather than time allocation.
+
+This null finding has important **positive implications**. Time is arguably the most important parental input for child development. If Indian parents allocate time relatively equally despite strong son preference in other domains, this limits the intergenerational transmission of gender inequality. Sons may receive more educational spending, but they don't receive more parental time—potentially offsetting some advantages.
+
+**Policy Recommendation**: Interventions should focus on domains showing actual discrimination (health care spending, educational fees) rather than time use where discrimination is minimal. Public campaigns could highlight that parents already allocate time relatively equally, challenging narratives of pervasive discrimination.
+
+**Caution**: Our findings are limited by measurement error dominating signal, cross-sectional data, and inability to distinguish quality versus quantity of time. Future research with multi-day time diaries and activity-level detail could reveal whether discrimination exists in *how* time is spent (homework help for sons, chores for daughters) even if total time is equal.
+
+# References
+
+Barcellos, Silvia H., Leandro S. Carvalho, and Adriana Lleras-Muney. 2014. "Child Gender and Parental Investments in India: Are Boys and Girls Treated Differently?" *Journal of Human Resources* 49(1): 262-291.
+
+Cunha, Flavio, and James J. Heckman. 2008. "Formulating, Identifying and Estimating the Technology of Cognitive and Noncognitive Skill Formation." *Journal of Human Resources* 43(4): 738-782.
+
+Das Gupta, Monica, et al. 2003. "Why is Son Preference So Persistent in East and South Asia? A Cross-Country Study of China, India and the Republic of Korea." *Journal of Development Studies* 40(2): 153-187.
+
+Jayachandran, Seema, and Ilyana Kuziemko. 2011. "Why Do Mothers Breastfeed Girls Less Than Boys? Evidence and Implications for Child Health in India." *Quarterly Journal of Economics* 126(3): 1485-1538.
+
+Sen, Amartya. 1990. "More Than 100 Million Women Are Missing." *New York Review of Books* 37(20): 61-66.

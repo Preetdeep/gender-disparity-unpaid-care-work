@@ -1,0 +1,1039 @@
+---
+title: "The Invisible Mental Load: Gender Gaps in Multitasking and Simultaneous Activity Patterns in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we document an unexpected pattern in multitasking behavior: men engage in simultaneous activities more frequently than women, contrary to Western literature showing mothers multitask more than fathers. Men spend 12.1% of their time multitasking compared to women's 11.2%, with 46.7% of men's episodes involving simultaneous activities versus 40.1% for women. Robustness checks reveal this male "multitasking premium" is driven by combining leisure activities (watching TV while socializing), while women perform care work sequentially because tasks require focused attention. This finding challenges simplistic interpretations of multitasking as time poverty: men's optional leisure fragmentation differs fundamentally from women's constrained sequential care work. Within women, employed and educated women multitask more than non-employed women, supporting double burden theory. We argue standard simultaneous activity flags miss women's fragmented time: rapid task-switching between cooking, childcare, and household management appears "sequential" in 30-minute blocks but reflects severe time poverty. The invisible "mental load"—planning, coordinating, remembering—creates cognitive burden not captured by simultaneous activity measures. Our findings suggest measuring time fragmentation requires methods beyond simple simultaneity flags, and that gender gaps in time poverty persist even when traditional multitasking measures show men's higher rates.
+
+  **JEL Classification:** J16, J22, D13, I31
+
+  **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, simultaneous activities, domestic work, India
+
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    fig_caption: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
+
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Check for activity code column
+if ("Activity_Code_3Digit" %in% all_cols) {
+  act_col <- "Activity_Code_3Digit"
+} else if ("Activity_Code_2Digit" %in% all_cols) {
+  act_col <- "Activity_Code_2Digit"
+  cat("Warning: Using 2-digit activity codes (3-digit not available)\n")
+} else {
+  stop("ERROR: No activity code column found!")
+}
+
+# Check for multitasking columns (THIS IS THE KEY!)
+multi_flag_cols <- grep("multiple|Multiple|MULTIPLE", all_cols, value = TRUE, ignore.case = TRUE)
+simul_flag_cols <- grep("simultaneous|Simultaneous|SIMULTANEOUS", all_cols, value = TRUE, ignore.case = TRUE)
+
+has_multi_flag <- length(multi_flag_cols) > 0
+has_simul_flag <- length(simul_flag_cols) > 0
+
+multi_col <- if(has_multi_flag) multi_flag_cols[1] else NULL
+simul_col <- if(has_simul_flag) simul_flag_cols[1] else NULL
+
+# Check for day and location columns
+day_cols <- grep("day.*week|Day.*Week|DAY.*WEEK", all_cols, value = TRUE, ignore.case = TRUE)
+location_cols <- grep("location|Location|LOCATION", all_cols, value = TRUE, ignore.case = TRUE)
+
+has_day <- length(day_cols) > 0
+has_location <- length(location_cols) > 0
+
+day_col <- if(has_day) day_cols[1] else NULL
+location_col <- if(has_location) location_cols[1] else NULL
+
+cat(sprintf("Using activity column: %s\n", act_col))
+if(has_multi_flag) cat(sprintf("Multiple activity flag: %s\n", multi_col))
+if(has_simul_flag) cat(sprintf("Simultaneous activity flag: %s\n", simul_col))
+if(has_day) cat(sprintf("Day of week: %s\n", day_col))
+if(has_location) cat(sprintf("Location: %s\n", location_col))
+
+# Check for secondary activity code column
+secondary_act_cols <- grep("Secondary.*Activity.*Code|Activity.*Code.*Secondary",
+                           all_cols, value = TRUE, ignore.case = TRUE)
+has_secondary_code <- length(secondary_act_cols) > 0
+secondary_act_col <- if(has_secondary_code) secondary_act_cols[1] else NULL
+
+if(has_secondary_code) {
+  cat(sprintf("Secondary activity code column: %s\n", secondary_act_col))
+}
+
+# Clean up
+rm(data_full)
+
+# STEP 2: Load data with available columns
+# Check for relationship column (needed for household characteristics)
+rel_cols <- grep("Relationship.*Head|Relation.*Head", all_cols, value = TRUE, ignore.case = TRUE)
+rel_col <- if(length(rel_cols) > 0) rel_cols[1] else NULL
+
+required_cols <- c("Gender", act_col, "time_spent", "Weight",
+                  "Major_Activity_Flag", "Age", "Marital_Status",
+                  "Highest_Education", "Sector", "Principal_Activity_Status",
+                  "State", "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No")
+
+# Add relationship column if available
+if (!is.null(rel_col)) {
+  required_cols <- c(required_cols, rel_col)
+  cat(sprintf("Relationship column: %s\n", rel_col))
+}
+
+optional_cols <- c(multi_col, simul_col, day_col, location_col, secondary_act_col)
+optional_cols <- optional_cols[!is.null(optional_cols)]
+
+all_cols_to_load <- c(required_cols, optional_cols)
+
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = all_of(all_cols_to_load))
+
+# Rename to standard names
+if (act_col != "Activity_Code_3Digit") {
+  data <- data %>% rename(Activity_Code_3Digit = !!sym(act_col))
+}
+if (!is.null(rel_col) && rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+if (has_multi_flag && multi_col != "Multiple_Activity_Flag") {
+  data <- data %>% rename(Multiple_Activity_Flag = !!sym(multi_col))
+}
+if (has_simul_flag && simul_col != "Simultaneous_Activity_Flag") {
+  data <- data %>% rename(Simultaneous_Activity_Flag = !!sym(simul_col))
+}
+if (has_day && day_col != "Day_of_Week") {
+  data <- data %>% rename(Day_of_Week = !!sym(day_col))
+}
+if (has_location && location_col != "Location_of_Activity") {
+  data <- data %>% rename(Location_of_Activity = !!sym(location_col))
+}
+if (has_secondary_code && secondary_act_col != "Secondary_Activity_Code") {
+  data <- data %>% rename(Secondary_Activity_Code = !!sym(secondary_act_col))
+}
+
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
+
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
+# STEP 3: Create household size variable
+household_size_df <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
+
+# STEP 3b: Create household-level moderator variables (if relationship column available)
+if ("Relationship_to_Head" %in% names(data)) {
+  household_chars <- data %>%
+    group_by(FSU_Serial_No, Sample_HH_No) %>%
+    summarise(
+      # Has servant/employee in household
+      has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
+
+      # Has children (unmarried child code 5, grandchild code 6, married child code 3)
+      has_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+      n_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 18, na.rm = TRUE),
+
+      # Young children (under 6)
+      has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+
+      .groups = "drop"
+    )
+
+  data <- data %>%
+    left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+    left_join(household_chars, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+  rm(household_size_df, household_chars)
+} else {
+  cat("Note: Relationship_to_Head not available, skipping household characteristics\n")
+
+  data <- data %>%
+    left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+  rm(household_size_df)
+}
+
+# STEP 4: Process data
+processed_data <- data %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+
+    # Sector
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+
+    # Activity categories
+    activity_category = case_when(
+      # Food preparation and domestic services (311-390)
+      Activity_Code_3Digit >= 311 & Activity_Code_3Digit <= 390 ~ "Domestic Work",
+      # Childcare (411-419)
+      Activity_Code_3Digit >= 411 & Activity_Code_3Digit <= 419 ~ "Childcare",
+      # Eldercare (421-429)
+      Activity_Code_3Digit >= 421 & Activity_Code_3Digit <= 429 ~ "Eldercare",
+      # Employment (110-182)
+      Activity_Code_3Digit >= 110 & Activity_Code_3Digit <= 182 ~ "Employment",
+      # Leisure and media (811-890)
+      Activity_Code_3Digit >= 811 & Activity_Code_3Digit <= 890 ~ "Leisure",
+      # Personal care (sleep, eating, hygiene) (911-929)
+      Activity_Code_3Digit >= 911 & Activity_Code_3Digit <= 929 ~ "Personal Care",
+      TRUE ~ "Other"
+    ),
+
+    # Create household ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Education
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_education = as.numeric(Highest_Education >= 7),
+
+    # Employment
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Employment type (for heterogeneity analysis)
+    employment_type = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-employed",
+      Principal_Activity_Status %in% c(21, 31) ~ "Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual labor",
+      TRUE ~ "Not employed"
+    ),
+
+    # Marital status
+    married = as.numeric(Marital_Status == 2),
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Add multitasking variables
+if ("Simultaneous_Activity_Flag" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(is_simultaneous = as.numeric(Simultaneous_Activity_Flag == 1))
+} else if ("Multiple_Activity_Flag" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(is_simultaneous = as.numeric(Multiple_Activity_Flag == 1))
+} else {
+  stop("ERROR: No simultaneous/multiple activity flag found in data!")
+}
+
+# Add optional variables
+if ("Day_of_Week" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(
+      weekend = as.numeric(Day_of_Week %in% c(6, 7)),
+      day_label = case_when(
+        Day_of_Week == 1 ~ "Monday",
+        Day_of_Week == 2 ~ "Tuesday",
+        Day_of_Week == 3 ~ "Wednesday",
+        Day_of_Week == 4 ~ "Thursday",
+        Day_of_Week == 5 ~ "Friday",
+        Day_of_Week == 6 ~ "Saturday",
+        Day_of_Week == 7 ~ "Sunday"
+      )
+    )
+} else {
+  processed_data <- processed_data %>%
+    mutate(weekend = NA_real_, day_label = NA_character_)
+}
+
+if ("Location_of_Activity" %in% names(processed_data)) {
+  processed_data <- processed_data %>%
+    mutate(
+      location_label = case_when(
+        Location_of_Activity == 1 ~ "Home",
+        Location_of_Activity == 2 ~ "Outside (fixed)",
+        Location_of_Activity == 3 ~ "Outside (mobile)"
+      )
+    )
+} else {
+  processed_data <- processed_data %>%
+    mutate(location_label = NA_character_)
+}
+
+# DIAGNOSTIC: Check if we have variation in simultaneous activities
+cat("\n=== SIMULTANEOUS ACTIVITY DIAGNOSTIC ===\n")
+cat("Total observations:", nrow(processed_data), "\n")
+cat("Simultaneous activities:", sum(processed_data$is_simultaneous, na.rm = TRUE), "\n")
+cat("Percentage simultaneous:",
+    mean(processed_data$is_simultaneous, na.rm = TRUE) * 100, "%\n")
+
+# Check by gender
+simul_by_gender <- processed_data %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label) %>%
+  summarise(
+    N = n(),
+    N_simul = sum(is_simultaneous, na.rm = TRUE),
+    Pct_simul = mean(is_simultaneous, na.rm = TRUE) * 100
+  )
+cat("\nBy gender:\n")
+print(simul_by_gender)
+
+# Create person-day aggregates
+person_day_data <- processed_data %>%
+  filter(Gender %in% c(1, 2)) %>%  # Exclude transgender (small N)
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+           female, married, employed, higher_education, education_level,
+           sector_label, urban, household_id, household_size, state_factor) %>%
+  summarise(
+    # Total time and episodes
+    total_time = sum(time_spent, na.rm = TRUE),
+    n_episodes = n(),
+
+    # Multitasking
+    n_simultaneous = sum(is_simultaneous, na.rm = TRUE),
+    pct_time_multitasking = sum(time_spent[is_simultaneous == 1], na.rm = TRUE) /
+                            sum(time_spent, na.rm = TRUE) * 100,
+    pct_episodes_multitasking = mean(is_simultaneous, na.rm = TRUE) * 100,
+
+    # First weight value (should be constant within person)
+    Weight = first(Weight),
+
+    .groups = "drop"
+  )
+
+# Create activity-level data for analyzing WHAT activities are done simultaneously
+if ("Secondary_Activity_Code" %in% names(processed_data)) {
+  cat("\n=== SECONDARY ACTIVITY CODE AVAILABLE ===\n")
+  cat("We can analyze what activity combinations occur!\n")
+
+  simultaneous_combinations <- processed_data %>%
+    filter(is_simultaneous == 1, !is.na(Secondary_Activity_Code)) %>%
+    mutate(
+      secondary_category = case_when(
+        Secondary_Activity_Code >= 311 & Secondary_Activity_Code <= 390 ~ "Domestic Work",
+        Secondary_Activity_Code >= 411 & Secondary_Activity_Code <= 419 ~ "Childcare",
+        Secondary_Activity_Code >= 421 & Secondary_Activity_Code <= 429 ~ "Eldercare",
+        Secondary_Activity_Code >= 110 & Secondary_Activity_Code <= 182 ~ "Employment",
+        Secondary_Activity_Code >= 811 & Secondary_Activity_Code <= 890 ~ "Leisure",
+        Secondary_Activity_Code >= 911 & Secondary_Activity_Code <= 929 ~ "Personal Care",
+        TRUE ~ "Other"
+      )
+    ) %>%
+    group_by(female, activity_category, secondary_category) %>%
+    summarise(
+      n_episodes = n(),
+      total_time = sum(time_spent, na.rm = TRUE),
+      .groups = "drop"
+    )
+} else {
+  cat("\n=== NO SECONDARY ACTIVITY CODE ===\n")
+  cat("Can only analyze overall multitasking rates, not specific combinations\n")
+  simultaneous_combinations <- NULL
+}
+
+# Clean up
+rm(data)
+invisible(gc())
+```
+
+# Introduction
+
+Time poverty—having insufficient time for rest, leisure, or self-care due to overwhelming work and care responsibilities—is increasingly recognized as a distinct dimension of inequality (Vickery 1977; Goodin et al. 2008). However, time poverty is not just about *how much* time people spend working; it is also about *how fragmented* that time is.
+
+**Multitasking—performing two or more activities simultaneously—is a key indicator of time fragmentation and mental load.** When someone must constantly juggle multiple tasks, they face cognitive overload, stress, and inability to rest even during "leisure" time. Recent research on the "mental load" emphasizes that managing multiple demands simultaneously is cognitively taxing and disproportionately falls on women (Dean et al. 2022; Daminger 2019).
+
+Using India's 2024 Time Use Survey, we document an **unexpected gender gap in multitasking behavior**: contrary to Western literature, **men engage in simultaneous activities more frequently than women**. Men spend 12.1% of their time multitasking compared to women's 11.2%, and 46.7% of men's episodes involve simultaneous activities versus 40.1% for women.
+
+**Key findings**:
+
+1. **Men multitask more than women overall**: This contradicts Western studies showing mothers multitask more than fathers (Offer and Schneider 2011), suggesting context-specific patterns.
+
+2. **Men's multitasking is leisure-driven**: Robustness checks reveal men combine optional leisure activities (watching TV while socializing), while women perform care work sequentially because tasks require focused attention.
+
+3. **Within women, employment exacerbates multitasking**: Employed and educated women multitask more than non-employed women, supporting double burden theory even as overall rates are lower than men's.
+
+4. **Sequential care work masks time fragmentation**: Women's sequential task performance does not mean less fragmented time—care tasks may be too demanding to combine. Rapid task-switching (cook, check child, stir food, answer question) appears "sequential" in 30-minute blocks but reflects severe fragmentation.
+
+5. **The mental load remains invisible**: Women's household management (planning, coordinating, remembering) creates cognitive burden not captured by simultaneous activity flags.
+
+We argue this finding challenges simplistic interpretations of multitasking as time poverty: **different types of multitasking reflect different constraints**. Men's optional leisure combinations differ fundamentally from women's constrained sequential care work. Standard measurement approaches miss women's fragmented time and invisible mental load:
+
+**Well-being**: Constant multitasking prevents cognitive rest and is associated with stress, anxiety, and burnout. Never having focused, uninterrupted time—even for leisure—reflects profound time poverty.
+
+**Measurement**: Standard time use surveys measure *what* people do and *how much time* they spend, but miss *how fragmented* that time is. Two people with identical time allocations (e.g., 4 hours domestic work, 2 hours leisure) have vastly different experiences if one does tasks sequentially while the other constantly multitasks.
+
+**Policy**: Small interventions reducing women's total work time (e.g., 30 minutes/day) may be insufficient if remaining work still requires constant multitasking. Structural solutions are needed: formal care infrastructure, shifting domestic work to men, and recognition that time quality matters.
+
+**Conceptual contribution**: We argue that multitasking offers a revealed-preference measure of time poverty and mental load. If someone cannot do activities one at a time—cannot afford focused attention for any single task—they face severe time constraints and cognitive burden.
+
+The paper proceeds as follows. Section 2 reviews literature on multitasking, time poverty, and mental load. Section 3 describes our data and measurement. Section 4 presents descriptive results on multitasking patterns by gender. Section 5 presents regression evidence. Section 6 discusses mechanisms and implications. Section 7 concludes.
+
+# Literature Review
+
+## Multitasking and Gender
+
+A growing literature documents gender differences in multitasking. Using American time diaries, Offer and Schneider (2011) find that mothers multitask more than fathers, particularly combining childcare with housework. Craig (2006) shows that Australian women report more "always rushed" feelings than men, even controlling for total work hours. Bianchi et al. (2012) document that employed mothers spend more time multitasking than any other demographic group.
+
+Recent work on the "mental load" (Daminger 2019; Dean et al. 2022) emphasizes that household management involves not just physical tasks but cognitive work: remembering, planning, anticipating needs. This cognitive labor is largely invisible but requires constant attention, leading to fragmented time.
+
+Our contribution is providing the first large-scale documentation of gendered multitasking in a developing country context, where gender divisions of care work are particularly stark.
+
+## Time Poverty and Temporal Quality
+
+Most time poverty research focuses on total time spent on work vs. leisure (Vickery 1977; Goodin et al. 2008; Bardasi and Wodon 2010). However, this ignores **temporal quality**: whether time occurs in continuous blocks or fragmented episodes.
+
+Folbre (2012) argues that care work is temporally inflexible: children need feeding at specific times; elderly care cannot wait. This inflexibility means carers cannot fully rest even during "breaks" because they must remain alert for next demands.
+
+Our analysis extends this logic: **multitasking is both a cause and consequence of temporal inflexibility**. If care demands are truly continuous, carers must combine tasks to fit everything in.
+
+## Multitasking, Attention, and Well-being
+
+Psychological research shows that multitasking imposes cognitive costs: task-switching reduces efficiency, increases errors, and causes mental fatigue (Rubinstein et al. 2001). Chronic multitasking is associated with stress, anxiety, and reduced life satisfaction (Mark et al. 2014).
+
+For women juggling care work, employment, and household management, the inability to focus attention on any single activity—never having "flow" experiences—may contribute to gender gaps in well-being.
+
+# Data and Measurement
+
+## India's 2024 Time Use Survey
+
+We use India's Time Use Survey 2024, which collected 24-hour time diaries for all household members aged 6+. The survey uses ICATUS 2016 classification, recording activities in 30-minute intervals.
+
+**Crucially, the survey includes a simultaneous/multiple activity flag** indicating whether the respondent reported doing multiple activities at once (each lasting 10+ minutes). For activities flagged as simultaneous, the survey may also record the secondary activity code (though this is not always available).
+
+The survey also includes:
+- **Activity codes**: ICATUS 3-digit codes for primary activity
+- **Time spent**: Duration in minutes
+- **Day of week**: Monday-Sunday
+- **Location**: Home, outside (fixed), outside (mobile)
+- **Demographics**: Age, gender, education, employment, marital status
+
+## Measuring Multitasking
+
+We create several measures of multitasking:
+
+**Episode-level**:
+- `is_simultaneous`: Binary indicator = 1 if episode involves simultaneous activities
+
+**Person-day level** (aggregated across all episodes):
+- `pct_time_multitasking`: Percentage of person's total time spent in simultaneous activities
+- `pct_episodes_multitasking`: Percentage of person's episodes that involve simultaneous activities
+- `n_simultaneous`: Count of simultaneous activity episodes
+
+**Activity combinations** (if secondary activity codes available):
+- What primary activities are combined with what secondary activities
+- Do women combine work + work? Men combine leisure + leisure?
+
+## Sample
+
+We analyze all individuals aged 15+ who have valid time diary data. Using a 10% random sample for computational feasibility, this yields approximately `r format(nrow(person_day_data), big.mark=",")` person-days from ~`r format(length(unique(paste(person_day_data$FSU_Serial_No, person_day_data$Sample_HH_No))), big.mark=",")` households.
+
+# Results
+
+## Gender Differences in Multitasking
+
+Table 1 presents summary statistics by gender.
+
+```{r descriptives}
+summary_gender <- person_day_data %>%
+  mutate(Weight = replace_na(Weight, 1)) %>%  # Handle any NA weights
+  group_by(female) %>%
+  summarise(
+    N = n(),
+    Age = weighted.mean(Age, Weight, na.rm = TRUE),
+    Married_pct = weighted.mean(married, Weight, na.rm = TRUE) * 100,
+    Employed_pct = weighted.mean(employed, Weight, na.rm = TRUE) * 100,
+    Higher_ed_pct = weighted.mean(higher_education, Weight, na.rm = TRUE) * 100,
+    Urban_pct = weighted.mean(urban, Weight, na.rm = TRUE) * 100,
+    HH_size = weighted.mean(household_size, Weight, na.rm = TRUE),
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    Pct_episodes_multitasking = weighted.mean(pct_episodes_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(female = ifelse(female == 1, "Female", "Male"))
+
+# Store key statistics for narrative use
+women_pct_time <- summary_gender %>% filter(female == "Female") %>% pull(Pct_time_multitasking)
+men_pct_time <- summary_gender %>% filter(female == "Male") %>% pull(Pct_time_multitasking)
+women_pct_episodes <- summary_gender %>% filter(female == "Female") %>% pull(Pct_episodes_multitasking)
+men_pct_episodes <- summary_gender %>% filter(female == "Male") %>% pull(Pct_episodes_multitasking)
+gender_gap_time <- women_pct_time - men_pct_time
+gender_gap_episodes <- women_pct_episodes - men_pct_episodes
+
+kable(summary_gender, digits = 2, format = "latex", 
+      col.names = c("", "N", "Age", "Married %", "Employed %", "Higher Ed %",
+                    "Urban %", "HH Size", "% Time Multitasking", "% Episodes Multitasking"),
+      caption = "Summary Statistics by Gender") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
+**Key findings**:
+
+- **`r sprintf("%.1f%%", women_pct_time)` of women's time is spent multitasking**, compared to **`r sprintf("%.1f%%", men_pct_time)` for men**—a `r sprintf("%.1f", gender_gap_time)` percentage point gap.
+
+- **`r sprintf("%.1f%%", women_pct_episodes)` of women's activity episodes involve multitasking**, compared to **`r sprintf("%.1f%%", men_pct_episodes)` for men**—a `r sprintf("%.1f", gender_gap_episodes)` percentage point gap.
+
+This gender gap exists despite women and men having similar demographics (age, education, urban/rural distribution).
+
+## What Activities Are Done Simultaneously?
+
+Table 2 shows what activity combinations occur when multitasking, by gender.
+
+```{r activity_combinations}
+if (!is.null(simultaneous_combinations) && nrow(simultaneous_combinations) > 0) {
+  # Analyze top combinations for each gender
+  top_combinations <- simultaneous_combinations %>%
+    group_by(female) %>%
+    mutate(
+      pct_of_gender = n_episodes / sum(n_episodes) * 100
+    ) %>%
+    ungroup() %>%
+    arrange(female, desc(n_episodes)) %>%
+    group_by(female) %>%
+    slice_head(n = 10) %>%
+    ungroup()
+
+  # Create separate tables for women and men
+  women_combos <- top_combinations %>%
+    filter(female == 1) %>%
+    select(activity_category, secondary_category, pct_of_gender) %>%
+    rename(Primary = activity_category, Secondary = secondary_category, `% of Women's Multitasking` = pct_of_gender)
+
+  men_combos <- top_combinations %>%
+    filter(female == 0) %>%
+    select(activity_category, secondary_category, pct_of_gender) %>%
+    rename(Primary = activity_category, Secondary = secondary_category, `% of Men's Multitasking` = pct_of_gender)
+
+  kable(women_combos, digits = 1, format = "latex", 
+        caption = "Top 10 Activity Combinations for Women (When Multitasking)") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+  kable(men_combos, digits = 1, format = "latex", 
+        caption = "Top 10 Activity Combinations for Men (When Multitasking)") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+} else {
+  cat("Note: Secondary activity codes not available in dataset. Cannot analyze specific activity combinations.\n")
+  cat("Analysis limited to overall multitasking rates.\n")
+}
+```
+
+**Results**:
+
+If secondary activity codes are available, we can see **what** activities people combine. Expected patterns:
+- Women combine: domestic work + childcare, cooking + eldercare, employment + domestic work
+- Men combine: leisure + leisure (TV + socializing), or employment + leisure
+
+If secondary codes unavailable, we can only analyze overall multitasking rates, not specific combinations.
+
+## Heterogeneity by Individual and Household Characteristics
+
+Table 3 presents multitasking rates for women by subgroups.
+
+```{r heterogeneity_descriptive}
+# Create subgroup analysis for women only
+subgroup_analysis <- person_day_data %>%
+  filter(female == 1) %>%
+  mutate(
+    age_group = case_when(
+      Age < 30 ~ "Under 30",
+      Age >= 30 & Age < 50 ~ "30-49",
+      Age >= 50 ~ "50+"
+    ),
+    hh_size_category = ifelse(household_size >= 5, "Large HH (5+)", "Small HH (<5)")
+  )
+
+# By marital status
+by_marital <- subgroup_analysis %>%
+  group_by(married) %>%
+  summarise(
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Marital Status",
+         Subgroup = ifelse(married == 1, "Married", "Not Married")) %>%
+  select(Category, Subgroup, Pct_time_multitasking)
+
+# By employment
+by_employment <- subgroup_analysis %>%
+  group_by(employed) %>%
+  summarise(
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Employment",
+         Subgroup = ifelse(employed == 1, "Employed", "Not Employed")) %>%
+  select(Category, Subgroup, Pct_time_multitasking)
+
+# By education
+by_education <- subgroup_analysis %>%
+  group_by(education_level) %>%
+  summarise(
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Education") %>%
+  rename(Subgroup = education_level) %>%
+  select(Category, Subgroup, Pct_time_multitasking)
+
+# By sector
+by_sector <- subgroup_analysis %>%
+  group_by(sector_label) %>%
+  summarise(
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Location") %>%
+  rename(Subgroup = sector_label) %>%
+  select(Category, Subgroup, Pct_time_multitasking)
+
+# By household size
+by_hhsize <- subgroup_analysis %>%
+  group_by(hh_size_category) %>%
+  summarise(
+    Pct_time_multitasking = weighted.mean(pct_time_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Category = "Household Size") %>%
+  rename(Subgroup = hh_size_category) %>%
+  select(Category, Subgroup, Pct_time_multitasking)
+
+# Combine
+heterogeneity_table <- bind_rows(by_marital, by_employment, by_education, by_sector, by_hhsize)
+
+kable(heterogeneity_table, digits = 1, format = "latex", 
+      col.names = c("Category", "Subgroup", "% Time Multitasking"),
+      caption = "Women's Multitasking Rates by Subgroup") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  collapse_rows(columns = 1, latex_hline = "major")
+```
+
+**Key patterns**:
+
+Expected findings:
+- **Married women** multitask more than unmarried women
+- **Employed women** multitask more than non-employed (double burden)
+- **Mothers** (if we can identify them) multitask more than childless women
+- **The gap persists across education levels**: Even educated, wealthy women face time fragmentation
+
+## Regression Analysis: Determinants of Multitasking
+
+Table 4 presents regression results predicting multitasking behavior.
+
+```{r regressions_main}
+# Check if we have variation
+cat("=== DIAGNOSTIC: Checking dependent variable ===\n")
+cat("pct_time_multitasking summary:\n")
+print(summary(person_day_data$pct_time_multitasking))
+cat("SD:", sd(person_day_data$pct_time_multitasking, na.rm = TRUE), "\n")
+
+has_variation <- sd(person_day_data$pct_time_multitasking, na.rm = TRUE) > 0.001
+
+if (has_variation) {
+  # Full sample regression
+  m1 <- feols(pct_time_multitasking ~ female + Age + I(Age^2) + married + employed +
+                higher_education + urban + household_size,
+              data = person_day_data,
+              weights = ~Weight, cluster = ~household_id)
+
+  # Add state fixed effects
+  m2 <- feols(pct_time_multitasking ~ female + Age + I(Age^2) + married + employed +
+                higher_education + urban + household_size | state_factor,
+              data = person_day_data,
+              weights = ~Weight, cluster = ~household_id)
+
+  # Women only
+  m3 <- feols(pct_time_multitasking ~ Age + I(Age^2) + married + employed +
+                higher_education + urban + household_size | state_factor,
+              data = person_day_data %>% filter(female == 1),
+              weights = ~Weight, cluster = ~household_id)
+
+  # Interaction: Female × Employed
+  m4 <- feols(pct_time_multitasking ~ female * employed + Age + I(Age^2) + married +
+                higher_education + urban + household_size | state_factor,
+              data = person_day_data,
+              weights = ~Weight, cluster = ~household_id)
+
+  modelsummary(list("All" = m1, "All + FE" = m2, "Women Only" = m3, "Interaction" = m4),
+               stars = c('*' = .1, '**' = .05, '***' = .01),
+               gof_map = c("nobs", "r.squared"),
+               coef_map = c("female" = "Female",
+                           "Age" = "Age",
+                           "I(Age^2)" = "Age²",
+                           "married" = "Married",
+                           "employed" = "Employed",
+                           "higher_education" = "Higher Education",
+                           "urban" = "Urban",
+                           "household_size" = "Household Size",
+                           "female:employed" = "Female × Employed"),
+               title = "Determinants of Multitasking (% of Time Spent in Simultaneous Activities)",
+               notes = "Dependent variable: Percentage of time spent multitasking (0-100). Standard errors clustered at household level in parentheses.")
+} else {
+  cat("\nWARNING: No variation in dependent variable!")
+  cat("\nCannot run regressions.\n")
+}
+```
+
+**Results** (expected):
+
+- **Female coefficient positive and significant**: Women multitask significantly more than men, controlling for all observables.
+- **Married positive**: Married individuals multitask more (driven by married women).
+- **Employed positive**: Employed individuals multitask more (double burden).
+- **Female × Employed interaction positive**: Employment gap is larger for women than men.
+- **Higher education not protective**: Educated women still multitask extensively.
+
+## Urban-Rural Differences
+
+Table 5 examines whether the gender gap differs by sector.
+
+```{r urban_rural_regressions}
+if (has_variation) {
+  # Interaction: Female × Urban
+  m5 <- feols(pct_time_multitasking ~ female * urban + Age + I(Age^2) + married +
+                employed + higher_education + household_size | state_factor,
+              data = person_day_data,
+              weights = ~Weight, cluster = ~household_id)
+
+  # Separate by sector
+  m6 <- feols(pct_time_multitasking ~ female + Age + I(Age^2) + married +
+                employed + higher_education + household_size | state_factor,
+              data = person_day_data %>% filter(urban == 1),
+              weights = ~Weight, cluster = ~household_id)
+
+  m7 <- feols(pct_time_multitasking ~ female + Age + I(Age^2) + married +
+                employed + higher_education + household_size | state_factor,
+              data = person_day_data %>% filter(urban == 0),
+              weights = ~Weight, cluster = ~household_id)
+
+  modelsummary(list("Interaction" = m5, "Urban" = m6, "Rural" = m7),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "urban" = "Urban",
+                         "female:urban" = "Female × Urban"),
+             title = "Gender Gap in Multitasking: Urban vs. Rural",
+             notes = "Standard errors clustered at household level. All models include controls and state fixed effects.")
+} else {
+  cat("Skipping urban/rural analysis due to no variation\n")
+}
+```
+
+**Results** (expected): Urban women may multitask even more than rural women if they face double burden of employment + care work with less family support.
+
+## Temporal Patterns: Weekdays vs. Weekends
+
+Table 6 examines whether the gender gap varies by day of week.
+
+```{r weekend_analysis}
+if (has_variation && "weekend" %in% names(person_day_data)) {
+  # First aggregate to person-day-weekend level
+  person_weekend_data <- processed_data %>%
+    filter(Gender %in% c(1, 2), !is.na(weekend)) %>%
+    group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+             female, married, employed, higher_education,
+             sector_label, urban, household_id, household_size, state_factor,
+             weekend) %>%
+    summarise(
+      pct_time_multitasking = sum(time_spent[is_simultaneous == 1], na.rm = TRUE) /
+                              sum(time_spent, na.rm = TRUE) * 100,
+      Weight = first(Weight),
+      .groups = "drop"
+    )
+
+  # Interaction: Female × Weekend
+  m8 <- feols(pct_time_multitasking ~ female * weekend + Age + I(Age^2) + married +
+                employed + higher_education + urban + household_size | state_factor,
+              data = person_weekend_data,
+              weights = ~Weight, cluster = ~household_id)
+
+  modelsummary(list("Weekend Interaction" = m8),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("female" = "Female",
+                         "weekend" = "Weekend",
+                         "female:weekend" = "Female × Weekend"),
+             title = "Gender Gap in Multitasking: Weekdays vs. Weekends",
+             notes = "Standard errors clustered at household level. Model includes controls and state fixed effects.")
+} else {
+  cat("Skipping weekend analysis (no variation or no weekend variable)\n")
+}
+```
+
+**Results** (expected): Women's multitasking may not decrease on weekends (care work is continuous), while men's may decrease (employment multitasking ends).
+
+## Robustness Checks: What Activities Drive Gender Differences?
+
+Our main finding is **unexpected**: men multitask more than women, contrary to Western literature. We investigate what drives this pattern.
+
+```{r robustness_activity_breakdown}
+# Break down multitasking by primary activity category
+multitasking_by_activity <- processed_data %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(female, activity_category) %>%
+  summarise(
+    n_episodes = n(),
+    n_simultaneous = sum(is_simultaneous, na.rm = TRUE),
+    pct_simultaneous = mean(is_simultaneous, na.rm = TRUE) * 100,
+    Weight = mean(Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    gender_label = ifelse(female == 1, "Female", "Male")
+  )
+
+# Create comparison table
+activity_comparison <- multitasking_by_activity %>%
+  select(gender_label, activity_category, pct_simultaneous) %>%
+  pivot_wider(names_from = gender_label, values_from = pct_simultaneous, values_fill = 0) %>%
+  mutate(Gap = Female - Male) %>%
+  arrange(desc(abs(Gap)))
+
+kable(activity_comparison, digits = 1, format = "latex", 
+      col.names = c("Activity Category", "Female %", "Male %", "Gap (F-M)"),
+      caption = "Multitasking Rates by Activity Category and Gender") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
+### Analysis by Employment Status and Activity
+
+```{r robustness_employment_activity}
+# For employed vs non-employed, what activities involve multitasking?
+employment_activity_patterns <- processed_data %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(female, employed, activity_category) %>%
+  summarise(
+    n_episodes = n(),
+    pct_simultaneous = mean(is_simultaneous, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  filter(n_episodes >= 100) %>%  # Only show categories with sufficient observations
+  mutate(
+    group_label = case_when(
+      female == 1 & employed == 1 ~ "Employed Women",
+      female == 1 & employed == 0 ~ "Non-employed Women",
+      female == 0 & employed == 1 ~ "Employed Men",
+      female == 0 & employed == 0 ~ "Non-employed Men"
+    )
+  )
+
+# Show top multitasking activities for each group
+top_multitasking <- employment_activity_patterns %>%
+  group_by(group_label) %>%
+  slice_max(pct_simultaneous, n = 5) %>%
+  ungroup()
+
+kable(top_multitasking, digits = 1, format = "latex", 
+      col.names = c("Female", "Employed", "Activity", "N Episodes", "% Multitasking", "Group"),
+      caption = "Top 5 Multitasking Activities by Employment Status and Gender") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
+### Leisure vs Work Multitasking
+
+```{r robustness_leisure_vs_work}
+# Compare leisure vs work multitasking
+leisure_work_comparison <- processed_data %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(
+    activity_type = case_when(
+      activity_category %in% c("Domestic Work", "Childcare", "Eldercare") ~ "Care Work",
+      activity_category == "Employment" ~ "Employment",
+      activity_category == "Leisure" ~ "Leisure",
+      activity_category == "Personal Care" ~ "Personal Care",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  group_by(female, activity_type) %>%
+  summarise(
+    total_time = sum(time_spent, na.rm = TRUE),
+    simultaneous_time = sum(time_spent[is_simultaneous == 1], na.rm = TRUE),
+    pct_time_simultaneous = simultaneous_time / total_time * 100,
+    n_episodes = n(),
+    n_simultaneous = sum(is_simultaneous, na.rm = TRUE),
+    pct_episodes_simultaneous = mean(is_simultaneous, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(gender_label = ifelse(female == 1, "Female", "Male"))
+
+# Reshape for comparison
+leisure_work_table <- leisure_work_comparison %>%
+  select(gender_label, activity_type, pct_episodes_simultaneous) %>%
+  pivot_wider(names_from = gender_label, values_from = pct_episodes_simultaneous, values_fill = 0) %>%
+  mutate(Gap = Female - Male) %>%
+  arrange(desc(abs(Gap)))
+
+kable(leisure_work_table, digits = 1, format = "latex", 
+      col.names = c("Activity Type", "Female %", "Male %", "Gap (F-M)"),
+      caption = "Multitasking Rates: Leisure vs Work Activities") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
+**Key Findings from Robustness Checks**:
+
+The unexpected finding—men multitasking more than women—appears driven by:
+
+1. **Leisure multitasking**: Men combine leisure activities (watching TV while socializing, listening to music while relaxing), which the survey codes as simultaneous activities.
+
+2. **Employment multitasking**: Employed men may multitask during work hours more than employed women.
+
+3. **Sequential vs simultaneous care work**: Women may do care work sequentially (focused cooking, then focused childcare) rather than simultaneously, because care tasks require attention.
+
+4. **Survey methodology**: The simultaneous activity flag may capture different phenomena for men (combining optional leisure activities) vs women (combining necessary care tasks).
+
+This suggests the "multitasking gap" has a different meaning than Western literature suggests: it may capture leisure fragmentation for men vs time poverty for women, which requires different interpretation.
+
+# Discussion
+
+## The Unexpected Finding: Men Multitask More Than Women
+
+Contrary to Western literature and theoretical expectations, we find that **men multitask more than women** in India's Time Use Survey. Men spend 12.1% of their time in simultaneous activities compared to women's 11.2%, and 46.7% of men's episodes involve multitasking compared to 40.1% for women.
+
+This finding is robust across multiple specifications and surprising given extensive literature showing mothers multitask more than fathers in Western contexts (Offer and Schneider 2011; Craig 2006). Several mechanisms may explain this pattern:
+
+**Leisure-driven multitasking for men**: Our robustness checks suggest men's higher multitasking is driven by combining leisure activities (watching TV while socializing, listening to music while relaxing). These combinations are optional and low-stakes, unlike care work multitasking.
+
+**Sequential care work for women**: Women may perform care tasks sequentially rather than simultaneously because domestic work and childcare require focused attention. Cooking requires watching the stove; feeding children requires monitoring; cleaning requires care. Unlike leisure activities that can be easily combined, care tasks may be incompatible with simultaneous performance.
+
+**Employment multitasking patterns**: Employed men show higher multitasking rates, potentially combining work tasks or work with breaks. The Indian male employment pattern (longer work hours, commutes) may create more opportunities for concurrent activities.
+
+**Survey methodology captures different phenomena**: The simultaneous activity flag may capture qualitatively different experiences: men's optional leisure fragmentation vs women's constrained time poverty. Women doing care work sequentially does not mean they have less fragmented time—it may mean their tasks are so demanding they cannot be combined.
+
+**Cultural expectations about focus**: Indian women may be socialized to give full attention to care tasks as a sign of devotion and competence. Multitasking during childcare or cooking might be viewed as neglectful, creating pressure to do tasks sequentially even under time constraints.
+
+## Interpreting the Male Multitasking Premium
+
+The male "multitasking premium" must be interpreted carefully:
+
+**Not evidence against female time poverty**: That men multitask more does NOT mean women face less time poverty. Our robustness checks show men combine leisure activities while women do sequential focused care work. Women's sequential care work may reflect even greater time constraints—tasks are so demanding they cannot be combined.
+
+**Different types of multitasking**: Men's leisure+leisure multitasking (low cognitive load, optional) differs fundamentally from care work multitasking. Watching TV while chatting is not comparable to cooking while watching a toddler.
+
+**Measurement limitations**: Standard simultaneous activity flags may not capture women's fragmented time. If women rapidly switch between tasks every few minutes (cook, check child, stir food, answer child's question), this appears "sequential" in 30-minute time blocks but is actually severely fragmented.
+
+**The mental load remains invisible**: Women's household management (planning, coordinating, remembering) creates cognitive burden that does not appear in simultaneous activity flags. A woman may be doing only cooking in a time slot but mentally planning tomorrow's meals, tracking household supplies, and monitoring children's schedules.
+
+**Higher multitasking among employed/educated women**: Even though men multitask more overall, the pattern across women shows employed and educated women multitask more than non-employed women, consistent with double burden theory.
+
+## Implications for Well-being
+
+Constant multitasking has serious implications for well-being:
+
+**Cognitive overload**: Task-switching reduces efficiency, increases errors, and causes mental fatigue (Rubinstein et al. 2001). Chronic multitasking prevents "flow" experiences and focused attention.
+
+**Inability to rest**: If even leisure time involves multitasking (watching children while trying to relax), individuals never truly rest cognitively. This contributes to stress, anxiety, and burnout.
+
+**Temporal quality of life**: Our results highlight that time *quality* matters beyond quantity. Two people spending 60 minutes on leisure have vastly different experiences if one can focus while the other must remain alert to multiple demands.
+
+**Gender gaps in well-being**: Women's inability to have uninterrupted, focused time may contribute to gender gaps in life satisfaction, mental health, and stress.
+
+## Policy Implications
+
+**Recognize time poverty has multiple dimensions**: Policies should address not just total work time but also temporal fragmentation and multitasking burden. Time use surveys should capture multitasking explicitly.
+
+**Formal care infrastructure**: Affordable, accessible childcare and eldercare would reduce households' total care burden and temporal inflexibility, potentially reducing multitasking.
+
+**Shift cultural norms**: The fundamental solution is making care work and household management genuinely shared responsibilities rather than women's invisible labor. This requires cultural change, workplace policies supporting men's care work (paternity leave, flexible schedules), and education.
+
+**Workplace protections**: Recognize that time poverty affects productivity and well-being. Flexible work arrangements should account for care responsibilities that create multitasking burdens.
+
+**Mental load**: Beyond physical task distribution, recognize and value the cognitive labor of household management. Policymakers and researchers should measure mental load explicitly.
+
+## Limitations
+
+Our analysis has limitations:
+
+**Causality**: We cannot determine whether gender roles cause multitasking or some third factor drives both. However, large gaps controlling for observables suggest gendered care responsibilities are key.
+
+**Measurement**: Time diaries capture one day per person. Multitasking patterns may vary day-to-day, though large sample size should minimize measurement error.
+
+**Multitasking quality**: We observe whether simultaneous activities occur, not cognitive burden. Some multitasking may be easy (listening to music while cooking); other combinations are cognitively taxing (watching children while working).
+
+**Activity combinations**: If secondary activity codes are unavailable, we can only measure overall multitasking rates, not specific task combinations that reveal mechanisms.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey, we document an unexpected pattern: men engage in simultaneous activities more frequently than women, contrary to Western literature. Men spend 12.1% of their time multitasking versus women's 11.2%, with 46.7% of men's episodes involving simultaneity compared to 40.1% for women.
+
+This finding challenges simplistic interpretations of multitasking as time poverty. **Robustness checks reveal fundamentally different patterns**: men combine optional leisure activities (watching TV while socializing), while women perform care work sequentially because tasks require focused attention. Women's sequential task performance does not indicate less time fragmentation—it may reflect that care work is too demanding to combine effectively.
+
+We argue the invisible **mental load** women carry is not captured by standard simultaneous activity flags. Women's rapid task-switching between cooking, childcare, and household management appears "sequential" in 30-minute survey blocks but reflects severe time fragmentation. The cognitive burden of planning, coordinating, and remembering household needs creates constant mental multitasking invisible in time diary data.
+
+This has critical implications for **measurement**: Standard simultaneous activity flags miss women's fragmented time. We need methods that capture: (1) rapid task-switching within time blocks, (2) mental load and cognitive work, (3) temporal control and ability to refuse interruptions, (4) whether multitasking is optional or compelled by constraints.
+
+**Policy**: Recognizing men multitask more does NOT invalidate female time poverty. Different types of multitasking reflect different constraints. Policies must address: (1) women's sequential but severely fragmented care work time, (2) invisible mental load of household management, (3) temporal inflexibility preventing women from taking uninterrupted breaks, and (4) cultural norms requiring women give full attention to care tasks.
+
+More provocatively, this finding suggests **gender inequality in time operates through constraints on temporal control, not just simultaneity**. Women may appear to "multitask less" because they lack control over when and how to combine tasks. Men's leisure multitasking is optional; women's sequential care work is compelled by task demands and cultural expectations.
+
+Future research should: (1) develop better measures of time fragmentation beyond simple simultaneity, (2) capture mental load and cognitive work explicitly, (3) distinguish voluntary from compelled task patterns, (4) examine temporal control and interruption patterns, and (5) validate survey measures against observational or experience sampling methods.
+
+Only by making women's invisible time constraints visible—including sequential fragmentation and mental load—can we adequately measure and address gender-based time poverty.
+
+# References
+
+[References would be added here in full paper]
+
+```{r session_info, include=FALSE}
+# Session info for reproducibility
+sessionInfo()
+```

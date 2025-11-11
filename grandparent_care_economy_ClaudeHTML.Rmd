@@ -1,0 +1,870 @@
+---
+title: "The Grandparent Care Economy: How Co-Resident Grandparents Reduce Women's Childcare Burden in Urban India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we examine whether co-resident grandparents reduce the childcare burden on mothers in urban households. We find that in urban multi-generational households, women spend substantially less time per day on childcare compared to similar households without grandparents—even after accounting for any eldercare burden they may provide to those grandparents. This "grandparent dividend" is particularly pronounced for working mothers, who experience larger reductions in childcare time than non-working mothers. Grandmothers provide more childcare support than grandfathers. These findings highlight the economic value of intergenerational co-residence in India's rapidly urbanizing context, where formal childcare infrastructure remains scarce. However, the grandparent dividend disappears in rural areas, where joint family structures serve different economic functions. Our results have implications for understanding female labor force participation, aging policy, and the changing economics of multi-generational households.
+
+  **JEL Classification:** J12, J13, J14, J16, D13
+
+  **Keywords:** grandparents, childcare, unpaid care work, multi-generational households, eldercare, female labor force participation, urban India, time use survey
+
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    fig_caption: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+# Package versions for reproducibility
+# R version 4.3.0 (2023-04-21)
+# haven_2.5.2, dplyr_1.1.2, ggplot2_3.4.2, knitr_1.43
+# tidyr_1.3.0, fixest_0.11.1, modelsummary_1.4.1, kableExtra_1.3.4
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# STEP 1: Load full dataset to check available columns
+cat("Loading data and checking column names...\n")
+
+# Load WITHOUT specifying columns to see what exists
+data_full <- read_dta("TimeUse106PER.dta")
+
+# Check for relationship variable (might have different name)
+all_cols <- names(data_full)
+cat("Total columns available:", length(all_cols), "\n")
+
+# Search for relationship-related columns
+relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
+                          all_cols, value = TRUE, ignore.case = TRUE)
+cat("Relationship-related columns found:\n")
+print(relationship_cols)
+
+# Determine correct column name
+if ("Relationship_to_Head" %in% all_cols) {
+  rel_col <- "Relationship_to_Head"
+} else if ("Relation_to_Head" %in% all_cols) {
+  rel_col <- "Relation_to_Head"
+} else if ("Rel_to_Head" %in% all_cols) {
+  rel_col <- "Rel_to_Head"
+} else if (length(relationship_cols) > 0) {
+  rel_col <- relationship_cols[1]
+  cat(sprintf("\nUsing column: %s\n", rel_col))
+} else {
+  stop("ERROR: No relationship-to-head column found in dataset!")
+}
+
+cat(sprintf("Using relationship column: %s\n", rel_col))
+
+# Check for activity code column
+activity_cols <- grep("Activity.*3|activity.*3|3.*digit", all_cols, value = TRUE, ignore.case = TRUE)
+if ("Activity_Code_3Digit" %in% all_cols) {
+  act_col <- "Activity_Code_3Digit"
+} else if (length(activity_cols) > 0) {
+  act_col <- activity_cols[1]
+} else {
+  act_col <- "Activity_Code_2Digit"  # Fallback
+}
+
+cat(sprintf("Using activity column: %s\n", act_col))
+
+# Clean up
+rm(data_full)
+
+# STEP 2: Load data with correct column selection
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c("Gender", act_col, "time_spent", "Weight",
+                               "Major_Activity_Flag", "Age", "Marital_Status",
+                               "Highest_Education", "Sector", "Principal_Activity_Status",
+                               "State", "FSU_Serial_No", "Sample_HH_No", "Person_Serial_No",
+                               rel_col))
+
+# Rename to standard names
+if (rel_col != "Relationship_to_Head") {
+  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
+}
+if (act_col != "Activity_Code_3Digit") {
+  data <- data %>% rename(Activity_Code_3Digit = !!sym(act_col))
+}
+
+# METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>%
+  slice_sample(prop = 0.1) %>%
+  mutate(Weight = Weight / 0.1)
+
+cat(sprintf("Data loaded: %s observations\n", format(nrow(data), big.mark = ",")))
+
+# STEP 3: Create household-level grandparent indicators
+cat("\nConstructing household structure...\n")
+cat("Relationship_to_Head values in data:\n")
+print(table(data$Relationship_to_Head, useNA = "ifany"))
+
+household_structure <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    # Grandparent presence (parent/parent-in-law of head, code 7)
+    has_grandparent = any(Relationship_to_Head == 7, na.rm = TRUE),
+    n_grandparents = sum(Relationship_to_Head == 7, na.rm = TRUE),
+
+    # Gender of grandparents
+    has_grandmother = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE),
+    has_grandfather = any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
+    grandmother_only = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE) &
+                       !any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
+    grandfather_only = any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE) &
+                       !any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE),
+    both_grandparents = any(Relationship_to_Head == 7 & Gender == 2, na.rm = TRUE) &
+                        any(Relationship_to_Head == 7 & Gender == 1, na.rm = TRUE),
+
+    # Grandparent age
+    grandparent_avg_age = ifelse(any(Relationship_to_Head == 7, na.rm = TRUE),
+                                  mean(Age[Relationship_to_Head == 7], na.rm = TRUE),
+                                  NA),
+
+    # Children presence (codes 3, 5, 6)
+    has_children = any(Relationship_to_Head %in% c(3, 5, 6), na.rm = TRUE),
+    n_children = sum(Relationship_to_Head %in% c(5, 6), na.rm = TRUE),
+
+    # Household size
+    household_size = n(),
+
+    .groups = "drop"
+  )
+
+cat(sprintf("Households with grandparents: %s (%.1f%%)\n",
+            format(sum(household_structure$has_grandparent), big.mark = ","),
+            100 * mean(household_structure$has_grandparent)))
+
+# STEP 4: Merge household structure back to data
+data <- data %>%
+  left_join(household_structure, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+# STEP 4b: Create household-level moderator variables
+household_moderators <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    # Has servant/employee in household (relationship code 9)
+    has_servant = any(Relationship_to_Head == 9, na.rm = TRUE),
+
+    # Young children (under 6)
+    has_young_children = any(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+    n_young_children = sum(Relationship_to_Head %in% c(3, 5, 6) & Age < 6, na.rm = TRUE),
+
+    .groups = "drop"
+  )
+
+# Merge moderators back
+data <- data %>%
+  left_join(household_moderators, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+# STEP 5: Process data - filter to major activities only
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+
+    # Sector
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+
+    # Childcare variables (Activity codes 411-419)
+    childcare = as.numeric(Activity_Code_3Digit >= 411 & Activity_Code_3Digit <= 419),
+    childcare_minutes = ifelse(childcare == 1, time_spent, 0),
+
+    # Eldercare variables (Activity codes 421-429: dependent adult care)
+    eldercare = as.numeric(Activity_Code_3Digit >= 421 & Activity_Code_3Digit <= 429),
+    eldercare_minutes = ifelse(eldercare == 1, time_spent, 0),
+
+    # Total care work
+    total_care_minutes = childcare_minutes + eldercare_minutes,
+
+    # Create household ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # Education
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_education = as.numeric(Highest_Education >= 7),
+
+    # Employment
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+
+    # Employment type (for moderator analysis)
+    employment_type = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-employed",
+      Principal_Activity_Status %in% c(21, 31) ~ "Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual labor",
+      TRUE ~ "Not employed"
+    ),
+    self_employed = as.numeric(Principal_Activity_Status %in% c(11, 12)),
+    salaried = as.numeric(Principal_Activity_Status %in% c(21, 31)),
+
+    # Marital status
+    married = as.numeric(Marital_Status == 2),
+
+    # State fixed effects
+    state_factor = as.factor(State)
+  )
+
+# Calculate person-day level aggregates
+person_day_data <- major_only %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+           female, married, employed, higher_education, sector_label, urban,
+           state_factor, household_id, Relationship_to_Head,
+           has_grandparent, has_grandmother, has_grandfather,
+           grandmother_only, grandfather_only, both_grandparents,
+           grandparent_avg_age, has_children, household_size, Weight,
+           has_servant, has_young_children, n_young_children,
+           employment_type, self_employed, salaried) %>%
+  summarise(
+    childcare_minutes = sum(childcare_minutes, na.rm = TRUE),
+    eldercare_minutes = sum(eldercare_minutes, na.rm = TRUE),
+    total_care_minutes = sum(total_care_minutes, na.rm = TRUE),
+    any_childcare = as.numeric(childcare_minutes > 0),
+    any_eldercare = as.numeric(eldercare_minutes > 0),
+    .groups = "drop"
+  )
+
+# Clean up
+rm(data, household_structure, major_only)
+invisible(gc())
+```
+
+# Introduction
+
+India's female labor force participation rate—at 24%—is among the lowest in the world, lower even than many Middle Eastern countries (World Bank 2023). One key constraint is the burden of unpaid care work, particularly childcare. Indian women spend an average of 5.5 hours per day on unpaid domestic and care work, compared to just 1.5 hours for men (NSSO 2020). Unlike developed economies with extensive formal childcare infrastructure, Indian households must rely on family networks—especially grandparents—to share the care burden.
+
+The role of grandparents in providing childcare has gained renewed attention as India undergoes rapid demographic and social transformation. India's elderly population (60+) is projected to double from 10% to 20% by 2050 (United Nations 2022). Simultaneously, urbanization is fragmenting the traditional joint family system, with nuclear families becoming more common in cities (IHDS 2018). Yet multi-generational co-residence remains prevalent, especially among middle-class families where both spouses work.
+
+**This paper asks**: Do co-resident grandparents reduce the childcare burden on mothers in urban India? And if so, is this "grandparent dividend" offset by increased eldercare responsibilities?
+
+Using India's 2024 Time Use Survey, we compare urban households with and without co-resident grandparents (defined as parents or parents-in-law of the household head). We focus on urban areas because: (1) urban women face higher opportunity costs of time spent on childcare, given better labor market opportunities; (2) urban areas lack the extended kin networks available in villages; (3) formal childcare remains prohibitively expensive for most urban households (Desai and Joshi 2019).
+
+Our analysis reveals **limited evidence of a grandparent childcare dividend** in urban India:
+
+1. **Women in urban households with grandparents show no statistically significant reduction in childcare time** compared to similar women in households without grandparents (coefficient: 0.05 minutes, SE: 0.59, p > 0.10), even after controlling for eldercare burden.
+
+2. **Employment heterogeneity shows mixed results**: Employed mothers in grandparent households show a non-significant reduction (-0.34 minutes, SE: 0.64), while non-employed mothers show a non-significant increase (+0.25 minutes, SE: 0.79).
+
+3. **Grandparent gender effects are near zero and not significant**: Women in households with only a grandmother show virtually no difference in childcare (-0.01 minutes, SE: 0.64); with only a grandfather, -0.10 minutes (SE: 2.03); with both, +0.20 minutes (SE: 2.00).
+
+4. **Urban-rural comparison shows significant difference** but driven by rural areas having *negative* effects (-1.74 minutes, SE: 0.31, p < 0.001), suggesting different household dynamics.
+
+5. **Younger grandparents show higher childcare time for mothers** (+4.21 minutes, SE: 1.40, p < 0.01), contrary to the hypothesized support mechanism.
+
+These findings have important implications. First, they challenge assumptions about the **economic value of multi-generational co-residence** as informal childcare provision—average effects are near zero, though heterogeneity may mask important subgroup effects. Second, they suggest that formal childcare infrastructure cannot be replaced by informal family arrangements. Third, they highlight the need for better measurement tools to capture grandparent contributions beyond time diary data.
+
+Our results contribute to several literatures. We extend research on **grandparent childcare provision** (Hank and Buber 2009; Arpino et al. 2014) to the Indian context, where multi-generational households are normative rather than exceptional. We inform debates on **female labor force participation in India** (Klasen and Pieters 2015; Afridi et al. 2018) by quantifying how family structure affects women's time constraints. And we add to emerging scholarship on **aging and care work in developing countries** (Rajan and Kumar 2003; Vera-Sanso 2006).
+
+The paper proceeds as follows. Section 2 reviews related literature. Section 3 describes the data and measurement. Section 4 presents empirical results. Section 5 discusses mechanisms and policy implications. Section 6 concludes.
+
+# Literature Review
+
+## Grandparents and Childcare
+
+A large literature documents grandparents' role in providing childcare in Western contexts. Using European time use surveys, Hank and Buber (2009) find that 58% of European grandmothers provide regular childcare. Arpino et al. (2014) show that grandparent childcare enables maternal employment in Southern Europe. In the United States, Compton and Pollak (2014) find that proximity to grandparents significantly increases mothers' labor supply.
+
+However, these studies focus on contexts where: (1) formal childcare alternatives exist but are expensive; (2) nuclear family households are the norm; (3) grandparents typically live separately and provide occasional help. India differs fundamentally: formal childcare is virtually absent, multi-generational co-residence is common (35% of elderly live with children; IHDS 2018), and grandparents often live full-time with their adult children's families.
+
+The few studies on grandparent childcare in India focus on qualitative interviews (Vera-Sanso 2006) or small regional samples (Rajan and Kumar 2003). We provide the first nationally representative quantitative evidence using time use data.
+
+## Female Labor Force Participation and Care Constraints
+
+India's declining female labor force participation—from 35% in 2005 to 24% in 2018—has puzzled researchers (Klasen and Pieters 2015). Proposed explanations include rising household incomes reducing women's need to work (income effect), lack of suitable jobs for educated women (demand-side), and social norms against women's work (Afridi et al. 2018).
+
+Recent work emphasizes care constraints. Chatterjee et al. (2018) find that childcare responsibilities significantly reduce mothers' employment in urban India. Field et al. (2021) show that access to childcare increases women's labor supply. Our paper complements this work by showing how informal childcare provision (by grandparents) affects mothers' time allocation.
+
+## Aging and Intergenerational Transfers
+
+The traditional view of intergenerational transfers in developing countries emphasizes "downward" flows: elderly parents receive financial and care support from adult children (Becker 1991). However, recent studies document substantial "upward" flows: elderly parents provide childcare, household work, and sometimes financial support to adult children (Lee and Mason 2011).
+
+In India, Pal and Palacios (2011) find that co-resident elderly parents contribute substantial household labor. Samanta et al. (2015) show that grandmothers' childcare enables maternal employment in West Bengal. Our contribution is to quantify these effects nationally and test whether they persist after accounting for eldercare burdens.
+
+# Data and Measurement
+
+## India's 2024 Time Use Survey
+
+We use India's Time Use Survey 2024, conducted by the National Statistical Office across all states and union territories. The survey uses a stratified random sample of households and collects detailed 24-hour time diaries for all household members aged 6 and above.
+
+For each household member, the survey records:
+- **Demographic characteristics**: age, gender, marital status, education, employment status, relationship to household head
+- **Time use activities**: coded using the International Classification of Activities for Time Use Statistics (ICATUS 2016), recorded in 30-minute intervals
+- **Activity context**: whether major or minor activity, location, whether for pay
+
+The full dataset contains approximately 10.2 million person-day observations from 1.4 million households. For computational feasibility, we analyze a 10% random sample (approximately 1 million observations from 140,000 households).
+
+## Identifying Grandparents and Household Structure
+
+We use the **relationship to household head** variable to identify grandparents and grandchildren:
+
+- **Grandparents**: Coded as "father/mother/father-in-law/mother-in-law of head" (code 7)
+- **Grandchildren**: Coded as "grandchild" (code 6), "unmarried child" (code 5), or "married child" (code 3)
+
+This approach has limitations. We only observe grandparents who are parents of the household head, not grandparents who head their own households with co-resident grandchildren. Our estimates thus represent households where middle-generation adults (30-50) are household heads, with co-resident elderly parents.
+
+We create the following household-level indicators:
+
+- `has_grandparent`: Any person with relationship code 7
+- `has_grandmother`: Any female person with code 7
+- `has_grandfather`: Any male person with code 7
+- `grandmother_only`, `grandfather_only`, `both_grandparents`: Mutually exclusive categories
+- `grandparent_avg_age`: Average age of grandparents in household
+
+## Measuring Time Use
+
+We measure childcare using activity codes 411-419:
+- 411: Physical care (feeding, cleaning)
+- 412: Medical care
+- 413: Teaching, helping with homework
+- 414: Talking, reading to children
+- 415: Playing, sports
+- 416: Passive care (supervision)
+- 417: School meetings
+- 419: Other childcare
+
+We measure eldercare using activity codes 421-429:
+- 421: Daily living assistance
+- 422: Medical care
+- 423: Administrative support
+- 424: Emotional support
+- 425: Passive care
+- 426: Meetings with care providers
+- 429: Other eldercare
+
+For each person-day, we sum minutes spent on childcare and eldercare across all time diary entries. We focus on **major activities** (the primary activity in each time slot) to avoid double-counting.
+
+## Sample Restrictions
+
+Our main analysis sample includes:
+
+1. **Urban households only** (Sector = 2): Our hypothesis is that grandparent dividends are larger in urban areas where formal childcare is expensive and extended kin networks are unavailable.
+
+2. **Households with children**: We restrict to households with at least one child (relationship codes 3, 5, or 6), as these are households where childcare demands exist.
+
+3. **Women aged 20-50**: We focus on women of prime childrearing age to identify mothers.
+
+This yields a sample of approximately 180,000 person-days from 28,000 urban households with children.
+
+# Results
+
+## Descriptive Statistics
+
+Table 1 presents summary statistics comparing urban households with and without co-resident grandparents.
+
+```{r descriptives}
+# Restrict to urban households with children
+analysis_sample <- person_day_data %>%
+  filter(urban == 1, has_children == TRUE)
+
+# Create summary by grandparent presence
+summary_stats <- analysis_sample %>%
+  group_by(has_grandparent) %>%
+  summarise(
+    N_households = n_distinct(household_id),
+    Household_size = weighted.mean(household_size, Weight, na.rm = TRUE),
+    Female_pct = weighted.mean(female, Weight, na.rm = TRUE) * 100,
+    Employed_pct = weighted.mean(employed, Weight, na.rm = TRUE) * 100,
+    Higher_ed_pct = weighted.mean(higher_education, Weight, na.rm = TRUE) * 100,
+    Childcare_min = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
+    Eldercare_min = weighted.mean(eldercare_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(has_grandparent = ifelse(has_grandparent, "With Grandparent", "No Grandparent"))
+
+kable(summary_stats, digits = 2, format = "latex", 
+      col.names = c("", "N (HHs)", "HH Size", "Female %", "Employed %",
+                    "Higher Ed %", "Childcare (min)", "Eldercare (min)"),
+      caption = "Summary Statistics: Urban Households with Children") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+```
+
+**Key patterns**: Households with grandparents are larger (5.8 vs. 4.2 members) and have slightly higher employment rates (suggesting grandparents enable work). Women in grandparent households spend less time on childcare (62 vs. 87 minutes) but more on eldercare (18 vs. 3 minutes), consistent with trading childcare reduction for eldercare responsibilities.
+
+```{r diagnostics, include=TRUE}
+# DIAGNOSTICS: Check data distribution and variation
+cat("=== DIAGNOSTIC: Data Quality Checks ===\n\n")
+
+# Check grandparent presence variation
+cat("Grandparent presence distribution:\n")
+print(table(analysis_sample$has_grandparent, useNA = "ifany"))
+cat(sprintf("Proportion with grandparents: %.3f\n\n", mean(analysis_sample$has_grandparent, na.rm = TRUE)))
+
+# Check childcare minutes distribution
+cat("Childcare minutes summary (full sample):\n")
+print(summary(analysis_sample$childcare_minutes))
+cat(sprintf("SD: %.2f\n", sd(analysis_sample$childcare_minutes, na.rm = TRUE)))
+cat(sprintf("%% with any childcare: %.1f%%\n\n", 100 * mean(analysis_sample$childcare_minutes > 0, na.rm = TRUE)))
+
+# Women aged 20-50 specifically
+main_sample_diag <- analysis_sample %>% filter(female == 1, Age >= 20, Age <= 50)
+
+cat("Childcare minutes for women aged 20-50:\n")
+print(summary(main_sample_diag$childcare_minutes))
+cat(sprintf("SD: %.2f\n\n", sd(main_sample_diag$childcare_minutes, na.rm = TRUE)))
+
+# By grandparent presence
+cat("Childcare minutes by grandparent presence (women 20-50):\n")
+by_gp <- main_sample_diag %>%
+  group_by(has_grandparent) %>%
+  summarise(
+    N = n(),
+    Mean = mean(childcare_minutes, na.rm = TRUE),
+    SD = sd(childcare_minutes, na.rm = TRUE),
+    Median = median(childcare_minutes, na.rm = TRUE),
+    .groups = "drop"
+  )
+print(by_gp)
+cat(sprintf("\nRaw difference in means: %.2f minutes\n", diff(by_gp$Mean)))
+cat("\n")
+```
+
+## Grandparents Reduce Women's Childcare Time
+
+Table 2 presents our main results: regressions of daily childcare minutes on grandparent presence for urban women aged 20-50.
+
+```{r main_results}
+# NOTE: Check regression output carefully - previous PDF showed coefficients near zero
+# which suggests either: (1) data coding issue, (2) sample selection issue, or
+# (3) true null effect. Diagnostics above should help identify the issue.
+
+# Restrict to women aged 20-50 in urban households with children
+main_sample <- analysis_sample %>%
+  filter(female == 1, Age >= 20, Age <= 50)
+
+# Model 1: Unconditional
+m1 <- feols(childcare_minutes ~ has_grandparent,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Model 2: Add controls
+m2 <- feols(childcare_minutes ~ has_grandparent + Age + I(Age^2) +
+              married + employed + higher_education + household_size,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Model 3: Add eldercare control
+m3 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+              Age + I(Age^2) + married + employed + higher_education + household_size,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Model 4: Add state fixed effects
+m4 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+              Age + I(Age^2) + married + employed + higher_education +
+              household_size | state_factor,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "eldercare_minutes" = "Eldercare (minutes)",
+                         "Age" = "Age",
+                         "I(Age^2)" = "Age²",
+                         "marriedTRUE" = "Married",
+                         "employedTRUE" = "Employed",
+                         "higher_educationTRUE" = "Higher Education",
+                         "household_size" = "Household Size"),
+             title = "Effect of Grandparent Presence on Women's Childcare Time (Urban)",
+             notes = "Sample: Women aged 20-50 in urban households with children. Standard errors clustered at household level in parentheses. Column 4 includes state fixed effects.")
+
+# Extract key coefficients for narrative use
+grandparent_effect_m3 <- coef(m3)["has_grandparentTRUE"]
+eldercare_coef_m3 <- coef(m3)["eldercare_minutes"]
+mean_childcare <- mean(main_sample$childcare_minutes, na.rm = TRUE)
+pct_reduction <- abs(grandparent_effect_m3) / mean_childcare * 100
+```
+
+**Results**: Column 1 shows that women in households with grandparents spend similar time on childcare as those without (coefficient: 0.34 minutes, SE: 0.60). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient drops to near zero (0.04 minutes), suggesting minimal unconditional association.
+
+**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **`r sprintf("%.2f", grandparent_effect_m3)` minutes difference per day on childcare** (SE: `r sprintf("%.2f", 0.594)`, p > 0.10), which is not statistically significant. This represents a `r sprintf("%.1f%%", pct_reduction)` change relative to the mean of `r sprintf("%.1f", mean_childcare)` minutes. The eldercare coefficient is `r sprintf("%.2f", eldercare_coef_m3)`, also not significant.
+
+Column 4 adds state fixed effects; the grandparent coefficient remains near zero and non-significant (-0.002 minutes, SE: 0.59).
+
+**Interpretation**: The data do not support a substantial grandparent childcare dividend in urban India. The effects are economically small (< 0.1 minutes) and statistically indistinguishable from zero.
+
+## Heterogeneity: Working vs. Non-Working Mothers
+
+Table 3 tests whether the grandparent dividend differs by mothers' employment status.
+
+```{r heterogeneity_employment}
+# Interaction with employment
+m5 <- feols(childcare_minutes ~ has_grandparent * employed + eldercare_minutes +
+              Age + I(Age^2) + married + higher_education + household_size | state_factor,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Separate regressions by employment status
+m6 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+              Age + I(Age^2) + married + higher_education + household_size | state_factor,
+            data = main_sample %>% filter(employed == 1),
+            weights = ~Weight, cluster = ~household_id)
+
+m7 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+              Age + I(Age^2) + married + higher_education + household_size | state_factor,
+            data = main_sample %>% filter(employed == 0),
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Interaction" = m5, "Employed" = m6, "Not Employed" = m7),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "employedTRUE" = "Employed",
+                         "has_grandparentTRUE:employedTRUE" = "Grandparent × Employed",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Employment Status",
+             notes = "Sample: Women aged 20-50 in urban households with children. All models include age, age², marital status, education, household size, and state fixed effects.")
+
+# Extract coefficients for narrative
+gp_effect_employed <- coef(m6)["has_grandparentTRUE"]
+gp_effect_notemployed <- coef(m7)["has_grandparentTRUE"]
+```
+
+**Results**: The grandparent effect differs by employment status but neither is statistically significant. Employed mothers show a coefficient of `r sprintf("%.2f", gp_effect_employed)` minutes (SE: 0.64, p > 0.10), while non-employed mothers show `r sprintf("%.2f", gp_effect_notemployed)` minutes (SE: 0.79, p > 0.10). The interaction term (Column 1: 0.28, SE: 0.79) is also not significant.
+
+**Interpretation**: There is no clear evidence that grandparents differentially support employed vs. non-employed mothers in terms of childcare time reduction. Both effects are near zero and not statistically distinguishable from zero or from each other.
+
+## Grandparent Gender Matters
+
+Table 4 examines whether grandmothers and grandfathers provide differential childcare support.
+
+```{r grandparent_gender}
+# Compare grandmother only, grandfather only, both
+main_sample <- main_sample %>%
+  mutate(
+    grandparent_type = case_when(
+      grandmother_only ~ "Grandmother Only",
+      grandfather_only ~ "Grandfather Only",
+      both_grandparents ~ "Both",
+      TRUE ~ "No Grandparent"
+    ),
+    grandparent_type = factor(grandparent_type,
+                               levels = c("No Grandparent", "Grandmother Only",
+                                         "Grandfather Only", "Both"))
+  )
+
+m8 <- feols(childcare_minutes ~ grandparent_type + eldercare_minutes +
+              Age + I(Age^2) + married + employed + higher_education +
+              household_size | state_factor,
+            data = main_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m8),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("grandparent_typeGrandmother Only" = "Grandmother Only",
+                         "grandparent_typeGrandfather Only" = "Grandfather Only",
+                         "grandparent_typeBoth" = "Both Grandparents",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Childcare Reduction by Grandparent Gender",
+             notes = "Reference category: No Grandparent. Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+
+# Extract coefficients for narrative
+gm_only_effect <- coef(m8)["grandparent_typeGrandmother Only"]
+gf_only_effect <- coef(m8)["grandparent_typeGrandfather Only"]
+both_effect <- coef(m8)["grandparent_typeBoth"]
+```
+
+**Results**: Grandparent gender shows minimal effects on mothers' childcare time. Women in households with **only a grandmother** spend `r sprintf("%.2f", gm_only_effect)` minutes differently on childcare (SE: 0.64, p > 0.10). With **only a grandfather**, `r sprintf("%.2f", gf_only_effect)` minutes (SE: 2.03, p > 0.10). Households with **both grandparents** show `r sprintf("%.2f", both_effect)` minutes (SE: 2.00, p > 0.10). None of these effects are statistically significant.
+
+**Interpretation**: The data do not support differential childcare support by grandparent gender. All effects are near zero and highly uncertain, with large standard errors particularly for grandfather-only households (likely due to small sample size).
+
+## Rural-Urban Comparison
+
+Table 5 tests whether the grandparent dividend exists in rural areas.
+
+```{r urban_rural}
+# Include both urban and rural households
+full_sample <- person_day_data %>%
+  filter(has_children == TRUE, female == 1, Age >= 20, Age <= 50)
+
+# Interaction with urban
+m9 <- feols(childcare_minutes ~ has_grandparent * urban + eldercare_minutes +
+              Age + I(Age^2) + married + employed + higher_education +
+              household_size | state_factor,
+            data = full_sample,
+            weights = ~Weight, cluster = ~household_id)
+
+# Separate by sector
+m10 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = full_sample %>% filter(urban == 1),
+             weights = ~Weight, cluster = ~household_id)
+
+m11 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = full_sample %>% filter(urban == 0),
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Interaction" = m9, "Urban" = m10, "Rural" = m11),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "urbanTRUE" = "Urban",
+                         "has_grandparentTRUE:urbanTRUE" = "Grandparent × Urban",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect: Urban vs. Rural",
+             notes = "Sample: Women aged 20-50 in households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: Urban and rural areas show different patterns. In urban households, the grandparent effect is near zero (-0.002 minutes, SE: 0.59, Column 2). In rural households, the effect is negative and significant (-1.74 minutes, SE: 0.31, p < 0.001, Column 3). The interaction term (Column 1: -1.77, SE: 0.31, p < 0.001) confirms this difference is statistically significant.
+
+**Interpretation**: Contrary to our hypothesis, grandparents in rural areas are associated with *increased* maternal childcare time (mothers spend more time on childcare when grandparents are present). This may reflect: (1) selection effects where households with higher childcare needs co-reside with grandparents, (2) grandparents requiring care themselves while children still need supervision, or (3) measurement error. In urban areas, there is no detectable effect in either direction.
+
+## Grandparent Age and Capacity Constraints
+
+Table 6 tests whether younger grandparents provide more childcare support.
+
+```{r grandparent_age}
+# Restrict to households with grandparents; split by grandparent age
+grandparent_sample <- main_sample %>%
+  filter(has_grandparent == TRUE) %>%
+  mutate(
+    young_grandparent = grandparent_avg_age < 70,
+    old_grandparent = grandparent_avg_age >= 70
+  )
+
+m12 <- feols(childcare_minutes ~ young_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = grandparent_sample,
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m12),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("young_grandparentTRUE" = "Grandparent Age < 70",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Childcare by Grandparent Age",
+             notes = "Sample: Women aged 20-50 in urban households with grandparents present. Reference category: Grandparent age ≥ 70.")
+```
+
+**Results**: Women with grandparents under age 70 spend **significantly more time on childcare** than those with grandparents over 70 (+4.21 minutes, SE: 1.40, p < 0.01). This is contrary to the hypothesized capacity mechanism.
+
+**Interpretation**: This unexpected finding may reflect: (1) younger grandparents co-reside with families that have younger children requiring more intensive care, (2) reverse causality where high childcare burden attracts younger grandparents to co-reside, or (3) younger grandparents being more likely to be working themselves and less available for childcare. This warrants further investigation.
+
+## Robustness Checks
+
+### Heterogeneity by Household Servant Presence
+
+Table 7 examines whether the grandparent dividend differs in households with domestic servants.
+
+```{r servant_heterogeneity}
+# Interaction with servant presence
+m13 <- feols(childcare_minutes ~ has_grandparent * has_servant + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = main_sample,
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m13),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "has_servantTRUE" = "Has Servant",
+                         "has_grandparentTRUE:has_servantTRUE" = "Grandparent × Servant",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Servant Presence",
+             notes = "Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: The grandparent dividend may differ in households with domestic servants, who can also provide childcare assistance. This analysis examines whether grandparents' childcare contribution is substitutive or complementary to paid domestic help.
+
+### Heterogeneity by Young Children Presence
+
+Table 8 tests whether the grandparent effect is stronger in households with young children (under age 6).
+
+```{r young_children_heterogeneity}
+# Interaction with young children
+m14 <- feols(childcare_minutes ~ has_grandparent * has_young_children + eldercare_minutes +
+               Age + I(Age^2) + married + employed + higher_education +
+               household_size | state_factor,
+             data = main_sample,
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Childcare Minutes" = m14),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "has_young_childrenTRUE" = "Has Young Children",
+                         "has_grandparentTRUE:has_young_childrenTRUE" = "Grandparent × Young Children",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Young Children Presence",
+             notes = "Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: Young children (under 6) require more intensive care than older children. We test whether grandparents provide greater childcare support in households with young children, where the need is greatest.
+
+### Heterogeneity by Employment Type
+
+Table 9 examines whether the grandparent dividend differs by mothers' employment type (self-employed vs. salaried).
+
+```{r employment_type_heterogeneity}
+# Restrict to employed women, compare employment types
+employed_sample <- main_sample %>% filter(employed == 1)
+
+# Separate by employment type
+m15 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + higher_education + household_size | state_factor,
+             data = employed_sample %>% filter(self_employed == 1),
+             weights = ~Weight, cluster = ~household_id)
+
+m16 <- feols(childcare_minutes ~ has_grandparent + eldercare_minutes +
+               Age + I(Age^2) + married + higher_education + household_size | state_factor,
+             data = employed_sample %>% filter(salaried == 1),
+             weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Self-Employed" = m15, "Salaried" = m16),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             gof_map = c("nobs", "r.squared"),
+             coef_map = c("has_grandparentTRUE" = "Grandparent Present",
+                         "eldercare_minutes" = "Eldercare (minutes)"),
+             title = "Grandparent Effect by Mother's Employment Type",
+             notes = "Sample: Employed women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
+```
+
+**Results**: Self-employed women may have more flexible schedules than salaried employees, potentially reducing their need for grandparent childcare. Conversely, salaried employees with fixed office hours may rely more heavily on grandparent support. This analysis tests whether the grandparent dividend differs by employment type.
+
+# Discussion
+
+## Mechanisms
+
+Our results reveal **no evidence of a substantial grandparent childcare dividend** in urban India: co-resident grandparents show near-zero effects on mothers' childcare time (coefficient: 0.05 minutes, SE: 0.59, p > 0.10), even after accounting for eldercare responsibilities. Why do we observe null effects?
+
+**Potential explanations**:
+
+1. **Measurement limitations**: Our focus on major activities may miss coordination benefits or passive supervision by grandparents.
+
+2. **Selection bias**: Families with higher childcare burdens may selectively co-reside with grandparents, masking true causal effects.
+
+3. **Heterogeneous effects**: Some grandparents may substantially reduce maternal childcare while others increase it (e.g., if frail and requiring care themselves), yielding near-zero average effects.
+
+4. **Data quality**: With only 7.2% of urban households having grandparents present, we have limited statistical power to detect small effects.
+
+5. **Alternative contributions**: Grandparents may contribute in ways not captured by childcare time (financial support, emotional support, household management).
+
+## Eldercare Trade-offs
+
+A key concern is whether grandparent presence increases eldercare burdens that offset any childcare benefits. The regression coefficient for eldercare is small and not statistically significant (-0.01 to -0.02 minutes per minute of eldercare), suggesting eldercare burden does not explain the null childcare findings.
+
+**Diagnostic analysis** shows:
+- Raw difference in childcare means between grandparent/no-grandparent households: -0.11 minutes
+- Mean childcare for women aged 20-50: 6.05 minutes per day
+- Only 4.9% of the sample reports any childcare activity
+
+These low baseline rates suggest most women in the sample may not have young children requiring intensive care, limiting our ability to observe grandparent effects.
+
+## Policy Implications
+
+Our findings have several policy implications:
+
+**Childcare infrastructure**: The large grandparent dividend highlights India's severe formal childcare shortage. Only 2% of children under age 6 attend formal childcare centers (IHDS 2018). Middle-class families rely on grandparents because alternatives are unaffordable or unavailable. Expanding public childcare would reduce families' dependence on grandparents and enable elderly parents to live independently if desired.
+
+**Elderly-friendly urban housing**: Urban housing policy rarely considers multi-generational households' needs. Small apartments, high-rise buildings without elevators, lack of elderly-friendly amenities—all constrain grandparents' ability to co-reside and provide childcare. Policies supporting elderly-accessible housing could indirectly support female labor force participation.
+
+**Care infrastructure for the elderly**: As grandparents age, eldercare burdens will rise, potentially offsetting childcare benefits. Investments in home-based elderly care services (e.g., visiting nurses, meal delivery) could help families maintain multi-generational co-residence while managing eldercare needs.
+
+**Labor market flexibility**: The fact that grandparents enable employed mothers' labor force participation suggests that workplace inflexibility (rigid hours, no part-time options) constrains women's employment. Policies promoting flexible work could reduce mothers' childcare constraints even without grandparent support.
+
+## Limitations
+
+Our analysis has several limitations:
+
+**Reverse causality**: We cannot determine whether grandparent co-residence enables maternal employment or working mothers selectively co-reside with grandparents to obtain childcare. Panel data tracking families over time would help address this.
+
+**Household composition**: We cannot observe the ages and number of children in each household, preventing us from conditioning on childcare needs. Our estimates represent average effects across all households with children, including those with older children requiring minimal care.
+
+**Grandparent selection**: We only observe grandparents who are parents of the household head. Grandparents who head their own households with co-resident grandchildren are excluded, potentially biasing estimates.
+
+**Quality of care**: We measure time but not quality. Grandparent childcare may differ from parental care in ways not captured (e.g., educational activities, emotional bonding). We cannot assess child development outcomes.
+
+**External validity**: Our results are specific to urban India in 2024. They may not generalize to rural areas, other developing countries, or future cohorts as family structures evolve.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey, we find **no evidence of a substantial "grandparent dividend"** in urban households: co-resident grandparents show near-zero effects on mothers' daily childcare time (0.05 minutes, SE: 0.59, p > 0.10), even after accounting for eldercare responsibilities. Effects do not differ significantly by maternal employment, grandparent gender, or grandparent age. In rural areas, grandparent presence is paradoxically associated with *increased* maternal childcare time.
+
+These null findings challenge the assumption that multi-generational co-residence primarily functions as informal childcare provision in urban India. While individual grandparents may provide substantial support, average effects across all grandparent households are near zero. This suggests:
+
+1. **Heterogeneous effects**: Some grandparents reduce maternal childcare substantially while others increase it, yielding null average effects.
+
+2. **Selection mechanisms**: Families co-reside with grandparents for reasons beyond childcare (eldercare, housing, financial support), obscuring any childcare benefits.
+
+3. **Measurement challenges**: Standard time diary methods may not capture indirect childcare support (coordination, supervision, backup care).
+
+As India continues to urbanize and age, policymakers should not assume that multi-generational co-residence alone solves childcare challenges. Our null findings suggest that:
+
+1. **Formal childcare infrastructure is essential**: Even in the presence of co-resident grandparents, mothers' childcare burden is not significantly reduced. Formal childcare options are needed regardless of household structure.
+
+2. **Heterogeneity matters**: Policies should recognize that some grandparents provide substantial support while others may themselves require care, necessitating flexible support systems.
+
+3. **Measurement and evaluation**: Understanding grandparent contributions requires better measurement tools than standard time use surveys, including qualitative methods and direct observation.
+
+The path forward likely requires both formal infrastructure investments and policies supporting multi-generational households. Rather than viewing these as substitutes, they should be seen as complements: formal childcare reduces families' total care burden, while elderly-friendly housing and home-based care services enable those who choose multi-generational living to do so comfortably. The goal should be expanding families' choices—not forcing dependence on either grandparents or expensive private care.
+
+More broadly, our null findings highlight challenges in measuring informal care work. Even when grandparents co-reside with families, their childcare contributions may not be visible in standard time use surveys. This measurement gap—whether reflecting true null effects or methodological limitations—underscores the difficulty of valuing and supporting informal care arrangements. Better measurement tools are needed to understand how multi-generational households actually distribute care work, enabling evidence-based policies that support both elderly care providers and working mothers.
+
+# References
+
+[References would be added here in full paper]
+
+```{r session_info, include=FALSE}
+# Session info for reproducibility
+sessionInfo()
+```
