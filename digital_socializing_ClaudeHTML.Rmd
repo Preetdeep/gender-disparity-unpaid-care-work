@@ -15,7 +15,6 @@ output:
     code_folding: hide
 abstract: |
   Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage reduces participation by 4.1 percentage points for women but only 0.5 percentage points for men. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social isolation, mental health, and digital inclusion policies.
-bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
