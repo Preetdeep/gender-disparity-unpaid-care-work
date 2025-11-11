@@ -20,20 +20,6 @@ output:
     theme: cosmo
     highlight: tango
     code_folding: hide
-    latex_engine: xelatex
-    number_sections: true
-    keep_tex: true
-header-includes:
-  - \usepackage{booktabs}
-  - \usepackage{longtable}
-  - \usepackage{array}
-  - \usepackage{multirow}
-  - \usepackage{float}
-  - \usepackage{setspace}
-  - \doublespacing
-  - \usepackage{dcolumn}
-geometry: margin=1in
-fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}

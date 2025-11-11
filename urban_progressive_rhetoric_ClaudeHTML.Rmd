@@ -18,14 +18,6 @@ output:
     theme: cosmo
     highlight: tango
     code_folding: hide
-    latex_engine: xelatex
-    number_sections: true
-header-includes:
-  - \usepackage{booktabs}
-  - \usepackage{setspace}
-  - \doublespacing
-geometry: margin=1in
-fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}

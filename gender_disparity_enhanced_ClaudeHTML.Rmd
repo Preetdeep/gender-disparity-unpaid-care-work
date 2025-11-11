@@ -19,23 +19,6 @@ output:
     theme: cosmo
     highlight: tango
     code_folding: hide
-    latex_engine: xelatex
-    keep_tex: true
-header-includes:
-  - \usepackage{booktabs}
-  - \usepackage{longtable}
-  - \usepackage{array}
-  - \usepackage{multirow}
-  - \usepackage{wrapfig}
-  - \usepackage{float}
-  - \usepackage{colortbl}
-  - \usepackage{pdflscape}
-  - \usepackage{tabu}
-  - \usepackage{threeparttable}
-  - \usepackage{setspace}
-  - \doublespacing
-geometry: margin=1in
-fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}
@@ -424,32 +407,3 @@ Lundberg, Shelly, and Robert A. Pollak. 1996. "Bargaining and Distribution in Ma
 Raj, Anita, Niranjan Saggurti, Donta Balaiah, and Jay G. Silverman. 2020. "Association between Intimate Partner Violence and Unintended Pregnancy among Married Women in India." *Social Science & Medicine* 69(1): 62-68.
 
 ---
-
-# Appendix: Additional Tables and Robustness
-
-```{r appendix_detailed_activities}
-detailed_activities <- major_only %>%
-  filter(Gender %in% c(1, 2), Activity_Code_2Digit %in% c(31, 32, 33)) %>%
-  mutate(Activity_Type = case_when(
-    Activity_Code_2Digit == 31 ~ "Child care",
-    Activity_Code_2Digit == 32 ~ "Adult care",
-    Activity_Code_2Digit == 33 ~ "Non-household care"
-  )) %>%
-  group_by(gender_label, Activity_Type) %>%
-  summarise(
-    `Participation (%)` = n() / nrow(filter(major_only, Gender %in% c(1, 2))) * 100,
-    `Avg Minutes` = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    `N Activities` = n(),
-    .groups = "drop"
-  )
-
-kable(detailed_activities, digits = 2,
-      caption = "Detailed Care Activities by Type",
-      ) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
-```
-
-```{r session_info_appendix}
-# Session info for reproducibility
-sessionInfo()
-```
