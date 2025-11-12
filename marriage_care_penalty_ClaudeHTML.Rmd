@@ -507,8 +507,8 @@ Column (4) adds state fixed effects to account for regional variation in cultura
 **Magnitudes and Interpretation**
 
 The 3.2 percentage point marriage penalty (Column 4, our preferred specification) represents:
-- A **67% increase** relative to never-married women's baseline participation rate (4.8%)
-- A **32% increase** in absolute terms when comparing married (10.5%) to never-married (7.3%) women
+- A **44% increase** relative to never-married women's baseline participation rate (7.3%)
+- A **3.2 percentage point increase** in absolute terms when comparing married (10.5%) to never-married (7.3%) women
 - The equivalent of **7.4 additional 30-minute time slots per month** devoted to care work
 
 Strikingly, all coefficients on the marriage interaction term are statistically significant at the 0.1% level, with t-statistics exceeding 20. This is not a marginal or uncertain effect—it is one of the most robust findings in the entire analysis.
@@ -578,7 +578,7 @@ The marriage penalty is **2.4 times larger** for younger women than older women.
 
 **Figure: Marriage Penalty by Age Group**
 
-```{r age_penalty_viz, fig.height=4, fig.width=7, fig.cap="Marriage Penalty by Age Group (Women Only). Younger women (age $\\leq$ 25) face a marriage penalty of 11.8 percentage points—more than double the 5.4 pp penalty for older women (age $>$ 25). This dramatic age heterogeneity suggests that early marriage coincides with childbearing demands and stronger normative pressures for young brides to demonstrate domestic competence, making marriage particularly constraining for women's time allocation during the critical early career years."}
+```{r age_penalty_viz, fig.height=4, fig.width=7, fig.cap="Marriage Penalty by Age Group (Women Only). Younger women (age $\\leq$ 25) face a marriage penalty of 3.8 percentage points—more than double the 1.6 pp penalty for older women (age $>$ 25). This dramatic age heterogeneity suggests that early marriage coincides with childbearing demands and stronger normative pressures for young brides to demonstrate domestic competence, making marriage particularly constraining for women's time allocation during the critical early career years."}
 # Visualize marriage penalty by age
 age_penalty_data <- by_age_marriage_women %>%
   select(age_group, `Marriage Penalty (pp)`)

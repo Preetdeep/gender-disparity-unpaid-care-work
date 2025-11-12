@@ -312,6 +312,7 @@ results$low_ses_gap <- low_ses_gap
 
 # Introduction
 
+
 Decades of research have established a strong son preference in India, evident in skewed sex ratios, unequal healthcare access, and biased educational spending (Das Gupta et al. 2003; Sen 1990). However, most studies focus on outcomes with direct monetary costs. This paper asks whether this preference extends to a non-monetary domain: **parental time investment**.
 
 Using the 2024 India Time Use Survey, we test the hypothesis that parents allocate more childcare time to sons than daughters. Our primary contribution lies in constructing a novel measure of household child gender composition from individual-level data, allowing us to compare time use in households with only sons, only daughters, and mixed-gender children.

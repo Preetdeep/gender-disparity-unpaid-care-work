@@ -1,5 +1,5 @@
 ---
-title: "The Grandparent Care Economy: How Co-Resident Grandparents Reduce Women's Childcare Burden in Urban India"
+title: "The Grandparent Care Economy: A Surprising Null Effect on Women's Childcare Burden in Urban India"
 author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
@@ -454,7 +454,7 @@ cat(sprintf("\nRaw difference in means: %.2f minutes\n", diff(by_gp$Mean)))
 cat("\n")
 ```
 
-## Grandparents Reduce Women's Childcare Time
+## Grandparents and Women's Childcare Time: A Null Effect
 
 Table 2 presents our main results: regressions of daily childcare minutes on grandparent presence for urban women aged 20-50.
 
@@ -561,7 +561,7 @@ gp_effect_notemployed <- coef(m7)["has_grandparentTRUE"]
 
 **Interpretation**: There is no clear evidence that grandparents differentially support employed vs. non-employed mothers in terms of childcare time reduction. Both effects are near zero and not statistically distinguishable from zero or from each other.
 
-## Grandparent Gender Matters
+## Grandparent Gender
 
 Table 4 examines whether grandmothers and grandfathers provide differential childcare support.
 
@@ -593,7 +593,7 @@ modelsummary(list("Childcare Minutes" = m8),
                          "grandparent_typeGrandfather Only" = "Grandfather Only",
                          "grandparent_typeBoth" = "Both Grandparents",
                          "eldercare_minutes" = "Eldercare (minutes)"),
-             title = "Childcare Reduction by Grandparent Gender",
+             title = "Childcare Support by Grandparent Gender",
              notes = "Reference category: No Grandparent. Sample: Women aged 20-50 in urban households with children. All models include controls and state fixed effects.")
 
 # Extract coefficients for narrative
