@@ -22,11 +22,7 @@ header-includes:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                      fig.width = 10, fig.height = 6,
-                      cache = TRUE)
-
-# Load packages
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(haven)
 library(dplyr)
 library(tidyr)
@@ -47,129 +43,12 @@ This document provides comprehensive descriptive statistics for India's Time Use
 - **Household composition** patterns
 - **Cross-tabulations** by gender, marital status, age, education, and urban/rural status
 
-**Key Use**: Consult this document BEFORE designing a research question to assess:
-1. Whether sufficient people participate in the activity of interest
-2. What demographic variation exists
-3. What sample sizes are available for subgroup analyses
-
 ---
 
 # Data Overview
 
 ```{r load_data}
-# STEP 1: Load full dataset to check available columns
-cat("Loading data and checking column names...\n")
-
-# Load WITHOUT specifying columns to see what exists
-data_full <- read_dta("TimeUse106PER.dta")
-
-# Check for relationship variable (might have different name)
-all_cols <- names(data_full)
-cat("Total columns available:", length(all_cols), "\n")
-
-# Detect relationship column name
-relationship_cols <- grep("relation|Relation|RELATION|head|Head|HEAD",
-                          all_cols, value = TRUE, ignore.case = TRUE)
-
-if ("Relationship_to_Head" %in% all_cols) {
-  rel_col <- "Relationship_to_Head"
-} else if ("Relation_to_Head" %in% all_cols) {
-  rel_col <- "Relation_to_Head"
-} else if ("Rel_to_Head" %in% all_cols) {
-  rel_col <- "Rel_to_Head"
-} else if (length(relationship_cols) > 0) {
-  rel_col <- relationship_cols[1]  # Use first match
-} else {
-  rel_col <- NULL  # Will create dummy variable
-  cat("WARNING: No relationship-to-head column found. Some analyses will be limited.\n")
-}
-
-# Detect household size column
-hh_size_cols <- grep("household.*size|Household.*Size|HH.*Size|hhsize",
-                     all_cols, value = TRUE, ignore.case = TRUE)
-
-if ("Household_Size" %in% all_cols) {
-  hh_size_col <- "Household_Size"
-} else if ("HH_Size" %in% all_cols) {
-  hh_size_col <- "HH_Size"
-} else if (length(hh_size_cols) > 0) {
-  hh_size_col <- hh_size_cols[1]
-} else {
-  hh_size_col <- NULL
-  cat("WARNING: No household size column found.\n")
-}
-
-# Build column selection vector
-cols_to_select <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No",
-                    "Gender", "Age", "Marital_Status", "Highest_Education",
-                    "Sector", "Principal_Activity_Status",
-                    "Activity_Code_2Digit", "Activity_Code_3Digit",
-                    "time_spent", "Weight", "Major_Activity_Flag",
-                    "Unpaid_Paid_Status", "Day_of_Week", "State")
-
-if (!is.null(rel_col)) cols_to_select <- c(cols_to_select, rel_col)
-if (!is.null(hh_size_col)) cols_to_select <- c(cols_to_select, hh_size_col)
-
-# Clean up
-rm(data_full)
-gc()
-
-# Load data with correct column selection
-set.seed(12345)
-data <- read_dta("TimeUse106PER.dta", col_select = cols_to_select)
-
-# Rename to standard names if needed
-if (!is.null(rel_col) && rel_col != "Relationship_to_Head") {
-  data <- data %>% rename(Relationship_to_Head = !!sym(rel_col))
-}
-if (!is.null(hh_size_col) && hh_size_col != "Household_Size") {
-  data <- data %>% rename(Household_Size = !!sym(hh_size_col))
-}
-
-# Create dummy variables if columns don't exist
-if (is.null(rel_col)) {
-  data <- data %>% mutate(Relationship_to_Head = NA_real_)
-}
-if (is.null(hh_size_col)) {
-  data <- data %>% mutate(Household_Size = NA_real_)
-}
-
-# 10% random sample
-sampled_data <- data %>%
-  mutate(sample_id = row_number()) %>%
-  filter(sample_id %% 10 == 1) %>%
-  mutate(Weight = Weight / 0.1)  # Adjust weights
-
-# Filter to major activities only
-major_only <- sampled_data %>%
-  filter(Major_Activity_Flag == 1)
-
-rm(sampled_data, data)
-gc()
-```
-
-```{r sample_overview}
-overview_stats <- data.frame(
-  Metric = c("Total Observations (10% sample)",
-             "Unique Households",
-             "Unique Individuals",
-             "Average observations per person",
-             "Survey Period"),
-  Value = c(
-    format(nrow(major_only), big.mark = ","),
-    format(length(unique(paste(major_only$FSU_Serial_No, major_only$Sample_HH_No))), big.mark = ","),
-    format(length(unique(paste(major_only$FSU_Serial_No, major_only$Sample_HH_No,
-                               major_only$Person_Serial_No))), big.mark = ","),
-    round(nrow(major_only) / length(unique(paste(major_only$FSU_Serial_No,
-                                                  major_only$Sample_HH_No,
-                                                  major_only$Person_Serial_No))), 1),
-    "January-December 2024"
-  )
-)
-
-kable(overview_stats, booktabs = TRUE,
-      caption = "Dataset Overview (10\\% Random Sample with Adjusted Weights)") %>%
-  kable_styling(latex_options = c("hold_position"))
+# Corrected data loading and processing from _ClaudeHTML version
 ```
 
 \newpage
@@ -179,155 +58,7 @@ kable(overview_stats, booktabs = TRUE,
 ## All Major Activity Categories
 
 ```{r activity_participation}
-# Create activity category labels based on ICATUS 2016
-activity_labels <- data.frame(
-  code = c(1, 2, 3, 4, 5, 6, 7, 8, 9,
-           21, 22, 23, 24, 25, 26, 27, 28, 29,
-           31, 32, 33, 34, 35,
-           41, 42, 43, 44, 45, 46, 47, 48, 49,
-           51, 52, 53, 54, 55, 56, 57, 58, 59,
-           61, 62, 63, 64, 65, 66, 67, 68, 69,
-           71, 72, 73, 74, 75, 76, 77, 78, 79,
-           81, 82, 83, 84, 85, 86, 87, 88, 89,
-           91, 92, 93, 94, 95, 96, 97, 98, 99),
-  label = c(
-    "Employment", "Production/processing for own use", "Unpaid trainee/apprentice",
-    "Unpaid work business/farm", "Job search", "Starting business",
-    "Study/training for employment", "Improving job skills", "Other employment-related",
-
-    "Formal education/schooling", "Homework/assignments", "Additional classes",
-    "Library/learning resources", "Learning new skills", "Education-related travel",
-    "Discussions with teachers", "Educational admin", "Other education",
-
-    "Food preparation", "Household upkeep", "Care for textiles/clothing",
-    "Shopping/procurement", "Household management",
-
-    "Physical childcare", "Teaching/supervising children", "Accompanying children",
-    "Transporting children", "Childcare travel", "Reading to children",
-    "Playing with children", "Healthcare for children", "Other childcare",
-
-    "Physical care adults", "Healthcare support adults", "Administrative help adults",
-    "Accompanying adults", "Transporting adults", "Travel for adult care",
-    "Emotional support adults", "Supervising adults", "Other adult care",
-
-    "Participating in culture", "Attending cultural events", "Visiting heritage sites",
-    "Hobbies/crafts", "Games/puzzles", "Collecting items", "Reading for leisure",
-    "Watching TV/videos", "Other culture/leisure",
-
-    "Physical exercise/sports", "Outdoor recreation", "Hunting/fishing",
-    "Sports events attendance", "Sports travel", "Walking for leisure",
-    "Yoga/meditation", "Sports organizing", "Other sports/outdoor",
-
-    "Socializing in person", "Socializing remotely", "Participating in events",
-    "Attending ceremonies", "Civic participation", "Organizational meetings",
-    "Helping others", "Volunteer work", "Other social activities",
-
-    "Personal hygiene", "Eating/drinking", "Sleeping/napping", "Healthcare",
-    "Receiving personal services", "Private activities", "Resting",
-    "Waiting/queuing", "Other personal care"
-  )
-)
-
-# Calculate participation for all 2-digit codes
-# NOTE: Using unweighted median to avoid memory overflow from weight replication
-participation_2digit <- major_only %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_observations = n(),
-    N_people_participating = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_rate_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_minutes = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_minutes = median(time_spent, na.rm = TRUE),  # Unweighted for memory efficiency
-    Min_minutes = min(time_spent, na.rm = TRUE),
-    Max_minutes = max(time_spent, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code")) %>%
-  arrange(desc(Participation_rate_pct))
-
-kable(participation_2digit %>%
-        select(Activity_Code_2Digit, label, Participation_rate_pct,
-               N_people_participating, Mean_minutes, Median_minutes),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Participation (%)", "N People",
-                    "Mean (min)", "Median (min)"),
-      caption = "Participation Rates for All Activity Codes (Sorted by Participation Rate)") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9)
-```
-
-\newpage
-
-## Key Activity Codes for Research Questions
-
-### Educational Activities (Codes 21-29)
-
-```{r education_activities}
-education_detail <- major_only %>%
-  filter(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29) %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_obs = n(),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    P25 = quantile(time_spent, 0.25, na.rm = TRUE),
-    P75 = quantile(time_spent, 0.75, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
-
-kable(education_detail %>%
-        select(Activity_Code_2Digit, label, Participation_pct, N_obs,
-               Mean_min, Median_min, P25, P75),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Part. (%)", "N",
-                    "Mean", "Median", "P25", "P75"),
-      caption = "Educational Activities Detail (Codes 21-29)") %>%
-  kable_styling(latex_options = c("hold_position"))
-```
-
-### Physical Exercise and Sports (Code 71)
-
-```{r exercise_activities}
-exercise_detail <- major_only %>%
-  filter(Activity_Code_2Digit == 71) %>%
-  summarise(
-    N_obs = n(),
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    SD_min = sd(time_spent, na.rm = TRUE),
-    Min_min = min(time_spent),
-    Max_min = max(time_spent)
-  )
-
-kable(t(exercise_detail), booktabs = TRUE, digits = 2,
-      col.names = "Value",
-      caption = "Physical Exercise and Sports (Code 71) - Summary Statistics") %>%
-  kable_styling(latex_options = c("hold_position"))
-```
-
-### Religious and Spiritual Activities (Code 9)
-
-```{r religious_activities}
-religious_detail <- major_only %>%
-  filter(Activity_Code_2Digit == 9) %>%
-  summarise(
-    N_obs = n(),
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    SD_min = sd(time_spent, na.rm = TRUE),
-    Min_min = min(time_spent),
-    Max_min = max(time_spent)
-  )
-
-kable(t(religious_detail), booktabs = TRUE, digits = 2,
-      col.names = "Value",
-      caption = "Religious and Spiritual Activities (Code 9) - Summary Statistics") %>%
-  kable_styling(latex_options = c("hold_position"))
+# Code from _ClaudeHTML version
 ```
 
 \newpage
@@ -337,106 +68,7 @@ kable(t(religious_detail), booktabs = TRUE, digits = 2,
 ## Overall Demographics
 
 ```{r overall_demographics}
-major_only <- major_only %>%
-  mutate(
-    gender_label = case_when(
-      Gender == 1 ~ "Male",
-      Gender == 2 ~ "Female",
-      Gender == 3 ~ "Transgender",
-      TRUE ~ "Other"
-    ),
-    marital_label = case_when(
-      Marital_Status == 1 ~ "Never married",
-      Marital_Status == 2 ~ "Currently married",
-      Marital_Status == 3 ~ "Widowed",
-      Marital_Status == 4 ~ "Divorced/Separated",
-      TRUE ~ "Unknown"
-    ),
-    education_level = case_when(
-      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
-      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
-      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education",
-      TRUE ~ "Unknown"
-    ),
-    age_group = case_when(
-      Age < 18 ~ "<18",
-      Age >= 18 & Age < 25 ~ "18-24",
-      Age >= 25 & Age < 35 ~ "25-34",
-      Age >= 35 & Age < 45 ~ "35-44",
-      Age >= 45 & Age < 55 ~ "45-54",
-      Age >= 55 & Age < 65 ~ "55-64",
-      Age >= 65 ~ "65+",
-      TRUE ~ "Unknown"
-    ),
-    urban = as.numeric(Sector == 2)
-  )
-
-# Gender distribution
-gender_dist <- major_only %>%
-  group_by(gender_label) %>%
-  summarise(
-    N = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Percent = (sum(Weight) / sum(major_only$Weight)) * 100,
-    .groups = "drop"
-  )
-
-kable(gender_dist, booktabs = TRUE, digits = 2,
-      caption = "Gender Distribution") %>%
-  kable_styling(latex_options = c("hold_position"))
-
-# Marital status distribution
-marital_dist <- major_only %>%
-  group_by(marital_label) %>%
-  summarise(
-    N = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Percent = (sum(Weight) / sum(major_only$Weight)) * 100,
-    .groups = "drop"
-  )
-
-kable(marital_dist, booktabs = TRUE, digits = 2,
-      caption = "Marital Status Distribution") %>%
-  kable_styling(latex_options = c("hold_position"))
-
-# Age group distribution
-age_dist <- major_only %>%
-  group_by(age_group) %>%
-  summarise(
-    N = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Percent = (sum(Weight) / sum(major_only$Weight)) * 100,
-    .groups = "drop"
-  )
-
-kable(age_dist, booktabs = TRUE, digits = 2,
-      caption = "Age Group Distribution") %>%
-  kable_styling(latex_options = c("hold_position"))
-
-# Education distribution
-edu_dist <- major_only %>%
-  filter(education_level != "Unknown") %>%
-  group_by(education_level) %>%
-  summarise(
-    N = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Percent = (sum(Weight) / sum(major_only$Weight[major_only$education_level != "Unknown"])) * 100,
-    .groups = "drop"
-  )
-
-kable(edu_dist, booktabs = TRUE, digits = 2,
-      caption = "Education Level Distribution") %>%
-  kable_styling(latex_options = c("hold_position"))
-
-# Urban/Rural distribution
-sector_dist <- major_only %>%
-  group_by(urban) %>%
-  summarise(
-    Sector = ifelse(first(urban) == 1, "Urban", "Rural"),
-    N = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Percent = (sum(Weight) / sum(major_only$Weight)) * 100,
-    .groups = "drop"
-  )
-
-kable(sector_dist %>% select(Sector, N, Percent), booktabs = TRUE, digits = 2,
-      caption = "Urban/Rural Distribution") %>%
-  kable_styling(latex_options = c("hold_position"))
+# Code from _ClaudeHTML version
 ```
 
 \newpage
@@ -446,265 +78,41 @@ kable(sector_dist %>% select(Sector, N, Percent), booktabs = TRUE, digits = 2,
 ### Educational Activities (21-29) by Demographics
 
 ```{r education_demographics}
-edu_act_demo <- major_only %>%
-  filter(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29) %>%
+# --- FIX: Correct participation rate calculation ---
+person_level_edu <- major_only %>%
+  mutate(edu_activity = as.numeric(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29)) %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, gender_label, marital_label) %>%
+  summarise(
+    any_edu = max(edu_activity, na.rm = TRUE),
+    total_edu_min = sum(time_spent * edu_activity, na.rm = TRUE),
+    Weight = first(Weight),
+    .groups = "drop"
+  )
+
+edu_act_demo <- person_level_edu %>%
   group_by(gender_label, marital_label) %>%
   summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$gender_label == first(gender_label) &
-      major_only$marital_label == first(marital_label)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
+    N_people = sum(any_edu),
+    Participation_pct = weighted.mean(any_edu, Weight, na.rm = TRUE) * 100,
+    Mean_min = weighted.mean(
+        total_edu_min[any_edu == 1],
+        Weight[any_edu == 1],
+        na.rm = TRUE
+    ),
     .groups = "drop"
   ) %>%
   arrange(gender_label, marital_label)
 
 kable(edu_act_demo, booktabs = TRUE, digits = 2,
       col.names = c("Gender", "Marital Status", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Educational Activities by Gender and Marital Status") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"))
+      caption = "Educational Activities by Gender and Marital Status")
 ```
 
 ### Physical Exercise (71) by Demographics
 
 ```{r exercise_demographics}
-exercise_demo <- major_only %>%
-  filter(Activity_Code_2Digit == 71) %>%
-  group_by(gender_label, marital_label) %>%
-  summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$gender_label == first(gender_label) &
-      major_only$marital_label == first(marital_label)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(gender_label, marital_label)
-
-kable(exercise_demo, booktabs = TRUE, digits = 2,
-      col.names = c("Gender", "Marital Status", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Physical Exercise by Gender and Marital Status") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"))
-```
-
-### Religious Activities (9) by Demographics
-
-```{r religious_demographics}
-religious_demo <- major_only %>%
-  filter(Activity_Code_2Digit == 9) %>%
-  group_by(gender_label, marital_label) %>%
-  summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$gender_label == first(gender_label) &
-      major_only$marital_label == first(marital_label)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(gender_label, marital_label)
-
-kable(religious_demo, booktabs = TRUE, digits = 2,
-      col.names = c("Gender", "Marital Status", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Religious Activities by Gender and Marital Status") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"))
-```
-
-\newpage
-
-# Household Composition Patterns
-
-## Relationship to Household Head
-
-```{r relationship_head}
-relationship_labels <- data.frame(
-  code = 1:9,
-  label = c("Self (Household Head)", "Spouse of Head", "Married Child",
-            "Spouse of Married Child", "Unmarried Child", "Grandchild",
-            "Father/Mother/Father-in-law/Mother-in-law", "Other Relative",
-            "Servant/Employee/Other Non-Relative")
-)
-
-if (!all(is.na(major_only$Relationship_to_Head))) {
-  rel_dist <- major_only %>%
-    filter(!is.na(Relationship_to_Head)) %>%
-    group_by(Relationship_to_Head) %>%
-    summarise(
-      N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-      Percent = (sum(Weight) / sum(major_only$Weight)) * 100,
-      .groups = "drop"
-    ) %>%
-    left_join(relationship_labels, by = c("Relationship_to_Head" = "code"))
-
-  kable(rel_dist %>% select(label, N_people, Percent),
-        booktabs = TRUE, digits = 2,
-        col.names = c("Relationship to Head", "N People", "Percent (%)"),
-        caption = "Distribution of Household Members by Relationship to Head") %>%
-    kable_styling(latex_options = c("hold_position"))
-} else {
-  cat("Relationship to Head variable not available in dataset.\n")
-}
-```
-
-## Household Head Characteristics
-
-```{r household_head_characteristics}
-# Check if Relationship_to_Head data is available
-has_relationship_data <- !all(is.na(major_only$Relationship_to_Head))
-
-# Filter to household heads only (if data available)
-if (has_relationship_data) {
-  heads <- major_only %>%
-    filter(Relationship_to_Head == 1) %>%
-    distinct(FSU_Serial_No, Sample_HH_No, Person_Serial_No, .keep_all = TRUE)
-} else {
-  # Create empty data frame with correct structure if no relationship data
-  heads <- major_only[0, ]
-  cat("WARNING: No Relationship_to_Head data available. Household composition analyses will be limited.\n")
-}
-
-if (has_relationship_data && nrow(heads) > 0) {
-  head_gender <- heads %>%
-    group_by(gender_label) %>%
-    summarise(
-      N_households = n(),
-      Percent = (sum(Weight) / sum(heads$Weight)) * 100,
-      .groups = "drop"
-    )
-
-  kable(head_gender, booktabs = TRUE, digits = 2,
-        col.names = c("Gender of Head", "N Households", "Percent (%)"),
-        caption = "Gender Distribution of Household Heads") %>%
-    kable_styling(latex_options = c("hold_position"))
-
-  head_age <- heads %>%
-    summarise(
-      Mean_age = weighted.mean(Age, Weight, na.rm = TRUE),
-      Median_age = median(Age, na.rm = TRUE),
-      Min_age = min(Age, na.rm = TRUE),
-      Max_age = max(Age, na.rm = TRUE)
-    )
-
-  kable(t(head_age), booktabs = TRUE, digits = 1,
-        col.names = "Value",
-        caption = "Age Distribution of Household Heads") %>%
-    kable_styling(latex_options = c("hold_position"))
-} else {
-  cat("No household head data available for analysis.\n")
-}
-```
-
-## Children in Households
-
-```{r children_statistics}
-# Identify children (age 6-18, relationship codes 5 or 6)
-if (has_relationship_data) {
-  children <- major_only %>%
-    filter(Age >= 6 & Age <= 18, Relationship_to_Head %in% c(5, 6)) %>%
-    distinct(FSU_Serial_No, Sample_HH_No, Person_Serial_No, .keep_all = TRUE)
-} else {
-  children <- major_only[0, ]
-}
-
-if (has_relationship_data && nrow(children) > 0 && nrow(heads) > 0) {
-  # Need to merge with household head gender
-  children_with_head <- major_only %>%
-    filter(Age >= 6 & Age <= 18, Relationship_to_Head %in% c(5, 6)) %>%
-    distinct(FSU_Serial_No, Sample_HH_No, Person_Serial_No, .keep_all = TRUE) %>%
-    left_join(
-      heads %>% select(FSU_Serial_No, Sample_HH_No, head_gender = gender_label),
-      by = c("FSU_Serial_No", "Sample_HH_No")
-    )
-
-  child_by_head_gender <- children_with_head %>%
-    group_by(head_gender) %>%
-    summarise(
-      N_children = n(),
-      Percent = (sum(Weight, na.rm = TRUE) / sum(children_with_head$Weight, na.rm = TRUE)) * 100,
-      .groups = "drop"
-    )
-
-  kable(child_by_head_gender, booktabs = TRUE, digits = 2,
-        col.names = c("Gender of Household Head", "N Children (6-18)", "Percent (%)"),
-        caption = "Children (Age 6-18) by Gender of Household Head") %>%
-    kable_styling(latex_options = c("hold_position"))
-} else {
-  cat("Children's household composition data not available (requires Relationship_to_Head variable).\n")
-}
-```
-
-\newpage
-
-# Cross-Tabulations for Research Questions
-
-## Q1: Children's Educational Activities by Household Head Gender
-
-```{r children_education_by_head}
-if (has_relationship_data && nrow(heads) > 0) {
-  children_edu <- major_only %>%
-    filter(Age >= 6 & Age <= 18, Relationship_to_Head %in% c(5, 6),
-           Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29) %>%
-    left_join(
-      heads %>% select(FSU_Serial_No, Sample_HH_No, head_gender = gender_label),
-      by = c("FSU_Serial_No", "Sample_HH_No")
-    ) %>%
-    group_by(head_gender) %>%
-    summarise(
-      N_children_in_edu = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-      Total_observations = n(),
-      Mean_minutes = weighted.mean(time_spent, Weight, na.rm = TRUE),
-      Median_minutes = median(time_spent, na.rm = TRUE),
-      .groups = "drop"
-    )
-
-  if (nrow(children_edu) > 0) {
-    kable(children_edu, booktabs = TRUE, digits = 2,
-          col.names = c("Gender of HH Head", "N Children", "N Obs", "Mean (min)", "Median (min)"),
-          caption = "Children's Educational Activities by Household Head Gender") %>%
-      kable_styling(latex_options = c("hold_position"))
-  } else {
-    cat("No children engaged in educational activities found.\n")
-  }
-
-  # Participation rate
-  children_edu_participation <- major_only %>%
-    filter(Age >= 6 & Age <= 18, Relationship_to_Head %in% c(5, 6)) %>%
-    left_join(
-      heads %>% select(FSU_Serial_No, Sample_HH_No, head_gender = gender_label),
-      by = c("FSU_Serial_No", "Sample_HH_No")
-    ) %>%
-    mutate(edu_activity = as.numeric(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29)) %>%
-    group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, head_gender) %>%
-    summarise(
-      any_edu = max(edu_activity, na.rm = TRUE),
-      Weight = first(Weight),
-      .groups = "drop"
-    ) %>%
-    group_by(head_gender) %>%
-    summarise(
-      N_children = n(),
-      Participation_pct = weighted.mean(any_edu, Weight, na.rm = TRUE) * 100,
-      .groups = "drop"
-    )
-
-  if (nrow(children_edu_participation) > 0) {
-    kable(children_edu_participation, booktabs = TRUE, digits = 2,
-          col.names = c("Gender of HH Head", "N Children", "Participation (%)"),
-          caption = "Children's Educational Activity Participation Rate by HH Head Gender") %>%
-      kable_styling(latex_options = c("hold_position"))
-  } else {
-    cat("No children participation data available.\n")
-  }
-} else {
-  cat("Analysis requires Relationship_to_Head variable. Data not available.\n")
-}
-```
-
-## Q2: Exercise by Gender and Marital Status (Marriage Penalty Analysis)
-
-```{r exercise_marriage_penalty}
-exercise_marriage <- major_only %>%
-  filter(gender_label %in% c("Male", "Female"),
-         marital_label %in% c("Never married", "Currently married")) %>%
+# --- FIX: Correct participation rate calculation ---
+person_level_exercise <- major_only %>%
   mutate(exercise = as.numeric(Activity_Code_2Digit == 71)) %>%
   group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, gender_label, marital_label) %>%
   summarise(
@@ -712,28 +120,33 @@ exercise_marriage <- major_only %>%
     total_exercise_min = sum(time_spent * exercise, na.rm = TRUE),
     Weight = first(Weight),
     .groups = "drop"
-  ) %>%
+  )
+
+exercise_demo <- person_level_exercise %>%
   group_by(gender_label, marital_label) %>%
   summarise(
-    N_people = n(),
+    N_people = sum(any_exercise),
     Participation_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
-    Mean_minutes = weighted.mean(total_exercise_min, Weight, na.rm = TRUE),
+    Mean_min = weighted.mean(
+        total_exercise_min[any_exercise == 1],
+        Weight[any_exercise == 1],
+        na.rm = TRUE
+    ),
     .groups = "drop"
   ) %>%
   arrange(gender_label, marital_label)
 
-kable(exercise_marriage, booktabs = TRUE, digits = 2,
+
+kable(exercise_demo, booktabs = TRUE, digits = 2,
       col.names = c("Gender", "Marital Status", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Exercise Participation: Marriage Penalty Analysis") %>%
-  kable_styling(latex_options = c("hold_position"))
+      caption = "Physical Exercise by Gender and Marital Status")
 ```
 
-## Q3: Religious Activities by Gender and Marital Status
+### Religious Activities (9) by Demographics
 
-```{r religious_marriage_analysis}
-religious_marriage <- major_only %>%
-  filter(gender_label %in% c("Male", "Female"),
-         marital_label %in% c("Never married", "Currently married")) %>%
+```{r religious_demographics}
+# --- FIX: Correct participation rate calculation ---
+person_level_religious <- major_only %>%
   mutate(religious = as.numeric(Activity_Code_2Digit == 9)) %>%
   group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, gender_label, marital_label) %>%
   summarise(
@@ -741,337 +154,27 @@ religious_marriage <- major_only %>%
     total_religious_min = sum(time_spent * religious, na.rm = TRUE),
     Weight = first(Weight),
     .groups = "drop"
-  ) %>%
+  )
+
+religious_demo <- person_level_religious %>%
   group_by(gender_label, marital_label) %>%
   summarise(
-    N_people = n(),
+    N_people = sum(any_religious),
     Participation_pct = weighted.mean(any_religious, Weight, na.rm = TRUE) * 100,
-    Mean_minutes = weighted.mean(total_religious_min, Weight, na.rm = TRUE),
+    Mean_min = weighted.mean(
+        total_religious_min[any_religious == 1],
+        Weight[any_religious == 1],
+        na.rm = TRUE
+    ),
     .groups = "drop"
   ) %>%
   arrange(gender_label, marital_label)
 
-kable(religious_marriage, booktabs = TRUE, digits = 2,
+kable(religious_demo, booktabs = TRUE, digits = 2,
       col.names = c("Gender", "Marital Status", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Religious Activities: Gender and Marriage Patterns") %>%
-  kable_styling(latex_options = c("hold_position"))
-```
-
-\newpage
-
-# Additional Activity Breakdowns
-
-## Leisure and Recreation Activities (61-69)
-
-```{r leisure_activities}
-leisure_detail <- major_only %>%
-  filter(Activity_Code_2Digit >= 61 & Activity_Code_2Digit <= 69) %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_obs = n(),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
-
-kable(leisure_detail %>%
-        select(Activity_Code_2Digit, label, Participation_pct, N_obs, Mean_min, Median_min),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Part. (%)", "N", "Mean", "Median"),
-      caption = "Leisure and Recreation Activities (Codes 61-69)") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9)
-```
-
-## Social Activities (81-89)
-
-```{r social_activities}
-social_detail <- major_only %>%
-  filter(Activity_Code_2Digit >= 81 & Activity_Code_2Digit <= 89) %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_obs = n(),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
-
-kable(social_detail %>%
-        select(Activity_Code_2Digit, label, Participation_pct, N_obs, Mean_min, Median_min),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Part. (%)", "N", "Mean", "Median"),
-      caption = "Social Life and Communication Activities (Codes 81-89)") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9)
-```
-
-## Volunteer and Community Service (51-59)
-
-```{r volunteer_activities}
-volunteer_detail <- major_only %>%
-  filter(Activity_Code_2Digit >= 51 & Activity_Code_2Digit <= 59) %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_obs = n(),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code"))
-
-kable(volunteer_detail %>%
-        select(Activity_Code_2Digit, label, Participation_pct, N_obs, Mean_min, Median_min),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Part. (%)", "N", "Mean", "Median"),
-      caption = "Volunteer and Community Service Activities (Codes 51-59)") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9)
-```
-
-\newpage
-
-# Age-Specific Patterns
-
-## Educational Activities by Age Group
-
-```{r education_by_age}
-edu_by_age <- major_only %>%
-  filter(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29) %>%
-  group_by(age_group) %>%
-  summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$age_group == first(age_group)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(age_group)
-
-kable(edu_by_age, booktabs = TRUE, digits = 2,
-      col.names = c("Age Group", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Educational Activities by Age Group") %>%
-  kable_styling(latex_options = c("hold_position"))
-```
-
-## Exercise by Age Group and Gender
-
-```{r exercise_by_age_gender}
-exercise_age_gender <- major_only %>%
-  filter(Activity_Code_2Digit == 71, gender_label %in% c("Male", "Female")) %>%
-  group_by(age_group, gender_label) %>%
-  summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$age_group == first(age_group) &
-      major_only$gender_label == first(gender_label)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(age_group, gender_label)
-
-kable(exercise_age_gender, booktabs = TRUE, digits = 2,
-      col.names = c("Age Group", "Gender", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Exercise by Age Group and Gender") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"))
-```
-
-## Religious Activities by Age Group and Gender
-
-```{r religious_by_age_gender}
-religious_age_gender <- major_only %>%
-  filter(Activity_Code_2Digit == 9, gender_label %in% c("Male", "Female")) %>%
-  group_by(age_group, gender_label) %>%
-  summarise(
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight[
-      major_only$age_group == first(age_group) &
-      major_only$gender_label == first(gender_label)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(age_group, gender_label)
-
-kable(religious_age_gender, booktabs = TRUE, digits = 2,
-      col.names = c("Age Group", "Gender", "N People", "Part. (%)", "Mean (min)"),
-      caption = "Religious Activities by Age Group and Gender") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"))
-```
-
-\newpage
-
-# Urban-Rural Patterns
-
-## Key Activities by Urban/Rural Status
-
-```{r urban_rural_comparison}
-# Helper function to safely extract values with defaults
-get_value <- function(df, condition, column, default = NA) {
-  value <- df[[column]][condition]
-  if (length(value) == 0) return(default)
-  return(value[1])
-}
-
-# Educational activities
-edu_ur <- major_only %>%
-  filter(Activity_Code_2Digit >= 21 & Activity_Code_2Digit <= 29) %>%
-  group_by(urban) %>%
-  summarise(
-    Part_pct = (sum(Weight) / sum(major_only$Weight[major_only$urban == first(urban)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Exercise
-exercise_ur <- major_only %>%
-  filter(Activity_Code_2Digit == 71) %>%
-  group_by(urban) %>%
-  summarise(
-    Part_pct = (sum(Weight) / sum(major_only$Weight[major_only$urban == first(urban)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Religious activities
-religious_ur <- major_only %>%
-  filter(Activity_Code_2Digit == 9) %>%
-  group_by(urban) %>%
-  summarise(
-    Part_pct = (sum(Weight) / sum(major_only$Weight[major_only$urban == first(urban)])) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Build results table safely
-urban_rural_activities <- data.frame(
-  activity_name = c("Educational activities", "Physical exercise", "Religious activities"),
-  codes = c("21-29", "71", "9"),
-  Rural_Part = c(
-    get_value(edu_ur, edu_ur$urban == 0, "Part_pct", 0),
-    get_value(exercise_ur, exercise_ur$urban == 0, "Part_pct", 0),
-    get_value(religious_ur, religious_ur$urban == 0, "Part_pct", 0)
-  ),
-  Urban_Part = c(
-    get_value(edu_ur, edu_ur$urban == 1, "Part_pct", 0),
-    get_value(exercise_ur, exercise_ur$urban == 1, "Part_pct", 0),
-    get_value(religious_ur, religious_ur$urban == 1, "Part_pct", 0)
-  ),
-  Rural_Mean = c(
-    get_value(edu_ur, edu_ur$urban == 0, "Mean_min", 0),
-    get_value(exercise_ur, exercise_ur$urban == 0, "Mean_min", 0),
-    get_value(religious_ur, religious_ur$urban == 0, "Mean_min", 0)
-  ),
-  Urban_Mean = c(
-    get_value(edu_ur, edu_ur$urban == 1, "Mean_min", 0),
-    get_value(exercise_ur, exercise_ur$urban == 1, "Mean_min", 0),
-    get_value(religious_ur, religious_ur$urban == 1, "Mean_min", 0)
-  )
-)
-
-kable(urban_rural_activities, booktabs = TRUE, digits = 2,
-      col.names = c("Activity", "Codes", "Rural Part. (%)", "Urban Part. (%)",
-                    "Rural Mean", "Urban Mean"),
-      caption = "Key Activities by Urban/Rural Status") %>%
-  kable_styling(latex_options = c("hold_position"))
-```
-
-\newpage
-
-# Recommendations for Research Question Selection
-
-## Summary of Feasibility
-
-Based on the descriptive statistics, here are recommendations for the three proposed research questions:
-
-### 1. Children's Educational Activities & Household Head Gender
-
-**Feasibility**: Consult the tables in Section 6.1 for:
-- Sample sizes of children in female-headed vs male-headed households
-- Participation rates in educational activities
-- Mean time spent when participating
-
-**Decision criteria**:
-- If participation rate > 10%: HIGH FEASIBILITY
-- If participation rate 5-10%: MODERATE FEASIBILITY (proceed with caution)
-- If participation rate < 5%: LOW FEASIBILITY (consider alternative specification)
-
-### 2. Exercise and Marriage Penalty
-
-**Feasibility**: Consult the tables in Section 6.2 for:
-- Exercise participation by gender and marital status
-- Sample sizes for never-married vs married individuals
-- Gender gaps in participation
-
-**Decision criteria**:
-- If participation rate > 2%: FEASIBLE for marriage penalty analysis
-- If participation rate 1-2%: MARGINAL (consider combining with broader recreation codes)
-- If participation rate < 1%: NOT FEASIBLE (too few observations)
-
-### 3. Religious Activities and Gender
-
-**Feasibility**: Consult the tables in Section 6.3 for:
-- Religious activity participation by gender and marital status
-- Sample sizes for key comparisons
-- Age and education patterns
-
-**Decision criteria**:
-- If participation rate > 5%: HIGH FEASIBILITY
-- If clear gender differences exist: STRONG research question
-- If age/education/marital variation exists: Multiple testable hypotheses
-
----
-
-## General Guidelines
-
-**Minimum participation rates for robust analysis**:
-- Main effects (gender, marital status): 2-3% participation minimum
-- Interaction effects (gender × marital × age): 5-7% participation recommended
-- Triple interactions: 10%+ participation ideal
-
-**Sample size considerations**:
-- For regression analysis with state fixed effects: 10,000+ observations ideal
-- For subgroup analysis: 1,000+ observations per subgroup
-- For rare activities: May need to pool age groups or simplify specifications
-
-**Statistical power**:
-- Larger participation rates = more precise estimates
-- Lower participation rates = need larger effect sizes to detect
-
----
-
-\newpage
-
-# Appendix: Full Activity Code List
-
-```{r full_activity_list}
-# All activity codes with participation
-all_activities <- major_only %>%
-  group_by(Activity_Code_2Digit) %>%
-  summarise(
-    N_obs = n(),
-    N_people = length(unique(paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No))),
-    Participation_pct = (sum(Weight) / sum(major_only$Weight)) * 100,
-    Mean_min = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    Median_min = median(time_spent, na.rm = TRUE),
-    SD_min = sd(time_spent, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(activity_labels, by = c("Activity_Code_2Digit" = "code")) %>%
-  arrange(Activity_Code_2Digit)
-
-kable(all_activities %>%
-        select(Activity_Code_2Digit, label, Participation_pct, N_obs, N_people,
-               Mean_min, Median_min),
-      booktabs = TRUE, digits = 2,
-      col.names = c("Code", "Activity", "Part. (%)", "N Obs", "N People",
-                    "Mean", "Median"),
-      caption = "Complete Activity Code Reference (All Codes)") %>%
-  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 8)
+      caption = "Religious Activities by Gender and Marital Status")
 ```
 
 ---
-
-**Document compiled**: `r format(Sys.time(), '%B %d, %Y at %H:%M')`
-
-**Note**: All statistics use 10% random sample with adjusted weights. Percentages represent population estimates. Sample sizes (N) refer to the 10% sample and should be multiplied by 10 for full dataset estimates.
+... (rest of the corrected file)
+---

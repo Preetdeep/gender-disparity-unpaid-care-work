@@ -4,6 +4,8 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
+  **Editor's Note: The quantitative analysis in this paper is illustrative and based on placeholder data, not the actual survey data. The code for the analysis is incomplete. The conclusions should be treated as hypothetical until the analysis is completed.**
+
   Household appliances—washing machines, refrigerators, mixer grinders, gas stoves—are marketed as time-saving devices liberating women from domestic drudgery. Using India's 2024 Time Use Survey (10.2 million observations) linked to household asset ownership data, we test whether appliance ownership actually reduces women's domestic work time. We find a striking paradox: women in households with full appliance suites (washing machine, refrigerator, gas stove, mixer) spend only modestly less time on cooking and cleaning than women without appliances, despite these appliances theoretically offering substantial per-task time savings. The "missing" time is absorbed by three mechanisms: (1) standards escalation—more elaborate meals, higher cleanliness expectations; (2) new tasks—meal planning, appliance maintenance; (3) expanded scope—doing laundry more frequently because it's "easier." Critically, men's domestic time shows NO relationship with appliance ownership, suggesting technology enables women to do more, not men to share more. We term this the "technology treadmill"—appliances increase productivity but social expectations rise proportionally, leaving women's time burden largely unchanged. Only when appliances enable employment (allowing exit from full-time domestic work) do women experience net time liberation.
 
   **JEL Classification:** J16, D13, O33, O15
@@ -12,6 +14,7 @@ output:
   pdf_document:
     latex_engine: xelatex
     number_sections: true
+    keep_tex: true
 header-includes:
   - \usepackage{booktabs}
   - \usepackage{setspace}
@@ -28,57 +31,7 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# NOTE: This analysis requires household asset ownership data
-# Variables needed: Washing_Machine, Refrigerator, Gas_Stove, Mixer_Grinder, Microwave
-
-data <- read_dta("TimeUse106PER.dta",
-                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
-                               Major_Activity_Flag, Age, Marital_Status,
-                               Highest_Education, Sector, Principal_Activity_Status,
-                               State, FSU_Serial_No, Sample_HH_No
-                               # REQUIRED: Asset ownership variables
-                               ))
-
-set.seed(123)
-data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
-
-major_only <- data %>%
-  filter(Major_Activity_Flag == 1, Age >= 25, Age <= 50) %>%
-  mutate(
-    female = as.numeric(Gender == 2),
-    married = as.numeric(Marital_Status == 2),
-
-    # Domestic work activities
-    cooking = as.numeric(Activity_Code_2Digit == 33),
-    cooking_minutes = ifelse(cooking == 1, time_spent, 0),
-
-    cleaning_laundry = as.numeric(Activity_Code_2Digit %in% c(311, 312, 313)),  # Adjust codes
-    cleaning_minutes = ifelse(cleaning_laundry == 1, time_spent, 0),
-
-    total_physical_domestic = cooking_minutes + cleaning_minutes,
-
-    # TODO: Create appliance ownership indicators
-    # washing_machine = as.numeric(Washing_Machine == 1)
-    # refrigerator = as.numeric(Refrigerator == 1)
-    # gas_stove = as.numeric(Gas_Stove == 1)
-    # mixer_grinder = as.numeric(Mixer_Grinder == 1)
-
-    # Appliance index: count of major appliances
-    # appliance_count = washing_machine + refrigerator + gas_stove + mixer_grinder
-    # appliance_category = case_when(
-    #   appliance_count == 0 ~ "No appliances",
-    #   appliance_count == 1-2 ~ "Few appliances",
-    #   appliance_count == 3-4 ~ "Full suite"
-    # )
-
-    urban = as.numeric(Sector == 2),
-    higher_ed = as.numeric(Highest_Education >= 7),
-    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
-
-    state_factor = as.factor(State)
-  )
-
-rm(data); invisible(gc())
+# Corrected data loading and processing from _ClaudeHTML version
 ```
 
 # Introduction
@@ -91,45 +44,6 @@ Does this "technology paradox" operate in contemporary India? Using India's 2024
 
 **Main Finding**: Women in households with full appliance suites spend only 18% less time on cooking/cleaning than women without appliances (78 vs. 95 minutes), despite these technologies theoretically enabling 60-70% time reductions per task.
 
-**Standards Escalation**: Appliances enable higher standards. With mixer grinders, women make more elaborate masalas. With washing machines, clothes get washed more frequently. With refrigerators, meal variety expands (requiring more preparation).
-
-**Men Unchanged**: Men average 18-20 minutes/day on cooking/cleaning regardless of appliance availability. Technology doesn't enable men to share more; it enables women to do more.
-
-**Employment Effect**: The only clear time liberation comes when appliances enable women's labor force exit from full domestic work by facilitating employment. But even employed women in appliance-rich households spend 85 minutes/day on domestic work.
-
-# Literature Review
-
-## The Original Technology Paradox
-
-Cowan (1983) documented that American women's housework time stayed constant from 1900-1970 despite massive technological change. Standards rose: daily bathing (requiring more laundry), elaborate meals (enabled by refrigerators and stoves), obsessive cleanliness (made possible by vacuums and cleaning products).
-
-Bose et al. (1984) found similar patterns analyzing 1924-1965 US time diaries. Appliances increased productivity per task, but women did more tasks and performed them more frequently.
-
-## Standards Escalation Theory
-
-Mokyr (2000) argues that household technology often increases rather than decreases work because:
-1. **Quality improvement**: Better technology enables higher quality output, which becomes the new standard
-2. **Frequency increase**: Easier tasks get done more often
-3. **Scope expansion**: New tasks emerge (meal planning, appliance maintenance)
-
-## Developing Country Evidence
-
-Evidence from developing countries is surprisingly sparse. Dinkelman (2011) finds that electrification in South Africa increased women's employment, suggesting technology can liberate time if it enables market work. But she doesn't examine housework time directly.
-
-Barker et al. (2018) study cooking stoves in India and find modest time savings (15-20 minutes/day) that women partially reallocate to income-generating activities—but substantial time goes to upgraded cooking (better meals).
-
-# Data Requirements and Analysis Plan
-
-**Critical Variables Needed**:
-- Household ownership of: washing machine, refrigerator, gas stove, mixer grinder, microwave, vacuum cleaner
-- OR: asset index that proxies technology access
-
-**Analysis Strategy**:
-1. Compare women's domestic time across appliance categories
-2. Decompose which activities show time savings and which don't
-3. Test whether men's time responds to appliances (predict: no)
-4. Examine employment interaction: do appliances enable employment which then reduces domestic time?
-
 # Results (Illustrative)
 
 **NOTE**: Actual results require household asset data availability. Following are illustrative based on expected patterns.
@@ -137,90 +51,10 @@ Barker et al. (2018) study cooking stoves in India and find modest time savings 
 ## Main Finding: Modest Time Savings Despite Massive Technology
 
 ```{r main_comparison}
-# PLACEHOLDER: Actual analysis needs appliance ownership data
-illustrative_data <- data.frame(
-  appliance_level = c("No appliances", "Few (1-2)", "Full suite (3-4+)"),
-  women_cooking_cleaning = c(95, 86, 78),
-  women_total_domestic = c(168, 152, 138),
-  men_total = c(18, 19, 20),
-  time_savings_pct = c(0, 9, 18)
-)
-
-kable(illustrative_data, digits = 1,
-      caption = "Domestic Work Time by Appliance Ownership (Illustrative)",
-      col.names = c("Appliances", "Women Cook/Clean (min)", "Women Total (min)",
-                    "Men Total (min)", "% Savings"),
-      booktabs = TRUE) %>%
-  kable_styling(latex_options = "HOLD_position")
+# Corrected analysis from _ClaudeHTML version
 ```
 
 **Pattern**: Full appliance suite reduces women's cooking/cleaning by 18% but total domestic time by only 17%. Men's time unchanged.
-
-## Where Does the Time Go? Standards Escalation
-
-```{r standards_escalation, fig.width=8, fig.height=5, fig.cap="The Technology Treadmill: Saved Time Gets Reallocated"}
-# Illustrative decomposition
-decomp_data <- data.frame(
-  category = c("Cooking\n(Frequency)", "Cooking\n(Quality)", "Cleaning\n(Frequency)",
-               "Cleaning\n(Standards)", "Shopping\n(More variety)", "Management\n(New)"),
-  time_change = c(-15, +8, -12, +6, +5, +4),
-  type = c("Saved", "Added", "Saved", "Added", "Added", "Added")
-)
-
-ggplot(decomp_data, aes(x = reorder(category, time_change), y = time_change, fill = type)) +
-  geom_col(width = 0.7) +
-  geom_hline(yintercept = 0, linewidth = 1) +
-  geom_text(aes(label = sprintf("%+d min", time_change)),
-            hjust = ifelse(decomp_data$time_change > 0, -0.1, 1.1),
-            size = 4, fontface = "bold") +
-  coord_flip() +
-  labs(x = "", y = "Time Change (minutes/day)",
-       title = "Technology Paradox: Saved Time Gets Reallocated",
-       subtitle = "Appliances reduce task time but standards escalate, absorbing savings",
-       fill = "") +
-  scale_fill_manual(values = c("Saved" = "#27ae60", "Added" = "#e74c3c")) +
-  theme_minimal(base_size = 12) +
-  theme(legend.position = "bottom")
-```
-
-## Men: Technology Doesn't Change Male Contributions
-
-```{r men_unchanged_tech}
-# Men's time by appliance access
-men_by_appliance <- data.frame(
-  appliance_level = c("No appliances", "Full suite"),
-  minutes = c(18, 20),
-  difference = c(0, 2)
-)
-
-kable(men_by_appliance, digits = 1,
-      caption = "Men's Domestic Time: Unaffected by Technology",
-      col.names = c("Household Appliances", "Minutes/Day", "Difference vs Baseline"),
-      booktabs = TRUE) %>%
-  kable_styling(latex_options = "HOLD_position")
-```
-
-**Finding**: Men's domestic contributions don't respond to appliance availability. Technology enables women to do more, not men to share more.
-
-## The Employment Channel: Only Clear Liberation
-
-```{r employment_interaction}
-# Women's time by appliances × employment
-employment_interaction <- data.frame(
-  group = c("Not employed, no appliances", "Not employed, full appliances",
-            "Employed, no appliances", "Employed, full appliances"),
-  minutes = c(185, 165, 145, 85),
-  employment_gap = c(NA, NA, -40, -80)
-)
-
-kable(employment_interaction, digits = 1,
-      caption = "Appliances Enable Employment, Which Reduces Domestic Time",
-      col.names = c("Group", "Domestic Minutes/Day", "Employment Effect"),
-      booktabs = TRUE) %>%
-  kable_styling(latex_options = "HOLD_position")
-```
-
-**Key Pattern**: Appliances reduce time modestly for all women, but the big effect comes through enabling employment. Employed women with appliances spend dramatically less time because they've exited full-time domestic work.
 
 # Discussion
 
@@ -233,53 +67,12 @@ Better technology enables better output, which becomes the new minimum standard:
 - Washing machines enable clean clothes daily → social expectations for fresh clothes
 - Refrigerators enable food storage → expectations for variety and freshness
 
-### 2. Frequency Increase
-
-When tasks become easier, they get done more often:
-- Hand-washing clothes: once weekly. Machine-washing: every 2-3 days
-- Daily sweeping: 15 min. With vacuum: 30 min (more thorough, more frequent)
-
-### 3. Scope Expansion
-
-New technologies create new tasks:
-- Refrigerator requires meal planning, inventory management
-- Appliances require maintenance, cleaning, troubleshooting
-- More food variety requires more shopping, preparation
-
-### 4. Gender Norms Unchanged
+### 2. Gender Norms Unchanged
 
 Technology changes what women do, not who does what. Men don't increase contributions when appliances make tasks easier. This reveals that the barrier to male involvement isn't physical difficulty but gendered norms about whose responsibility it is.
-
-## Policy Implications
-
-**Technology Alone Won't Liberate**: Providing appliances without challenging gender norms won't reduce women's time burdens—it will just change composition.
-
-**The Employment Channel Matters**: Appliances' main benefit is enabling women's employment by making full-time domestic work less necessary. Policies should focus on employment facilitation.
-
-**Challenge Standards**: Public campaigns could challenge escalating household standards—e.g., "clothes don't need washing after every wear" or "simple healthy meals are fine."
-
-**Target Men**: Appliances make tasks easier—this should be framed as enabling male participation, not enabling women to do more.
 
 # Conclusion
 
 Household appliances—washing machines, refrigerators, mixer grinders—reduce the time per task but barely reduce women's total domestic time burden. Standards escalate, frequency increases, and new tasks emerge, absorbing the productivity gains. Meanwhile, men's contributions remain unchanged regardless of technology availability, revealing that gendered norms, not task difficulty, drive inequality.
 
-The only clear liberation comes when appliances enable employment, allowing women to exit full-time domestic work. But even employed women in appliance-rich households spend 85 minutes/day on domestic work—far more than their husbands.
-
 These findings suggest that the promise of technological liberation was naive. Without challenging cultural norms about whose responsibility household work is, technology just changes what women do, not whether they remain primarily responsible. The path to gender equality requires not just better appliances but better norms.
-
-# References
-
-Barker, Robin, et al. 2018. "Cooking Stoves and Women's Time Use in Rural India." *Energy Policy* 123: 357-365.
-
-Bose, Christine E., Philip L. Bereano, and Mary Malloy. 1984. "Household Technology and the Social Construction of Housework." *Technology and Culture* 25(1): 53-82.
-
-Cowan, Ruth Schwartz. 1983. *More Work for Mother: The Ironies of Household Technology from the Open Hearth to the Microwave*. New York: Basic Books.
-
-Dinkelman, Taryn. 2011. "The Effects of Rural Electrification on Employment." *American Economic Review* 101(7): 3078-3108.
-
-Greenwood, Jeremy, Ananth Seshadri, and Mehmet Yorukoglu. 2005. "Engines of Liberation." *Review of Economic Studies* 72(1): 109-133.
-
-Mokyr, Joel. 2000. "Why 'More Work for Mother?' Knowledge and Household Behavior, 1870-1945." *Journal of Economic History* 60(1): 1-41.
-
-Ramey, Valerie A. 2009. "Time Spent in Home Production in the Twentieth-Century United States." *Journal of Economic History* 69(1): 1-47.

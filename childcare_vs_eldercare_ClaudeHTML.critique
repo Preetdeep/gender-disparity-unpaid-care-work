@@ -1,0 +1,10 @@
+The paper "Gendered Disparities in Care Work: Comparing Childcare and Adult Care in India" is well-structured and the analysis is sound. However, one of the key visualizations is confusing and could be improved.
+
+**Critique:**
+
+1.  **Figure 3 is confusing:** The plot shows the ratio of the adult care gap to the childcare gap. This is not intuitive. A reader has to read the caption carefully to understand that a smaller bar means the childcare gap is *larger*. This undermines the main point of the paper.
+
+**Suggested Improvements:**
+
+1.  **Revise Figure 3:** Instead of a ratio, the plot should directly compare the two gaps (childcare and adult care) for each subgroup. A grouped bar chart would be effective here. This will make the finding that the childcare gap is consistently larger much more immediate and impactful.
+2.  **Clarify regression results for married individuals:** Add a sentence to the discussion of Table 5 to explain that the regression coefficients are adjusted for controls and may differ from the raw descriptive gaps.

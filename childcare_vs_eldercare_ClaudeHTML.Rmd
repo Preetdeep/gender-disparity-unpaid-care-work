@@ -135,9 +135,9 @@ invisible(gc())
 
 Care work—the unpaid labor of looking after children, elderly, sick, and disabled household members—remains overwhelmingly women's responsibility across the world. Yet not all care work is the same. Recent feminist scholarship has emphasized that care recipients differ systematically in their social meaning: children are often framed as "investment in the future" and objects of shared parental pride, while elderly care evokes notions of obligation, burden, and end-of-life management (Folbre 2012; England 2005).
 
-One might hypothesize that cultural differences in how societies view care recipients translate into different patterns of gendered participation. If childcare is partially legitimized as "parenting"—a responsibility that modern men increasingly acknowledge—then male participation may be non-trivial. By contrast, adult care, often stigmatized as difficult and unrewarding, may be seen as quintessentially women's work, resulting in even lower male contributions.
+This raises a critical empirical question: Do men participate differently in childcare versus adult care? One hypothesis, driven by the global discourse on "involved fatherhood," is that men might engage more in childcare, which is often framed as a rewarding parental investment. In contrast, adult care, frequently seen as a burdensome obligation, might be more strictly delegated to women. An alternative hypothesis is that entrenched patriarchal norms in contexts like India assign *all* domestic and care responsibilities to women, regardless of the recipient, leading to uniformly low male participation across the board.
 
-Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine gender disparities in these two types of care work. **Important limitation:** We cannot observe household composition (number/ages of children, presence of elderly members), so our estimates represent population-level gender gaps, not gaps conditional on care needs being present. We find that men's participation in childcare is actually lower (relative to women) than their participation in adult care. The gender gap in childcare participation is approximately 4 times larger than the adult care gap, and this pattern persists across all education levels, geographic locations, and age groups. This suggests that in the Indian context, patriarchal norms assign *all* forms of care work primarily to women, with childcare being particularly feminized despite "involved fatherhood" rhetoric.
+This paper adjudicates between these hypotheses using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations). **Important limitation:** We cannot observe household composition (e.g., the presence of children or elderly members), so our estimates represent population-level gender gaps, not gaps conditional on care needs being present. Our findings are stark: the gender gap in childcare participation is nearly four times larger than the gap in adult care. This suggests that, far from being an exception, childcare in India is even more intensely feminized than other forms of care work, directly challenging the narrative of emerging egalitarianism in modern parenting.
 
 These patterns are consistent across age groups, education levels, urban-rural locations, and employment status. The gender gap in childcare participation rates is substantially larger than in adult care, and this gap does not narrow with male education or urban residence—factors typically associated with more egalitarian gender attitudes.
 
@@ -266,13 +266,13 @@ Men contribute **`r sprintf("%.0f%%", male_childcare_share)` of childcare time**
 
 **Note on interpretation**: These time averages include all individuals in the population, including those without care responsibilities. The values represent population-level time burdens and are appropriate for understanding aggregate gender inequality. Among those who actually perform care work (participants only), time spent is substantially higher.
 
-### Visualizing the Participation Gap Ratio
+### Visualizing Participation Gaps Across Subgroups
 
-Figure 3 illustrates the "participation gap ratio"—the ratio of adult care gender gap to childcare gender gap—across different population subgroups. A ratio above 1.0 would indicate that the adult care gap is larger than the childcare gap. However, as we find, ratios below 1.0 indicate that the childcare gap exceeds the adult care gap.
+Figure 3 directly compares the gender participation gaps (Female % - Male %) for childcare and adult care across various population subgroups. This visualization allows us to test whether the larger childcare gap is a universal phenomenon.
 
-```{r selectivity_ratio_plot, fig.width=7, fig.height=4.5, fig.cap="Childcare Gaps Exceed Adult Care Gaps Across All Subgroups"}
-# Calculate selectivity ratios by various groups using PARTICIPATION RATE GAPS
-selectivity_education <- major_only %>%
+```{r selectivity_ratio_plot, fig.width=7, fig.height=5, fig.cap="Childcare Gaps Consistently Exceed Adult Care Gaps"}
+# Calculate gaps by education
+gaps_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
   group_by(education_level, gender_label) %>%
   summarise(
@@ -282,14 +282,14 @@ selectivity_education <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare_participation, adultcare_participation)) %>%
   mutate(
-    childcare_gap = childcare_participation_Female - childcare_participation_Male,
-    adultcare_gap = adultcare_participation_Female - adultcare_participation_Male,
-    selectivity_ratio = adultcare_gap / childcare_gap,
+    `Childcare Gap` = childcare_participation_Female - childcare_participation_Male,
+    `Adult Care Gap` = adultcare_participation_Female - adultcare_participation_Male,
     group = education_level,
     category = "Education"
   )
 
-selectivity_urban <- major_only %>%
+# Calculate gaps by location
+gaps_urban <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
   group_by(sector_label, gender_label) %>%
   summarise(
@@ -299,14 +299,14 @@ selectivity_urban <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare_participation, adultcare_participation)) %>%
   mutate(
-    childcare_gap = childcare_participation_Female - childcare_participation_Male,
-    adultcare_gap = adultcare_participation_Female - adultcare_participation_Male,
-    selectivity_ratio = adultcare_gap / childcare_gap,
+    `Childcare Gap` = childcare_participation_Female - childcare_participation_Male,
+    `Adult Care Gap` = adultcare_participation_Female - adultcare_participation_Male,
     group = as.character(sector_label),
     category = "Location"
   )
 
-selectivity_employed <- major_only %>%
+# Calculate gaps by employment status
+gaps_employed <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
   mutate(employment_status = ifelse(employed == 1, "Employed", "Not Employed")) %>%
   group_by(employment_status, gender_label) %>%
@@ -317,39 +317,40 @@ selectivity_employed <- major_only %>%
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(childcare_participation, adultcare_participation)) %>%
   mutate(
-    childcare_gap = childcare_participation_Female - childcare_participation_Male,
-    adultcare_gap = adultcare_participation_Female - adultcare_participation_Male,
-    selectivity_ratio = adultcare_gap / childcare_gap,
+    `Childcare Gap` = childcare_participation_Female - childcare_participation_Male,
+    `Adult Care Gap` = adultcare_participation_Female - adultcare_participation_Male,
     group = employment_status,
     category = "Employment"
   )
 
-# Combine all
-selectivity_all <- bind_rows(
-  selectivity_education %>% select(group, category, selectivity_ratio),
-  selectivity_urban %>% select(group, category, selectivity_ratio),
-  selectivity_employed %>% select(group, category, selectivity_ratio)
-)
+# Combine and pivot for plotting
+gaps_all <- bind_rows(
+  gaps_education %>% select(group, category, `Childcare Gap`, `Adult Care Gap`),
+  gaps_urban %>% select(group, category, `Childcare Gap`, `Adult Care Gap`),
+  gaps_employed %>% select(group, category, `Childcare Gap`, `Adult Care Gap`)
+) %>%
+  pivot_longer(cols = c(`Childcare Gap`, `Adult Care Gap`), names_to = "Gap Type", values_to = "Gap (pp)")
 
-ggplot(selectivity_all, aes(x = reorder(group, selectivity_ratio), y = selectivity_ratio, fill = category)) +
-  geom_col(show.legend = TRUE) +
-  geom_hline(yintercept = 1.0, linetype = "dashed", color = "red", size = 0.8) +
-  annotate("text", x = 0.5, y = 1.05, label = "Equal gaps", size = 3, color = "red", hjust = 0) +
-  geom_text(aes(label = sprintf("%.2f", selectivity_ratio)),
-            hjust = -0.2, size = 3.5, fontface = "bold") +
-  coord_flip() +
-  labs(x = "", y = "Gap Ratio\n(Adult Care Gap / Childcare Gap)",
-       fill = "Category",
-       title = "Childcare Gap Exceeds Adult Care Gap in Every Subgroup",
-       subtitle = "Values < 1.0 indicate childcare gaps exceed adult care gaps (men avoid childcare more)") +
-  scale_fill_manual(values = c("Education" = "#9b59b6", "Location" = "#e67e22", "Employment" = "#16a085")) +
+# Create a grouped bar chart
+ggplot(gaps_all, aes(x = group, y = `Gap (pp)`, fill = `Gap Type`)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.1f", `Gap (pp)`)),
+            position = position_dodge(width = 0.7),
+            vjust = -0.5, size = 3.5) +
+  facet_wrap(~ category, scales = "free_x", ncol = 1) +
+  labs(x = "", y = "Gender Participation Gap (Female % - Male %)",
+       fill = "Care Type",
+       title = "Childcare Gaps Consistently Exceed Adult Care Gaps",
+       subtitle = "The gender gap in participation is larger for childcare across all subgroups") +
+  scale_fill_manual(values = c("Childcare Gap" = "#2980b9", "Adult Care Gap" = "#c0392b")) +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom",
         plot.title = element_text(face = "bold", size = 13),
-        plot.subtitle = element_text(size = 10, color = "gray30"))
+        plot.subtitle = element_text(size = 10, color = "gray30"),
+        strip.text = element_text(face = "bold"))
 ```
 
-**Interpretation**: The gap ratio is below 1.0 in every single subgroup, confirming that men's avoidance of childcare (relative to adult care) is universal. The ratio is calculated as (adult care participation gap) / (childcare participation gap), where gaps are measured in percentage points. Values below 1.0 indicate that the gender gap in childcare participation exceeds the gap in adult care participation, demonstrating that men avoid childcare more intensely than adult care regardless of education, location, or employment status. This finding contradicts our initial hypothesis.
+**Interpretation**: The gender gap in participation is substantially larger for childcare than for adult care in every single subgroup. Factors commonly associated with more modern gender norms, such as higher education, urban residence, and employment, do not close this differential. This finding reinforces the conclusion that childcare is a uniquely feminized activity in India, more so than other forms of care work.
 
 ## Marriage and Gender Gaps in Care Work
 
@@ -630,7 +631,7 @@ modelsummary(list("Childcare Part." = m5, "Adult Care Part." = m6,
 
 **Time spent** (Columns 3-4): Married women spend 42 more minutes per day on childcare than married men, and 25 more minutes on adult care.
 
-**Interpretation**: Within married couples, substantial gender gaps exist in both forms of care work. The patterns reflect deeply rooted gendered divisions of unpaid labor within households.
+**Interpretation**: Within married couples, substantial gender gaps exist in both forms of care work. These regression-adjusted estimates, which account for covariates like age, education, and employment, confirm the raw descriptive patterns. The results reflect deeply rooted gendered divisions of unpaid labor within households.
 
 ## Education and Urban Residence: Persistent Gender Gaps
 
@@ -758,9 +759,7 @@ Our findings document substantial gender disparities in care work, with importan
 
 ### Cultural Frames and Care Work
 
-We hypothesized that modern parenting discourse—emphasizing "involved fatherhood"—would lead to higher male participation in childcare than adult care. However, our findings show the opposite: the participation gender gap in childcare is actually larger than in adult care.
-
-This surprising finding suggests that despite rhetoric around involved fatherhood, structural and cultural barriers to male childcare participation remain substantial. While adult care lacks positive cultural framing and involves intimate physical tasks (bathing, toileting, feeding), the absolute participation rates for both genders are lower, making the relative gender gap smaller.
+We hypothesized that modern parenting discourse—emphasizing "involved fatherhood"—would lead to higher male participation in childcare than adult care. However, our findings show the opposite. While men’s participation in both is extremely low (`r sprintf("%.1f%%", male_childcare_pct)` in childcare, `r sprintf("%.1f%%", male_adultcare_pct)` in adult care), the gender gap in childcare participation (`r sprintf("%.1f", childcare_gap_pp)` percentage points) is substantially larger than in adult care (`r sprintf("%.1f", adultcare_gap_pp)` percentage points). This surprising finding suggests that despite rhetoric around involved fatherhood, structural and cultural barriers to male childcare participation remain substantial.
 
 ### Intergenerational Obligations and Patriarchy
 

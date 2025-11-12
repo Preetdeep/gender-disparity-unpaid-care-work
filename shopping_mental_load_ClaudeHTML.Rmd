@@ -661,7 +661,7 @@ modelsummary(list("Shopping" = m5, "Shopping\n(Interaction)" = m6,
              notes = "Robust standard errors in parentheses. State fixed effects and education controls included in all models.")
 ```
 
-**Column 1**: Among married individuals, women spend 6.8 more minutes per day shopping than men (twice the overall gap).
+**Column 1**: Among married individuals, women spend 5.6 more minutes per day shopping than men (a gap substantially larger than the overall average of 4.1 minutes).
 
 **Column 2**: Tests Female × Employed interaction. The interaction is small and insignificant, confirming that employed women's shopping time does not significantly decrease relative to unemployed women.
 
