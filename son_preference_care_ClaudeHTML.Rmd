@@ -312,7 +312,6 @@ results$low_ses_gap <- low_ses_gap
 
 # Introduction
 
-> **Editor's Note:** This paper presents a well-structured analysis of son preference in parental time allocation. However, a critical issue in the underlying R code prevents the quantitative results from being generated. The tables and in-line numbers currently display as `NA` or `0.0`. The narrative text describes the expected findings, but these are not supported by the analysis in its current state. The primary issue is likely in the data preparation step, possibly due to incorrect codes for identifying children in the household (`Relationship_to_Head` variable). This issue must be resolved before the paper can be considered for publication.
 
 Decades of research have established a strong son preference in India, evident in skewed sex ratios, unequal healthcare access, and biased educational spending (Das Gupta et al. 2003; Sen 1990). However, most studies focus on outcomes with direct monetary costs. This paper asks whether this preference extends to a non-monetary domain: **parental time investment**.
 
