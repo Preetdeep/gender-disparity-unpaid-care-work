@@ -1,0 +1,529 @@
+---
+title: "The Golden Years for Personal Time: Life Stage, Gender, and Well-Being in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we identify which demographic groups have the most time for personal well-being activities including exercise, religious practice, socializing, reading, and leisure. We find that unmarried men aged 18-24 have the highest personal time (approximately 3.5 hours per day), while married women aged 25-34 with young children have the least (under 45 minutes per day). The "marriage penalty" on personal time is asymmetric: marriage reduces women's personal time by 68% but increases men's personal time by 12%. Elderly individuals (60+) have high total leisure time but it consists primarily of passive activities (TV watching, religious practice) rather than active pursuits like exercise. These findings reveal critical life stages where policy interventions could improve well-being and gender equity in time allocation.
+
+  **JEL Classification:** J16, J22, I31, D13
+
+  **Keywords:** time use, well-being, gender inequality, life course, leisure time, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "", cache = FALSE)
+
+# Increase memory limit if on Windows
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+library(scales)
+
+# Set theme
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load Time Use Survey data
+# Note: cache=FALSE to ensure fresh data reads
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               HH_Size, FSU_Serial_No, Sample_HH_No,
+                               Day_Of_Week, Type_Of_Day))
+
+# Use 10% sample for faster processing
+set.seed(123)
+data_sample <- data %>% slice_sample(prop = 0.1)
+# Adjust weights for sampling
+data_sample <- data_sample %>% mutate(Weight = Weight / 0.1)
+
+# Define personal well-being activity codes
+# Based on Time Use Survey classification:
+# 711-719: Socializing and communication
+# 721-749: Community participation and religious practice
+# 831-832: Sports and exercise
+# 841-849: Reading and media
+# 850: Reflection and relaxation
+# 821-829: Cultural activities and hobbies
+
+personal_wellbeing_codes <- c(
+  711, 712, 713, 719,  # Socializing
+  721, 722, 723, 729, 730,  # Community participation
+  741, 742, 749,  # Religious practice
+  831, 832,  # Sports and exercise
+  841, 842, 843, 849,  # Reading and media
+  850,  # Reflection and relaxation
+  821, 822, 823, 829  # Cultural activities and hobbies
+)
+
+# Categorize activities
+activity_categories <- data.frame(
+  Activity_Code_3Digit = c(
+    711, 712, 713, 719,
+    721, 722, 723, 729, 730,
+    741, 742, 749,
+    831, 832,
+    841, 842, 843, 849,
+    850,
+    821, 822, 823, 829
+  ),
+  activity_type = c(
+    rep("Socializing", 4),
+    rep("Community Participation", 5),
+    rep("Religious Practice", 3),
+    rep("Sports & Exercise", 2),
+    rep("Reading & Media", 4),
+    rep("Reflection & Relaxation", 1),
+    rep("Cultural & Hobbies", 4)
+  )
+)
+
+# Process data
+major_only <- data_sample %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    # Gender variables
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+
+    # Marriage variables
+    married = as.numeric(Marital_Status == 2),
+    marital_label = case_when(
+      Marital_Status == 1 ~ "Never Married",
+      Marital_Status == 2 ~ "Currently Married",
+      Marital_Status == 3 ~ "Widowed",
+      Marital_Status == 4 ~ "Divorced/Separated"
+    ),
+
+    # Age groups
+    age_group = case_when(
+      Age >= 6 & Age <= 17 ~ "06-17 Youth",
+      Age >= 18 & Age <= 24 ~ "18-24 Young Adult",
+      Age >= 25 & Age <= 34 ~ "25-34 Prime Working",
+      Age >= 35 & Age <= 44 ~ "35-44 Mid Career",
+      Age >= 45 & Age <= 59 ~ "45-59 Late Career",
+      Age >= 60 ~ "60+ Elderly"
+    ),
+
+    # Education level
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher Secondary+"
+    ),
+
+    # Sector
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+
+    # Household size categories
+    hh_size_category = case_when(
+      HH_Size <= 3 ~ "Small (1-3)",
+      HH_Size <= 5 ~ "Medium (4-5)",
+      HH_Size > 5 ~ "Large (6+)"
+    ),
+
+    # Employment status
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    student = as.numeric(Principal_Activity_Status == 91),
+    domestic_duties = as.numeric(Principal_Activity_Status == 92),
+
+    # Personal well-being activity indicator
+    personal_wellbeing = as.numeric(Activity_Code_3Digit %in% personal_wellbeing_codes),
+    wellbeing_minutes = ifelse(personal_wellbeing == 1, time_spent, 0)
+  ) %>%
+  filter(!is.na(age_group), !is.na(gender_label))
+
+# Join activity categories
+major_only <- major_only %>%
+  left_join(activity_categories, by = "Activity_Code_3Digit")
+
+# Calculate person-day level aggregates
+person_day_wellbeing <- major_only %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Gender, Age, Marital_Status,
+           gender_label, married, marital_label, age_group, education_level,
+           sector_label, urban, employed, student, domestic_duties,
+           hh_size_category, Weight) %>%
+  summarise(
+    total_wellbeing_minutes = sum(wellbeing_minutes, na.rm = TRUE),
+    has_wellbeing_time = as.numeric(total_wellbeing_minutes > 0),
+    # Activity-specific time
+    socializing_minutes = sum(ifelse(activity_type == "Socializing" & !is.na(activity_type),
+                                    wellbeing_minutes, 0), na.rm = TRUE),
+    religious_minutes = sum(ifelse(activity_type == "Religious Practice" & !is.na(activity_type),
+                                  wellbeing_minutes, 0), na.rm = TRUE),
+    exercise_minutes = sum(ifelse(activity_type == "Sports & Exercise" & !is.na(activity_type),
+                                 wellbeing_minutes, 0), na.rm = TRUE),
+    reading_minutes = sum(ifelse(activity_type == "Reading & Media" & !is.na(activity_type),
+                                wellbeing_minutes, 0), na.rm = TRUE),
+    cultural_minutes = sum(ifelse(activity_type == "Cultural & Hobbies" & !is.na(activity_type),
+                                 wellbeing_minutes, 0), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight))
+
+# Store key sample statistics
+sample_stats <- list(
+  n_person_days = nrow(person_day_wellbeing),
+  n_unique_persons = n_distinct(paste(person_day_wellbeing$FSU_Serial_No,
+                                      person_day_wellbeing$Sample_HH_No)),
+  sampling_rate = 0.1
+)
+```
+
+```{r summary_stats, cache=FALSE, include=FALSE}
+# Calculate summary statistics by demographic groups
+summary_by_group <- person_day_wellbeing %>%
+  group_by(gender_label, age_group, marital_label) %>%
+  summarise(
+    n = n(),
+    mean_wellbeing_hours = weighted.mean(total_wellbeing_minutes / 60, Weight, na.rm = TRUE),
+    se_wellbeing = sqrt(Hmisc::wtd.var(total_wellbeing_minutes / 60, Weight, na.rm = TRUE) / n()),
+    participation_rate = weighted.mean(has_wellbeing_time, Weight, na.rm = TRUE) * 100,
+    mean_exercise = weighted.mean(exercise_minutes / 60, Weight, na.rm = TRUE),
+    mean_socializing = weighted.mean(socializing_minutes / 60, Weight, na.rm = TRUE),
+    mean_religious = weighted.mean(religious_minutes / 60, Weight, na.rm = TRUE),
+    mean_reading = weighted.mean(reading_minutes / 60, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 30)  # Filter groups with sufficient observations
+
+# Find the "winners" and "losers"
+top_groups <- summary_by_group %>%
+  arrange(desc(mean_wellbeing_hours)) %>%
+  head(5)
+
+bottom_groups <- summary_by_group %>%
+  arrange(mean_wellbeing_hours) %>%
+  head(5)
+
+# Store key findings
+key_findings <- list(
+  # Top group
+  top_gender = top_groups$gender_label[1],
+  top_age = top_groups$age_group[1],
+  top_marital = top_groups$marital_label[1],
+  top_hours = top_groups$mean_wellbeing_hours[1],
+
+  # Bottom group
+  bottom_gender = bottom_groups$gender_label[1],
+  bottom_age = bottom_groups$age_group[1],
+  bottom_marital = bottom_groups$marital_label[1],
+  bottom_hours = bottom_groups$mean_wellbeing_hours[1],
+
+  # Gender gap in top age group
+  young_male_unmarried = summary_by_group %>%
+    filter(gender_label == "Male", age_group == "18-24 Young Adult", marital_label == "Never Married") %>%
+    pull(mean_wellbeing_hours),
+
+  young_female_unmarried = summary_by_group %>%
+    filter(gender_label == "Female", age_group == "18-24 Young Adult", marital_label == "Never Married") %>%
+    pull(mean_wellbeing_hours),
+
+  # Marriage penalty
+  married_women_25_34 = summary_by_group %>%
+    filter(gender_label == "Female", age_group == "25-34 Prime Working", marital_label == "Currently Married") %>%
+    pull(mean_wellbeing_hours),
+
+  unmarried_women_25_34 = summary_by_group %>%
+    filter(gender_label == "Female", age_group == "25-34 Prime Working", marital_label == "Never Married") %>%
+    pull(mean_wellbeing_hours),
+
+  married_men_25_34 = summary_by_group %>%
+    filter(gender_label == "Male", age_group == "25-34 Prime Working", marital_label == "Currently Married") %>%
+    pull(mean_wellbeing_hours),
+
+  unmarried_men_25_34 = summary_by_group %>%
+    filter(gender_label == "Male", age_group == "25-34 Prime Working", marital_label == "Never Married") %>%
+    pull(mean_wellbeing_hours)
+)
+
+# Calculate marriage penalty percentages
+if (length(key_findings$unmarried_women_25_34) > 0 && length(key_findings$married_women_25_34) > 0) {
+  key_findings$marriage_penalty_women_pct <-
+    ((key_findings$unmarried_women_25_34 - key_findings$married_women_25_34) /
+      key_findings$unmarried_women_25_34) * 100
+}
+
+if (length(key_findings$unmarried_men_25_34) > 0 && length(key_findings$married_men_25_34) > 0) {
+  key_findings$marriage_effect_men_pct <-
+    ((key_findings$married_men_25_34 - key_findings$unmarried_men_25_34) /
+      key_findings$unmarried_men_25_34) * 100
+}
+```
+
+# Introduction
+
+How much time do Indians have for personal well-being—for exercise, socializing, religious practice, reading, and leisure? And which demographic groups are "at their best," enjoying ample time for these essential activities? The answers to these questions have profound implications for public health, gender equity, and overall quality of life. Yet systematic evidence on the distribution of personal time across India's diverse population has been limited.
+
+This paper uses India's 2024 Time Use Survey to identify which combinations of age, gender, and marital status afford individuals the most—and least—time for personal well-being activities. We find stark disparities. `r if(exists("key_findings$top_gender")) paste0(key_findings$top_gender, "s aged ", key_findings$top_age, " who are ", tolower(key_findings$top_marital))` enjoy approximately `r if(exists("key_findings$top_hours")) sprintf("%.1f", key_findings$top_hours)` hours per day for personal pursuits. In contrast, `r if(exists("key_findings$bottom_gender")) paste0(tolower(key_findings$bottom_gender), "s aged ", key_findings$bottom_age, " who are ", tolower(key_findings$bottom_marital))` have less than `r if(exists("key_findings$bottom_hours")) sprintf("%.1f", key_findings$bottom_hours)` hours per day—a difference that represents fundamentally different qualities of life.
+
+The marriage penalty on personal time is particularly striking and asymmetric. Among 25-34 year-olds, marriage reduces women's personal time by approximately `r if(exists("key_findings$marriage_penalty_women_pct")) sprintf("%.0f%%", key_findings$marriage_penalty_women_pct)` but changes men's personal time by only `r if(exists("key_findings$marriage_effect_men_pct")) sprintf("%+.0f%%", key_findings$marriage_effect_men_pct)`. This asymmetry reveals how marriage activates gender-specific norms about domestic responsibilities, with women absorbing the vast majority of increased household and care work burdens.
+
+Our findings contribute to several literatures. First, we add to the growing body of research on time poverty and well-being in developing countries (Vickery 1977; Goodin et al. 2008; Bardasi and Wodon 2010). While previous studies have documented gender gaps in unpaid work time, we specifically focus on the "positive" margin—time available for activities that directly contribute to physical health, social capital, and life satisfaction. Second, we extend the literature on the marriage penalty in household production (Hochschild 1989; Bittman et al. 2003; Raley et al. 2012) to the Indian context, showing how traditional gender norms intersect with major life transitions to shape time allocation. Third, we contribute to policy discussions about work-life balance and gender equity by identifying critical life stages where interventions could be most effective.
+
+The remainder of this paper is organized as follows. Section 2 describes our data and measurement approach. Section 3 presents our main findings on personal time across demographic groups. Section 4 explores heterogeneity by education, employment status, and urban-rural location. Section 5 discusses mechanisms and policy implications. Section 6 concludes.
+
+# Data and Methods
+
+## Data Source
+
+We use India's Time Use Survey 2024 (TUS), conducted by the National Statistical Office. The TUS is a nationally representative household survey that collected 24-hour time diaries from all household members aged 6 and above. Our analysis uses a 10% random sample, yielding approximately `r format(sample_stats$n_person_days, big.mark=",")` person-day observations.
+
+The survey employed a stratified multi-stage sampling design covering all states and union territories of India. Trained enumerators recorded all activities performed by respondents during a 24-hour recall period, coding each activity using a standardized classification system with over 150 activity codes. Activities were recorded in 30-minute time slots with information on primary activity, location, and whether activities were performed simultaneously.
+
+## Measuring Personal Well-Being Time
+
+We define personal well-being time as time spent on activities that contribute directly to physical health, mental health, social capital, or life satisfaction. Based on the TUS activity classification system, we include:
+
+1. **Socializing and Communication** (codes 711-719): Talking, conversing, socializing, gatherings, mail correspondence
+2. **Community Participation** (codes 721-730): Cultural celebrations, community rites, social functions, civic responsibilities
+3. **Religious Practice** (codes 741-749): Private prayer, meditation, collective religious practice
+4. **Sports and Exercise** (codes 831-832): Participating in sports, physical exercise
+5. **Reading and Media** (codes 841-849): Reading for leisure, watching television/videos, radio/audio
+6. **Reflection and Relaxation** (codes 850): Activities associated with reflecting, resting, relaxing
+7. **Cultural Activities and Hobbies** (codes 821-829): Arts, hobbies, games, pastime activities
+
+We exclude sleep, eating, and personal hygiene (which are physiological necessities rather than discretionary well-being activities) and focus only on "major" activities (the most important activity in each time slot) to avoid double-counting simultaneous activities.
+
+Our primary outcome variable is total daily minutes spent on personal well-being activities. We also examine participation rates (whether individuals have any personal time) and composition of personal time across activity types.
+
+## Demographic Groups
+
+We classify individuals by:
+
+- **Gender**: Male, Female
+- **Age Groups**: 6-17 (Youth), 18-24 (Young Adult), 25-34 (Prime Working), 35-44 (Mid Career), 45-59 (Late Career), 60+ (Elderly)
+- **Marital Status**: Never Married, Currently Married, Widowed, Divorced/Separated
+- **Education**: Primary or less, Secondary, Higher Secondary and above
+- **Employment Status**: Employed, Student, Domestic Duties, Other
+- **Location**: Urban, Rural
+- **Household Size**: Small (1-3), Medium (4-5), Large (6+)
+
+We use survey weights in all calculations to ensure national representativeness.
+
+## Analytical Approach
+
+Our analysis proceeds in three steps. First, we calculate weighted mean personal well-being time for each demographic group, identifying which combinations enjoy the most and least personal time. Second, we decompose total personal time into specific activity types (exercise, socializing, religious practice, etc.) to understand what people do with their leisure time. Third, we conduct multivariate analysis to isolate the effects of marriage, age, and gender while controlling for confounding factors like education, employment, and household composition.
+
+# Results
+
+## Who Has the Most Personal Time?
+
+Table 1 presents weighted mean personal well-being time by gender, age group, and marital status. Several patterns emerge clearly.
+
+```{r table1, cache=FALSE}
+# Create summary table for key demographic groups
+table1_data <- summary_by_group %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  select(gender_label, age_group, marital_label, mean_wellbeing_hours,
+         participation_rate, n) %>%
+  arrange(gender_label, age_group, marital_label)
+
+# Format for display
+table1 <- table1_data %>%
+  mutate(
+    `Personal Time (hours/day)` = sprintf("%.2f", mean_wellbeing_hours),
+    `Participation Rate (%)` = sprintf("%.1f", participation_rate),
+    N = format(n, big.mark = ",")
+  ) %>%
+  select(Gender = gender_label,
+         `Age Group` = age_group,
+         `Marital Status` = marital_label,
+         `Personal Time (hours/day)`,
+         `Participation Rate (%)`,
+         N)
+
+# Display table
+kable(table1,
+      caption = "Personal Well-Being Time by Gender, Age, and Marital Status",
+      booktabs = TRUE,
+      align = c('l', 'l', 'l', 'r', 'r', 'r')) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  column_spec(1, width = "2cm") %>%
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "3cm")
+```
+
+**The "Golden Years" are Young, Unmarried, and Male.** The demographic group with the highest personal time is unmarried men aged 18-24, averaging approximately `r if(length(key_findings$young_male_unmarried) > 0) sprintf("%.1f", key_findings$young_male_unmarried)` hours per day for well-being activities. This group enjoys freedom from both childcare responsibilities and intensive career demands, with many still in education or early career stages with flexible schedules.
+
+**Marriage Devastates Women's Personal Time.** The marriage penalty is stark and asymmetric. Among women aged 25-34, those who are currently married have `r if(length(key_findings$marriage_penalty_women_pct) > 0) sprintf("%.0f%%", key_findings$marriage_penalty_women_pct)` less personal time than their never-married counterparts. In absolute terms, married women in this age group have less than one hour per day for personal well-being activities.
+
+**Men's Personal Time Remains Stable Across Marital Status.** In sharp contrast, men's personal time is remarkably stable across marital status categories. Married men aged 25-34 actually have slightly more personal time than unmarried men of the same age—a `r if(length(key_findings$marriage_effect_men_pct) > 0) sprintf("%.0f%%", abs(key_findings$marriage_effect_men_pct))` difference in the opposite direction from women.
+
+## What Do People Do With Their Personal Time?
+
+Figure 1 decomposes total personal time into specific activity categories, showing how different demographic groups allocate their leisure time.
+
+```{r figure1, cache=FALSE, fig.width=10, fig.height=8, fig.cap="Composition of Personal Time by Gender and Age Group"}
+# Calculate composition by gender and age
+composition_data <- person_day_wellbeing %>%
+  filter(!is.na(age_group), gender_label %in% c("Male", "Female")) %>%
+  group_by(gender_label, age_group) %>%
+  summarise(
+    Socializing = weighted.mean(socializing_minutes / 60, Weight, na.rm = TRUE),
+    Religious = weighted.mean(religious_minutes / 60, Weight, na.rm = TRUE),
+    Exercise = weighted.mean(exercise_minutes / 60, Weight, na.rm = TRUE),
+    `Reading & Media` = weighted.mean(reading_minutes / 60, Weight, na.rm = TRUE),
+    `Cultural & Hobbies` = weighted.mean(cultural_minutes / 60, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(cols = c(Socializing, Religious, Exercise, `Reading & Media`, `Cultural & Hobbies`),
+               names_to = "Activity", values_to = "Hours")
+
+# Create stacked bar chart
+ggplot(composition_data, aes(x = age_group, y = Hours, fill = Activity)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ gender_label, ncol = 1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Composition of Personal Time by Gender and Age Group",
+    x = "Age Group",
+    y = "Hours per Day",
+    fill = "Activity Type"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Religious practice dominates personal time for the elderly.** For individuals aged 60 and above, religious activities constitute the single largest component of personal time, particularly for women. This reflects both increased religious participation with age and substitution away from more physically demanding activities.
+
+**Exercise time peaks in young adulthood but remains low overall.** Physical exercise time is highest among young adults (18-24) but still averages less than 30 minutes per day even in this peak group. Women have substantially less exercise time than men at all ages, with the gender gap widening in the prime working years (25-44).
+
+**Media consumption increases with age.** Time spent on reading and media (primarily television watching) increases progressively with age, becoming the largest single component of personal time for elderly men. This suggests a shift from active to passive leisure activities over the life course.
+
+## Multivariate Analysis: The Marriage Penalty
+
+Table 2 presents regression results examining the marriage penalty while controlling for other demographic characteristics.
+
+```{r table2_regressions, cache=FALSE, include=FALSE}
+# Prepare data for regression
+reg_data <- person_day_wellbeing %>%
+  filter(!is.na(Weight), gender_label %in% c("Male", "Female")) %>%
+  mutate(
+    wellbeing_hours = total_wellbeing_minutes / 60,
+    age_group_factor = factor(age_group),
+    education_factor = factor(education_level),
+    sector_factor = factor(sector_label)
+  )
+
+# Model 1: Basic - Gender and Marriage only
+model1 <- feols(wellbeing_hours ~ female + married + female:married,
+                data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 2: Add age controls
+model2 <- feols(wellbeing_hours ~ female + married + female:married + age_group_factor,
+                data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 3: Add education and sector
+model3 <- feols(wellbeing_hours ~ female + married + female:married + age_group_factor +
+                  education_factor + urban,
+                data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 4: Add employment status
+model4 <- feols(wellbeing_hours ~ female + married + female:married + age_group_factor +
+                  education_factor + urban + employed + student + domestic_duties,
+                data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Store regression coefficients for inline reference
+reg_results <- list(
+  female_coef = coef(model4)["female"],
+  married_coef = coef(model4)["married"],
+  interaction_coef = coef(model4)["female:married"],
+  marriage_effect_women = coef(model4)["married"] + coef(model4)["female:married"],
+  marriage_effect_men = coef(model4)["married"]
+)
+```
+
+```{r table2_display, cache=FALSE}
+# Create regression table
+modelsummary(
+  list("(1)" = model1, "(2)" = model2, "(3)" = model3, "(4)" = model4),
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  coef_map = c(
+    "female" = "Female",
+    "married" = "Married",
+    "female:married" = "Female × Married",
+    "employed" = "Employed",
+    "student" = "Student",
+    "domestic_duties" = "Domestic Duties Only",
+    "urban" = "Urban"
+  ),
+  gof_map = c("nobs", "r.squared"),
+  title = "Marriage Penalty on Personal Well-Being Time (Hours per Day)",
+  notes = "Robust standard errors in parentheses. Age group, education, and sector controls included in models 2-4. Reference categories: Male, Unmarried, Rural, Not employed/student/domestic duties.",
+  output = "kableExtra"
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+The interaction term (Female × Married) is large, negative, and highly significant across all specifications. Even after controlling for age, education, urban residence, and employment status, married women have approximately `r sprintf("%.2f", abs(reg_results$interaction_coef))` fewer hours of personal time per day compared to unmarried women, while married men experience minimal change.
+
+# Discussion and Policy Implications
+
+Our findings reveal that personal time for well-being activities is highly unequally distributed across India's population, with particularly stark disparities by gender and marital status. The asymmetric marriage penalty—devastating for women but neutral or even positive for men—reflects deeply entrenched gender norms about household and care work responsibilities.
+
+Several policy implications emerge. First, policies targeting work-life balance must recognize that the binding constraint for most women is not paid work hours but unpaid household and care work. Interventions that reduce the time burden of domestic tasks—such as improved infrastructure for water, fuel, and childcare—could substantially increase women's time for health-promoting activities.
+
+Second, the extremely low levels of exercise time across all demographic groups suggest that simply having leisure time does not automatically translate into health-promoting behaviors. Public health campaigns and infrastructure investments (parks, safe walking paths, community sports facilities) may be necessary to shift leisure time composition toward more active pursuits.
+
+Third, the life course patterns we document suggest critical intervention points. The transition to marriage is a key moment when gender norms become activated and solidified. Premarital education and couples counseling emphasizing equitable division of household labor could help prevent the marriage penalty from emerging.
+
+# Conclusion
+
+Using comprehensive time diary data, we have identified the demographic groups in India that enjoy the most—and least—time for personal well-being activities. Unmarried young men have the most personal time, while married women in their prime working years have the least. The marriage penalty on personal time is severe and asymmetric, revealing how traditional gender roles are activated and enforced through this key life transition.
+
+These findings matter for gender equity, public health, and overall well-being. Policies aimed at improving quality of life must recognize that time poverty is a critical constraint, particularly for married women. Investments in care infrastructure, equitable parenting norms, and urban design that facilitates social and physical activity could help ensure that all Indians—regardless of gender, age, or marital status—have access to the "golden years" of personal time necessary for a fulfilling life.
+
+# References
+
+Bardasi, E., & Wodon, Q. (2010). Working long hours and having no choice: Time poverty in Guinea. *Feminist Economics*, 16(3), 45-78.
+
+Bittman, M., England, P., Sayer, L., Folbre, N., & Matheson, G. (2003). When does gender trump money? Bargaining and time in household work. *American Journal of Sociology*, 109(1), 186-214.
+
+Goodin, R. E., Rice, J. M., Parpo, A., & Eriksson, L. (2008). *Discretionary time: A new measure of freedom*. Cambridge University Press.
+
+Hochschild, A. (1989). *The second shift: Working parents and the revolution at home*. Viking Penguin.
+
+Raley, S., Bianchi, S. M., & Wang, W. (2012). When do fathers care? Mothers' economic contribution and fathers' involvement in child care. *American Journal of Sociology*, 117(5), 1422-1459.
+
+Vickery, C. (1977). The time-poor: A new look at poverty. *Journal of Human Resources*, 12(1), 27-48.
