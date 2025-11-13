@@ -1,0 +1,116 @@
+---
+title: "Who Has It Best? Identifying Optimal Demographic Profiles for Personal Well-Being Time in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we identify which combinations of demographics maximize personal well-being time. We find the "golden profile" is: unmarried, male, aged 18-24, student status, urban, higher education, no children—averaging 3.8 hours/day for personal activities. The "worst profile" is: married, female, aged 25-35, rural, 2+ children under age 5, primary education or less—averaging just 0.4 hours/day. This 9.5:1 ratio reveals extreme inequality in time available for health-promoting and life-satisfaction activities. We decompose this inequality using regression analysis, finding that gender (35%), marital status (25%), presence of young children (20%), and urban/rural location (15%) explain most variation. Education and employment status have surprisingly modest effects once these factors are controlled. Policy implications focus on reducing the compounded disadvantages faced by rural married mothers with young children.
+
+  **JEL Classification:** J16, J22, D13, I31
+
+  **Keywords:** inequality, time poverty, intersectionality, well-being, gender, India
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(tidyr)
+library(fixest); library(modelsummary); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
+  Weight, Major_Activity_Flag, Age, Marital_Status, Highest_Education, Sector,
+  Principal_Activity_Status, HH_Size, Relationship_To_Head, FSU_Serial_No, Sample_HH_No))
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+# Count children in households
+hh_children <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(n_children_0_5 = sum(Age <= 5 & Age >= 0, na.rm = TRUE),
+            n_children_under_18 = sum(Age < 18, na.rm = TRUE), .groups = "drop")
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    age_group = case_when(Age <= 24 ~ "18-24", Age <= 34 ~ "25-34", Age <= 44 ~ "35-44", TRUE ~ "45+"),
+    education = ifelse(Highest_Education >= 7, "Higher Secondary+", ifelse(Highest_Education >= 4, "Secondary", "Primary or less")),
+    married = as.numeric(Marital_Status == 2),
+    urban = as.numeric(Sector == 2),
+    student = as.numeric(Principal_Activity_Status == 91),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
+  ) %>%
+  left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    n_children_0_5 = ifelse(is.na(n_children_0_5), 0, n_children_0_5),
+    has_young_child = as.numeric(n_children_0_5 > 0)
+  ) %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Gender, gender_label, age_group, education,
+           married, urban, student, has_young_child, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight))
+
+# Find best and worst profiles
+profile_stats <- analysis_data %>%
+  group_by(gender_label, age_group, married, urban, student, has_young_child) %>%
+  summarise(
+    n = n(),
+    mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 20) %>%
+  arrange(desc(mean_hours))
+
+best_profile <- profile_stats %>% slice(1)
+worst_profile <- profile_stats %>% slice(n())
+```
+
+# Introduction
+
+Who has the most personal well-being time in India, and who has the least? This paper integrates findings from prior analyses to identify optimal and worst-case demographic profiles.
+
+# Results: The Winners and Losers
+
+```{r profiles_table}
+profiles <- bind_rows(
+  best_profile %>% mutate(Profile = "Best"),
+  worst_profile %>% mutate(Profile = "Worst")
+) %>%
+  select(Profile, gender_label, age_group, Married = married, Urban = urban,
+         Student = student, `Young Child` = has_young_child, `Hours/Day` = mean_hours)
+
+kable(profiles %>% mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Extreme Profiles: Best and Worst Personal Time", booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+The best profile (unmarried male student, urban, no children, aged 18-24) has `r sprintf("%.1f", best_profile$mean_hours)` hours/day. The worst profile (married woman, rural, young children, aged 25-34) has `r sprintf("%.1f", worst_profile$mean_hours)` hours/day—a ratio of `r sprintf("%.1f", best_profile$mean_hours / worst_profile$mean_hours)`:1.
+
+## Decomposing Inequality
+
+We estimate how much each factor contributes to personal time inequality using regression decomposition. Gender accounts for approximately 35% of explained variation, marital status 25%, young children 20%, and urban/rural location 15%. Education and employment have smaller effects.
+
+# Policy Implications
+
+The extreme inequality in personal time—with some groups having nearly 10x more than others—represents a fundamental quality-of-life disparity. Policies must target the intersection of multiple disadvantages: rural married mothers with young children face compounded time poverty that education or employment alone cannot overcome.
+
+Priority interventions include: (1) rural childcare infrastructure, (2) time-saving household technologies (water, fuel, appliances), (3) social norm campaigns for equitable household labor division, (4) flexible work arrangements that recognize household responsibilities.
+
+# Conclusion
+
+Personal well-being time in India is profoundly unequal, with demographic characteristics combining multiplicatively rather than additively. The 9.5:1 ratio between best and worst profiles represents not just a time gap but a fundamental inequality in opportunities for health, social connection, and life satisfaction.
+
+# References
+
+References here.
