@@ -63,8 +63,7 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               State, FSU_Serial_No, Sample_HH_No,
-                               Number_of_children_less_than_6_years, Number_of_HH_members_60_years_and_above))
+                               State, FSU_Serial_No, Sample_HH_No))
 
 # METHODOLOGICAL NOTE: Use 10% random sample for computational feasibility
 set.seed(123)  # For reproducibility
@@ -98,8 +97,9 @@ processed_data <- data %>%
     care_work_minutes = ifelse(Activity_Code_2Digit >= 31 & Activity_Code_2Digit <= 33, time_spent, 0),
 
     # Household composition
-    has_young_children = as.numeric(Number_of_children_less_than_6_years > 0),
-    has_elderly = as.numeric(Number_of_HH_members_60_years_and_above > 0),
+    # Note: Variables for young children and elderly not available in dataset
+    # has_young_children = as.numeric(Number_of_children_less_than_6_years > 0),
+    # has_elderly = as.numeric(Number_of_HH_members_60_years_and_above > 0),
 
     # Other controls
     urban = as.numeric(Sector == 2),
@@ -115,7 +115,7 @@ processed_data <- data %>%
 
 # Aggregate to person-day level
 person_day_data <- processed_data %>%
-  group_by(household_id, Gender, Age, Marital_Status, Highest_Education, Sector, Principal_Activity_Status, State, Weight, female, married, never_married, urban, higher_ed, employed, has_young_children, has_elderly, state_factor) %>%
+  group_by(household_id, Gender, Age, Marital_Status, Highest_Education, Sector, Principal_Activity_Status, State, Weight, female, married, never_married, urban, higher_ed, employed, state_factor) %>%
   summarise(
     total_sleep_minutes = sum(sleep_minutes, na.rm = TRUE),
     total_care_work_minutes = sum(care_work_minutes, na.rm = TRUE),
@@ -243,20 +243,9 @@ Model 3 introduces the crucial mediator: unpaid care work. The results are strik
 
 ## Robustness Checks
 
-We conduct several robustness checks. The results are robust to different age ranges and alternative definitions of care work. We also find that the sleep penalty is significantly larger for women in households with children under the age of 6, as shown in the table below.
+We conduct several robustness checks. The results are robust to different age ranges and alternative definitions of care work.
 
-```{r robustness_children}
-m4_sleep <- feols(total_sleep_minutes ~ female + married + female_married + has_young_children + female*has_young_children | state_factor,
-                  data=reg_data_sleep, weights = ~Weight, cluster = ~household_id)
-
-modelsummary(m4_sleep,
-             stars = TRUE,
-             title = "Sleep Penalty and Presence of Young Children",
-             coef_rename = c("female" = "Female", "married" = "Married", "female_married" = "Female × Married", "has_young_children" = "Has Young Children", "female:has_young_children" = "Female × Has Young Children"),
-             gof_map = c("nobs", "r.squared"),
-             output = "kableExtra") %>%
-  kable_styling(latex_options = c("HOLD_position", "scale_down"))
-```
+**Note**: Additional analysis examining the interaction between presence of young children and the sleep penalty would be valuable, but requires household composition variables not currently available in the processed dataset.
 
 # Conclusion
 
