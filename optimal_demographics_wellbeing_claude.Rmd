@@ -29,7 +29,7 @@ library(fixest); library(modelsummary); library(kableExtra)
 ```{r analysis, include=FALSE}
 data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
   Weight, Major_Activity_Flag, Age, Marital_Status, Highest_Education, Sector,
-  Principal_Activity_Status, HH_Size, Relationship_To_Head, FSU_Serial_No, Sample_HH_No))
+  Principal_Activity_Status, Relationship_To_Head, FSU_Serial_No, Sample_HH_No))
 set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
 # Count children in households
