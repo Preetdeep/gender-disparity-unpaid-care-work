@@ -37,7 +37,110 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# Corrected data loading and processing from _ClaudeHTML version
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Unpaid_Paid_Status, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               Activity_Code_2Digit, State, FSU_Serial_No,
+                               Sample_HH_No))
+
+# Use 10% sample for faster processing
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+    married = as.numeric(Marital_Status == 2),
+    never_married = as.numeric(Marital_Status == 1),
+    age_25_or_less = as.numeric(Age <= 25),
+    age_over_25 = as.numeric(Age > 25),
+    age_group = ifelse(Age <= 25, "25 and below", "Above 25"),
+    care_work = as.numeric(Unpaid_Paid_Status == "02"),
+    care_minutes = ifelse(care_work == 1, time_spent, 0),
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_ed = as.numeric(Highest_Education >= 10),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 21, 31, 41, 51)),
+    female_married = female * married,
+    female_married_young = female * married * age_25_or_less,
+    female_married_older = female * married * age_over_25,
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
+  )
+
+rm(data)
+invisible(gc())
+```
+
+```{r calculate_key_stats, include=FALSE}
+# Calculate key statistics for abstract and introduction
+total_obs <- nrow(major_only)
+total_households <- length(unique(paste(major_only$FSU_Serial_No, major_only$Sample_HH_No)))
+
+# Gender and marital status patterns
+women_never_married_participation <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+women_married_participation <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+men_never_married_participation <- major_only %>%
+  filter(Gender == 1, Marital_Status == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+men_married_participation <- major_only %>%
+  filter(Gender == 1, Marital_Status == 2) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+# Marriage penalty for women
+marriage_penalty_pp <- women_married_participation - women_never_married_participation
+marriage_penalty_pct <- (marriage_penalty_pp / women_never_married_participation) * 100
+
+# Age-specific marriage penalties
+young_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+young_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+young_marriage_penalty <- young_women_married - young_women_never_married
+
+older_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_marriage_penalty <- older_women_married - older_women_never_married
 ```
 
 # Introduction
