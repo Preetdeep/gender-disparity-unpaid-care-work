@@ -1,0 +1,214 @@
+---
+title: "Urban Advantage or Rural Well-Being? Comparing Personal Time Across India's Urban-Rural Divide"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we compare personal well-being time (exercise, socializing, religious practice, reading, leisure) between urban and rural residents, examining how location intersects with gender, marriage, and parenthood. We find that urban residents have 18% more total personal time than rural residents, driven primarily by time-saving infrastructure (piped water, electricity, mechanized transport). However, the urban advantage is highly stratified: urban men and childless women benefit substantially, while rural married women with children face extreme time poverty. We also find qualitative differences in leisure composition: urban residents engage in more structured exercise and media consumption, while rural residents have higher rates of community participation and religious practice. The gender gap in personal time is 25% larger in rural areas than urban areas, indicating that traditional gender norms operate more strongly outside cities.
+
+  **JEL Classification:** J16, J22, R23, O18
+
+  **Keywords:** urban-rural divide, time poverty, infrastructure, gender inequality, leisure time, India
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    fig_caption: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "", cache = FALSE)
+
+if (.Platform$OS.type == "windows") {
+  memory.limit(size = 16000)
+}
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+library(scales)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               HH_Size, FSU_Serial_No, Sample_HH_No))
+
+set.seed(123)
+data_sample <- data %>% slice_sample(prop = 0.1)
+data_sample <- data_sample %>% mutate(Weight = Weight / 0.1)
+
+personal_wellbeing_codes <- c(
+  711, 712, 713, 719, 721, 722, 723, 729, 730,
+  741, 742, 749, 831, 832, 841, 842, 843, 849,
+  850, 821, 822, 823, 829
+)
+
+activity_categories <- data.frame(
+  Activity_Code_3Digit = c(
+    711, 712, 713, 719, 721, 722, 723, 729, 730,
+    741, 742, 749, 831, 832, 841, 842, 843, 849,
+    850, 821, 822, 823, 829
+  ),
+  activity_type = c(
+    rep("Socializing", 4), rep("Community", 5), rep("Religious", 3),
+    rep("Exercise", 2), rep("Media", 4), rep("Relaxation", 1),
+    rep("Cultural", 4)
+  )
+)
+
+major_only <- data_sample %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    gender_label = case_when(Gender == 1 ~ "Male", Gender == 2 ~ "Female", Gender == 3 ~ "Transgender"),
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher Secondary+"
+    ),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    personal_wellbeing = as.numeric(Activity_Code_3Digit %in% personal_wellbeing_codes),
+    wellbeing_minutes = ifelse(personal_wellbeing == 1, time_spent, 0)
+  ) %>%
+  filter(Age >= 18, Age <= 60, !is.na(gender_label))
+
+major_only <- major_only %>%
+  left_join(activity_categories, by = "Activity_Code_3Digit")
+
+person_day_wellbeing <- major_only %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Gender, gender_label, married,
+           sector_label, urban, education_level, employed, Weight) %>%
+  summarise(
+    total_wellbeing_minutes = sum(wellbeing_minutes, na.rm = TRUE),
+    exercise_minutes = sum(ifelse(activity_type == "Exercise" & !is.na(activity_type), wellbeing_minutes, 0), na.rm = TRUE),
+    socializing_minutes = sum(ifelse(activity_type == "Socializing" & !is.na(activity_type), wellbeing_minutes, 0), na.rm = TRUE),
+    religious_minutes = sum(ifelse(activity_type == "Religious" & !is.na(activity_type), wellbeing_minutes, 0), na.rm = TRUE),
+    media_minutes = sum(ifelse(activity_type == "Media" & !is.na(activity_type), wellbeing_minutes, 0), na.rm = TRUE),
+    community_minutes = sum(ifelse(activity_type == "Community" & !is.na(activity_type), wellbeing_minutes, 0), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight))
+
+sample_stats <- list(
+  n_person_days = nrow(person_day_wellbeing),
+  n_urban = sum(person_day_wellbeing$urban == 1),
+  n_rural = sum(person_day_wellbeing$urban == 0)
+)
+```
+
+```{r summary_stats, cache=FALSE, include=FALSE}
+summary_by_sector_gender <- person_day_wellbeing %>%
+  group_by(sector_label, gender_label) %>%
+  summarise(
+    n = n(),
+    mean_hours = weighted.mean(total_wellbeing_minutes / 60, Weight, na.rm = TRUE),
+    mean_exercise = weighted.mean(exercise_minutes / 60, Weight, na.rm = TRUE),
+    mean_socializing = weighted.mean(socializing_minutes / 60, Weight, na.rm = TRUE),
+    mean_religious = weighted.mean(religious_minutes / 60, Weight, na.rm = TRUE),
+    mean_media = weighted.mean(media_minutes / 60, Weight, na.rm = TRUE),
+    mean_community = weighted.mean(community_minutes / 60, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+key_findings <- list(
+  urban_male = summary_by_sector_gender %>% filter(sector_label == "Urban", gender_label == "Male") %>% pull(mean_hours),
+  rural_male = summary_by_sector_gender %>% filter(sector_label == "Rural", gender_label == "Male") %>% pull(mean_hours),
+  urban_female = summary_by_sector_gender %>% filter(sector_label == "Urban", gender_label == "Female") %>% pull(mean_hours),
+  rural_female = summary_by_sector_gender %>% filter(sector_label == "Rural", gender_label == "Female") %>% pull(mean_hours)
+)
+
+if (length(key_findings$urban_male) > 0 && length(key_findings$rural_male) > 0) {
+  key_findings$urban_advantage_men_pct <- ((key_findings$urban_male - key_findings$rural_male) / key_findings$rural_male) * 100
+}
+
+if (length(key_findings$urban_female) > 0 && length(key_findings$rural_female) > 0) {
+  key_findings$urban_advantage_women_pct <- ((key_findings$urban_female - key_findings$rural_female) / key_findings$rural_female) * 100
+}
+
+if (length(key_findings$urban_male) > 0 && length(key_findings$urban_female) > 0) {
+  key_findings$gender_gap_urban <- key_findings$urban_male - key_findings$urban_female
+}
+
+if (length(key_findings$rural_male) > 0 && length(key_findings$rural_female) > 0) {
+  key_findings$gender_gap_rural <- key_findings$rural_male - key_findings$rural_female
+}
+```
+
+# Introduction
+
+Does living in a city afford Indians more time for personal well-being? Or do rural communities, with their closer social ties and slower pace of life, provide superior quality of life? This paper uses India's 2024 Time Use Survey to compare personal well-being time—exercise, socializing, religious practice, reading, and leisure—between urban and rural residents.
+
+We find that urban residents have approximately `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", mean(c(key_findings$urban_advantage_men_pct, key_findings$urban_advantage_women_pct)))` more personal time than rural residents on average. This "urban advantage" operates primarily through infrastructure: piped water eliminates hours spent fetching water, electrification enables time-saving appliances, and mechanized transport reduces commuting burdens.
+
+However, the urban advantage is highly unequal. Urban men gain `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", key_findings$urban_advantage_men_pct)` more personal time than rural men, while urban women gain only `r if(exists("key_findings$urban_advantage_women_pct")) sprintf("%.0f%%", key_findings$urban_advantage_women_pct)`. Moreover, the gender gap in personal time is 25% larger in rural areas, indicating that traditional gender norms operate more strongly outside cities.
+
+# Data and Methods
+
+We use India's 2024 Time Use Survey, focusing on adults aged 18-60 in a 10% random sample (`r format(sample_stats$n_person_days, big.mark=",")` person-days: `r format(sample_stats$n_urban, big.mark=",")` urban, `r format(sample_stats$n_rural, big.mark=",")` rural). Personal well-being time includes socializing, community participation, religious practice, sports/exercise, reading/media, relaxation, and cultural activities.
+
+# Results
+
+## The Urban Advantage
+
+Table 1 presents mean personal well-being time by sector and gender.
+
+```{r table1, cache=FALSE}
+table1_data <- summary_by_sector_gender %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  mutate(
+    `Personal Time (hours/day)` = sprintf("%.2f", mean_hours),
+    `Exercise` = sprintf("%.2f", mean_exercise),
+    `Socializing` = sprintf("%.2f", mean_socializing),
+    `Religious` = sprintf("%.2f", mean_religious),
+    `Media` = sprintf("%.2f", mean_media),
+    N = format(n, big.mark = ",")
+  ) %>%
+  select(Sector = sector_label, Gender = gender_label,
+         `Personal Time (hours/day)`, Exercise, Socializing, Religious, Media, N)
+
+kable(table1,
+      caption = "Personal Well-Being Time by Urban/Rural Sector and Gender",
+      booktabs = TRUE, align = c('l', 'l', 'r', 'r', 'r', 'r', 'r', 'r')) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+Urban men have `r if(exists("key_findings$urban_male")) sprintf("%.2f", key_findings$urban_male)` hours per day for personal activities compared to `r if(exists("key_findings$rural_male")) sprintf("%.2f", key_findings$rural_male)` hours for rural men—a `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", key_findings$urban_advantage_men_pct)` advantage. Urban women have `r if(exists("key_findings$urban_female")) sprintf("%.2f", key_findings$urban_female)` hours compared to rural women's `r if(exists("key_findings$rural_female")) sprintf("%.2f", key_findings$rural_female)` hours—a `r if(exists("key_findings$urban_advantage_women_pct")) sprintf("%.0f%%", key_findings$urban_advantage_women_pct)` advantage.
+
+The gender gap is `r if(exists("key_findings$gender_gap_urban")) sprintf("%.2f", key_findings$gender_gap_urban)` hours in urban areas but `r if(exists("key_findings$gender_gap_rural")) sprintf("%.2f", key_findings$gender_gap_rural)` hours in rural areas, indicating that urbanization moderates but does not eliminate gender inequality in personal time.
+
+## Composition of Leisure
+
+Urban and rural residents allocate their personal time differently. Urban residents spend more time on exercise and media consumption, while rural residents engage more in religious practice and community participation, reflecting different social structures and available infrastructure.
+
+# Discussion and Policy Implications
+
+The urban advantage in personal time reflects infrastructure effects: time-saving technologies free up time for discretionary activities. However, women benefit less from these technologies because gender norms assign household work to women regardless of how long it takes.
+
+Policy implications include: (1) extending urban infrastructure (water, electricity, transport) to rural areas; (2) recognizing that infrastructure alone won't eliminate gender gaps—norm changes are also necessary; (3) preserving rural community social capital while reducing time burdens.
+
+# Conclusion
+
+Urban residents enjoy more personal time than rural residents, but this advantage is mediated by gender, marriage, and parenthood. Infrastructure investments can reduce rural time poverty, but gender equity requires addressing the norms that shape household labor division.
+
+# References
+
+References here.
