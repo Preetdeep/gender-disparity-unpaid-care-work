@@ -160,6 +160,13 @@ men_married_minutes_per_person <- by_marriage_gender_stats %>%
   pull(minutes_per_person)
 
 men_total_decline_pct <- 100 * (men_never_married_minutes_per_person - men_married_minutes_per_person) / men_never_married_minutes_per_person
+
+# Gender comparison statistics
+married_women_to_men_ratio_pct <- 100 * women_married_minutes_per_person / men_married_minutes_per_person
+
+# Participation penalty in percentage points
+women_participation_penalty_pp <- women_never_married_participation - women_married_participation
+men_participation_penalty_pp <- men_never_married_participation - men_married_participation
 ```
 
 # Introduction
@@ -175,7 +182,32 @@ These dual penalties—both participation and intensity—mean married women ave
 ## The Friendship Penalty
 
 ```{r by_marriage_gender}
-# Corrected analysis from _ClaudeHTML version
+by_marriage_gender <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(
+    N = n(),
+    `Participation (%)` = sum(social_activity) / n() * 100,
+    `Minutes per Participant` = weighted.mean(time_spent[social_activity == 1],
+                                              Weight[social_activity == 1], na.rm = TRUE),
+    `Minutes per Person` = weighted.mean(social_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Create simpler table
+by_marriage_simple <- by_marriage_gender %>%
+  select(gender_label, marital_status_label, `Participation (%)`, `Minutes per Person`) %>%
+  pivot_wider(names_from = marital_status_label,
+              values_from = c(`Participation (%)`, `Minutes per Person`))
+
+kable(by_marriage_simple, digits = 2,
+      caption = "Social Activity Participation by Gender and Marital Status",
+      col.names = c("Gender", "Married", "Never Married", "Married", "Never Married"),
+      booktabs = TRUE,
+      escape = FALSE) %>%
+  kable_styling(latex_options = "HOLD_position") %>%
+  add_header_above(c(" " = 1, "Participation (%)" = 2, "Minutes per Person" = 2))
 ```
 
 **Women's Friendship Penalty:**
@@ -189,7 +221,48 @@ Most strikingly, married women end up with just **`r sprintf("%.0f%%", married_w
 ## Regression Analysis
 
 ```{r main_regression}
-# Corrected regression analysis from _ClaudeHTML version
+# Restrict to never married and currently married only
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+
+# Regressions with household clustering
+m1 <- feols(social_activity ~ female + married + female_married,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m2 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2),
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m3 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m4 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban | state_factor,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Extract female_married coefficient from model 1 for inline text
+female_married_coef_m1 <- 100 * coef(m1)["female_married"]
+
+# Create table
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             title = "The Gendered Friendship Penalty: Social Activity Participation",
+             notes = c("Dependent variable: Binary indicator for any social activity participation (codes 81-89).",
+                      "Standard errors (in parentheses) clustered at household level.",
+                      "All models use survey weights adjusted for 10% sampling.",
+                      "Negative Female × Married coefficient indicates larger marriage penalty for women."),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
 
 The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The negative, highly significant coefficient indicates that married women's social participation declines more than men's.
