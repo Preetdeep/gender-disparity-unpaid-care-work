@@ -36,7 +36,130 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, cache=FALSE, include=FALSE}
-# Corrected data loading and processing from _ClaudeHTML version
+# Load only necessary columns to reduce memory footprint
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No))
+
+# Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+major_only <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    gender_label = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      Gender == 3 ~ "Transgender"
+    ),
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+    married = as.numeric(Marital_Status == 2),
+    never_married = as.numeric(Marital_Status == 1),
+    age_25_or_less = as.numeric(Age <= 25),
+    age_over_25 = as.numeric(Age > 25),
+    age_group = ifelse(Age <= 25, "25 and below", "Above 25"),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+    social_activity = as.numeric(Activity_Code_2Digit >= 81 & Activity_Code_2Digit <= 89),
+    social_minutes = ifelse(social_activity == 1, time_spent, 0),
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    female_married = female * married,
+    female_married_young = female * married * age_25_or_less,
+    female_married_older = female * married * age_over_25,
+    state_factor = as.factor(State)
+  )
+
+rm(data)
+invisible(gc())
+```
+
+```{r calculate_abstract_values, include=FALSE}
+# Calculate key statistics for abstract and paper
+by_marriage_gender_stats <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(
+    N = n(),
+    participation_rate = 100 * sum(social_activity) / n(),
+    minutes_per_participant = weighted.mean(time_spent[social_activity == 1],
+                                           Weight[social_activity == 1], na.rm = TRUE),
+    minutes_per_person = weighted.mean(social_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Women's statistics
+women_never_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(participation_rate)
+
+women_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(participation_rate)
+
+women_participation_decline_pct <- 100 * (women_never_married_participation - women_married_participation) / women_never_married_participation
+
+women_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(minutes_per_participant)
+
+women_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(minutes_per_participant)
+
+women_time_intensity_decline_pct <- 100 * (women_never_married_minutes_per_participant - women_married_minutes_per_participant) / women_never_married_minutes_per_participant
+
+women_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Never Married") %>%
+  pull(minutes_per_person)
+
+women_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Female", marital_status_label == "Married") %>%
+  pull(minutes_per_person)
+
+women_total_decline_pct <- 100 * (women_never_married_minutes_per_person - women_married_minutes_per_person) / women_never_married_minutes_per_person
+
+# Men's statistics
+men_never_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(participation_rate)
+
+men_married_participation <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(participation_rate)
+
+men_participation_decline_pct <- 100 * (men_never_married_participation - men_married_participation) / men_never_married_participation
+
+men_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(minutes_per_participant)
+
+men_married_minutes_per_participant <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(minutes_per_participant)
+
+men_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Never Married") %>%
+  pull(minutes_per_person)
+
+men_married_minutes_per_person <- by_marriage_gender_stats %>%
+  filter(gender_label == "Male", marital_status_label == "Married") %>%
+  pull(minutes_per_person)
+
+men_total_decline_pct <- 100 * (men_never_married_minutes_per_person - men_married_minutes_per_person) / men_never_married_minutes_per_person
 ```
 
 # Introduction
