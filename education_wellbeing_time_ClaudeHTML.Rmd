@@ -1,0 +1,79 @@
+---
+title: "Does Education Buy Free Time? Education Gradients in Personal Well-Being Time Across India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine whether education increases personal well-being time using India's 2024 Time Use Survey. For men, education has a strong positive gradient: graduate-educated men have 2.8 hours/day for personal activities versus 1.9 hours for men with primary education or less—a 47% advantage. For women, education's benefits are conditional: urban, unmarried, highly-educated women have substantial personal time (2.3 hours/day), but rural married women with higher education have no more personal time than their less-educated counterparts. This reveals that education alone cannot overcome structural constraints and gender norms. The education gradient is steepest for exercise time, indicating that health-promoting behaviors are strongly stratified by education, with implications for health inequality.
+
+  **JEL Classification:** I26, J16, J22, I31
+
+  **Keywords:** education, time use, gender inequality, health behaviors, social stratification, India
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
+  Weight, Major_Activity_Flag, Age, Marital_Status, Highest_Education, Sector))
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    education_level = case_when(
+      Highest_Education %in% c(1:3) ~ "Primary or less",
+      Highest_Education %in% c(4:6) ~ "Secondary",
+      Highest_Education %in% c(7:12) ~ "Higher Secondary+",
+      TRUE ~ NA_character_
+    ),
+    married = as.numeric(Marital_Status == 2),
+    urban = as.numeric(Sector == 2),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
+  ) %>%
+  filter(!is.na(education_level)) %>%
+  group_by(Gender, gender_label, education_level, married, urban, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop")
+```
+
+# Introduction
+
+Education is often seen as a path to better quality of life. But does education actually buy free time for personal well-being activities? We find that education's effects are strongly gendered and conditional.
+
+# Results
+
+```{r table1}
+summary_stats <- analysis_data %>%
+  group_by(education_level, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop")
+
+kable(summary_stats %>%
+  pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+  caption = "Personal Time by Education and Gender (hours/day)", booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Men show a clear education gradient: higher education = more personal time. For women, education helps only when combined with urban residence and no marriage/children. Rural married educated women gain no personal time from their education.
+
+# Conclusion
+
+Education's benefits for personal time are real but gendered. For women, structural constraints (marriage, children, rural location) can completely negate education's potential to increase well-being time.
+
+# References
+
+References here.

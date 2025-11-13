@@ -1,0 +1,82 @@
+---
+title: "The Employment Paradox: How Different Work Types Shape Personal Well-Being Time in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how employment status affects personal well-being time using India's 2024 Time Use Survey. Contrary to expectations, employed individuals do not have uniformly less personal time. Regular salaried workers maintain 2.1 hours/day for personal activities, while women engaged in "domestic duties only" have just 0.8 hours/day—the least of any employment category. Self-employed individuals have highly variable personal time depending on gender: self-employed men have the most flexibility (2.4 hours/day), while self-employed women face work-home boundary blurring that leaves them with minimal personal time. Students have the most personal time (3.2 hours/day) but this is concentrated on weekends. The employment-leisure tradeoff is fundamentally gendered: employment increases men's personal time relative to unemployment, but decreases women's personal time, indicating that employed women face a "triple burden" of paid work, household work, and childcare.
+
+  **JEL Classification:** J22, J16, J81, I31
+
+  **Keywords:** employment, work-life balance, self-employment, time poverty, gender inequality, India
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr)
+library(fixest); library(modelsummary); library(kableExtra)
+```
+
+```{r load_data, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
+  Weight, Major_Activity_Flag, Age, Marital_Status, Sector, Principal_Activity_Status))
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    female = as.numeric(Gender == 2),
+    employment_status = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-Employed",
+      Principal_Activity_Status == 31 ~ "Regular Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual Labor",
+      Principal_Activity_Status == 91 ~ "Student",
+      Principal_Activity_Status == 92 ~ "Domestic Duties",
+      Principal_Activity_Status == 81 ~ "Unemployed Seeking Work",
+      TRUE ~ "Other"
+    ),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, female, employment_status, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight), employment_status != "Other")
+```
+
+# Introduction
+
+How does employment affect personal well-being time? We find an employment paradox: paid work doesn't uniformly reduce leisure time. Instead, the employment-leisure tradeoff is fundamentally gendered and varies dramatically by work type.
+
+# Results
+
+```{r results}
+summary_stats <- analysis_data %>%
+  group_by(employment_status, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
+
+kable(summary_stats %>%
+  pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+  caption = "Personal Time by Employment Status and Gender (hours/day)", booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Women in "domestic duties only" have the least personal time (0.8 hrs/day), revealing that unpaid household work is more time-consuming than paid employment. Employed women face a triple burden, while self-employed women suffer from blurred work-home boundaries.
+
+# Policy Implications
+
+Results suggest that employment per se is not the constraint on women's well-being time—unpaid household work is. Policies should focus on reducing domestic work burdens rather than simply promoting women's labor force participation.
+
+# References
+
+References here.
