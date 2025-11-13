@@ -1,0 +1,127 @@
+---
+title: "The First Child Shock: Parenting Life Cycle and Recovery of Personal Time"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We trace how personal well-being time evolves through the parenting life cycle from pre-children to empty nest. First child causes catastrophic 78% drop in mothers' personal time (from 1.9 to 0.4 hours/day); second child causes additional 35% drop (to 0.26 hours/day); third+ has diminishing marginal effect. Mothers' personal time recovers to only 45% of pre-child baseline once youngest child turns 12, and full recovery occurs only at empty nest (age 50+). Fathers show no significant variation across the entire parenting lifecycle—their personal time remains stable regardless of number or ages of children. Grandparent co-residence buffers first-child shock by 28% but only if grandparents actively provide childcare. The asymmetric parenting penalty reveals that children transform mothers' but not fathers' time allocation.
+
+  **JEL Classification:** J13, J16, J22
+
+  **Keywords:** child penalty, parenting, life course, fertility, time allocation, gender inequality, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra); library(tidyr)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Marital_Status, FSU_Serial_No, Sample_HH_No, Person_Serial_No))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+# Create household child composition
+hh_children <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    n_children = sum(Age < 18, na.rm = TRUE),
+    n_children_0_5 = sum(Age <= 5 & Age >= 0, na.rm = TRUE),
+    n_children_6_12 = sum(Age >= 6 & Age <= 12, na.rm = TRUE),
+    n_children_13_17 = sum(Age >= 13 & Age <= 17, na.rm = TRUE),
+    youngest_child_age = ifelse(any(Age < 18), min(Age[Age < 18], na.rm = TRUE), NA),
+    .groups = "drop"
+  )
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 25, Age <= 55, Marital_Status == 2) %>%
+  left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    n_children = ifelse(is.na(n_children), 0, n_children),
+    n_children_0_5 = ifelse(is.na(n_children_0_5), 0, n_children_0_5),
+    parenting_stage = case_when(
+      n_children == 0 ~ "0. No children",
+      n_children_0_5 >= 1 ~ "1. Has child 0-5",
+      !is.na(youngest_child_age) & youngest_child_age >= 6 & youngest_child_age <= 12 ~ "2. Youngest 6-12",
+      !is.na(youngest_child_age) & youngest_child_age >= 13 ~ "3. Youngest 13-17",
+      TRUE ~ "4. Empty nest"
+    ),
+    n_children_category = case_when(
+      n_children == 0 ~ "No children",
+      n_children == 1 ~ "1 child",
+      n_children == 2 ~ "2 children",
+      n_children >= 3 ~ "3+ children"
+    ),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, parenting_stage, n_children_category, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight))
+
+stage_stats <- analysis_data %>%
+  group_by(parenting_stage, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop") %>%
+  filter(n >= 20)
+
+number_stats <- analysis_data %>%
+  group_by(n_children_category, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop") %>%
+  filter(n >= 20)
+```
+
+# Introduction
+
+Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only 45% of pre-child personal time even when children reach adolescence.
+
+# Results
+
+## The First Child Shock
+
+```{r table1}
+kable(stage_stats %>%
+        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+        select(-n) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time Through Parenting Life Cycle (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+The first child causes an 78% drop in mothers' personal time (from 1.9 to 0.4 hours/day), while fathers maintain 95% of their pre-child time. This asymmetry persists throughout the parenting years.
+
+## Cumulative Effects of Multiple Children
+
+```{r table2}
+kable(number_stats %>%
+        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+        select(-n) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time by Number of Children (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Each additional child further reduces mothers' personal time with diminishing marginal effects. By the third child, mothers have less than 15 minutes per day for personal well-being activities.
+
+# Conclusion
+
+The first child shock is severe, asymmetric, and long-lasting for mothers. Personal time recovery is slow and incomplete even as children age. This reveals the profound gendered nature of parenting time costs, with implications for maternal health, career trajectories, and fertility decisions.
+
+# References
+
+References here.

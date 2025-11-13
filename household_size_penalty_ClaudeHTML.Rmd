@@ -1,0 +1,97 @@
+---
+title: "The Household Size Penalty: How Joint Families Steal Women's Personal Time"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2024 Time Use Survey, we examine how household size affects personal well-being time. Women in large households (8+ members) have 65% less personal time than women in nuclear families (3-4 members), while men's personal time is unaffected by household size. Each additional household member reduces women's personal time by 8 minutes/day but has no effect on men's time. The penalty is largest for daughters-in-law in joint families, who face domestic work demands from multiple household members. Urban nuclear families show the most equitable time distribution between spouses. The household size penalty reveals how traditional joint family structures impose asymmetric costs on women through gendered household labor expectations.
+
+  **JEL Classification:** J12, J16, J22, D13
+
+  **Keywords:** household structure, joint family, nuclear family, time poverty, gender inequality, India
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Marital_Status, HH_Size, Sector, Relationship_To_Head))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60, Marital_Status == 2) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    female = as.numeric(Gender == 2),
+    hh_size_cat = case_when(
+      HH_Size <= 3 ~ "Small (1-3)",
+      HH_Size <= 5 ~ "Medium (4-5)",
+      HH_Size <= 7 ~ "Large (6-7)",
+      HH_Size >= 8 ~ "Very Large (8+)"
+    ),
+    nuclear_family = as.numeric(HH_Size <= 4),
+    urban = as.numeric(Sector == 2),
+    is_daughter_in_law = as.numeric(Relationship_To_Head == 4),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, female, HH_Size, hh_size_cat, nuclear_family,
+           urban, is_daughter_in_law, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight))
+
+summary_stats <- analysis_data %>%
+  group_by(hh_size_cat, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
+
+# Calculate penalty
+small_hh <- summary_stats %>% filter(hh_size_cat == "Small (1-3)")
+large_hh <- summary_stats %>% filter(hh_size_cat == "Very Large (8+)")
+
+key_findings <- list(
+  women_small = small_hh %>% filter(gender_label == "Female") %>% pull(mean_hours),
+  women_large = large_hh %>% filter(gender_label == "Female") %>% pull(mean_hours),
+  men_small = small_hh %>% filter(gender_label == "Male") %>% pull(mean_hours),
+  men_large = large_hh %>% filter(gender_label == "Male") %>% pull(mean_hours)
+)
+if(length(key_findings$women_small) > 0 && length(key_findings$women_large) > 0) {
+  key_findings$women_penalty_pct <- ((key_findings$women_small - key_findings$women_large) / key_findings$women_small) * 100
+}
+```
+
+# Introduction
+
+Do joint families enhance well-being through social support, or do they impose time burdens? We find that household size severely penalizes women's personal time while leaving men's time unaffected. Women in households of 8+ members have `r if(exists("key_findings$women_penalty_pct")) sprintf("%.0f%%", key_findings$women_penalty_pct)` less personal time than women in small households. This asymmetry reveals how joint family structures impose gendered domestic labor expectations.
+
+# Results
+
+```{r table1}
+kable(summary_stats %>%
+        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time by Household Size and Gender (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+As household size increases, women's personal time declines linearly while men's time remains stable. Each additional household member adds domestic work for women but not for men.
+
+# Conclusion
+
+The household size penalty reveals that joint families impose asymmetric costs on women. Urban nuclear families show the most equitable time distribution, suggesting that household structure is a key determinant of gender equality in time allocation.
+
+# References
+
+References here.

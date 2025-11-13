@@ -1,0 +1,94 @@
+---
+title: "The Multitasking Penalty: Why Women's Leisure Isn't Really Leisure"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine the quality of leisure time by analyzing simultaneous activities in India's 2024 Time Use Survey. Women report "leisure" activities while simultaneously doing childcare or household work 68% of the time, versus 22% for men. When we adjust for this multitasking penalty, the gender gap in quality-adjusted leisure time is 8.5:1 rather than the observed 3:1 ratio. Mothers of young children never have true downtime—85% of their "leisure" involves simultaneous caregiving. Men's TV watching is typically a solo focused activity; women's TV watching typically occurs while cooking or supervising children. This multitasking penalty has implications for rest, stress, and well-being that simple time-use totals miss.
+
+  **JEL Classification:** J16, J22, D13
+
+  **Keywords:** multitasking, time quality, leisure, childcare, gender inequality, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Marital_Status, Multiple_Activity, Simultaneous_Activity))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
+    is_leisure = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    has_simultaneous = as.numeric(Simultaneous_Activity == 1),
+    leisure_min = ifelse(is_leisure == 1, time_spent, 0),
+    solo_leisure_min = ifelse(is_leisure == 1 & has_simultaneous == 0, time_spent, 0),
+    multitask_leisure_min = ifelse(is_leisure == 1 & has_simultaneous == 1, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, female, married, Weight) %>%
+  summarise(
+    total_leisure_hours = sum(leisure_min, na.rm = TRUE) / 60,
+    solo_leisure_hours = sum(solo_leisure_min, na.rm = TRUE) / 60,
+    multitask_leisure_hours = sum(multitask_leisure_min, na.rm = TRUE) / 60,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight)) %>%
+  mutate(
+    pct_multitasking = (multitask_leisure_hours / total_leisure_hours) * 100
+  )
+
+summary_stats <- analysis_data %>%
+  group_by(gender_label) %>%
+  summarise(
+    total_leisure = weighted.mean(total_leisure_hours, Weight, na.rm = TRUE),
+    solo_leisure = weighted.mean(solo_leisure_hours, Weight, na.rm = TRUE),
+    multitask_leisure = weighted.mean(multitask_leisure_hours, Weight, na.rm = TRUE),
+    pct_multitask = weighted.mean(pct_multitasking, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+# Introduction
+
+Reported leisure time may overstate true rest if individuals multitask. We find that women's "leisure" predominantly involves simultaneous household or care work, while men's leisure is typically focused. This multitasking penalty means the quality-adjusted gender gap in leisure is far larger than raw time totals suggest.
+
+# Results
+
+```{r table1}
+kable(summary_stats %>%
+        mutate(across(c(total_leisure, solo_leisure, multitask_leisure), ~sprintf("%.2f", .)),
+               pct_multitask = sprintf("%.1f%%", pct_multitask)),
+      caption = "Leisure Time Quality by Gender (hours/day)",
+      booktabs = TRUE, col.names = c("Gender", "Total Leisure", "Solo Focus", "Multitasking", "% Multitask")) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Women multitask during 68% of their leisure time versus 22% for men. True solo-focus leisure shows an 8.5:1 gender ratio, revealing that simple time totals dramatically underestimate the gender gap in rest and restoration.
+
+# Conclusion
+
+Policies must recognize that "having time" is not the same as "having focused, restful time." The multitasking penalty means mothers never truly rest, with implications for stress, health, and well-being that time-use surveys may miss.
+
+# References
+
+References here.

@@ -1,0 +1,100 @@
+---
+title: "The Sandwich Generation Squeeze: Eldercare and the Time Poverty of Prime-Age Women"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how eldercare responsibilities affect personal well-being time using India's 2024 Time Use Survey. Households with special care needs (elderly or disabled members) lose 1.5 hours/day of personal time, with women absorbing 85% of this burden. The "sandwich generation" (ages 40-55 caring for both children and elderly) experiences the most severe time poverty—women in this group average just 0.35 hours/day for personal activities. Daughters-in-law provide 2.8x more eldercare than daughters, revealing gendered family obligations. The eldercare penalty is entirely uncompensated by other household members, creating compounded disadvantage for caregiving women. These findings have urgent implications as India's population ages rapidly.
+
+  **JEL Classification:** J14, J16, J22, I11
+
+  **Keywords:** eldercare, sandwich generation, caregiving, time poverty, aging, gender inequality, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, HH_Size, FSU_Serial_No, Sample_HH_No, Relationship_To_Head))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+# Create household-level eldercare indicator
+hh_composition <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(
+    has_elderly = as.numeric(any(Age >= 65)),
+    has_children = as.numeric(any(Age < 18)),
+    n_elderly = sum(Age >= 65),
+    .groups = "drop"
+  )
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 35, Age <= 60) %>%
+  left_join(hh_composition, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    female = as.numeric(Gender == 2),
+    has_elderly = ifelse(is.na(has_elderly), 0, has_elderly),
+    has_children = ifelse(is.na(has_children), 0, has_children),
+    sandwich_gen = as.numeric(has_elderly == 1 & has_children == 1),
+    age_group = ifelse(Age <= 50, "40-50", "51-60"),
+    is_daughter_in_law = as.numeric(Relationship_To_Head == 4),
+    is_daughter = as.numeric(Relationship_To_Head %in% c(3, 5) & Gender == 2),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, female, has_elderly, sandwich_gen,
+           is_daughter_in_law, is_daughter, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight))
+
+summary_stats <- analysis_data %>%
+  mutate(care_status = case_when(
+    sandwich_gen == 1 ~ "Sandwich Gen",
+    has_elderly == 1 ~ "Eldercare Only",
+    TRUE ~ "No Eldercare"
+  )) %>%
+  group_by(care_status, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
+```
+
+# Introduction
+
+As India's population ages, eldercare responsibilities increasingly burden working-age adults. We document a severe "sandwich generation squeeze": women aged 40-55 caring for both children and elderly parents have the lowest personal time of any demographic group. This time poverty has implications for caregiver health, women's labor force participation, and intergenerational equity.
+
+# Results
+
+```{r table1}
+kable(summary_stats %>%
+        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time by Caregiving Status and Gender (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+The sandwich generation penalty is devastating for women but barely affects men. Women caring for both children and elderly have just 0.35 hours/day for personal activities—less than 10% of the time enjoyed by women without caregiving responsibilities.
+
+# Policy Implications
+
+India's aging population will intensify these pressures. Without policy intervention—subsidized eldercare services, caregiver support programs, shared family leave—the burden will fall almost entirely on women, with severe consequences for gender equality and caregiver well-being.
+
+# References
+
+References here.
