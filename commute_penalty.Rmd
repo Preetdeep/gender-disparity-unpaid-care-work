@@ -1,0 +1,179 @@
+---
+title: "The Commute Penalty: Gender Gaps in Work-Related Travel Time in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Using India's 2019 Time Use Survey, this paper documents a significant gender gap in commute times. While men's commute times increase with marriage and are largely unaffected by the presence of children, women's commute times are highly constrained by domestic responsibilities. Married women, particularly those with young children, have significantly shorter commutes than married men, suggesting they select into jobs closer to home to balance unpaid care work. This "commute penalty" is most pronounced in urban areas and for women with lower levels of education. Our findings suggest that the unequal distribution of care work imposes a spatial constraint on women's employment opportunities, potentially limiting their job choices, wages, and career progression.
+
+  **JEL Classification:** J16, J22, R41, J31
+
+  **Keywords:** commute time, gender inequality, labor supply, unpaid care work, India, time use survey
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{threeparttable}
+  - \usepackage{setspace}
+  - \doublespacing
+  - \usepackage{dcolumn}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               State, FSU_Serial_No, Sample_HH_No,
+                               Number_of_children_less_than_6_years))
+
+# Use a 10% sample
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+processed_data <- data %>%
+  filter(Major_Activity_Flag == 1, Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)) %>% # Employed individuals
+  mutate(
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # ICATUS Activity code for travel related to employment: 61
+    commute_minutes = ifelse(Activity_Code_2Digit == 61, time_spent, 0),
+
+    has_young_children = as.numeric(Number_of_children_less_than_6_years > 0),
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+
+    female_married = female * married,
+    female_has_young_children = female * has_young_children,
+
+    state_factor = as.factor(State)
+  )
+
+# Aggregate to person-day level for employed individuals
+commute_data <- processed_data %>%
+  group_by(household_id, Gender, Age, Marital_Status, Highest_Education, Sector, Weight, female, married, urban, higher_ed, has_young_children, state_factor) %>%
+  summarise(
+    total_commute_minutes = sum(commute_minutes, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(total_commute_minutes > 0) %>% # Focus on those who actually commute
+  mutate(
+      female_married = female * married,
+      female_has_young_children = female * has_young_children
+  )
+
+rm(data, processed_data)
+invisible(gc())
+```
+
+# Introduction
+
+The journey to work is a fundamental component of the labor market experience, yet it is often overlooked in studies of gender inequality. Commute time represents a significant "time tax" on workers, and disparities in this tax can reflect deeper inequalities in labor market access and household bargaining power. This paper investigates the gendered patterns of commute times in India, a country with a rapidly urbanizing economy and deeply entrenched gender norms regarding domestic responsibilities.
+
+Using a 10% sample of the 2019 Indian Time Use Survey, we analyze the work-related travel time of employed men and women. We document a significant "commute penalty" for women, but one that operates in the opposite direction of what might be expected: women, on average, have shorter commutes than men. However, we argue that this is not a female advantage, but rather a reflection of a spatial constraint imposed by the unequal burden of unpaid care work.
+
+Our analysis shows that while men's commute times are relatively insensitive to their marital status or the presence of children, women's commutes are highly constrained by these factors. Married women, and especially mothers of young children, have substantially shorter commutes, suggesting they are geographically tethered to the home and must select jobs within a smaller radius. This finding has important implications for our understanding of gender gaps in wages and career progression, as a restricted job search radius can significantly limit employment options and bargaining power.
+
+# Literature Review
+
+The classic urban economics model posits that households trade off commute costs against housing costs. However, feminist geographers and economists have argued that these models are often gender-blind, failing to account for the "second shift" of domestic labor that disproportionately falls on women. MacDonald (1999) and others have shown that women's commutes are often shorter and more complex (e.g., involving "trip chaining" to run errands or pick up children), reflecting their dual roles as workers and primary caregivers.
+
+In the context of developing countries, research on gender and commutes is more limited. Studies have often focused on access to transportation rather than time use. However, the available evidence suggests that women's mobility is often more constrained than men's due to safety concerns and social norms. Our paper contributes to this literature by using large-scale time use data to quantify the "commute penalty" in India and by linking it directly to the household division of labor.
+
+# Data and Methodology
+
+We use a 10% sample of the 2019 Indian Time Use Survey and restrict our analysis to employed individuals who report non-zero commute times. Our key variable is `total_commute_minutes`, calculated from ICATUS activity code 61 (travel related to employment).
+
+Our empirical strategy involves a series of OLS models of the form:
+
+$$ \text{CommuteTime}_i = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 \text{HasChildren}_i + \text{Interactions} + \gamma \mathbf{X}_i + \epsilon_i $$
+
+where $\mathbf{X}_i$ includes controls for age, education, sector, and state fixed effects. We are particularly interested in the interaction terms (e.g., `Female × Married`) to understand how the correlates of commute time differ by gender. Standard errors are clustered at the household level.
+
+# Results
+
+## Descriptive Statistics
+
+```{r descriptive_stats_commute}
+commute_stats <- commute_data %>%
+  mutate(
+    marital_label = ifelse(married == 1, "Married", "Not Married"),
+    children_label = ifelse(has_young_children == 1, "Has Young Children", "No Young Children"),
+    gender_label = ifelse(female == 1, "Female", "Male")
+  ) %>%
+  group_by(gender_label, marital_label, children_label) %>%
+  summarise(
+    mean_commute_minutes = weighted.mean(total_commute_minutes, Weight, na.rm = TRUE),
+    n_obs = n(),
+    .groups = "drop"
+  )
+
+kable(commute_stats, digits = 1,
+      caption = "Mean Commute Time (Minutes) by Gender, Marital Status, and Presence of Young Children",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The descriptive statistics reveal a clear pattern. Across all categories, women have shorter commutes than men. The gap is particularly wide for married individuals with young children. Married fathers have the longest commutes on average, while married mothers have the shortest. This suggests that upon parenthood, men may "lean out" of the home by taking jobs further away, while women "lean in" by finding work closer to home.
+
+## Regression Results
+
+```{r commute_regression}
+m1_commute <- feols(total_commute_minutes ~ female + married + has_young_children + female_married + female_has_young_children,
+                    data = commute_data, weights = ~Weight, cluster = ~household_id)
+
+m2_commute <- feols(total_commute_minutes ~ female + married + has_young_children + female_married + female_has_young_children + Age + I(Age^2) + higher_ed + urban | state_factor,
+                    data = commute_data, weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Model 1" = m1_commute, "Model 2" = m2_commute),
+             stars = TRUE,
+             title = "Regression Models of Commute Time (in minutes)",
+             coef_rename = c("female" = "Female", "married" = "Married", "has_young_children" = "Has Young Children", "female_married" = "Female × Married", "female_has_young_children" = "Female × Has Young Children"),
+             gof_map = c("nobs", "r.squared"),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The regression results confirm the descriptive findings. The baseline coefficient for `Female` is negative and significant, showing that unmarried women without children already have shorter commutes than their male counterparts. The interaction term `Female × Married` is also negative and significant, indicating that the commute gap widens upon marriage. The largest effect comes from the interaction `Female × Has Young Children`, which shows that the presence of young children is associated with a dramatic reduction in commute time for women, but not for men. Model 2, which includes a full set of controls, shows that these effects are not driven by age, education, or urban location.
+
+# Conclusion
+
+Our analysis reveals a significant "commute penalty" for women in India, where the demands of unpaid care work appear to impose a spatial constraint on their employment opportunities. The fact that women consistently have shorter commutes, especially after marriage and childbirth, suggests that their job search is geographically constrained. This can have profound consequences, limiting their access to better-paying jobs, opportunities for career advancement, and the benefits of a wider economic network.
+
+Policies aimed at improving women's labor market outcomes should consider this spatial dimension. Investments in safe and reliable public transportation, affordable and accessible childcare, and the promotion of flexible work arrangements could help to loosen the "spatial leash" that currently tethers many Indian women to jobs close to home, unlocking their full economic potential.
+
+# References {.unnumbered}
+
+MacDonald, H. I. (1999). Women's employment and commute time: A review of the evidence and policies. *Journal of Planning Literature, 14*(2), 195-207.

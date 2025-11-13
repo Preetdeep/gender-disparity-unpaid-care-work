@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  This paper investigates multitasking during meals as a measure of time poverty in India, hypothesizing that women are more likely than men to eat while performing other tasks due to disproportionate care burdens. Using India's 2024 Time Use Survey, we analyze over 134,000 eating episodes. Our analysis uncovers a critical data limitation: **zero instances of eating are recorded as a secondary activity for any respondent, male or female.** All eating episodes are exclusively coded as primary activities. This "null finding" is the central result of our paper. The uniform absence of multitasking data for a behavior where it is expected to be common suggests that standard time-use survey methodologies may fail to capture the fragmented nature of women's time. The very invisibility of this "eating gap" in large-scale data is a significant finding, highlighting a blind spot in how we measure gender inequality. We argue that this reflects the normalization of women's multitasking, which may lead to underreporting by both respondents and enumerators. The paper concludes that measuring the quality and fragmentation of time—not just its allocation—is essential for understanding time poverty. We recommend methodological innovations, such as specific probes for multitasking during routine activities, to make these hidden dimensions of inequality visible.
+  This paper investigates multitasking during meals as a measure of time poverty in India, hypothesizing that women are more likely than men to eat while performing other tasks due to disproportionate care burdens. Using India's 2019 Time Use Survey, we analyze over 134,000 eating episodes. Our analysis uncovers a critical data limitation: **zero instances of eating are recorded as a secondary activity for any respondent, male or female.** All eating episodes are exclusively coded as primary activities. This "null finding" is the central result of our paper. The uniform absence of multitasking data for a behavior where it is expected to be common suggests that standard time-use survey methodologies may fail to capture the fragmented nature of women's time. The very invisibility of this "eating gap" in large-scale data is a significant finding, highlighting a blind spot in how we measure gender inequality. We argue that this reflects the normalization of women's multitasking, which may lead to underreporting by both respondents and enumerators. The paper concludes that measuring the quality and fragmentation of time—not just its allocation—is essential for understanding time poverty. We recommend methodological innovations, such as specific probes for multitasking during routine activities, to make these hidden dimensions of inequality visible.
 
   **JEL Classification:** J16, J22, D13, I31
 
   **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, eating behavior, domestic work, India
 
-  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
   **Data Limitation:** This analysis requires secondary activity coding in the Time Use Survey. Results depend on the availability and quality of simultaneous activity reporting in the dataset.
 
@@ -373,7 +373,7 @@ Time poverty—having insufficient time for rest and self-care due to overwhelmi
 
 This behavior is expected to be gendered. Given that women in India perform a vastly disproportionate share of unpaid care work—tasks that are often continuous and temporally inflexible—we hypothesized that women would be significantly more likely than men to eat while multitasking. This "eating gap" could serve as a powerful, revealed-preference measure of the hidden burdens of care work.
 
-To test this hypothesis, we use India's 2024 Time Use Survey, a large-scale, nationally representative dataset. We analyze over 134,000 eating episodes to identify instances where eating is recorded as a "secondary" activity, indicating multitasking.
+To test this hypothesis, we use India's 2019 Time Use Survey, a large-scale, nationally representative dataset. We analyze over 134,000 eating episodes to identify instances where eating is recorded as a "secondary" activity, indicating multitasking.
 
 However, our analysis reveals a striking and unexpected result: **the survey contains zero instances of eating recorded as a secondary activity.** Every single eating episode is coded as a primary, focused activity for all respondents. The anticipated "eating gap" is not just small; it is entirely absent from the data.
 
@@ -422,9 +422,9 @@ However, these studies rely on ethnographic observation in specific communities.
 
 # Data and Measurement
 
-## India's 2024 Time Use Survey
+## India's 2019 Time Use Survey
 
-We use India's Time Use Survey 2024, which collected 24-hour time diaries for all household members aged 6+. The survey uses the International Classification of Activities for Time Use Statistics (ICATUS 2016), recording activities in 30-minute intervals.
+We use India's Time Use Survey 2019, which collected 24-hour time diaries for all household members aged 6+. The survey uses the International Classification of Activities for Time Use Statistics (ICATUS 2016), recording activities in 30-minute intervals.
 
 Crucially, the survey codes both **primary** (major) and **secondary** (minor) activities for each time slot. If a respondent reports doing multiple things simultaneously, surveyors record the "most important" activity as primary and others as secondary.
 
@@ -880,7 +880,7 @@ Our analysis has several limitations:
 
 # Conclusion
 
-This paper began with a straightforward hypothesis: that women in India, burdened by disproportionate care responsibilities, would be more likely than men to eat while multitasking. Using the 2024 Time Use Survey, we expected to find a clear "eating gap." Instead, we found something far more striking: a complete absence of data. Across more than 134,000 eating episodes, not a single one was recorded as a secondary activity.
+This paper began with a straightforward hypothesis: that women in India, burdened by disproportionate care responsibilities, would be more likely than men to eat while multitasking. Using the 2019 Time Use Survey, we expected to find a clear "eating gap." Instead, we found something far more striking: a complete absence of data. Across more than 134,000 eating episodes, not a single one was recorded as a secondary activity.
 
 This "null finding" is the paper's primary contribution. It transforms a simple empirical inquiry into a critical methodological investigation. The uniform absence of a widely expected behavior suggests that standard time-use surveys, while powerful for measuring the allocation of primary activities, may be systematically blind to the *quality* and *fragmentation* of time—core components of time poverty.
 

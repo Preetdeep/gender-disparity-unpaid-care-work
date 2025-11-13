@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (8.4 million observations from 394,405 individuals), we examine the relationship between marriage and physical exercise participation. Raw data show married adults exercise at slightly higher rates than never-married adults (+2.08 percentage points for women, +2.69 percentage points for men), but this apparent "premium" entirely reflects age selection—married individuals are older and in life stages with higher exercise participation. After controlling for age, the marriage premium disappears completely. More strikingly, after controlling for education, employment, urban residence, and state fixed effects, marriage is associated with *reduced* exercise participation: -4.1 percentage points for women and -1.0 percentage point for men. These findings strongly support time poverty theories: marriage increases women's unpaid care work, crowding out leisure activities like exercise. Women face a substantially larger marriage penalty than men, consistent with gendered household labor divisions. Our results demonstrate the critical importance of disentangling selection from causation in family economics research. What appears as a marriage "premium" in raw data is actually a composition effect masking an underlying marriage "penalty" that disproportionately burdens women, validating long-standing theories about marriage, gender, and time use in developing countries.
+  Using India's 2019 Time Use Survey (8.4 million observations from 394,405 individuals), we examine the relationship between marriage and physical exercise participation. Raw data show married adults exercise at slightly higher rates than never-married adults (+2.08 percentage points for women, +2.69 percentage points for men), but this apparent "premium" entirely reflects age selection—married individuals are older and in life stages with higher exercise participation. After controlling for age, the marriage premium disappears completely. More strikingly, after controlling for education, employment, urban residence, and state fixed effects, marriage is associated with *reduced* exercise participation: -4.1 percentage points for women and -1.0 percentage point for men. These findings strongly support time poverty theories: marriage increases women's unpaid care work, crowding out leisure activities like exercise. Women face a substantially larger marriage penalty than men, consistent with gendered household labor divisions. Our results demonstrate the critical importance of disentangling selection from causation in family economics research. What appears as a marriage "premium" in raw data is actually a composition effect masking an underlying marriage "penalty" that disproportionately burdens women, validating long-standing theories about marriage, gender, and time use in developing countries.
 
   **JEL Classification:** I12, J12, J16, O15
 
   **Keywords:** physical activity, marriage, gender, time use, India, health behaviors, selection effects
 
-  **Data Availability:** This study uses India's Time Use Survey 2024 from the National Statistical Office, Ministry of Statistics and Programme Implementation, Government of India. The survey is publicly available through the NSO website.
+  **Data Availability:** This study uses India's Time Use Survey 2019 from the National Statistical Office, Ministry of Statistics and Programme Implementation, Government of India. The survey is publicly available through the NSO website.
 
 output:
   pdf_document:
@@ -53,7 +53,7 @@ theme_set(theme_minimal(base_size = 11))
 
 Does marriage increase or decrease physical exercise participation? Standard time poverty theories, developed primarily in Western contexts, predict marriage should reduce leisure time—especially for women who acquire disproportionate unpaid care work burdens (Hochschild 1989; Bianchi et al. 2000). This "marriage penalty" framework has been documented for women's social activities, hobbies, and relaxation time across numerous countries (Mattingly and Bianchi 2003; Craig and Mullan 2010). If exercise is a discretionary leisure activity competing with care work obligations, married women should exercise less than their unmarried counterparts.
 
-When we examine India's comprehensive 2024 Time Use Survey—one of the world's largest time diary studies, covering 394,405 individuals—raw data initially appear to contradict this theory. Married women exercise at 49.75% compared to 47.67% for never-married women (a 2.08 percentage point difference). Married men exercise at 50.98% compared to 48.29% for never-married men (a 2.69 percentage point difference). These raw differences might suggest a "marriage exercise premium."
+When we examine India's comprehensive 2019 Time Use Survey—one of the world's largest time diary studies, covering 394,405 individuals—raw data initially appear to contradict this theory. Married women exercise at 49.75% compared to 47.67% for never-married women (a 2.08 percentage point difference). Married men exercise at 50.98% compared to 48.29% for never-married men (a 2.69 percentage point difference). These raw differences might suggest a "marriage exercise premium."
 
 However, this apparent premium is entirely spurious, driven by age composition. Never-married adults are predominantly young (mean age 22-24 years), a life stage when exercise participation is naturally lower. Married adults are older (mean age 38-41 years), in life stages when exercise peaks. Once we control for age, the marriage "premium" vanishes completely. More importantly, after accounting for education, employment, urban residence, and state fixed effects, we find marriage is associated with *reduced* exercise: -4.1 percentage points for women and -1.0 percentage point for men.
 
@@ -79,7 +79,7 @@ Our findings make four contributions to family economics, health economics, and 
 
 These findings carry important policy implications. First, raw participation statistics can be deeply misleading—proper causal inference requires controlling for selection. Second, marriage substantially reduces women's exercise capacity through time poverty, suggesting that health promotion interventions targeting married women must address underlying care work burdens, not just provide exercise resources. Third, policies to equalize unpaid care work between spouses—through paternity leave, public childcare, or cultural campaigns—may be prerequisites for enabling married women's health investments. Fourth, never-married youth (who actually exercise less in raw data) may not need targeted interventions since their lower exercise reflects age, not inherent barriers.
 
-The remainder of this paper proceeds as follows. Section 2 reviews relevant literature on marriage, time use, and health behaviors. Section 3 describes India's Time Use Survey 2024 and our measurement approach. Section 4 presents descriptive patterns revealing the apparent marriage exercise premium in raw data. Section 5 estimates regression models demonstrating how age selection and time poverty explain the patterns. Section 6 conducts extensive robustness checks. Section 7 discusses implications and concludes.
+The remainder of this paper proceeds as follows. Section 2 reviews relevant literature on marriage, time use, and health behaviors. Section 3 describes India's Time Use Survey 2019 and our measurement approach. Section 4 presents descriptive patterns revealing the apparent marriage exercise premium in raw data. Section 5 estimates regression models demonstrating how age selection and time poverty explain the patterns. Section 6 conducts extensive robustness checks. Section 7 discusses implications and concludes.
 
 \newpage
 
@@ -133,7 +133,7 @@ We test these mechanisms by examining whether the gender gap in marriage premium
 
 ## The Indian Context: Marriage, Health, and Exercise
 
-India provides an ideal context for studying marriage-exercise relationships. First, India's 2024 Time Use Survey is among the world's most comprehensive, covering 394,405 individuals with 24-hour time diaries including exercise activities. Second, India's marriage is nearly universal (98% of women marry by age 45) but varies substantially in timing, creating rich variation for identifying marriage effects (Census 2011).
+India provides an ideal context for studying marriage-exercise relationships. First, India's 2019 Time Use Survey is among the world's most comprehensive, covering 394,405 individuals with 24-hour time diaries including exercise activities. Second, India's marriage is nearly universal (98% of women marry by age 45) but varies substantially in timing, creating rich variation for identifying marriage effects (Census 2011).
 
 Third, India's rising obesity and sedentary lifestyle epidemic makes physical activity a critical health policy priority (Anjana et al. 2014). Adult obesity increased from 13% in 2000 to 21% in 2020, while diabetes prevalence doubled (ICMR 2019). Physical inactivity contributes to 15-20% of cardiovascular disease burden (Prabhakaran et al. 2018). Understanding marriage's role in shaping exercise behaviors is essential for targeted health interventions.
 
@@ -147,9 +147,9 @@ Our analysis exploits this heterogeneity, examining whether marriage premiums va
 
 # Data and Measurement
 
-## India's Time Use Survey 2024
+## India's Time Use Survey 2019
 
-We analyze India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office (NSO) from January through December 2024. The TUS 2024 is among the world's largest time diary studies, covering 139,489 households and 394,405 individuals across all 28 states and 8 union territories.
+We analyze India's Time Use Survey (TUS) 2019, conducted by the National Statistical Office (NSO) from January through December 2019. The TUS 2019 is among the world's largest time diary studies, covering 139,489 households and 394,405 individuals across all 28 states and 8 union territories.
 
 The survey employed a stratified multi-stage sampling design ensuring representativeness at state and national levels. Each sampled individual completed a 24-hour time diary recording all activities in 30-minute intervals. Activities are coded using the International Classification of Activities for Time Use Statistics (ICATUS 2016), enabling international comparability.
 
@@ -689,7 +689,7 @@ modelsummary(list("Women Only" = m5_women, "Men Only" = m5_men),
 
 ## Summary of Findings
 
-This study rigorously tests time poverty theory using India's comprehensive 2024 Time Use Survey (394,405 individuals). While raw data show married adults exercising at slightly higher rates than never-married adults (apparent "premium" of 2.08 percentage points for women, 2.69 percentage points for men), this pattern is entirely spurious, driven by age composition. After controlling for confounders, we find marriage *reduces* exercise participation by 4.1 percentage points for women and 1.0 percentage point for men, strongly validating time poverty predictions.
+This study rigorously tests time poverty theory using India's comprehensive 2019 Time Use Survey (394,405 individuals). While raw data show married adults exercising at slightly higher rates than never-married adults (apparent "premium" of 2.08 percentage points for women, 2.69 percentage points for men), this pattern is entirely spurious, driven by age composition. After controlling for confounders, we find marriage *reduces* exercise participation by 4.1 percentage points for women and 1.0 percentage point for men, strongly validating time poverty predictions.
 
 Our decomposition reveals three key findings:
 
@@ -848,7 +848,7 @@ Marriage is not just a social institution but a health infrastructure. Household
 
 # Conclusion
 
-Does marriage increase or decrease physical exercise? Conventional wisdom, grounded in time poverty theories, predicts marriage reduces women's leisure time through care work burdens. India's 2024 Time Use Survey provides strong validation: after controlling for age and other confounders, marriage is associated with *reduced* exercise participation for both women (-4.1pp) and men (-1.0pp), with women facing a penalty four times larger than men's.
+Does marriage increase or decrease physical exercise? Conventional wisdom, grounded in time poverty theories, predicts marriage reduces women's leisure time through care work burdens. India's 2019 Time Use Survey provides strong validation: after controlling for age and other confounders, marriage is associated with *reduced* exercise participation for both women (-4.1pp) and men (-1.0pp), with women facing a penalty four times larger than men's.
 
 This study demonstrates three critical findings. First, selection bias can completely reverse apparent patterns: raw data show a small marriage "premium" (2-3pp), but this entirely reflects age composition and disappears after controls. Second, marriage causally reduces exercise through time poverty: care work obligations crowd out leisure activities, particularly for women who acquire 4-5 hours of additional daily domestic work. Third, time poverty dominates resource effects: even educated, urban, employed married women face significant exercise penalties, revealing that time constraints overwhelm any financial advantages marriage may bring.
 

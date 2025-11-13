@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using a 10% random sample of India's 2024 Time Use Survey (approximately 836,000 person-day observations from 9,969 households), we document a stark marriage penalty in unpaid care work: marriage substantially increases women's care work participation while having zero effect on men's participation. This penalty is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
+  Using a 10% random sample of India's 2019 Time Use Survey (approximately 836,000 person-day observations from 9,969 households), we document a stark marriage penalty in unpaid care work: marriage substantially increases women's care work participation while having zero effect on men's participation. This penalty is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
 
   **JEL Classification:** J12, J16, J22, D13
 
@@ -221,7 +221,7 @@ Marriage fundamentally reshapes household production and time allocation pattern
 
 Understanding the marriage penalty in unpaid care work matters for several reasons. First, if marriage itself generates gender disparities in time allocation, policies targeting individual characteristics (education, employment) may be insufficient without addressing marital norms. Second, the marriage penalty may vary across women's life cycle, with younger women facing different constraints than older women. Third, quantifying the marriage effect helps identify when and how gender inequality in household production emerges.
 
-We exploit India's 2024 Time Use Survey—containing `r format(total_obs, big.mark=",")` activity observations across `r format(total_households, big.mark=",")` households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points, a `r sprintf("%.0f%%", marriage_penalty_pct)` increase relative to unmarried women's baseline participation rate of `r sprintf("%.1f%%", women_never_married_participation)`. Men experience no marriage effect. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a `r sprintf("%.1f", young_marriage_penalty)` percentage point increase upon marriage, while older women (>25) see a `r sprintf("%.1f", older_marriage_penalty)` percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
+We exploit India's 2019 Time Use Survey—containing `r format(total_obs, big.mark=",")` activity observations across `r format(total_households, big.mark=",")` households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points, a `r sprintf("%.0f%%", marriage_penalty_pct)` increase relative to unmarried women's baseline participation rate of `r sprintf("%.1f%%", women_never_married_participation)`. Men experience no marriage effect. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a `r sprintf("%.1f", young_marriage_penalty)` percentage point increase upon marriage, while older women (>25) see a `r sprintf("%.1f", older_marriage_penalty)` percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
 
 These findings contribute to several literatures. First, we advance research on marriage and household production by documenting substantial gender asymmetries in how marriage affects time allocation (Aguiar and Hurst 2007; Stancanelli and Stratton 2014). Second, we contribute to understanding life course patterns in gender inequality by showing that marriage effects differ substantially between younger and older women (Bertrand et al. 2015). Third, we inform development economics by revealing how marriage institutions in developing countries reinforce gender inequality (Anderson and Eswaran 2009; Jayachandran 2015).
 
@@ -255,9 +255,9 @@ Life course research suggests marriage effects may differ by age at marriage. Go
 
 # Data and Empirical Strategy
 
-## Time Use Survey 2024
+## Time Use Survey 2019
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals.
+India's Time Use Survey 2019, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals.
 
 Our analysis uses person-level activity data with `r format(nrow(major_only), big.mark=",")` observations from `r format(length(unique(major_only$FSU_Serial_No)), big.mark=",")` households. Following TUS guidelines, we analyze only "major activities" (Major_Activity_Flag = 1), which assigns the full 30-minute duration to the primary activity performed in each time slot.
 
@@ -954,9 +954,9 @@ The marriage penalty matters not only for fairness in household time allocation 
 
 # Data Availability Statement
 
-**Data Source:** This study uses data from India's Time Use Survey 2024, conducted by the National Statistical Office (NSO), Ministry of Statistics and Programme Implementation, Government of India. The survey is publicly available through the NSO website at [https://mospi.gov.in/](https://mospi.gov.in/).
+**Data Source:** This study uses data from India's Time Use Survey 2019, conducted by the National Statistical Office (NSO), Ministry of Statistics and Programme Implementation, Government of India. The survey is publicly available through the NSO website at [https://mospi.gov.in/](https://mospi.gov.in/).
 
-**Data Access:** Researchers can download the Time Use Survey 2024 microdata by registering on the NSO data portal. The specific dataset used in this analysis is "TimeUse106PER.dta" (person-level activity file). No special permissions or fees are required to access the data beyond standard registration.
+**Data Access:** Researchers can download the Time Use Survey 2019 microdata by registering on the NSO data portal. The specific dataset used in this analysis is "TimeUse106PER.dta" (person-level activity file). No special permissions or fees are required to access the data beyond standard registration.
 
 **Code Availability:** All analysis code used to generate the results in this paper (including data processing, regressions, tables, and figures) is written in R and available in the R Markdown file "marriage_care_penalty.Rmd". The code is fully reproducible and documented with comments explaining each analysis step.
 

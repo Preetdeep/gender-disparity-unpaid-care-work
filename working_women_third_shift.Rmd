@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we examine whether employed women in affluent families successfully outsource domestic and care work through household help, or whether they face a "third shift"—paid work plus managing domestic workers plus residual care work. Comparing employed women across wealth quintiles, we find that affluent working women spend modestly less time on total domestic work than poor working women despite presumed access to household help. The composition shifts dramatically: affluent working women do substantially less cooking/cleaning but dramatically more household management. Critically, childcare time increases with wealth among working mothers, suggesting that affluent working mothers intensify rather than reduce maternal involvement. We term this the "quality care" imperative—even with nannies, working mothers feel compelled to provide "quality time." Meanwhile, employed men's domestic time remains low across all wealth levels, unchanged whether partners have household help or not. These findings suggest that household help enables women's employment but creates new management burdens, while traditional gender norms about intensive mothering remain intact even among the affluent.
+  Using India's 2019 Time Use Survey (10.2 million observations, 139,489 households), we examine whether employed women in affluent families successfully outsource domestic and care work through household help, or whether they face a "third shift"—paid work plus managing domestic workers plus residual care work. Comparing employed women across wealth quintiles, we find that affluent working women spend modestly less time on total domestic work than poor working women despite presumed access to household help. The composition shifts dramatically: affluent working women do substantially less cooking/cleaning but dramatically more household management. Critically, childcare time increases with wealth among working mothers, suggesting that affluent working mothers intensify rather than reduce maternal involvement. We term this the "quality care" imperative—even with nannies, working mothers feel compelled to provide "quality time." Meanwhile, employed men's domestic time remains low across all wealth levels, unchanged whether partners have household help or not. These findings suggest that household help enables women's employment but creates new management burdens, while traditional gender norms about intensive mothering remain intact even among the affluent.
 
   **JEL Classification:** J16, J22, D13, J13
 
@@ -127,7 +127,7 @@ This question is crucial for understanding women's labor force participation in 
 
 But does this narrative hold? Or do employed women in affluent households merely substitute one form of domestic labor (physical execution) for another (management and supervision), while retaining full responsibility for "irreducible" care work like childrearing?
 
-Using India's 2024 Time Use Survey with 10.2 million observations, we compare employed women across socioeconomic strata, examining three questions:
+Using India's 2019 Time Use Survey with 10.2 million observations, we compare employed women across socioeconomic strata, examining three questions:
 
 1. **Do employed women in affluent households spend significantly less time on domestic work than employed women in poor households?**
 

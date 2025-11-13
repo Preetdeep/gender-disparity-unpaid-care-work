@@ -1,6 +1,6 @@
 ---
 title: "The Great Digital Disconnect: Remote versus In-Person Socializing in India"
-subtitle: "Evidence from the 2024 Time Use Survey"
+subtitle: "Evidence from the 2019 Time Use Survey"
 author: "Research Team"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
@@ -14,7 +14,7 @@ output:
     highlight: tango
     code_folding: hide
 abstract: |
-  Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage is associated with a 2.1 percentage point increase in participation for men and a 1.5 percentage point increase for women, suggesting a "marriage premium" in digital social engagement. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social networks, family ties, and digital inclusion policies.
+  Using India's 2019 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage is associated with a 2.1 percentage point increase in participation for men and a 1.5 percentage point increase for women, suggesting a "marriage premium" in digital social engagement. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social networks, family ties, and digital inclusion policies.
 ---
 
 ```{r setup, include=FALSE}
@@ -59,13 +59,13 @@ theme_set(theme_minimal(base_size = 12) +
 
 How do people maintain social connections in the digital age? As smartphones and internet access proliferate globally, the modes through which individuals interact are undergoing rapid transformation. Face-to-face socializing—historically the primary form of human connection—increasingly competes with digital alternatives: phone calls, video chats, instant messaging, and social media.
 
-India presents a particularly compelling context to study this transformation. Home to the world's second-largest population and one of its fastest-growing smartphone markets, India has experienced explosive growth in digital connectivity over the past decade. Between 2014 and 2024, internet users in India grew from 238 million to over 850 million, driven by falling data costs and expanding mobile networks.
+India presents a particularly compelling context to study this transformation. Home to the world's second-largest population and one of its fastest-growing smartphone markets, India has experienced explosive growth in digital connectivity over the past decade. Between 2014 and 2019, internet users in India grew from 238 million to over 850 million, driven by falling data costs and expanding mobile networks.
 
 Yet despite this digital expansion, we know surprisingly little about how Indians actually spend their social time. Do they primarily socialize remotely or in person? How do demographic factors—gender, marital status, age, education, geography—shape these choices? And what are the implications for social isolation, inequality, and wellbeing?
 
 ## A Striking Pattern in Time Use Data
 
-This paper uses India's 2024 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is 39 times more common than in-person socializing**.
+This paper uses India's 2019 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is 39 times more common than in-person socializing**.
 
 On a typical day, only 0.04% of Indians engage in face-to-face social activities (visiting friends, social gatherings), compared to 1.55% who socialize remotely (phone calls, video chats, messaging). This represents a profound shift in the structure of social life—one with potentially far-reaching consequences for community cohesion, mental health, and social capital.
 
@@ -119,7 +119,7 @@ A large literature examines how individuals allocate time across activities and 
 
 Recent studies document declines in face-to-face social interaction in developed countries [@putnam2000bowling; @mcpherson2006social]. Putnam [-@putnam2000bowling] famously documented declining participation in social organizations in the United States. McPherson et al. [-@mcpherson2006social] found that Americans' discussion networks shrank between 1985 and 2004.
 
-However, most research predates the smartphone era. We contribute by examining remote versus in-person socializing in the digital age, using 2024 data from India—a rapidly digitizing society.
+However, most research predates the smartphone era. We contribute by examining remote versus in-person socializing in the digital age, using 2019 data from India—a rapidly digitizing society.
 
 ## Marriage and Social Networks
 
@@ -137,19 +137,19 @@ We contribute by examining digital social behavior rather than access or ownersh
 
 # Data and Measurement
 
-## India Time Use Survey 2024
+## India Time Use Survey 2019
 
-We use India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office (NSO). The TUS is a nationally representative household survey collecting detailed time-use diaries from all household members aged 6 and above.
+We use India's Time Use Survey (TUS) 2019, conducted by the National Statistical Office (NSO). The TUS is a nationally representative household survey collecting detailed time-use diaries from all household members aged 6 and above.
 
 **Survey Design**: The TUS uses a stratified multi-stage sampling design. The survey covers all states and union territories, with adequate representation of urban and rural areas. Each selected household provides a 24-hour time diary for all members, recording activities in 30-minute intervals.
 
 **Sample**: The full dataset contains 10,211,478 activity observations from 394,405 individuals across 139,489 households. For computational efficiency, we use a 10% random sample (835,346 observations) with appropriately adjusted survey weights.
 
-**Survey Period**: Data collection occurred throughout 2024, covering all seasons and days of the week to capture typical time-use patterns.
+**Survey Period**: Data collection occurred throughout 2019, covering all seasons and days of the week to capture typical time-use patterns.
 
 ```{r load-data}
 # Load data
-cat("Loading India Time Use Survey 2024 data...\n")
+cat("Loading India Time Use Survey 2019 data...\n")
 
 # Check if data file exists
 data_path <- "TimeUse106PER.dta"
@@ -360,7 +360,7 @@ summary_table <- data.frame(
 )
 
 kable(summary_table,
-      caption = "Summary Statistics: India Time Use Survey 2024 (10% Sample, Adults 18+)",
+      caption = "Summary Statistics: India Time Use Survey 2019 (10% Sample, Adults 18+)",
       col.names = c("Variable", "Value")) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
@@ -1107,7 +1107,7 @@ The digitally excluded—particularly rural and less-educated individuals—are 
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing is 39 times more common than in-person socializing. This reflects India's rapid digital transformation but also reveals profound inequalities.
+Using India's 2019 Time Use Survey, we document a striking pattern: remote socializing is 39 times more common than in-person socializing. This reflects India's rapid digital transformation but also reveals profound inequalities.
 
 We find a "marriage premium" in remote socializing, suggesting that marriage is associated with increased digital social engagement for both men and women. This challenges traditional "marriage penalty" theories and highlights the role of digital tools in maintaining family networks. Alongside this, stark digital divides persist: urban residents socialize remotely at twice the rate of rural residents, and higher education increases participation by 80%.
 

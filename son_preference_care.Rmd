@@ -4,12 +4,12 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  India's strong son preference is well-documented in fertility decisions, sex-selective abortion, and inheritance patterns. Using India's 2024 Time Use Survey (10.2 million observations from 139,489 households), we examine whether son preference extends to differential parental time investment. We construct household child gender composition from individual records and link to parental time use. We find minimal evidence of son preference in parental time allocation. Mothers spend 0.3 minutes (18 seconds) more per day with sons versus daughters—a 2.9% difference that is within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare time (6-12 seconds per day). Contrary to our hypothesis, educated urban families show slightly more time investment in daughters, not sons. These findings contrast sharply with strong son preference documented in survival, health, and education spending. Cross-sectional data and potential fertility selection limit causal interpretation.
+  India's strong son preference is well-documented in fertility decisions, sex-selective abortion, and inheritance patterns. Using India's 2019 Time Use Survey (10.2 million observations from 139,489 households), we examine whether son preference extends to differential parental time investment. We construct household child gender composition from individual records and link to parental time use. We find minimal evidence of son preference in parental time allocation. Mothers spend 0.3 minutes (18 seconds) more per day with sons versus daughters—a 2.9% difference that is within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare time (6-12 seconds per day). Contrary to our hypothesis, educated urban families show slightly more time investment in daughters, not sons. These findings contrast sharply with strong son preference documented in survival, health, and education spending. Cross-sectional data and potential fertility selection limit causal interpretation.
 
   **JEL Classification:** J13, J16, I24, O15
   **Keywords:** son preference, childcare, gender bias, parental investment, India
 
-  **Data Availability:** Analysis uses India Time Use Survey 2024 from National Statistical Office. Code available upon request.
+  **Data Availability:** Analysis uses India Time Use Survey 2019 from National Statistical Office. Code available upon request.
 output:
   pdf_document:
     latex_engine: xelatex
@@ -340,9 +340,9 @@ Our contribution: First analysis of son preference in parental time investment u
 
 # Data and Methods
 
-## Time Use Survey 2024
+## Time Use Survey 2019
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, collected 24-hour time diaries from 10.2 million individuals across 139,489 households. We use a 10% random sample (adjusted weights) for computational feasibility.
+India's Time Use Survey 2019, conducted by the National Statistical Office, collected 24-hour time diaries from 10.2 million individuals across 139,489 households. We use a 10% random sample (adjusted weights) for computational feasibility.
 
 ## Household Child Gender Composition
 
@@ -598,7 +598,7 @@ Given our findings of minimal son preference in time:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey linked to household child gender composition, we find **minimal and inconsistent evidence** of son preference in parental time investment. Mothers allocate 0.3 minutes (18 seconds) more per day to sons—an effect within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare (6-12 seconds per day). Contrary to our hypothesis, educated urban families show no son preference or slight daughter preference.
+Using India's 2019 Time Use Survey linked to household child gender composition, we find **minimal and inconsistent evidence** of son preference in parental time investment. Mothers allocate 0.3 minutes (18 seconds) more per day to sons—an effect within measurement error of time diaries. Fathers show larger proportional differences (56%) but engage in negligible absolute childcare (6-12 seconds per day). Contrary to our hypothesis, educated urban families show no son preference or slight daughter preference.
 
 These weak findings **contrast sharply** with strong son preference documented in survival (sex-selective abortion), health care (vaccination, nutrition), and education spending. This suggests **son preference operates selectively**: primarily in domains with explicit monetary costs rather than time allocation.
 

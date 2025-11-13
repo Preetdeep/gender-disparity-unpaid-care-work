@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we examine the widely held assumption that co-resident grandparents reduce the childcare burden on mothers in urban India. Contrary to expectations, we find no statistically significant evidence of a "grandparent dividend." In urban multi-generational households, women's daily childcare time is not significantly lower than in similar households without grandparents (coefficient: +0.05 minutes, p > 0.10), even after accounting for eldercare duties. This null effect holds for both working and non-working mothers and does not differ by grandparent gender. These surprising findings challenge the narrative that informal family support can substitute for formal childcare infrastructure in rapidly urbanizing contexts. Our results suggest that either the childcare contributions of grandparents are smaller than assumed, are offset by other household dynamics, or are not well-captured by standard time-use metrics. This paper contributes to the literature by providing robust, nationally representative evidence on the limits of informal care arrangements, with important implications for policies aimed at boosting female labor force participation.
+  Using India's 2019 Time Use Survey, we examine the widely held assumption that co-resident grandparents reduce the childcare burden on mothers in urban India. Contrary to expectations, we find no statistically significant evidence of a "grandparent dividend." In urban multi-generational households, women's daily childcare time is not significantly lower than in similar households without grandparents (coefficient: +0.05 minutes, p > 0.10), even after accounting for eldercare duties. This null effect holds for both working and non-working mothers and does not differ by grandparent gender. These surprising findings challenge the narrative that informal family support can substitute for formal childcare infrastructure in rapidly urbanizing contexts. Our results suggest that either the childcare contributions of grandparents are smaller than assumed, are offset by other household dynamics, or are not well-captured by standard time-use metrics. This paper contributes to the literature by providing robust, nationally representative evidence on the limits of informal care arrangements, with important implications for policies aimed at boosting female labor force participation.
 
   **JEL Classification:** J12, J13, J14, J16, D13
 
   **Keywords:** grandparents, childcare, unpaid care work, multi-generational households, eldercare, female labor force participation, urban India, time use survey
 
-  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
 output:
   html_document:
@@ -276,7 +276,7 @@ The role of grandparents in providing childcare has gained renewed attention as 
 
 **This paper asks**: Do co-resident grandparents reduce the childcare burden on mothers in urban India? And if so, is this "grandparent dividend" offset by increased eldercare responsibilities?
 
-Using India's 2024 Time Use Survey, we compare urban households with and without co-resident grandparents (defined as parents or parents-in-law of the household head). We focus on urban areas because: (1) urban women face higher opportunity costs of time spent on childcare, given better labor market opportunities; (2) urban areas lack the extended kin networks available in villages; (3) formal childcare remains prohibitively expensive for most urban households (Desai and Joshi 2019).
+Using India's 2019 Time Use Survey, we compare urban households with and without co-resident grandparents (defined as parents or parents-in-law of the household head). We focus on urban areas because: (1) urban women face higher opportunity costs of time spent on childcare, given better labor market opportunities; (2) urban areas lack the extended kin networks available in villages; (3) formal childcare remains prohibitively expensive for most urban households (Desai and Joshi 2019).
 
 Our analysis reveals a surprising **null effect**: we find no statistically significant evidence of a grandparent childcare dividend in urban India. Our main findings are:
 
@@ -318,9 +318,9 @@ In India, Pal and Palacios (2011) find that co-resident elderly parents contribu
 
 # Data and Measurement
 
-## India's 2024 Time Use Survey
+## India's 2019 Time Use Survey
 
-We use India's Time Use Survey 2024, conducted by the National Statistical Office across all states and union territories. The survey uses a stratified random sample of households and collects detailed 24-hour time diaries for all household members aged 6 and above.
+We use India's Time Use Survey 2019, conducted by the National Statistical Office across all states and union territories. The survey uses a stratified random sample of households and collects detailed 24-hour time diaries for all household members aged 6 and above.
 
 For each household member, the survey records:
 - **Demographic characteristics**: age, gender, marital status, education, employment status, relationship to household head
@@ -794,7 +794,7 @@ Our study, while nationally representative, has limitations. First, the analysis
 
 # Conclusion
 
-This paper challenges a foundational assumption in the discourse on female labor and family in India: that co-resident grandparents provide a substantial childcare dividend. Using the nationally representative 2024 Time Use Survey, we find no statistically significant evidence to support this claim in urban India. Across a range of models, the presence of grandparents in the household has a near-zero, non-significant effect on the number of minutes a mother spends on childcare each day.
+This paper challenges a foundational assumption in the discourse on female labor and family in India: that co-resident grandparents provide a substantial childcare dividend. Using the nationally representative 2019 Time Use Survey, we find no statistically significant evidence to support this claim in urban India. Across a range of models, the presence of grandparents in the household has a near-zero, non-significant effect on the number of minutes a mother spends on childcare each day.
 
 This null result is profoundly important. It suggests that the informal, family-based solutions often touted as a panacea for India's low female labor force participation are not, on average, alleviating the time constraints that hold women back. While many individual grandparents are undoubtedly heroic caregivers, our aggregate analysis indicates that this is not a systemic solution.
 

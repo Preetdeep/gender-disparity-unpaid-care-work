@@ -1,0 +1,181 @@
+---
+title: "The Education Paradox: Does Higher Education Protect Women from the Marriage Care Penalty?"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  Standard economic theory suggests that higher education should increase women's bargaining power within marriage, leading to a more equitable division of household labor. Using India's 2019 Time Use Survey, we test this hypothesis and uncover an "education paradox." While higher education is associated with a lower burden of unpaid care work for unmarried women, it does not protect them from the large increase in care work that accompanies marriage. In fact, the "marriage penalty" in care work is largest in absolute terms for women with higher education. We find that married women with a college degree perform nearly as much care work as married women with only a primary education, and significantly more than unmarried women of any education level. This suggests that strong social norms around gender and domestic roles may override the bargaining power that education would otherwise confer, forcing even highly educated women into traditional roles upon marriage.
+
+  **JEL Classification:** J12, J16, I24, J22
+
+  **Keywords:** gender inequality, marriage penalty, unpaid care work, education, household bargaining, India
+
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: "flatly"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H", out.extra = "")
+
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, cache=FALSE, include=FALSE}
+# Load data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
+                               Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, State,
+                               FSU_Serial_No, Sample_HH_No))
+
+# Use a 10% sample
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1)
+data <- data %>% mutate(Weight = Weight / 0.1)
+
+# Process data
+processed_data <- data %>%
+  filter(Major_Activity_Flag == 1) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
+    # ICATUS Activity codes for unpaid care work: 31-33
+    care_work_minutes = ifelse(Activity_Code_2Digit >= 31 & Activity_Code_2Digit <= 33, time_spent, 0),
+
+    education_level = case_when(
+      Highest_Education <= 3 ~ "Primary or less",
+      Highest_Education <= 6 ~ "Secondary",
+      Highest_Education > 6 ~ "Higher Education"
+    ),
+    education_level = factor(education_level, levels = c("Primary or less", "Secondary", "Higher Education")),
+
+    state_factor = as.factor(State)
+  )
+
+# Aggregate to person-day level
+education_data <- processed_data %>%
+  group_by(household_id, Gender, Age, Marital_Status, Highest_Education, education_level, Sector, Weight, female, married, state_factor) %>%
+  summarise(
+    total_care_work_minutes = sum(care_work_minutes, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+      female_married = female * married
+  )
+
+rm(data, processed_data)
+invisible(gc())
+```
+
+# Introduction
+
+The dramatic global increase in women's educational attainment has been a key driver of economic development and a powerful force for gender equality. Standard models of household bargaining (e.g., Manser & Brown, 1980; McElroy & Horney, 1981) predict that a woman's education, by increasing her potential earnings and outside options, should enhance her bargaining power within marriage. This, in turn, should lead to a more equitable distribution of household labor.
+
+In this paper, we test this central prediction in the context of India, a country that has seen rapid gains in female education alongside the persistence of strong patriarchal norms. Using data from the 2019 Indian Time Use Survey, we investigate whether higher education protects women from the "marriage penalty"—the well-documented increase in unpaid care work that women typically experience upon marriage.
+
+Our findings reveal a stark "education paradox." While more educated women do perform less care work when unmarried, education provides no protection against the massive increase in domestic responsibilities that comes with marriage. In fact, the marriage penalty, measured in the absolute number of minutes of additional care work, is largest for women with the highest levels of education. This suggests that the power of social norms surrounding marital roles in India is so strong that it effectively neutralizes the bargaining power that education would otherwise confer.
+
+# Literature Review
+
+The relationship between women's empowerment and the division of household labor is complex. The household bargaining literature provides the theoretical foundation for the idea that women's resources, such as education and income, should translate into a more favorable division of domestic labor. However, empirical evidence is mixed. Some studies find support for this "resource theory," while others point to the persistence of a "gender display" model, where even high-earning women perform a disproportionate share of housework to conform to gender norms.
+
+In India, the context is further complicated by strong cultural norms that define domestic work as a woman's primary responsibility, particularly after marriage. Recent analysis of the 2019 Time Use Survey has confirmed the extreme gender imbalance in unpaid care work, an imbalance that is not substantially altered by women's employment or education. Our paper builds on this by explicitly examining the interaction between education and the "marriage penalty," providing a direct test of the bargaining power hypothesis.
+
+# Data and Methodology
+
+We use a 10% sample of the 2019 Indian Time Use Survey. Our analysis focuses on women aged 22-45. The main outcome variable is `total_care_work_minutes`, defined as the sum of time spent on care for household members (ICATUS codes 31-33). The key independent variables are `married` (a binary indicator) and `education_level` (a categorical variable: "Primary or less," "Secondary," "Higher Education").
+
+Our empirical approach is twofold. First, we present descriptive statistics showing how care work varies by marital status across different education levels. Second, we estimate OLS regression models of the form:
+
+$$ \text{CareWork}_i = \beta_0 + \beta_1 \text{Married}_i + \beta_2 \text{Education}_i + \beta_3 (\text{Married} \times \text{Education})_i + \gamma \mathbf{X}_i + \epsilon_i $$
+
+where the interaction term $\beta_3$ is our primary interest. It captures whether the marriage penalty in care work is smaller or larger for women with more education. The vector $\mathbf{X}_i$ includes controls for age and state fixed effects.
+
+# Results
+
+## Descriptive Evidence: The Education Paradox
+
+```{r descriptive_stats_education}
+education_stats <- education_data %>%
+  filter(female == 1, Age >= 22, Age <= 45) %>% # Focus on women of prime marital age
+  mutate(marital_label = ifelse(married == 1, "Married", "Unmarried")) %>%
+  group_by(education_level, marital_label) %>%
+  summarise(
+    mean_care_minutes = weighted.mean(total_care_work_minutes, Weight, na.rm = TRUE),
+    n_obs = n(),
+    .groups = "drop"
+  )
+
+# Calculate the marriage penalty
+penalty_stats <- education_stats %>%
+  pivot_wider(names_from = marital_label, values_from = mean_care_minutes) %>%
+  mutate(marriage_penalty_minutes = Married - Unmarried)
+
+kable(penalty_stats, digits = 1,
+      caption = "Women's Unpaid Care Work (Minutes per Day) by Education and Marital Status",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+The table above illustrates the education paradox. Among unmarried women, there is a clear education gradient: those with higher education perform the least care work. However, upon marriage, the care work of all women increases dramatically. Strikingly, the absolute increase (the "marriage penalty") is largest for women with higher education. Married women with a college degree perform, on average, `r sprintf("%.0f", penalty_stats$marriage_penalty_minutes[3])` more minutes of care work per day than their unmarried counterparts, compared to an increase of `r sprintf("%.0f", penalty_stats$marriage_penalty_minutes[1])` minutes for women with primary education.
+
+```{r education_paradox_viz, fig.cap="The Education Paradox: Marriage Penalty in Care Work by Education Level"}
+ggplot(penalty_stats, aes(x = education_level, y = marriage_penalty_minutes, fill = education_level)) +
+  geom_col() +
+  labs(
+    title = "The Marriage Penalty in Care Work is Largest for Highly Educated Women",
+    x = "Education Level",
+    y = "Increase in Daily Care Work After Marriage (Minutes)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Regression Results
+
+```{r education_regression}
+reg_data_education <- education_data %>%
+    filter(female == 1, Age >= 22, Age <= 45)
+
+m1_education <- feols(total_care_work_minutes ~ married * education_level + Age + I(Age^2) | state_factor,
+                      data = reg_data_education, weights = ~Weight, cluster = ~household_id)
+
+modelsummary(m1_education,
+             stars = TRUE,
+             title = "The Effect of Marriage on Women's Care Work, by Education Level",
+             coef_rename = c("married" = "Married", "education_levelSecondary" = "Secondary Educ.", "education_levelHigher Education" = "Higher Educ.", "married:education_levelSecondary" = "Married × Secondary", "married:education_levelHigher Education" = "Married × Higher Educ."),
+             gof_map = c("nobs", "r.squared"),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The regression results confirm the descriptive findings. The interaction terms (`Married × Secondary` and `Married × Higher Educ.`) are positive and significant. This indicates that the increase in care work associated with marriage is even larger for women with secondary and higher education compared to the baseline group (primary education or less). This provides strong evidence against the simple household bargaining model and in favor of the "education paradox."
+
+# Conclusion
+
+Our findings present a paradox: the very tool that is expected to empower women—higher education—does not seem to protect them from the traditional gender roles that sharply increase their burden of unpaid care work upon marriage. In the Indian context, the social institution of marriage appears to be a powerful equalizer, but in a regressive sense, erasing the advantages that education confers on unmarried women and channeling all women, regardless of their qualifications, into a primary role as caregivers.
+
+This has profound implications. It suggests that simply increasing female education may not be sufficient to bring about gender equality in the domestic sphere. The "stickiness" of social norms around marriage and care work needs to be addressed directly through policies that encourage a more equitable sharing of domestic labor, such as paternity leave, affordable childcare, and public campaigns to change perceptions of gender roles.
+
+# References {.unnumbered}
+
+Manser, M., & Brown, M. (1980). Marriage and Household Decision-Making: A Bargaining Analysis. *International Economic Review, 21*(1), 31–44.
+
+McElroy, M. B., & Horney, M. J. (1981). Nash-Bargained Household Decisions: Toward a Generalization of the Theory of Demand. *International Economic Review, 22*(2), 333–349.

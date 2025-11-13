@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Apna.co]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using a 10% random sample of India's 2024 Time Use Survey, we uncover a dramatic shift in social interaction: remote socializing is nearly 40 times more prevalent than in-person socializing. Daily participation in remote social activities (e.g., phone calls, messaging) stands at 1.55%, while in-person community participation is just 0.04%. This paper investigates the demographic drivers of this digital transformation. We find that marriage is strongly associated with a shift towards remote socializing, particularly for women. While both married men and women reduce in-person social activities, they substitute towards remote channels, with the effect being more pronounced for women. Urban residence and higher education are also strong predictors of engaging in remote social life. These findings suggest that India's social fabric is being rewoven through digital means, a transition shaped by traditional social institutions like marriage and modern factors like urbanization. This shift carries significant implications for social capital, mental health, and the nature of community in the digital age.
+  Using a 10% random sample of India's 2019 Time Use Survey, we uncover a dramatic shift in social interaction: remote socializing is nearly 40 times more prevalent than in-person socializing. Daily participation in remote social activities (e.g., phone calls, messaging) stands at 1.55%, while in-person community participation is just 0.04%. This paper investigates the demographic drivers of this digital transformation. We find that marriage is strongly associated with a shift towards remote socializing, particularly for women. While both married men and women reduce in-person social activities, they substitute towards remote channels, with the effect being more pronounced for women. Urban residence and higher education are also strong predictors of engaging in remote social life. These findings suggest that India's social fabric is being rewoven through digital means, a transition shaped by traditional social institutions like marriage and modern factors like urbanization. This shift carries significant implications for social capital, mental health, and the nature of community in the digital age.
 
   **JEL Classification:** Z13, O33, J12, J16
 
   **Keywords:** social capital, digital transformation, time use, gender, marriage, remote socialization, India
 
-  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
 output:
   pdf_document:
     latex_engine: xelatex
@@ -129,7 +129,7 @@ demographic_breakdown <- major_only %>%
 
 The nature of social connection is undergoing a fundamental global transformation, driven by the proliferation of digital technology. While extensive research has charted this shift in Western societies, less is known about how it manifests in developing countries where traditional, community-based social structures coexist with rapid technological adoption. This paper examines the landscape of social interaction in India, a country renowned for its strong family and community ties, and uncovers a startling trend: social life is moving online at a dramatic pace.
 
-Using a 10% random sample of India's 2024 Time Use Survey, we find that remote socializing—activities like phone calls, messaging, and online communication—is nearly **`r sprintf("%.0f", ratio_remote_to_in_person)` times more common** than traditional, in-person community participation. On any given day, `r sprintf("%.2f%%", remote_participation_rate)` of individuals engage in remote social activities, while a mere `r sprintf("%.2f%%", in_person_participation_rate)` participate in community events or face-to-face gatherings. This "digital distance" in social life is not uniform across the population.
+Using a 10% random sample of India's 2019 Time Use Survey, we find that remote socializing—activities like phone calls, messaging, and online communication—is nearly **`r sprintf("%.0f", ratio_remote_to_in_person)` times more common** than traditional, in-person community participation. On any given day, `r sprintf("%.2f%%", remote_participation_rate)` of individuals engage in remote social activities, while a mere `r sprintf("%.2f%%", in_person_participation_rate)` participate in community events or face-to-face gatherings. This "digital distance" in social life is not uniform across the population.
 
 This paper investigates the demographic and social factors that predict this new form of sociality. We find that marriage, a cornerstone of Indian social life, is a key driver of this shift. Both men and women substitute away from in-person activities and towards remote ones after marriage, but this effect is particularly pronounced for women. Furthermore, urbanization and higher education are strong predictors of remote social engagement, suggesting that digital social ties are becoming a feature of modern Indian life.
 
@@ -155,7 +155,7 @@ In the Indian context, marriage traditionally involves a significant restructuri
 
 ## Data Source
 
-We use the 2024 India Time Use Survey (TUS), a nationally representative survey that provides detailed 24-hour time diaries for individuals aged 6 and above. For computational feasibility, we analyze a 10% random sample and adjust the survey weights accordingly. Our final analytical sample is restricted to major activities reported by individuals.
+We use the 2019 India Time Use Survey (TUS), a nationally representative survey that provides detailed 24-hour time diaries for individuals aged 6 and above. For computational feasibility, we analyze a 10% random sample and adjust the survey weights accordingly. Our final analytical sample is restricted to major activities reported by individuals.
 
 ## Defining Remote vs. In-Person Socializing
 
@@ -327,7 +327,7 @@ This study is based on cross-sectional data, so we can only report associations,
 
 # Conclusion
 
-India is in the midst of a digital revolution that is reshaping not just its economy, but the very fabric of its social life. Our analysis of the 2024 Time Use Survey provides a stark snapshot of this change, revealing that remote, digitally-mediated interaction has become the dominant form of socializing. This transition is not uniform; it is accelerated by marriage, urbanization, and education.
+India is in the midst of a digital revolution that is reshaping not just its economy, but the very fabric of its social life. Our analysis of the 2019 Time Use Survey provides a stark snapshot of this change, revealing that remote, digitally-mediated interaction has become the dominant form of socializing. This transition is not uniform; it is accelerated by marriage, urbanization, and education.
 
 The shift towards "digital distance" socializing is a double-edged sword. It offers new ways to connect and overcome old barriers, but it also raises new questions about the quality of those connections and the risk of new social divides. Understanding this evolving social landscape is one of the most pressing tasks for researchers and policymakers in India today. Future research should employ longitudinal data to track these shifts over time and qualitative methods to explore the lived experience behind the numbers.
 

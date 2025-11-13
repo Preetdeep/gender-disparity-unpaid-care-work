@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Urban, educated, dual-earner couples in India increasingly espouse egalitarian gender values, yet time use data reveals persistent traditional divisions. Using India's 2024 Time Use Survey (10.2 million observations), we compare "progressive" households (urban, both spouses college-educated and employed) with traditional households. Despite egalitarian rhetoric, progressive wives spend substantially more time on domestic work than progressive husbands—only modestly smaller than the gap in traditional households. The gap narrows primarily because progressive women do less, not because progressive men do more. Progressive men actually contribute LESS in absolute terms, suggesting "modern" masculinity emphasizes career success over domestic involvement. We term this the "modernity paradox"—educated urban couples adopt egalitarian discourse while preserving patriarchal practice. Qualitative interviews reveal that couples rationalize gaps through career prioritization, temporary arrangements, and idealized future equality that never materializes. These findings suggest that cultural change requires more than education and urbanization—deliberate challenges to gendered norms are essential.
+  Urban, educated, dual-earner couples in India increasingly espouse egalitarian gender values, yet time use data reveals persistent traditional divisions. Using India's 2019 Time Use Survey (10.2 million observations), we compare "progressive" households (urban, both spouses college-educated and employed) with traditional households. Despite egalitarian rhetoric, progressive wives spend substantially more time on domestic work than progressive husbands—only modestly smaller than the gap in traditional households. The gap narrows primarily because progressive women do less, not because progressive men do more. Progressive men actually contribute LESS in absolute terms, suggesting "modern" masculinity emphasizes career success over domestic involvement. We term this the "modernity paradox"—educated urban couples adopt egalitarian discourse while preserving patriarchal practice. Qualitative interviews reveal that couples rationalize gaps through career prioritization, temporary arrangements, and idealized future equality that never materializes. These findings suggest that cultural change requires more than education and urbanization—deliberate challenges to gendered norms are essential.
 
   **JEL Classification:** J16, D13, J12
   **Keywords:** gender equality, urban middle class, modernity, dual-earner couples, India
@@ -64,7 +64,7 @@ India's urban middle class embraces narratives of modernity and gender equality.
 
 But do urban, educated, dual-earner couples actually practice equality? Or is egalitarian discourse merely symbolic—a marker of class status—while patriarchal practice persists behind closed doors?
 
-Using India's 2024 Time Use Survey, we test whether "progressive" households—urban, both spouses college-educated and employed—show substantially more equal domestic labor divisions than traditional households.
+Using India's 2019 Time Use Survey, we test whether "progressive" households—urban, both spouses college-educated and employed—show substantially more equal domestic labor divisions than traditional households.
 
 ```{r calculate_summary_stats, include=FALSE}
 # Calculate summary statistics for the introduction

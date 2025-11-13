@@ -4,13 +4,13 @@ author:
   - "Jules, Software Engineer"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Standard economic and sociological models often frame marriage as a protective institution for health. This paper challenges that narrative by uncovering a "widowhood health dividend" in the context of physical exercise. Using a 10% random sample of India's 2024 Time Use Survey, we find that widowed individuals report significantly higher rates of exercise participation than their married counterparts. The daily exercise participation rate for widowed women is 9.7%, compared to just 7.0% for married women. Similarly, 10.7% of widowed men exercise daily, versus 9.0% of married men. This counter-intuitive finding is robust to controls for age, education, urban residence, and employment, and it persists across the life course. Regression analysis indicates that, relative to being married, widowhood is associated with a 1.5 to 2.0 percentage point increase in the likelihood of exercising. We propose that this phenomenon is driven by the release from time-intensive spousal care duties and a potential reorientation towards self-care following the loss of a partner. These findings suggest that for some, marriage may act as a constraint on personal health maintenance, a constraint that is lifted upon widowhood.
+  Standard economic and sociological models often frame marriage as a protective institution for health. This paper challenges that narrative by uncovering a "widowhood health dividend" in the context of physical exercise. Using a 10% random sample of India's 2019 Time Use Survey, we find that widowed individuals report significantly higher rates of exercise participation than their married counterparts. The daily exercise participation rate for widowed women is 9.7%, compared to just 7.0% for married women. Similarly, 10.7% of widowed men exercise daily, versus 9.0% of married men. This counter-intuitive finding is robust to controls for age, education, urban residence, and employment, and it persists across the life course. Regression analysis indicates that, relative to being married, widowhood is associated with a 1.5 to 2.0 percentage point increase in the likelihood of exercising. We propose that this phenomenon is driven by the release from time-intensive spousal care duties and a potential reorientation towards self-care following the loss of a partner. These findings suggest that for some, marriage may act as a constraint on personal health maintenance, a constraint that is lifted upon widowhood.
 
   **JEL Classification:** I12, J12, J14, Z13
 
   **Keywords:** health behavior, exercise, marriage, widowhood, time use, gender, life course
 
-  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
 output:
   pdf_document:
     latex_engine: xelatex
@@ -123,7 +123,7 @@ married_men_rate <- exercise_stats %>% filter(gender_label == "Male", marital_la
 
 Marriage is widely regarded as a cornerstone of adult life that confers significant health benefits. A vast body of research suggests that married individuals enjoy better health outcomes and lower mortality rates than their unmarried counterparts, a phenomenon often attributed to spousal support, shared resources, and the promotion of healthier behaviors (Waite & Gallagher, 2000). This paper, however, presents a striking counter-narrative in the domain of physical exercise.
 
-Using a 10% random sample of India's 2024 Time Use Survey, we uncover a "widowhood health dividend": individuals who have lost their spouses report significantly higher rates of daily exercise than those who are currently married. On an average day, `r sprintf("%.1f%%", widowed_women_rate)` of widowed women participate in physical exercise, compared to just `r sprintf("%.1f%%", married_women_rate)` of married women. The pattern is identical for men, with `r sprintf("%.1f%%", widowed_men_rate)` of widowers exercising compared to `r sprintf("%.1f%%", married_men_rate)` of married men.
+Using a 10% random sample of India's 2019 Time Use Survey, we uncover a "widowhood health dividend": individuals who have lost their spouses report significantly higher rates of daily exercise than those who are currently married. On an average day, `r sprintf("%.1f%%", widowed_women_rate)` of widowed women participate in physical exercise, compared to just `r sprintf("%.1f%%", married_women_rate)` of married women. The pattern is identical for men, with `r sprintf("%.1f%%", widowed_men_rate)` of widowers exercising compared to `r sprintf("%.1f%%", married_men_rate)` of married men.
 
 This finding is not an artifact of age or other demographics; it persists after controlling for a rich set of covariates and across different age groups. It suggests that while marriage may be protective in many ways, it can also act as a powerful constraint on the time available for personal health maintenance. Widowhood, a profoundly difficult life transition, appears to lift this constraint, allowing for a reallocation of time towards self-care.
 
@@ -147,7 +147,7 @@ Widowhood is a major life event that dramatically reshapes an individual's daily
 
 ## Data Source
 
-We use a 10% random sample of the 2024 India Time Use Survey (TUS). Our analysis is based on the "major activities" reported in the 24-hour time diaries. All calculations are weighted to be nationally representative.
+We use a 10% random sample of the 2019 India Time Use Survey (TUS). Our analysis is based on the "major activities" reported in the 24-hour time diaries. All calculations are weighted to be nationally representative.
 
 ## Key Variables
 

@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we document an unexpected pattern in multitasking behavior: men engage in simultaneous activities more frequently than women, contrary to Western literature showing mothers multitask more than fathers. Men spend 12.1% of their time multitasking compared to women's 11.2%, with 46.7% of men's episodes involving simultaneous activities versus 40.1% for women. The drivers of this pattern remain unclear due to data limitations, but we argue it likely reflects different multitasking phenomena: men's fragmentation of optional leisure time versus women's constrained, sequential performance of demanding care work. This finding challenges simplistic interpretations of multitasking as time poverty: men's optional leisure fragmentation differs fundamentally from women's constrained sequential care work. Within women, employed and educated women multitask more than non-employed women, supporting double burden theory. We argue standard simultaneous activity flags miss women's fragmented time: rapid task-switching between cooking, childcare, and household management appears "sequential" in 30-minute blocks but reflects severe time poverty. The invisible "mental load"—planning, coordinating, remembering—creates cognitive burden not captured by simultaneous activity measures. Our findings suggest measuring time fragmentation requires methods beyond simple simultaneity flags, and that gender gaps in time poverty persist even when traditional multitasking measures show men's higher rates.
+  Using India's 2019 Time Use Survey, we document an unexpected pattern in multitasking behavior: men engage in simultaneous activities more frequently than women, contrary to Western literature showing mothers multitask more than fathers. Men spend 12.1% of their time multitasking compared to women's 11.2%, with 46.7% of men's episodes involving simultaneous activities versus 40.1% for women. The drivers of this pattern remain unclear due to data limitations, but we argue it likely reflects different multitasking phenomena: men's fragmentation of optional leisure time versus women's constrained, sequential performance of demanding care work. This finding challenges simplistic interpretations of multitasking as time poverty: men's optional leisure fragmentation differs fundamentally from women's constrained sequential care work. Within women, employed and educated women multitask more than non-employed women, supporting double burden theory. We argue standard simultaneous activity flags miss women's fragmented time: rapid task-switching between cooking, childcare, and household management appears "sequential" in 30-minute blocks but reflects severe time poverty. The invisible "mental load"—planning, coordinating, remembering—creates cognitive burden not captured by simultaneous activity measures. Our findings suggest measuring time fragmentation requires methods beyond simple simultaneity flags, and that gender gaps in time poverty persist even when traditional multitasking measures show men's higher rates.
 
   **JEL Classification:** J16, J22, D13, I31
 
   **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, simultaneous activities, domestic work, India
 
-  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
 output:
   html_document:
@@ -390,7 +390,7 @@ Time poverty—having insufficient time for rest, leisure, or self-care due to o
 
 **Multitasking—performing two or more activities simultaneously—is a key indicator of time fragmentation and mental load.** When someone must constantly juggle multiple tasks, they face cognitive overload, stress, and inability to rest even during "leisure" time. Recent research on the "mental load" emphasizes that managing multiple demands simultaneously is cognitively taxing and disproportionately falls on women (Dean et al. 2022; Daminger 2019).
 
-Using India's 2024 Time Use Survey, we document an **unexpected gender gap in multitasking behavior**: contrary to Western literature, **men engage in simultaneous activities more frequently than women**. Men spend 12.1% of their time multitasking compared to women's 11.2%, and 46.7% of men's episodes involve simultaneous activities versus 40.1% for women.
+Using India's 2019 Time Use Survey, we document an **unexpected gender gap in multitasking behavior**: contrary to Western literature, **men engage in simultaneous activities more frequently than women**. Men spend 12.1% of their time multitasking compared to women's 11.2%, and 46.7% of men's episodes involve simultaneous activities versus 40.1% for women.
 
 **Key findings**:
 
@@ -442,9 +442,9 @@ For women juggling care work, employment, and household management, the inabilit
 
 # Data and Measurement
 
-## India's 2024 Time Use Survey
+## India's 2019 Time Use Survey
 
-We use India's Time Use Survey 2024, which collected 24-hour time diaries for all household members aged 6+. The survey uses ICATUS 2016 classification, recording activities in 30-minute intervals.
+We use India's Time Use Survey 2019, which collected 24-hour time diaries for all household members aged 6+. The survey uses ICATUS 2016 classification, recording activities in 30-minute intervals.
 
 **Crucially, the survey includes a simultaneous/multiple activity flag** indicating whether the respondent reported doing multiple activities at once (each lasting 10+ minutes). For activities flagged as simultaneous, the survey may also record the secondary activity code (though this is not always available).
 
@@ -998,7 +998,7 @@ Our analysis has limitations:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document an unexpected pattern: men engage in simultaneous activities more frequently than women, contrary to Western literature. Men spend 12.1% of their time multitasking versus women's 11.2%, with 46.7% of men's episodes involving simultaneity compared to 40.1% for women.
+Using India's 2019 Time Use Survey, we document an unexpected pattern: men engage in simultaneous activities more frequently than women, contrary to Western literature. Men spend 12.1% of their time multitasking versus women's 11.2%, with 46.7% of men's episodes involving simultaneity compared to 40.1% for women.
 
 This finding challenges simplistic interpretations of multitasking as time poverty. **Our analysis suggests fundamentally different patterns may be at play, although this cannot be definitively proven without more detailed data**: men appear to combine optional leisure activities (e.g., watching TV while socializing), while women perform care work sequentially because the tasks require focused attention. Women's sequential task performance does not indicate less time fragmentation—it may reflect that care work is too demanding to combine effectively.
 

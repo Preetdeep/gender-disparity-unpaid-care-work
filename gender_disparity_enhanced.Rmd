@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at substantially higher rates than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. We exploit variation across education, sector, and household structure to show the participation gap persists across socioeconomic strata. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
+  We decompose gender disparities in unpaid care work using India's 2019 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at substantially higher rates than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. We exploit variation across education, sector, and household structure to show the participation gap persists across socioeconomic strata. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
   
   **JEL Classification:** J16, J22, D13, O15
   
@@ -94,7 +94,7 @@ Gender inequality in unpaid care work constitutes a fundamental mechanism reprod
 
 This distinction matters. If gender gaps stem from women working longer hours when performing care activities, interventions might focus on redistributing workload among current participants through household bargaining or service provision. If gaps instead reflect lower male participation rates at similar intensities, policy must target the cultural norms and institutional structures that exempt men from care responsibilities entirely.
 
-We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78% versus 1.56% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
+We exploit India's 2019 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78% versus 1.56% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
 
 This finding reframes the policy problem. The primary barrier to gender equality in care work is not persuading participating men to work more hours, but persuading non-participating men to contribute at all. The challenge is extensive margin (participation) rather than intensive margin (hours worked).
 
@@ -130,9 +130,9 @@ India's position as a rapidly developing economy with persistent patriarchal nor
 
 # Data and Measurement
 
-## Time Use Survey 2024
+## Time Use Survey 2019
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours. Our analysis uses person-level data containing `r format(nrow(major_only), big.mark=",")` activity observations from `r format(length(unique(major_only$FSU_Serial_No)), big.mark=",")` households.
+India's Time Use Survey 2019, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours. Our analysis uses person-level data containing `r format(nrow(major_only), big.mark=",")` activity observations from `r format(length(unique(major_only$FSU_Serial_No)), big.mark=",")` households.
 
 ## Key Variables
 

@@ -4,13 +4,13 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we document a striking gender gap in how people eat meals. Women are substantially more likely than men to eat while simultaneously performing other activities—particularly domestic work and childcare. When secondary activity data is available, we find that women's eating episodes occur more frequently as secondary activities alongside primary tasks compared to men's eating. This pattern intensifies in urban areas, among employed women, and in larger households. Women eat while cooking, feeding children, cleaning, and doing laundry; men eat as a primary, focused activity. We interpret this "eating gap" as a revealed-preference measure of time poverty and mental load: women cannot afford dedicated meal breaks because unpaid care work demands are continuous and non-negotiable. The gap persists across education levels and economic classes, suggesting deep cultural norms rather than resource constraints. These findings highlight an overlooked dimension of gender inequality—not just what work women do or how much time they spend, but the quality and fragmentation of that time. Policy implications include workplace meal break protections for domestic workers and recognition that time poverty, not just income poverty, constrains women's well-being.
+  Using India's 2019 Time Use Survey, we document a striking gender gap in how people eat meals. Women are substantially more likely than men to eat while simultaneously performing other activities—particularly domestic work and childcare. When secondary activity data is available, we find that women's eating episodes occur more frequently as secondary activities alongside primary tasks compared to men's eating. This pattern intensifies in urban areas, among employed women, and in larger households. Women eat while cooking, feeding children, cleaning, and doing laundry; men eat as a primary, focused activity. We interpret this "eating gap" as a revealed-preference measure of time poverty and mental load: women cannot afford dedicated meal breaks because unpaid care work demands are continuous and non-negotiable. The gap persists across education levels and economic classes, suggesting deep cultural norms rather than resource constraints. These findings highlight an overlooked dimension of gender inequality—not just what work women do or how much time they spend, but the quality and fragmentation of that time. Policy implications include workplace meal break protections for domestic workers and recognition that time poverty, not just income poverty, constrains women's well-being.
 
   **JEL Classification:** J16, J22, D13, I31
 
   **Keywords:** multitasking, time poverty, gender inequality, unpaid care work, mental load, time use, eating behavior, domestic work, India
 
-  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code and documentation available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
   **Data Limitation:** This analysis requires secondary activity coding in the Time Use Survey. Results depend on the availability and quality of simultaneous activity reporting in the dataset.
 
@@ -380,7 +380,7 @@ Time poverty—having insufficient time for rest, leisure, or self-care due to o
 
 One revealing indicator of time poverty is **how people eat**. In an ideal world, meals are social, leisurely occasions for rest and connection. In reality, many people—especially women—eat hurriedly while performing other tasks, unable to afford dedicated meal breaks. This behavior reveals severe time constraints: even basic biological needs must be compressed into multitasking.
 
-Using India's 2024 Time Use Survey, we document a stark gender gap in eating behavior, contingent on the availability of secondary activity coding in the data. **Women are substantially more likely than men to eat while simultaneously doing other activities**, as measured by eating episodes coded as secondary rather than primary activities. This "eating gap" is not explained by employment, education, income, or geographic location when such variation exists in the data. Instead, it reflects the relentless nature of unpaid care work: cooking, cleaning, and childcare operate on continuous schedules that leave no room for breaks.
+Using India's 2019 Time Use Survey, we document a stark gender gap in eating behavior, contingent on the availability of secondary activity coding in the data. **Women are substantially more likely than men to eat while simultaneously doing other activities**, as measured by eating episodes coded as secondary rather than primary activities. This "eating gap" is not explained by employment, education, income, or geographic location when such variation exists in the data. Instead, it reflects the relentless nature of unpaid care work: cooking, cleaning, and childcare operate on continuous schedules that leave no room for breaks.
 
 When secondary activity data is properly coded, we show that:
 
@@ -446,9 +446,9 @@ However, these studies rely on ethnographic observation in specific communities.
 
 # Data and Measurement
 
-## India's 2024 Time Use Survey
+## India's 2019 Time Use Survey
 
-We use India's Time Use Survey 2024, which collected 24-hour time diaries for all household members aged 6+. The survey uses the International Classification of Activities for Time Use Statistics (ICATUS 2016), recording activities in 30-minute intervals.
+We use India's Time Use Survey 2019, which collected 24-hour time diaries for all household members aged 6+. The survey uses the International Classification of Activities for Time Use Statistics (ICATUS 2016), recording activities in 30-minute intervals.
 
 Crucially, the survey codes both **primary** (major) and **secondary** (minor) activities for each time slot. If a respondent reports doing multiple things simultaneously, surveyors record the "most important" activity as primary and others as secondary.
 
@@ -904,7 +904,7 @@ Our analysis has several limitations:
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we attempted to document gender gaps in eating behavior, specifically whether women eat while simultaneously performing other tasks. However, the dataset reveals a critical limitation: no secondary eating activities are recorded (all 134,389 eating episodes are coded as primary activities only). This null finding prevents testing our hypothesis about gendered multitasking during meals.
+Using India's 2019 Time Use Survey, we attempted to document gender gaps in eating behavior, specifically whether women eat while simultaneously performing other tasks. However, the dataset reveals a critical limitation: no secondary eating activities are recorded (all 134,389 eating episodes are coded as primary activities only). This null finding prevents testing our hypothesis about gendered multitasking during meals.
 
 The absence of secondary eating activities is uniform across all socioeconomic groups, urban and rural areas, employed and non-employed women, and educated and uneducated women. This systematic pattern suggests the survey did not capture eating as a secondary activity, limiting our ability to study gendered multitasking during meals.
 

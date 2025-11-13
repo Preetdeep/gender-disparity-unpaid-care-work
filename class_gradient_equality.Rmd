@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Does wealth enable household gender equality? Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
+  Does wealth enable household gender equality? Using a 10% random sample of India's 2019 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
 
   Contrary to resource bargaining predictions, gender gaps are 33% larger in high-SES households (122 minutes/day) than low-SES households (92 minutes). This "wealth paradox" occurs because affluent men exit domestic work entirely (63 to 14 minutes/day decline) while women shift from execution to management with minimal time reduction (155 to 136 minutes). Even among dual-earners, wealth widens gaps.
 
@@ -14,7 +14,7 @@ abstract: |
 
   **Keywords:** gender inequality, wealth, household bargaining, class, domestic work, India
 
-  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2024.
+  **Data Availability:** Analysis code available upon request. Original data from National Statistical Office Time Use Survey 2019.
 
 output:
   pdf_document:
@@ -138,7 +138,7 @@ Yet an alternative hypothesis emerges from sociological "doing gender" theories 
 
 We call this the **"wealth paradox"**: economic resources may widen rather than narrow household gender gaps.
 
-Using India's 2024 Time Use Survey with 10.2 million observations, we examine gender gaps in domestic work across socioeconomic strata. **Important caveat**: Our cross-sectional data reveal associations, not causal effects—we document patterns but cannot establish whether wealth causes these gaps or whether couples with traditional divisions differentially accumulate wealth. Subject to this limitation, patterns strongly support the wealth paradox:
+Using India's 2019 Time Use Survey with 10.2 million observations, we examine gender gaps in domestic work across socioeconomic strata. **Important caveat**: Our cross-sectional data reveal associations, not causal effects—we document patterns but cannot establish whether wealth causes these gaps or whether couples with traditional divisions differentially accumulate wealth. Subject to this limitation, patterns strongly support the wealth paradox:
 
 **Gender Gaps Widen with Wealth**: Among low-SES couples (rural, primary education or less), women spend 92 more minutes per day on domestic work than men (155 vs. 63 minutes). Among high-SES couples (urban, higher education), the gap is 122 minutes (136 vs. 14 minutes)—**33% larger** (30 additional minutes / 92 baseline minutes).
 
@@ -196,7 +196,7 @@ Killewald (2016) shows that in the US, wealthier households have smaller absolut
 
 ## Data Source
 
-We use India's 2024 Time Use Survey conducted by the National Statistical Office. The survey collected 24-hour time diaries from 10.2 million person-day observations across 139,489 households, making it among the world's largest time use datasets. The survey uses a stratified multi-stage sampling design covering all states and union territories. Survey weights adjust for sampling design and non-response.
+We use India's 2019 Time Use Survey conducted by the National Statistical Office. The survey collected 24-hour time diaries from 10.2 million person-day observations across 139,489 households, making it among the world's largest time use datasets. The survey uses a stratified multi-stage sampling design covering all states and union territories. Survey weights adjust for sampling design and non-response.
 
 ## Sample and Variables
 

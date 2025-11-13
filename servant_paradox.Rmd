@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households), we examine how women's unpaid domestic work varies by socioeconomic status. Using education level and urban residence as proxies for wealth and household resources (actual consumption and household help variables are not available in these data), we document a striking paradox: higher-SES women spend only modestly less total time on domestic work than lower-SES women, despite substantial reductions in cooking and cleaning time. The missing time is absorbed by dramatic increases in household management and shopping/procurement activities. We term this the "management penalty"—higher-SES women appear to shift from doing domestic work to managing household operations. Men's domestic time remains low and unchanged across all socioeconomic groups. These findings suggest that socioeconomic resources may transform rather than eliminate women's domestic responsibilities, with implications for understanding how class privilege intersects with gender inequality. Our results are limited by the use of education×urban status as a crude proxy for household wealth and the inability to directly observe household help employment.
+  Using India's 2019 Time Use Survey (10.2 million observations, 139,489 households), we examine how women's unpaid domestic work varies by socioeconomic status. Using education level and urban residence as proxies for wealth and household resources (actual consumption and household help variables are not available in these data), we document a striking paradox: higher-SES women spend only modestly less total time on domestic work than lower-SES women, despite substantial reductions in cooking and cleaning time. The missing time is absorbed by dramatic increases in household management and shopping/procurement activities. We term this the "management penalty"—higher-SES women appear to shift from doing domestic work to managing household operations. Men's domestic time remains low and unchanged across all socioeconomic groups. These findings suggest that socioeconomic resources may transform rather than eliminate women's domestic responsibilities, with implications for understanding how class privilege intersects with gender inequality. Our results are limited by the use of education×urban status as a crude proxy for household wealth and the inability to directly observe household help employment.
 
   **JEL Classification:** J16, D13, J22, O15
 
@@ -110,7 +110,7 @@ major_only <- data %>%
     care_work_total = childcare_minutes + eldercare_minutes,
     total_domestic = physical_domestic + cognitive_domestic + care_work_total,
 
-    # NOTE: Wealth quintile and household help variables do not exist in TUS 2024
+    # NOTE: Wealth quintile and household help variables do not exist in TUS 2019
     # Using education × urban as proxy for socioeconomic status instead
     # Ideal variables would be:
     #   wealth_quintile = ntile(Monthly_Consumption, 5)
@@ -139,7 +139,7 @@ But does household help actually reduce women's domestic work burden? Or does it
 
 We call this the **"servant paradox"**: the possibility that affluent women escape physical domestic labor only to become household managers, coordinating servants' schedules, supervising quality, planning purchases, and maintaining household standards. If true, class privilege provides escape from backbreaking labor but preserves women's primary responsibility for household functioning—the "mental load" persists even when physical tasks are outsourced.
 
-Using India's 2024 Time Use Survey with 10.2 million person-day observations, we examine this question by comparing time use across socioeconomic groups. **Important methodological note**: Because the Time Use Survey does not include direct measures of household consumption/wealth or household help employment, we use education level and urban residence as proxies for socioeconomic status. While imperfect, higher education combined with urban residence strongly correlates with household resources and likelihood of employing domestic help. Our findings should be interpreted as suggestive patterns requiring validation with direct wealth and household help measures.
+Using India's 2019 Time Use Survey with 10.2 million person-day observations, we examine this question by comparing time use across socioeconomic groups. **Important methodological note**: Because the Time Use Survey does not include direct measures of household consumption/wealth or household help employment, we use education level and urban residence as proxies for socioeconomic status. While imperfect, higher education combined with urban residence strongly correlates with household resources and likelihood of employing domestic help. Our findings should be interpreted as suggestive patterns requiring validation with direct wealth and household help measures.
 
 With this caveat, we document striking patterns:
 
@@ -197,9 +197,9 @@ Evidence is mixed. US studies find that housework gender gaps narrow slightly wi
 
 # Data and Measurement
 
-## India's Time Use Survey 2024
+## India's Time Use Survey 2019
 
-We use India's Time Use Survey (TUS) 2024, conducted by the National Statistical Office. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households using the International Classification of Activities for Time Use Statistics (ICATUS).
+We use India's Time Use Survey (TUS) 2019, conducted by the National Statistical Office. The TUS collected 24-hour time diaries from 10.2 million individuals across 139,489 households using the International Classification of Activities for Time Use Statistics (ICATUS).
 
 For this analysis, we focus on major activities (Major_Activity_Flag = 1) and use a 10% random sample (N = 836,156) with adjusted weights.
 
@@ -211,7 +211,7 @@ For this analysis, we focus on major activities (Major_Activity_Flag = 1) and us
 - **Care work**: Childcare (Code 31), elder care (Code 32)
 
 **Socioeconomic Status Proxy**:
-The TUS 2024 does not include direct measures of:
+The TUS 2019 does not include direct measures of:
 - Household monthly consumption expenditure
 - Asset ownership or wealth indices
 - Presence of domestic help/servants
@@ -219,11 +219,11 @@ The TUS 2024 does not include direct measures of:
 We therefore use **education level × urban residence** as a proxy for socioeconomic status. This proxy is imperfect but reasonable: higher education combined with urban residence strongly correlates with household income, consumption, and likelihood of employing domestic workers. Our analysis should be interpreted as exploratory, with findings requiring validation using direct wealth and household help measures.
 
 **Household Help**:
-Ideally, we would directly measure whether households employ domestic workers (cooks, cleaners, nannies, drivers) and the intensity of such employment. The TUS 2024 does not include this information. We infer household help indirectly through the education×urban proxy, assuming that higher-SES households are more likely to employ help. This is a significant limitation.
+Ideally, we would directly measure whether households employ domestic workers (cooks, cleaners, nannies, drivers) and the intensity of such employment. The TUS 2019 does not include this information. We infer household help indirectly through the education×urban proxy, assuming that higher-SES households are more likely to employ help. This is a significant limitation.
 
 ## Measurement Challenges
 
-1. **Household help variable**: Not measured in TUS 2024. We use education×urban as a crude proxy, which introduces measurement error and limits causal interpretation.
+1. **Household help variable**: Not measured in TUS 2019. We use education×urban as a crude proxy, which introduces measurement error and limits causal interpretation.
 
 2. **Wealth measurement**: No direct consumption, income, or asset data. Education×urban captures some SES variation but is imperfect.
 
@@ -237,11 +237,11 @@ Ideally, we would directly measure whether households employ domestic workers (c
 
 ## Domestic Work by Socioeconomic Status
 
-NOTE: Because wealth and household help variables are not available in TUS 2024, we use education × urban status as a proxy for socioeconomic status. Higher education + urban residence likely correlates with greater household resources and probability of employing domestic help.
+NOTE: Because wealth and household help variables are not available in TUS 2019, we use education × urban status as a proxy for socioeconomic status. Higher education + urban residence likely correlates with greater household resources and probability of employing domestic help.
 
 ```{r wealth_quintile_analysis}
 # NOTE: Using education × urban as proxy for socioeconomic status
-# Wealth and household help variables not available in TUS 2024
+# Wealth and household help variables not available in TUS 2019
 
 by_wealth_gender <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
@@ -404,7 +404,7 @@ Our findings complicate narratives about women's empowerment through economic de
 
 This study has several important limitations that readers should consider when interpreting our findings:
 
-1. **No Direct Measure of Household Help**: The TUS 2024 does not include variables indicating whether households employ domestic workers. Our entire analysis assumes that higher education × urban residence proxies for household help employment. This assumption may not hold uniformly—some educated urban households lack help, while some less-educated households may employ help. Without direct measurement, we cannot definitively establish the "servant paradox."
+1. **No Direct Measure of Household Help**: The TUS 2019 does not include variables indicating whether households employ domestic workers. Our entire analysis assumes that higher education × urban residence proxies for household help employment. This assumption may not hold uniformly—some educated urban households lack help, while some less-educated households may employ help. Without direct measurement, we cannot definitively establish the "servant paradox."
 
 2. **Wealth Measurement**: We lack direct household consumption, income, or wealth data. Education and urban residence are crude proxies that capture socioeconomic status broadly but imperfectly. Actual wealth quintiles might show different patterns.
 
@@ -420,7 +420,7 @@ This study has several important limitations that readers should consider when i
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document suggestive evidence of a striking paradox: higher socioeconomic status (measured via education×urban residence as a proxy for wealth and household help) transforms but only modestly reduces women's domestic work burden. Higher-SES women spend substantially less time on physical labor—cooking and cleaning—but spend considerably more time on management activities like shopping and household organization. Total domestic time decreases modestly across SES groups.
+Using India's 2019 Time Use Survey, we document suggestive evidence of a striking paradox: higher socioeconomic status (measured via education×urban residence as a proxy for wealth and household help) transforms but only modestly reduces women's domestic work burden. Higher-SES women spend substantially less time on physical labor—cooking and cleaning—but spend considerably more time on management activities like shopping and household organization. Total domestic time decreases modestly across SES groups.
 
 Men's domestic time remains low and unchanged across socioeconomic groups, suggesting that whatever benefits household resources provide, they don't change men's minimal contributions. Women trade one form of domestic labor (physical) for another (cognitive/managerial).
 

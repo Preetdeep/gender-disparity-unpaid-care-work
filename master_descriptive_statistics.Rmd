@@ -1,6 +1,6 @@
 ---
 title: "Master Descriptive Statistics Reference"
-subtitle: "India Time Use Survey 2024 - Comprehensive Activity and Demographic Patterns"
+subtitle: "India Time Use Survey 2019 - Comprehensive Activity and Demographic Patterns"
 author: "Research Team"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -39,7 +39,7 @@ library(ggplot2)
 
 # Executive Summary
 
-This document provides comprehensive descriptive statistics for India's Time Use Survey 2024 to inform research question selection. It includes:
+This document provides comprehensive descriptive statistics for India's Time Use Survey 2019 to inform research question selection. It includes:
 
 - **Participation rates** for all major activity codes
 - **Time spent** conditional on participation (mean, median, range)
@@ -163,7 +163,7 @@ overview_stats <- data.frame(
     round(nrow(major_only) / length(unique(paste(major_only$FSU_Serial_No,
                                                   major_only$Sample_HH_No,
                                                   major_only$Person_Serial_No))), 1),
-    "January-December 2024"
+    "January-December 2019"
   )
 )
 

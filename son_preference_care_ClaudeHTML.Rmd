@@ -4,12 +4,12 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  India's son preference is well-documented in fertility and monetary investments. Does it extend to parental time? Using India's 2024 Time Use Survey, we examine time allocation in families with different child gender compositions. We find minimal evidence of son preference. Mothers spend only 0.3 minutes (18 seconds) more per day with sons than daughters, an amount within measurement error. Fathers' time commitment is negligible. Notably, educated urban families show a slight preference for daughters. This contrasts with documented bias in health and education spending, suggesting son preference is domain-specific and less pronounced in non-monetary investments.
+  India's son preference is well-documented in fertility and monetary investments. Does it extend to parental time? Using India's 2019 Time Use Survey, we examine time allocation in families with different child gender compositions. We find minimal evidence of son preference. Mothers spend only 0.3 minutes (18 seconds) more per day with sons than daughters, an amount within measurement error. Fathers' time commitment is negligible. Notably, educated urban families show a slight preference for daughters. This contrasts with documented bias in health and education spending, suggesting son preference is domain-specific and less pronounced in non-monetary investments.
 
   **JEL Classification:** J13, J16, I24, O15
   **Keywords:** son preference, childcare, gender bias, parental investment, India
 
-  **Data Availability:** Analysis uses India Time Use Survey 2024 from National Statistical Office. Code available upon request.
+  **Data Availability:** Analysis uses India Time Use Survey 2019 from National Statistical Office. Code available upon request.
 output:
   html_document:
     toc: true
@@ -314,7 +314,7 @@ results$low_ses_gap <- low_ses_gap
 
 Decades of research have established a strong son preference in India, evident in skewed sex ratios, unequal healthcare access, and biased educational spending (Das Gupta et al. 2003; Sen 1990). However, most studies focus on outcomes with direct monetary costs. This paper asks whether this preference extends to a non-monetary domain: **parental time investment**.
 
-Using the 2024 India Time Use Survey, we test the hypothesis that parents allocate more childcare time to sons than daughters. Our primary contribution lies in constructing a novel measure of household child gender composition from individual-level data, allowing us to compare time use in households with only sons, only daughters, and mixed-gender children.
+Using the 2019 India Time Use Survey, we test the hypothesis that parents allocate more childcare time to sons than daughters. Our primary contribution lies in constructing a novel measure of household child gender composition from individual-level data, allowing us to compare time use in households with only sons, only daughters, and mixed-gender children.
 
 We find no meaningful evidence of son preference in parental time. The observed differences are substantively trivial—a matter of seconds—and fall well within the measurement error of time-use diaries. This null finding is crucial because it suggests that son preference, while strong in financial decisions, may not permeate all forms of parental investment. It provides a more nuanced picture of gender bias, indicating that the mechanisms of discrimination are domain-specific.
 
@@ -330,9 +330,9 @@ Our contribution is to test whether the well-documented bias in monetary and hea
 
 # Data and Methods
 
-## Time Use Survey 2024
+## Time Use Survey 2019
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, collected 24-hour time diaries from 10.2 million individuals across 139,489 households. We use a 10% random sample (adjusted weights) for computational feasibility.
+India's Time Use Survey 2019, conducted by the National Statistical Office, collected 24-hour time diaries from 10.2 million individuals across 139,489 households. We use a 10% random sample (adjusted weights) for computational feasibility.
 
 ## Household Child Gender Composition
 
@@ -584,7 +584,7 @@ The absence of significant time-based discrimination suggests that policy levers
 
 # Conclusion
 
-This study finds that the strong son preference observed in India's financial and health-related parental investments does not extend to the domain of time. Using the 2024 Time Use Survey, we show that differences in childcare time allocated to sons versus daughters are negligible and substantively meaningless. This null result is significant: it refutes the assumption that gender bias is a monolithic force, suggesting instead that it is highly domain-specific.
+This study finds that the strong son preference observed in India's financial and health-related parental investments does not extend to the domain of time. Using the 2019 Time Use Survey, we show that differences in childcare time allocated to sons versus daughters are negligible and substantively meaningless. This null result is significant: it refutes the assumption that gender bias is a monolithic force, suggesting instead that it is highly domain-specific.
 
 The key takeaway is that son preference is most acute when monetary costs are involved. For policymakers, this means that financial incentives and subsidies remain the most effective tools for combating gender inequality. While our study has limitations, including the inability to measure the quality of parent-child interactions, it clarifies the landscape of gender bias in India and directs attention to the economic drivers of discrimination.
 

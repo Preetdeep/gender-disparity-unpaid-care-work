@@ -24,7 +24,7 @@ library(tidyr)
 ```
 
 \begin{abstract}
-We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates more than 3 times higher than men (a 3.06-fold difference), yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
+We decompose gender disparities in unpaid care work using India's 2019 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates more than 3 times higher than men (a 3.06-fold difference), yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
 
 \textbf{JEL Classification:} J16, J22, D13, O15
 
@@ -37,7 +37,7 @@ Gender inequality in unpaid care work constitutes a fundamental mechanism reprod
 
 This distinction matters. If gender gaps stem from women working longer hours when performing care activities, interventions might focus on redistributing workload among current participants through household bargaining or service provision. If gaps instead reflect lower male participation rates at similar intensities, policy must target the cultural norms and institutional structures that exempt men from care responsibilities entirely.
 
-We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78\% versus 1.56\% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
+We exploit India's 2019 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78\% versus 1.56\% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
 
 \subsection{Contributions}
 
@@ -59,7 +59,7 @@ Bargaining models (Becker 1991; Lundberg and Pollak 1996) emphasize within-house
 
 \section{Data and Methods}
 
-\subsection{Time Use Survey 2024}
+\subsection{Time Use Survey 2019}
 
 ```{r load_data}
 # Load data
@@ -72,7 +72,7 @@ cat("Total observations:", format(nrow(data), big.mark = ","), "\n")
 cat("Major activities:", format(nrow(major_only), big.mark = ","), "\n")
 ```
 
-India's Time Use Survey 2024, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours.
+India's Time Use Survey 2019, conducted by the National Statistical Office, employed a stratified multi-stage sample design covering all states and union territories. The survey recorded detailed time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals over 24 hours.
 
 \subsection{Key Variables}
 
