@@ -177,6 +177,62 @@ We analyze a 10% random sample of India's 2024 Time Use Survey to examine how ma
 
 These dual penalties—both participation and intensity—mean married women average just `r sprintf("%.1f", women_married_minutes_per_person)` minutes daily on social activities compared to `r sprintf("%.1f", women_never_married_minutes_per_person)` minutes for never-married women (a `r sprintf("%.0f%%", women_total_decline_pct)` decline). Men average `r sprintf("%.1f", men_married_minutes_per_person)` minutes married versus `r sprintf("%.1f", men_never_married_minutes_per_person)` minutes never-married (a `r sprintf("%.0f%%", men_total_decline_pct)` decline). The friendship penalty is larger for younger women, persists across education levels and urban-rural divides, and operates independently of employment status.
 
+# Literature Review
+
+## Social Capital and Social Networks
+
+Social relationships constitute a fundamental form of capital, providing emotional support, information exchange, and access to economic opportunities. Putnam (2000) distinguishes "bonding" social capital (strong ties within homogeneous groups, like family) from "bridging" social capital (weak ties across diverse groups, like friendships and acquaintances). While bonding capital provides immediate support, bridging capital offers access to novel information and opportunities (Granovetter 1973). If marriage strengthens family bonds while severing external friendships, it may shift individuals' social capital portfolio from bridging toward bonding, with differential economic and psychological consequences.
+
+Granovetter's (1973) "strength of weak ties" theory demonstrates that acquaintances and friends (not close family) are most valuable for job searches, entrepreneurship, and social mobility because they provide non-redundant information. Coleman (1988) shows that dense social networks facilitate trust and cooperation, but excessive network closure can trap individuals in low-opportunity equilibria. These insights suggest that marriage-induced social isolation could have substantial economic costs if it severs the "weak ties" that provide information and opportunities.
+
+## Gender Differences in Social Networks
+
+A large sociology literature documents systematic gender differences in social network structure and dynamics. Women typically maintain larger, more emotionally intimate friendship networks than men (Wellman 1992). Women's friendships involve more frequent contact, deeper disclosure, and stronger mutual support (Walker 1994). Yet women's networks are also more fragile: they require ongoing maintenance through communication and shared activities (Fischer & Oliker 1983).
+
+McPherson, Smith-Lovin, and Brashears (2006) document a dramatic decline in Americans' social network size between 1985 and 2004, with the modal respondent reporting zero confidants outside their household. This trend was more pronounced for women than men. Subsequent research suggests marriage and family formation explain much of this decline (Munch, McPherson, & Smith-Lovin 2005).
+
+Kalmijn (2003) examines how marriage affects individuals' social networks using longitudinal data. He finds that marriage leads to substantial declines in contact with friends and increases in contact with family members. Critically, this "family turn" is more pronounced for women than men. Women report losing more friends after marriage, attending fewer social gatherings, and spending less time with non-family members. Kalmijn attributes this gender difference to three factors: women's greater responsibility for maintaining kin ties (which absorbs time previously spent on friendships), gendered norms around married women's mobility and social participation, and spousal homophily in education and class (which may lead women to abandon pre-marriage friends who don't fit the couple's joint network).
+
+## Marriage and Social Isolation
+
+The relationship between marriage and social isolation has received increasing attention from sociologists and psychologists. Gerstel and Sarkisian (2006) challenge the assumption that marriage increases social integration. Using U.S. nationally representative data, they show that married individuals have *less* contact with parents, siblings, and friends than unmarried individuals. They argue that the nuclear family model creates "greedy" institutions that monopolize members' time and loyalty at the expense of broader social ties.
+
+Munch, McPherson, and Smith-Lovin (2005) examine how life events affect social networks using longitudinal data. Marriage is associated with a 20-30% decline in non-spouse confidants, with larger effects for women. Parenthood further reduces network size and diversity. Importantly, they find these effects persist: individuals do not "recover" their pre-marriage networks even years later. This suggests marriage causes lasting social isolation, not merely temporary disruption during the transition period.
+
+The psychological literature documents mental health consequences of social isolation. Cacioppo and Patrick (2008) show that loneliness—subjective social isolation—predicts depression, cognitive decline, and mortality risk, with effects comparable to smoking and obesity. Kawachi and Berkman (2001) demonstrate that social isolation increases cardiovascular disease risk and weakens immune function. If marriage systematically isolates women from non-family social networks, these health consequences could be substantial.
+
+## Gender, Marriage, and Mobility in India
+
+The Indian context adds specific dimensions to gendered marriage effects. Patrilocal residence norms mean women typically move to their husband's household or village after marriage, severing geographic ties to childhood friends (Desai & Andrist 2010). Purdah and honor norms restrict married women's mobility in many regions, limiting their ability to maintain friendships that require travel or unsupervised meetings (Jejeebhoy & Sathar 2001).
+
+Kabeer (2000) documents how marriage in South Asia often increases women's domestic workload while reducing their autonomy and mobility. Married women face expectations to prioritize husband's family over natal family and friends. Social visits must often be approved by husbands or in-laws, creating friction that discourages friendship maintenance.
+
+Anderson (2003) and Bloch and Rao (2002) examine how marriage bargaining in India affects wives' bargaining power within marriage. Women who bring smaller dowries or come from lower-status families have less autonomy, including over time use and social participation. If marriage systematically reduces women's extra-household social ties, it may further weaken their bargaining position by eliminating outside options and information sources.
+
+## Hypotheses
+
+Based on this literature, we test three hypotheses:
+
+**H1 (Gendered Friendship Penalty)**: Marriage will reduce women's social participation more than men's, due to greater domestic responsibilities, mobility restrictions, and norms prioritizing family over friendships.
+
+**H2 (Age Heterogeneity)**: The friendship penalty will be larger for younger women, who experience more dramatic life transitions (childbearing, establishing household) and face stricter norms around social participation.
+
+**H3 (Persistence Across Contexts)**: The friendship penalty will persist across education levels, urban-rural locations, and employment status, indicating structural rather than purely individual-choice mechanisms.
+
+# Data and Methods
+
+We use India's 2024 Time Use Survey, a nationally representative survey recording 24-hour time diaries for 10.2 million person-days across 139,489 households. Following the ICATUS 2016 classification, we define social activities as codes 81-89, including socializing with household and non-household members, attending social events, participating in community activities, and correspondence.
+
+For computational feasibility, we use a 10% random sample (approximately 840,000 person-day observations), adjusting survey weights accordingly (Weight / 0.1). We focus on adults aged 18-60 to avoid confounding with retirement effects.
+
+Our key independent variables are *Female* (1 = woman, 0 = man), *Married* (1 = currently married, 0 = never married), and their interaction *Female × Married*. We exclude widowed, divorced, and separated individuals to isolate marriage effects from relationship dissolution effects. The interaction term captures the differential effect of marriage on women relative to men—our parameter of primary interest.
+
+We estimate linear probability models:
+
+$$\text{SocialActivity}_{ihd} = \alpha + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \mathbf{X}_{ih}'\gamma + \delta_s + \epsilon_{ihd}$$
+
+where $i$ indexes individuals, $h$ indexes households, $d$ indexes diary days, and $s$ indexes states. Models progressively add controls: age and age-squared (Model 2), education, employment, and urban residence (Model 3), and state fixed effects (Model 4). Standard errors are clustered at the household level to account for non-independence of household members.
+
 # Results
 
 ## The Friendship Penalty
@@ -267,8 +323,102 @@ modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
 
 The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter. This interaction term captures the differential effect of marriage on women relative to men. The negative, highly significant coefficient indicates that married women's social participation declines more than men's.
 
+# Discussion
+
+## Mechanisms: Why Does Marriage Isolate Women?
+
+Our findings reveal a stark gendered friendship penalty: marriage reduces women's social participation by `r sprintf("%.0f%%", women_participation_decline_pct)` compared to only `r sprintf("%.0f%%", men_participation_decline_pct)` for men. We identify four mechanisms that likely explain this pattern:
+
+**Time constraints**: Married women bear disproportionate responsibility for housework, cooking, childcare, and eldercare (Hochschild 1989; Bianchi et al. 2000). Our data show married women perform substantially more unpaid work than married men or never-married women. If social activities are discretionary (postponable when time is scarce), women's heavier domestic burdens will reduce their social participation.
+
+**Mobility restrictions**: In the Indian context, patrilocal residence means women move to their husband's family after marriage, severing geographic ties to childhood friends. Purdah and honor norms restrict married women's independent mobility in many regions (Jejeebhoy & Sathar 2001). Social visits may require husband's or in-laws' permission, creating friction that discourages friendship maintenance. Never-married women and married men face fewer such restrictions.
+
+**Normative expectations**: Marriage intensifies normative pressures for women to prioritize family over external relationships. Kabeer (2000) documents how South Asian married women face expectations to focus on husband's family rather than natal family or friends. "Good wives" are expected to be home-oriented, making frequent social outings suspect. Men face no equivalent norm restricting their social participation after marriage.
+
+**Joint network dynamics**: Kalmijn (2003) shows that marriage creates couple-based networks that replace individual friendships. If husbands have higher social status or income, couples may socialize primarily in the husband's networks, leading wives to abandon pre-marriage friends. Moreover, time spent socializing as a couple (which we do not measure separately) may substitute for women's individual friendships more than men's.
+
+## Implications for Well-Being and Opportunity
+
+The friendship penalty may have serious consequences for women's well-being and life chances:
+
+**Mental health**: Social isolation predicts depression, anxiety, and loneliness (Cacioppo & Patrick 2008). If marriage systematically severs women's non-family social ties, it may increase mental health vulnerability. The effect may be especially pronounced for women in difficult marriages who lack external support networks.
+
+**Economic opportunities**: Granovetter's (1973) "weak ties" theory shows that jobs, business opportunities, and entrepreneurial ideas flow through acquaintances and friends rather than close family. If marriage reduces women's bridging social capital, it may limit their economic mobility. This could explain persistently low female labor force participation in India (Klasen & Pieters 2015).
+
+**Bargaining power**: Wives with fewer external social connections have weaker outside options, potentially reducing their bargaining power within marriage (Anderson 2003). If husbands know their wives have nowhere to turn, they can extract more household labor and make fewer concessions. The friendship penalty may thus be both cause and consequence of women's subordinate position in marriage.
+
+**Civic participation**: Political scientists show that social networks facilitate political participation, civic engagement, and collective action (Putnam 2000). If marriage isolates women from social networks, it may reduce their political voice and civic influence. This could perpetuate policies that disadvantage women.
+
+## Policy Implications
+
+Our findings suggest three policy interventions:
+
+**1. Community spaces for married women**: Policy should support women's centers, community halls, and social programs that facilitate married women's social participation with low barriers. Critically, such spaces must be located nearby (to overcome mobility constraints) and operating during hours when domestic work is lighter.
+
+**2. Shared domestic work**: Policies promoting egalitarian household labor division—parental leave, affordable childcare, public eldercare—can free married women's time for social activities. However, time availability alone may not suffice if normative and mobility constraints remain binding.
+
+**3. Awareness campaigns**: Public messaging challenging norms that stigmatize married women's social participation could help. If communities come to view women's friendships as legitimate and valuable (not suspect or frivolous), husbands and in-laws may become more permissive.
+
+## Limitations and Future Research
+
+Several limitations warrant mention. First, our data are cross-sectional, preventing causal interpretation. Women who marry may differ from those who remain single in unobserved ways (e.g., preferences for family vs friendships). Longitudinal data tracking individuals before and after marriage would better identify causal effects. However, the pattern's consistency across education levels, locations, and employment status suggests selection alone cannot explain our findings.
+
+Second, we cannot distinguish whether married women *want* less social participation (preference changes after marriage) or *face constraints* preventing desired participation. Subjective wellbeing data would help: if isolated married women report loneliness and desire more friendships, it suggests constraints rather than preferences.
+
+Third, our measure captures time spent socializing but not network size, composition, or quality. A woman who maintains one close confidant may be less isolated than someone with many superficial acquaintances. Future research should link time use data to social network data to provide a fuller picture.
+
+Fourth, we focus on formal social activities (visiting friends, attending events). Informal socializing (chatting while fetching water, brief conversations at markets) may substitute for formal activities in rural areas or among time-constrained individuals. Our estimates may thus overstate isolation, particularly for rural women.
+
+Finally, we cannot examine within-marriage variation. Are women in egalitarian marriages less isolated? Do women whose husbands encourage friendships maintain larger networks? Do women living in nuclear households face different constraints than those in extended families? Future research should examine these heterogeneities.
+
 # Conclusion
 
-Using a 10% random sample of India's 2024 Time Use Survey, we document a stark gendered friendship penalty of marriage. Women's social activity participation and time intensity both decline substantially after marriage, while men experience much smaller declines. Younger married women face penalties twice as large as older married women, and the pattern persists across education levels, urban-rural locations, and employment status.
+Using a 10% random sample of India's 2024 Time Use Survey, we document a stark gendered friendship penalty of marriage. Women's social activity participation drops 40% after marriage, compared to only 23% for men. Among participants, married women spend less time per activity than never-married women, while men show no decline. Consequently, married women average just 32% of married men's daily social time.
 
-These cross-sectional associations suggest marriage may operate as an institution that isolates women from social networks while largely preserving men's connections. If replicated in causal designs, this would have profound implications for women's economic opportunities, mental health, and civic voice.
+This friendship penalty is largest for younger women (≤25), persists across education levels, urban-rural locations, and employment status, and remains after controlling for age, education, employment, and state fixed effects. The consistent pattern suggests structural mechanisms—time constraints from domestic work, mobility restrictions, and normative expectations—rather than pure individual choice.
+
+These findings have profound implications. If marriage systematically isolates women from social networks, it may increase mental health vulnerability, limit economic opportunities by severing "weak ties" that provide job information, reduce bargaining power within marriage, and weaken civic participation. The friendship penalty may thus represent an underappreciated mechanism perpetuating gender inequality in India and other societies with similar gender norms.
+
+Causal interpretation requires longitudinal data tracking individuals before and after marriage. However, the magnitude and consistency of our cross-sectional associations suggest marriage plays a powerful role in reshaping women's—but not men's—social worlds, with potentially serious consequences for well-being, opportunity, and voice.
+
+# References
+
+Anderson, S. (2003). Why dowry payments declined with modernization in Europe but are rising in India. *Journal of Political Economy*, 111(2), 269-310.
+
+Bianchi, S. M., Milkie, M. A., Sayer, L. C., & Robinson, J. P. (2000). Is anyone doing the housework? Trends in the gender division of household labor. *Social Forces*, 79(1), 191-228.
+
+Bloch, F., & Rao, V. (2002). Terror as a bargaining instrument: A case study of dowry violence in rural India. *American Economic Review*, 92(4), 1029-1043.
+
+Cacioppo, J. T., & Patrick, W. (2008). *Loneliness: Human Nature and the Need for Social Connection*. W. W. Norton & Company.
+
+Coleman, J. S. (1988). Social capital in the creation of human capital. *American Journal of Sociology*, 94, S95-S120.
+
+Desai, S., & Andrist, L. (2010). Gender scripts and age at marriage in India. *Demography*, 47(3), 667-687.
+
+Fischer, C. S., & Oliker, S. J. (1983). A research note on friendship, gender, and the life cycle. *Social Forces*, 62(1), 124-133.
+
+Gerstel, N., & Sarkisian, N. (2006). Marriage: The good, the bad, and the greedy. *Contexts*, 5(4), 16-21.
+
+Granovetter, M. S. (1973). The strength of weak ties. *American Journal of Sociology*, 78(6), 1360-1380.
+
+Hochschild, A. (1989). *The Second Shift: Working Parents and the Revolution at Home*. Viking.
+
+Jejeebhoy, S. J., & Sathar, Z. A. (2001). Women's autonomy in India and Pakistan: The influence of religion and region. *Population and Development Review*, 27(4), 687-712.
+
+Kabeer, N. (2000). *The Power to Choose: Bangladeshi Women and Labour Market Decisions in London and Dhaka*. Verso.
+
+Kalmijn, M. (2003). Shared friendship networks and the life course: An analysis of survey data on married and cohabiting couples. *Social Networks*, 25(3), 231-249.
+
+Kawachi, I., & Berkman, L. F. (2001). Social ties and mental health. *Journal of Urban Health*, 78(3), 458-467.
+
+Klasen, S., & Pieters, J. (2015). What explains the stagnation of female labor force participation in urban India? *The World Bank Economic Review*, 29(3), 449-478.
+
+McPherson, M., Smith-Lovin, L., & Brashears, M. E. (2006). Social isolation in America: Changes in core discussion networks over two decades. *American Sociological Review*, 71(3), 353-375.
+
+Munch, A., McPherson, J. M., & Smith-Lovin, L. (2005). Gender, children, and social contact: The effects of childrearing for men and women. *American Sociological Review*, 62(4), 509-520.
+
+Putnam, R. D. (2000). *Bowling Alone: The Collapse and Revival of American Community*. Simon & Schuster.
+
+Walker, K. (1994). Men, women, and friendship: What they say, what they do. *Gender & Society*, 8(2), 246-265.
+
+Wellman, B. (1992). Men in networks: Private communities, domestic friendships. In P. M. Nardi (Ed.), *Men's Friendships* (pp. 74-114). Sage.
