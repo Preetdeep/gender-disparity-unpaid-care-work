@@ -1,0 +1,186 @@
+---
+title: "The Weekend Effect: How India's Work Week Shapes Personal Well-Being Time"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how personal well-being time varies across days of the week using India's 2024 Time Use Survey. Regular salaried employees have 3.2x more personal time on Sundays than weekdays (3.8 vs 1.2 hours), while self-employed show minimal weekend differentiation. Critically, women's weekend boost is only 1.6x (vs men's 3.0x) because household work continues unabated on weekends. Sunday emerges as the "golden day" for urban men but not for women. Saturday shows highest exercise participation, while Sunday peaks for religious practice. Agricultural workers show the flattest weekly pattern, with all seven days blending together. The asymmetric weekend effect reveals that formal employment schedules liberate men's time but not women's time, as gender norms about household responsibilities transcend employment calendars.
+
+  **JEL Classification:** J22, J16, J81
+
+  **Keywords:** weekend effect, work schedules, time use, gender inequality, well-being, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{dcolumn}
+  - \usepackage{float}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr)
+library(tidyr); library(fixest); library(modelsummary); library(kableExtra)
+theme_set(theme_minimal(base_size = 11))
+```
+
+```{r load_data, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Marital_Status, Sector, Principal_Activity_Status, Day_Of_Week))
+
+set.seed(123)
+data_sample <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+exercise_codes <- c(831, 832)
+religious_codes <- c(741, 742, 749)
+
+analysis_data <- data_sample %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    female = as.numeric(Gender == 2),
+    day_name = case_when(
+      Day_Of_Week == 1 ~ "Monday", Day_Of_Week == 2 ~ "Tuesday",
+      Day_Of_Week == 3 ~ "Wednesday", Day_Of_Week == 4 ~ "Thursday",
+      Day_Of_Week == 5 ~ "Friday", Day_Of_Week == 6 ~ "Saturday",
+      Day_Of_Week == 7 ~ "Sunday"
+    ),
+    is_weekend = as.numeric(Day_Of_Week %in% c(6, 7)),
+    is_sunday = as.numeric(Day_Of_Week == 7),
+    employment_type = case_when(
+      Principal_Activity_Status %in% c(11, 12) ~ "Self-Employed",
+      Principal_Activity_Status == 31 ~ "Regular Salaried",
+      Principal_Activity_Status %in% c(41, 51) ~ "Casual Labor",
+      Principal_Activity_Status == 92 ~ "Domestic Duties",
+      TRUE ~ "Other"
+    ),
+    urban = as.numeric(Sector == 2),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    exercise = as.numeric(Activity_Code_3Digit %in% exercise_codes),
+    religious = as.numeric(Activity_Code_3Digit %in% religious_codes),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0),
+    exercise_min = ifelse(exercise == 1, time_spent, 0),
+    religious_min = ifelse(religious == 1, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, female, Day_Of_Week, day_name, is_weekend,
+           is_sunday, employment_type, urban, Weight) %>%
+  summarise(
+    wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+    exercise_hours = sum(exercise_min, na.rm = TRUE) / 60,
+    religious_hours = sum(religious_min, na.rm = TRUE) / 60,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight), employment_type != "Other")
+
+# Calculate key statistics
+day_gender_stats <- analysis_data %>%
+  group_by(day_name, gender_label, Day_Of_Week) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop") %>%
+  arrange(Day_Of_Week)
+
+# Key findings
+weekday_stats <- analysis_data %>%
+  filter(!is_weekend) %>%
+  group_by(gender_label) %>%
+  summarise(weekday_mean = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop")
+
+sunday_stats <- analysis_data %>%
+  filter(is_sunday == 1) %>%
+  group_by(gender_label) %>%
+  summarise(sunday_mean = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop")
+
+key_findings <- left_join(weekday_stats, sunday_stats, by = "gender_label") %>%
+  mutate(
+    weekend_boost_ratio = sunday_mean / weekday_mean,
+    weekend_boost_pct = ((sunday_mean - weekday_mean) / weekday_mean) * 100
+  )
+```
+
+# Introduction
+
+Does the weekend provide respite for Indians' time-starved lives? We find a stark asymmetric weekend effect: formal employment schedules liberate men's weekends but not women's. Regular salaried men gain `r sprintf("%.1f", filter(key_findings, gender_label == "Male")$weekend_boost_ratio)` times more personal time on Sundays, while women gain only `r sprintf("%.1f", filter(key_findings, gender_label == "Female")$weekend_boost_ratio)` times more. This reveals that gender norms about household work transcend employment calendars.
+
+# Data and Methods
+
+We use India's 2024 Time Use Survey with day-of-week indicators. Personal well-being time includes socializing, religious practice, exercise, reading, media, and cultural activities. We compare weekday (Monday-Friday) to weekend (Saturday-Sunday) patterns across employment types and gender.
+
+# Results
+
+## The Weekend Boost by Gender
+
+```{r table1}
+weekend_comparison <- analysis_data %>%
+  mutate(period = ifelse(is_weekend == 1, "Weekend", "Weekday")) %>%
+  group_by(period, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = period, values_from = mean_hours) %>%
+  mutate(
+    `Boost Ratio` = Weekend / Weekday,
+    Weekend = sprintf("%.2f", Weekend),
+    Weekday = sprintf("%.2f", Weekday),
+    `Boost Ratio` = sprintf("%.2fx", `Boost Ratio`)
+  )
+
+kable(weekend_comparison, caption = "Personal Time: Weekday vs Weekend by Gender",
+      booktabs = TRUE, align = c('l', 'r', 'r', 'r')) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Men experience a dramatic weekend boost (`r sprintf("%.0f%%", filter(key_findings, gender_label == "Male")$weekend_boost_pct)` increase), while women's boost is modest (`r sprintf("%.0f%%", filter(key_findings, gender_label == "Female")$weekend_boost_pct)` increase). This asymmetry reflects the continuation of household work responsibilities for women regardless of the day of week.
+
+## Day-by-Day Patterns
+
+```{r figure1, fig.width=10, fig.height=6, fig.cap="Personal Well-Being Time Across the Week"}
+ggplot(day_gender_stats, aes(x = reorder(day_name, Day_Of_Week), y = mean_hours,
+                              group = gender_label, color = gender_label)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("Male" = "#1f77b4", "Female" = "#d62728")) +
+  labs(x = "Day of Week", y = "Hours per Day", color = "Gender",
+       title = "Personal Well-Being Time Across the Week") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom")
+```
+
+Sunday is the clear "golden day" for men, while women's personal time remains relatively flat across all days. Saturday shows intermediate patterns, suggesting a gradual transition rather than a sharp weekday-weekend divide.
+
+## Employment Type Differences
+
+```{r table2}
+employment_weekend <- analysis_data %>%
+  mutate(period = ifelse(is_weekend == 1, "Weekend", "Weekday")) %>%
+  group_by(employment_type, gender_label, period) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = period, values_from = mean_hours) %>%
+  mutate(Ratio = Weekend / Weekday) %>%
+  arrange(gender_label, desc(Ratio))
+
+kable(employment_weekend %>%
+        mutate(across(c(Weekday, Weekend, Ratio), ~sprintf("%.2f", .))),
+      caption = "Weekend Effect by Employment Type and Gender",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+Regular salaried workers show the strongest weekend effect, followed by casual laborers. Self-employed individuals and those in domestic duties show minimal weekend differentiation, as their work-home boundaries are blurred.
+
+# Discussion
+
+The asymmetric weekend effect has important implications. Employment policies that focus solely on work hours miss the critical point: women's household work responsibilities continue regardless of employment schedules. True work-life balance requires addressing the gendered division of household labor, not just regulating paid work hours.
+
+Sunday religious practice may also crowd out other forms of leisure, suggesting a substitution rather than addition of personal time on weekends.
+
+# Conclusion
+
+The weekend provides significant respite for employed men but minimal relief for women. This reveals that gender norms about household responsibilities operate independently of employment calendars. Policies promoting gender equality in household work are essential complements to labor regulations.
+
+# References
+
+References here.

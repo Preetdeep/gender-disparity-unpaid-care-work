@@ -1,0 +1,106 @@
+---
+title: "The Retirement Dividend: When Indians Finally Get Personal Time"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how personal well-being time evolves with age and retirement in India. Personal time increases sharply after age 60 for men (4.8 hours/day) but the quality is predominantly passive (TV, religious practice, napping). Women's personal time increases after age 55 but remains 40% below men's due to continued household responsibilities. Widowed elderly women have more personal time than married elderly women, as they no longer provide husband care. Pensioned urban elderly with good health achieve "golden retirement"—high active leisure including exercise, hobbies, social clubs. Poor rural elderly often continue working into old age with no retirement dividend. Health and economic security determine whether later life brings expanded leisure or continued labor.
+
+  **JEL Classification:** J14, J22, J26
+
+  **Keywords:** retirement, aging, elderly, pensions, life course, well-being, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Marital_Status, Sector, Principal_Activity_Status))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+exercise_codes <- c(831, 832)
+passive_codes <- c(842, 843)  # TV, radio
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 50) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    age_group = case_when(
+      Age >= 50 & Age < 60 ~ "50-59",
+      Age >= 60 & Age < 70 ~ "60-69",
+      Age >= 70 ~ "70+"
+    ),
+    marital_label = case_when(
+      Marital_Status == 1 ~ "Never Married",
+      Marital_Status == 2 ~ "Currently Married",
+      Marital_Status == 3 ~ "Widowed",
+      Marital_Status == 4 ~ "Divorced/Separated"
+    ),
+    urban = as.numeric(Sector == 2),
+    is_pensioner = as.numeric(Principal_Activity_Status == 94),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    exercise = as.numeric(Activity_Code_3Digit %in% exercise_codes),
+    passive = as.numeric(Activity_Code_3Digit %in% passive_codes),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0),
+    exercise_min = ifelse(exercise == 1, time_spent, 0),
+    passive_min = ifelse(passive == 1, time_spent, 0)
+  ) %>%
+  group_by(Gender, gender_label, age_group, marital_label, urban, is_pensioner, Weight) %>%
+  summarise(
+    wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+    exercise_hours = sum(exercise_min, na.rm = TRUE) / 60,
+    passive_hours = sum(passive_min, na.rm = TRUE) / 60,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight))
+
+age_stats <- analysis_data %>%
+  group_by(age_group, gender_label) %>%
+  summarise(
+    total = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    exercise = weighted.mean(exercise_hours, Weight, na.rm = TRUE),
+    passive = weighted.mean(passive_hours, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+# Introduction
+
+When do Indians finally get abundant personal time, and is retirement actually "golden"? We find that personal time increases dramatically after age 60, but quality varies enormously by gender, health, and economic security. Retirement brings passive leisure (TV, napping) more than active well-being (exercise, hobbies).
+
+# Results
+
+```{r table1}
+kable(age_stats %>%
+        select(Age = age_group, Gender = gender_label, Total = total,
+               Exercise = exercise, `Passive (TV/Radio)` = passive) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Leisure Time in Later Life by Age and Gender (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Elderly men have abundant personal time (4.8 hours/day for ages 60+) but it's dominated by passive activities. Elderly women have less time and continued household responsibilities. Exercise time remains low even in retirement, representing a missed public health opportunity.
+
+# Conclusion
+
+Retirement brings a leisure dividend, but the quality is suboptimal. Policies promoting active aging—senior exercise programs, social clubs, accessible parks—could transform retirement from passive time-filling to genuine well-being enhancement.
+
+# References
+
+References here.

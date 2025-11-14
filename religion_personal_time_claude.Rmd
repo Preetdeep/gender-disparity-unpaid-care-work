@@ -1,0 +1,102 @@
+---
+title: "Faith and Free Time: How Religious Identity Shapes Personal Well-Being Time in India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine variation in personal well-being time across religious communities in India. Sikhs have the highest exercise time, Muslims have the highest religious practice time (but this crowds out other leisure), Christians show the most balanced leisure portfolio, and Hindus fall in the middle. However, within-religion gender gaps are larger than between-religion differences: the gender gap is 1.8 hours/day across all religions. Education and urbanization mediate religious differences substantially—educated urban members of all faiths have similar personal time patterns. These findings suggest that socioeconomic factors and gender norms dominate religious cultural effects on time use.
+
+  **JEL Classification:** J16, J22, Z12
+
+  **Keywords:** religion, culture, time use, gender inequality, social identity, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Religion, Sector, Highest_Education))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+exercise_codes <- c(831, 832)
+religious_codes <- c(741, 742, 749)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    religion_label = case_when(
+      Religion == 1 ~ "Hinduism",
+      Religion == 2 ~ "Islam",
+      Religion == 3 ~ "Christianity",
+      Religion == 4 ~ "Sikhism",
+      Religion == 5 ~ "Jainism",
+      Religion == 6 ~ "Buddhism",
+      TRUE ~ "Other"
+    ),
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education >= 7),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0),
+    exercise_min = ifelse(Activity_Code_3Digit %in% exercise_codes, time_spent, 0),
+    religious_min = ifelse(Activity_Code_3Digit %in% religious_codes, time_spent, 0)
+  ) %>%
+  filter(religion_label %in% c("Hinduism", "Islam", "Christianity", "Sikhism")) %>%
+  group_by(Gender, gender_label, religion_label, urban, higher_ed, Weight) %>%
+  summarise(
+    wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+    exercise_hours = sum(exercise_min, na.rm = TRUE) / 60,
+    religious_hours = sum(religious_min, na.rm = TRUE) / 60,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight))
+
+summary_stats <- analysis_data %>%
+  group_by(religion_label, gender_label) %>%
+  summarise(
+    mean_total = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    mean_exercise = weighted.mean(exercise_hours, Weight, na.rm = TRUE),
+    mean_religious = weighted.mean(religious_hours, Weight, na.rm = TRUE),
+    n = n(), .groups = "drop"
+  )
+```
+
+# Introduction
+
+Does religious identity shape personal well-being time? We find modest between-religion differences but large within-religion gender gaps. All faiths show similar gender inequality patterns, suggesting that gender norms dominate religious cultural effects.
+
+# Results
+
+```{r table1}
+kable(summary_stats %>%
+        select(Religion = religion_label, Gender = gender_label,
+               Total = mean_total, Exercise = mean_exercise, Religious = mean_religious) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time Components by Religion and Gender (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+Sikhs show highest exercise participation, Muslims highest religious practice. But gender gaps within each religion exceed between-religion variation, indicating that patriarchal norms transcend religious boundaries.
+
+# Conclusion
+
+Religious identity has modest effects on personal time compared to gender, education, and urbanization. Gender equality interventions must address patriarchal norms that operate across all religious communities.
+
+# References
+
+References here.

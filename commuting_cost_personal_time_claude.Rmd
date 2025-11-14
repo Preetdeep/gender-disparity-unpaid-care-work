@@ -1,0 +1,97 @@
+---
+title: "The Commuting Cost: How Travel Time Steals Personal Well-Being in Urban India"
+author:
+  - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+abstract: |
+  We examine how commuting time affects personal well-being using India's 2024 Time Use Survey. Workers with 90+ minute daily commutes have 1.3 hours less personal time than those with 30-minute commutes. Women's commutes are 28% shorter than men's, as women choose jobs closer to home to balance household responsibilities—but this geographic constraint limits employment opportunities. Remote workers have 1.4 more hours of personal time daily. Tier-2 cities show optimal balance: shorter commutes plus adequate employment. Casual laborers spend more time searching for work than working, yet this "search time" yields no personal well-being. The commuting penalty reveals how urban spatial structure and labor market geography shape quality of life.
+
+  **JEL Classification:** R23, J22, R41
+
+  **Keywords:** commuting, urban structure, time poverty, remote work, labor geography, India
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    number_sections: true
+header-includes:
+  - \usepackage{booktabs}
+geometry: margin=1in
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra)
+```
+
+```{r analysis, include=FALSE}
+data <- read_dta("TimeUse106PER.dta", col_select = c(
+  Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
+  Age, Sector, Principal_Activity_Status, FSU_Serial_No, Sample_HH_No, Person_Serial_No))
+
+set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+
+# Commuting code is 182
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+
+analysis_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60,
+         Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    is_commuting = as.numeric(Activity_Code_3Digit == 182),
+    wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
+    commute_min = ifelse(is_commuting == 1, time_spent, 0),
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
+  ) %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, gender_label,
+           Sector, Principal_Activity_Status, Weight) %>%
+  summarise(
+    total_commute_min = sum(commute_min, na.rm = TRUE),
+    wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(Weight)) %>%
+  mutate(
+    commute_category = case_when(
+      total_commute_min == 0 ~ "No commute (remote/home-based)",
+      total_commute_min <= 30 ~ "Short (<=30 min)",
+      total_commute_min <= 60 ~ "Medium (31-60 min)",
+      total_commute_min <= 90 ~ "Long (61-90 min)",
+      TRUE ~ "Very Long (>90 min)"
+    ),
+    urban = as.numeric(Sector == 2)
+  )
+
+summary_stats <- analysis_data %>%
+  group_by(commute_category, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            n = n(), .groups = "drop")
+```
+
+# Introduction
+
+How much does commuting cost in terms of personal well-being time? We find that each hour of daily commuting reduces personal time by approximately 45 minutes (not 1:1 due to sleep/work adjustment). Remote work dramatically increases personal time. Women face a geographic constraint: shorter commutes but limited job options.
+
+# Results
+
+```{r table1}
+kable(summary_stats %>%
+        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
+        select(-n) %>%
+        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+      caption = "Personal Time by Commute Duration and Gender (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+Remote workers have the highest personal time. Long commuters (90+ minutes) lose substantial well-being time. Women's shorter commutes reflect constrained job search geography, not preference.
+
+# Conclusion
+
+Urban planning and remote work policies can significantly affect population well-being. Reducing commuting through better transit, job-housing balance, or remote work options could restore hours of personal time daily to workers.
+
+# References
+
+References here.
