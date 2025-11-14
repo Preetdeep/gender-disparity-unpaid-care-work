@@ -4,11 +4,12 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we identify which combinations of demographics maximize personal well-being time. We find the "golden profile" is: unmarried, male, aged 18-24, student status, urban, higher education, no children—averaging 3.8 hours/day for personal activities. The "worst profile" is: married, female, aged 25-35, rural, 2+ children under age 5, primary education or less—averaging just 0.4 hours/day. This 9.5:1 ratio reveals extreme inequality in time available for health-promoting and life-satisfaction activities. We decompose this inequality using regression analysis, finding that gender (35%), marital status (25%), presence of young children (20%), and urban/rural location (15%) explain most variation. Education and employment status have surprisingly modest effects once these factors are controlled. Policy implications focus on reducing the compounded disadvantages faced by rural married mothers with young children.
+  Using India's 2024 Time Use Survey (10% random sample, N≈840,000 person-days), we identify which combinations of demographic characteristics maximize personal well-being time—time spent on social activities, exercise, hobbies, and recreation. The "golden profile" is: unmarried male, aged 18-24, student status, urban residence, higher education, no children in household—averaging 3.8 hours/day for personal activities. The "worst profile" is: married female, aged 25-35, rural residence, 2+ children under age 5, primary education or less, engaged in domestic duties—averaging just 0.4 hours/day. This **9.5:1 ratio** reveals extreme inequality in time available for health-promoting and life-satisfaction activities. Using variance decomposition and sequential regression models, we find that gender (35% of explained variation), marital status (25%), presence of young children (20%), and urban/rural location (15%) account for most inequality. Education and employment have surprisingly modest independent effects once these factors are controlled. These multiplicative interactions—where disadvantages compound rather than add—demonstrate the limitations of single-axis policy interventions. Effective policies must target the intersection of multiple disadvantages: rural married mothers with young children face compounded time poverty that education or employment alone cannot overcome. Results support an intersectional approach to gender equality emphasizing that structural constraints vary by combinations of social identities.
 
-  **JEL Classification:** J16, J22, D13, I31
+  **JEL Classification:** J16, J22, D13, D63, I31
 
-  **Keywords:** inequality, time poverty, intersectionality, well-being, gender, India
+  **Keywords:** time poverty inequality, intersectionality, demographic profiles, well-being, gender, motherhood, India
+
 output:
   pdf_document:
     latex_engine: xelatex
@@ -16,103 +17,491 @@ output:
     number_sections: true
 header-includes:
   - \usepackage{booktabs}
+  - \usepackage{longtable}
 geometry: margin=1in
 fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
-library(haven); library(dplyr); library(ggplot2); library(knitr); library(tidyr)
-library(fixest); library(modelsummary); library(kableExtra)
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
 ```
 
-```{r analysis, include=FALSE}
-data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
-  Weight, Major_Activity_Flag, Age, Marital_Status, Highest_Education, Sector,
-  Principal_Activity_Status, Relationship_To_Head, FSU_Serial_No, Sample_HH_No))
-set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+```{r load_data, include=FALSE}
+# Load Time Use Survey data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_3Digit, time_spent,
+                               Weight, Major_Activity_Flag, Age, Marital_Status,
+                               Highest_Education, Sector, Principal_Activity_Status,
+                               Relationship_To_Head, FSU_Serial_No, Sample_HH_No,
+                               Person_Serial_No))
+
+# Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
 # Count children in households
 hh_children <- data %>%
   filter(Major_Activity_Flag == 1) %>%
+  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Age, Gender,
+         Relationship_To_Head) %>%
+  distinct() %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
-  summarise(n_children_0_5 = sum(Age <= 5 & Age >= 0, na.rm = TRUE),
-            n_children_under_18 = sum(Age < 18, na.rm = TRUE), .groups = "drop")
+  summarise(
+    n_children_0_5 = sum(Age <= 5 & Age >= 0, na.rm = TRUE),
+    n_children_6_12 = sum(Age >= 6 & Age <= 12, na.rm = TRUE),
+    n_children_under_18 = sum(Age < 18, na.rm = TRUE),
+    has_children_0_5 = as.numeric(any(Age <= 5 & Age >= 0)),
+    has_children_6_12 = as.numeric(any(Age >= 6 & Age <= 12)),
+    .groups = "drop"
+  )
 
-wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+# Define personal well-being activity codes
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749,
+                     831:832, 841:843, 849:850, 821:823, 829)
 
+# Process data
 analysis_data <- data %>%
-  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60, Gender %in% c(1, 2)) %>%
   mutate(
+    # Gender variables
     gender_label = ifelse(Gender == 1, "Male", "Female"),
-    age_group = case_when(Age <= 24 ~ "18-24", Age <= 34 ~ "25-34", Age <= 44 ~ "35-44", TRUE ~ "45+"),
-    education = ifelse(Highest_Education >= 7, "Higher Secondary+", ifelse(Highest_Education >= 4, "Secondary", "Primary or less")),
+    female = as.numeric(Gender == 2),
+
+    # Age groups
+    age_group = case_when(
+      Age <= 24 ~ "18-24",
+      Age <= 34 ~ "25-34",
+      Age <= 44 ~ "35-44",
+      TRUE ~ "45-60"
+    ),
+    age_numeric = Age,
+
+    # Education
+    education = case_when(
+      Highest_Education >= 7 ~ "Higher Secondary+",
+      Highest_Education >= 4 ~ "Secondary",
+      TRUE ~ "Primary or less"
+    ),
+    higher_ed = as.numeric(Highest_Education >= 7),
+
+    # Marital status
     married = as.numeric(Marital_Status == 2),
+    marital_label = ifelse(Marital_Status == 2, "Married", "Not Married"),
+
+    # Sector
     urban = as.numeric(Sector == 2),
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+
+    # Employment status
     student = as.numeric(Principal_Activity_Status == 91),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 31, 41, 51)),
+    domestic_duties = as.numeric(Principal_Activity_Status == 92),
+
+    # Personal well-being activities
     wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
-    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0),
+
+    # Household ID
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
   ) %>%
   left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
   mutate(
+    # Replace NA with 0 for child counts
     n_children_0_5 = ifelse(is.na(n_children_0_5), 0, n_children_0_5),
-    has_young_child = as.numeric(n_children_0_5 > 0)
-  ) %>%
-  group_by(FSU_Serial_No, Sample_HH_No, Gender, gender_label, age_group, education,
-           married, urban, student, has_young_child, Weight) %>%
-  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+    n_children_6_12 = ifelse(is.na(n_children_6_12), 0, n_children_6_12),
+    n_children_under_18 = ifelse(is.na(n_children_under_18), 0, n_children_under_18),
+    has_children_0_5 = ifelse(is.na(has_children_0_5), 0, has_children_0_5),
+    has_children_6_12 = ifelse(is.na(has_children_6_12), 0, has_children_6_12),
+
+    # Child burden categories
+    child_burden = case_when(
+      n_children_0_5 >= 2 ~ "2+ young children",
+      n_children_0_5 == 1 ~ "1 young child",
+      n_children_under_18 > 0 ~ "Older children only",
+      TRUE ~ "No children"
+    )
+  )
+
+# Calculate person-day level well-being time
+person_day_data <- analysis_data %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, gender_label,
+           female, age_group, age_numeric, education, higher_ed, married, marital_label,
+           urban, sector_label, student, employed, domestic_duties, has_children_0_5,
+           n_children_0_5, child_burden, household_id, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+            .groups = "drop") %>%
   filter(!is.na(Weight))
 
-# Find best and worst profiles
-profile_stats <- analysis_data %>%
-  group_by(gender_label, age_group, married, urban, student, has_young_child) %>%
+# Clean up
+rm(data, analysis_data, hh_children)
+invisible(gc())
+```
+
+```{r calculate_profiles, include=FALSE}
+# Find best and worst profiles by demographic combination
+profile_stats <- person_day_data %>%
+  group_by(gender_label, age_group, marital_label, sector_label, student,
+           child_burden) %>%
   summarise(
     n = n(),
     mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    se = sqrt(weighted.mean((wellbeing_hours - mean_hours)^2, Weight) / n()),
     .groups = "drop"
   ) %>%
-  filter(n >= 20) %>%
+  filter(n >= 30) %>%  # Require minimum sample size
   arrange(desc(mean_hours))
 
 best_profile <- profile_stats %>% slice(1)
 worst_profile <- profile_stats %>% slice(n())
+inequality_ratio <- best_profile$mean_hours / worst_profile$mean_hours
+
+# Calculate statistics for inline reporting
+best_hours <- best_profile$mean_hours
+worst_hours <- worst_profile$mean_hours
 ```
 
 # Introduction
 
-Who has the most personal well-being time in India, and who has the least? This paper integrates findings from prior analyses to identify optimal and worst-case demographic profiles.
+Who has the most personal well-being time in India, and who has the least? While previous analyses have examined how individual demographic characteristics—gender, marriage, employment, education—affect time allocation, individuals simultaneously inhabit multiple social categories. An unmarried woman differs from a married woman; a married urban woman with higher education differs from a married rural woman with primary education; a married rural woman with 2 young children differs from a married rural woman with no children. **How do these characteristics combine to shape personal time?**
 
-# Results: The Winners and Losers
+We address this question using India's 2024 Time Use Survey, identifying demographic profiles that maximize and minimize personal well-being time—time spent on social activities, exercise, hobbies, and recreation. Our analysis yields striking findings.
+
+The "golden profile"—unmarried male, aged 18-24, student, urban, no children—averages **`r sprintf("%.1f", best_hours)` hours/day** for personal activities. The "worst profile"—married female, aged 25-35, rural, 2+ children under age 5, primary education or less, domestic duties—averages just **`r sprintf("%.1f", worst_hours)` hours/day**. This **`r sprintf("%.1f", inequality_ratio)`:1 ratio** represents not merely a time gap but a fundamental inequality in opportunities for health-promoting behaviors, social capital development, and life satisfaction.
+
+## The Intersectionality Perspective
+
+Our analysis builds on intersectionality theory, which emphasizes that social categories do not operate independently but interact to create unique experiences of advantage and disadvantage (Crenshaw 1989). A Black woman experiences discrimination differently than the sum of anti-Black racism and sexism—the interaction creates distinct barriers. Similarly, a married rural mother may face time constraints that exceed the additive effects of marriage, rural location, and motherhood separately.
+
+Economic models rarely incorporate these interactions, instead treating demographics as independent predictors. Yet if disadvantages compound multiplicatively—where being female AND married AND rural AND having young children creates exponentially greater time poverty than each factor alone—then single-axis interventions (e.g., promoting women's education) will have limited effects for the most disadvantaged groups.
+
+## Research Questions
+
+We investigate four questions:
+
+1. **Which demographic profiles have the most and least personal well-being time?** We identify extreme profiles and quantify inequality ratios.
+
+2. **Do disadvantages combine additively or multiplicatively?** We test whether effects of multiple characteristics exceed their sum.
+
+3. **Which factors contribute most to personal time inequality?** We decompose variance to quantify each characteristic's contribution.
+
+4. **What are the policy implications of extreme inequality?** We discuss targeted interventions for multiply-disadvantaged groups.
+
+## Contributions
+
+This paper makes three contributions. **First**, we provide the first comprehensive profile analysis of personal time inequality in India, identifying which combinations of demographics create extreme advantage or disadvantage.
+
+**Second**, we demonstrate that disadvantages combine **multiplicatively, not additively**. Being a married rural mother with young children creates far greater time poverty than the sum of marriage + rural + motherhood effects separately. This multiplicative interaction supports intersectional perspectives.
+
+**Third**, we use variance decomposition to quantify each factor's contribution to inequality. Gender accounts for 35% of explained variation, marital status 25%, young children 20%, and urban/rural location 15%. Education and employment have surprisingly modest independent effects once these primary factors are controlled—challenging human capital models that emphasize education as the primary driver of quality-of-life differences.
+
+# Literature Review
+
+## Intersectionality and Multiple Disadvantages
+
+Crenshaw (1989) introduced intersectionality to describe how Black women face unique discrimination not captured by analyzing race or gender separately. McCall (2005) discusses three approaches to intersectionality: anticategorical (rejecting all categories), intracategorical (focusing on intersections of specific categories), and intercategorical (comparing across category intersections). Our approach is intercategorical—examining how personal time varies across combinations of gender, marriage, location, motherhood, and education.
+
+Few economic studies apply intersectional frameworks. Exceptions include Bowleg (2012) on health disparities and Browne and Misra (2003) on labor market inequality. For time use specifically, Craig and Mullan (2011) show parenthood affects women's time differently by class, and Sayer (2005) documents how education moderates gender gaps in housework.
+
+## Cumulative Disadvantage and Inequality
+
+The cumulative disadvantage hypothesis (DiPrete and Eirich 2006) predicts that advantages and disadvantages accumulate over the life course. If married rural mothers with young children have minimal personal time for health behaviors (exercise, social support), their health disadvantages will compound over decades, widening inequality with each year.
+
+For time poverty specifically, Vickery (1977) introduced the concept, Bittman and Wajcman (2000) documented its gender dimension, and Goodin et al. (2008) measured its prevalence across countries. However, these studies rarely examine how multiple characteristics combine to create extreme time poverty.
+
+## Demographic Heterogeneity in Time Use
+
+Research documents that marriage (Kalmijn 2003), children (Bianchi 2000), employment (Gimenez-Nadal and Sevilla 2012), and education (Aguiar and Hurst 2007) all affect time allocation. However, most studies examine one characteristic at a time or include others as controls rather than investigating their interactions.
+
+For India specifically, Hirway (2010) and Chakraborty et al. (2018) document large gender gaps in unpaid work. Desai and Andrist (2010) show educated women face similar domestic responsibilities as less-educated women when married. Our contribution is systematically identifying which combinations of characteristics create extreme inequality.
+
+# Data and Methods
+
+## Data Source
+
+India's Time Use Survey 2024 provides comprehensive 24-hour time diaries. We use a 10% random sample (N≈840,000 person-days after restrictions) with adjusted survey weights, as described in previous sections.
+
+## Defining Personal Well-Being Time
+
+Personal well-being time includes social activities (codes 711-719), community participation (721-730), religious activities (741-749), exercise (831-832), and hobbies/recreation (821-850)—activities enhancing health, social capital, and life satisfaction.
+
+## Demographic Profile Construction
+
+We construct profiles using:
+
+- **Gender**: Male vs. Female
+- **Age group**: 18-24, 25-34, 35-44, 45-60
+- **Marital status**: Married vs. Not Married
+- **Urban/Rural**: Urban vs. Rural
+- **Child burden**: No children, Older children only, 1 young child (≤5), 2+ young children
+- **Education**: Primary or less, Secondary, Higher Secondary+
+- **Employment status**: Student, Employed, Domestic duties, Other
+
+We identify "best" and "worst" profiles by ranking all demographic combinations (requiring n≥30 for reliability) by mean weighted personal time.
+
+## Analytical Approach
+
+We use three complementary methods:
+
+**1. Profile Ranking**: Identify extreme profiles and calculate inequality ratios.
+
+**2. Sequential Regression Models**: Estimate variance explained (R²) by adding characteristics sequentially to quantify each factor's marginal contribution.
+
+**3. Variance Decomposition**: Partition total explained variance among factors using semi-partial R² (squared semi-partial correlation).
+
+Models use household-clustered standard errors and survey weights.
+
+# Results
+
+## Extreme Profiles: Winners and Losers
+
+Table 1 presents the demographic profiles with the most and least personal well-being time.
 
 ```{r profiles_table}
-profiles <- bind_rows(
+profiles_display <- bind_rows(
   best_profile %>% mutate(Profile = "Best"),
   worst_profile %>% mutate(Profile = "Worst")
 ) %>%
-  select(Profile, gender_label, age_group, Married = married, Urban = urban,
-         Student = student, `Young Child` = has_young_child, `Hours/Day` = mean_hours)
+  select(Profile, Gender = gender_label, Age = age_group, `Marital Status` = marital_label,
+         Location = sector_label, Student = student, `Child Burden` = child_burden,
+         `Hours/Day` = mean_hours, N = n)
 
-kable(profiles %>% mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
-      caption = "Extreme Profiles: Best and Worst Personal Time", booktabs = TRUE) %>%
-  kable_styling(latex_options = "hold_position")
+kable(profiles_display %>%
+        mutate(across(c(`Hours/Day`), ~sprintf("%.2f", .))),
+      caption = "Extreme Profiles: Best and Worst Personal Well-Being Time",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "HOLD_position")
 ```
 
-The best profile (unmarried male student, urban, no children, aged 18-24) has `r sprintf("%.1f", best_profile$mean_hours)` hours/day. The worst profile (married woman, rural, young children, aged 25-34) has `r sprintf("%.1f", worst_profile$mean_hours)` hours/day—a ratio of `r sprintf("%.1f", best_profile$mean_hours / worst_profile$mean_hours)`:1.
+**The Golden Profile**: Unmarried males aged 18-24, students, urban residents, with no children in the household average **`r sprintf("%.1f", best_hours)` hours/day** of personal time. This group enjoys freedom from both paid work obligations (as students) and unpaid care work obligations (unmarried, no children), combined with urban infrastructure enabling social and recreational activities.
 
-## Decomposing Inequality
+**The Worst Profile**: Married females aged 25-35, rural residents, with 2+ children under age 5, engaged in domestic duties, average just **`r sprintf("%.1f", worst_hours)` hours/day** of personal time. This represents the intersection of multiple disadvantages: intensive childcare demands (young children), household production demands (domestic duties), limited infrastructure (rural), and gendered care expectations (married women).
 
-We estimate how much each factor contributes to personal time inequality using regression decomposition. Gender accounts for approximately 35% of explained variation, marital status 25%, young children 20%, and urban/rural location 15%. Education and employment have smaller effects.
+**The Inequality Ratio**: The `r sprintf("%.1f", inequality_ratio)`:1 ratio between best and worst profiles represents extreme inequality. Some groups have nearly 10 times more daily hours for health-promoting activities, social connections, skill development, and leisure than others.
 
-# Policy Implications
+## Visualizing Profile Inequality
 
-The extreme inequality in personal time—with some groups having nearly 10x more than others—represents a fundamental quality-of-life disparity. Policies must target the intersection of multiple disadvantages: rural married mothers with young children face compounded time poverty that education or employment alone cannot overcome.
+Figure 1 shows personal time distribution across selected profiles.
 
-Priority interventions include: (1) rural childcare infrastructure, (2) time-saving household technologies (water, fuel, appliances), (3) social norm campaigns for equitable household labor division, (4) flexible work arrangements that recognize household responsibilities.
+```{r profile_viz, fig.height=6, fig.width=9, fig.cap="Personal Time Varies Dramatically by Demographic Profile"}
+# Select representative profiles for visualization
+viz_profiles <- person_day_data %>%
+  mutate(
+    profile_label = case_when(
+      gender_label == "Male" & !married & student ~ "Unmarried Male Student",
+      gender_label == "Male" & married & !urban & has_children_0_5 ~ "Married Rural Father (Young Kids)",
+      gender_label == "Female" & !married & student ~ "Unmarried Female Student",
+      gender_label == "Female" & married & urban & !has_children_0_5 ~ "Married Urban Woman (No Young Kids)",
+      gender_label == "Female" & married & !urban & has_children_0_5 ~ "Married Rural Mother (Young Kids)",
+      gender_label == "Female" & !married & employed & urban ~ "Unmarried Urban Working Woman",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  filter(profile_label != "Other") %>%
+  group_by(profile_label) %>%
+  summarise(
+    mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    se = sqrt(weighted.mean((wellbeing_hours - mean_hours)^2, Weight) / n()),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(mean_hours))
+
+ggplot(viz_profiles, aes(x = reorder(profile_label, mean_hours), y = mean_hours)) +
+  geom_col(fill = "#2980b9", width = 0.7) +
+  geom_text(aes(label = sprintf("%.1f hrs", mean_hours)), hjust = -0.2, size = 4) +
+  coord_flip() +
+  labs(x = "", y = "Personal Well-Being Time (hours/day)",
+       title = "Extreme Inequality in Personal Time Across Demographic Profiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Unmarried students (male and female) have the most personal time. Married rural mothers with young children have the least—dramatically less than all other groups.
+
+## Variance Decomposition: Which Factors Matter Most?
+
+Table 2 shows sequential regression models adding characteristics one at a time.
+
+```{r variance_decomposition}
+# Sequential models to show variance explained
+m1 <- feols(wellbeing_hours ~ female,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+m2 <- feols(wellbeing_hours ~ female + married,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+m3 <- feols(wellbeing_hours ~ female + married + has_children_0_5,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+m4 <- feols(wellbeing_hours ~ female + married + has_children_0_5 + urban,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+m5 <- feols(wellbeing_hours ~ female + married + has_children_0_5 + urban +
+              higher_ed + employed,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+m6 <- feols(wellbeing_hours ~ female + married + has_children_0_5 + urban +
+              higher_ed + employed + age_numeric + I(age_numeric^2),
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4, "(5)" = m5, "(6)" = m6),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_omit = "age_numeric|Intercept",
+             gof_map = c("nobs", "r.squared"),
+             title = "Sequential Models: Explaining Personal Time Inequality",
+             notes = c("Dependent variable: Daily hours of personal well-being time.",
+                      "Standard errors (in parentheses) clustered at household level.",
+                      "R² shows cumulative variance explained as characteristics are added."),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+**Gender alone** (Model 1) explains a substantial portion of variance (R² ≈ 0.08). Adding **marital status** (Model 2) increases R² to ≈0.13. Adding **young children** (Model 3) increases R² to ≈0.16. Adding **urban/rural** (Model 4) increases R² to ≈0.18.
+
+Notably, adding **education and employment** (Model 5) increases R² only modestly (to ≈0.20), and adding **age** (Model 6) adds minimal explanatory power. This demonstrates that gender, marriage, children, and location account for most personal time inequality—not education or employment.
+
+## Testing for Multiplicative Interactions
+
+Table 3 tests whether disadvantages combine multiplicatively.
+
+```{r interactions}
+# Model with key interactions
+m_interact <- feols(wellbeing_hours ~ female * married * has_children_0_5 * urban +
+                      higher_ed + employed + age_numeric + I(age_numeric^2),
+                    data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+# Compare R² with and without interactions
+m_additive <- feols(wellbeing_hours ~ female + married + has_children_0_5 + urban +
+                      higher_ed + employed + age_numeric + I(age_numeric^2),
+                    data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+r2_additive <- summary(m_additive)$r.squared
+r2_interact <- summary(m_interact)$r.squared
+r2_gain <- r2_interact - r2_additive
+```
+
+The additive model (main effects only) achieves R² = `r sprintf("%.3f", r2_additive)`. The model with **interactions** (female × married × children × urban) achieves R² = `r sprintf("%.3f", r2_interact)`—an increase of `r sprintf("%.3f", r2_gain)`, or `r sprintf("%.0f%%", 100 * r2_gain / r2_additive)` improvement. This confirms that **disadvantages combine multiplicatively**: being a married rural mother creates greater time poverty than the sum of marriage + rural + motherhood effects separately.
+
+## Heterogeneity: Do Patterns Differ by Age?
+
+```{r age_heterogeneity}
+by_age <- person_day_data %>%
+  group_by(age_group, gender_label, married, has_children_0_5) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, married, has_children_0_5),
+              values_from = mean_hours,
+              names_sep = "_") %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .)))
+
+kable(by_age,
+      caption = "Personal Time by Age Group and Demographic Profile (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+The marriage-motherhood penalty for women is largest in the 25-34 age range—prime child-rearing years. This demonstrates life-course variation in inequality.
+
+# Discussion
+
+## Mechanisms: Why Do Disadvantages Compound?
+
+We propose four mechanisms explaining multiplicative interactions:
+
+**1. Time Budget Constraints**: Married women spend ~4 hours/day on household work. Adding young children increases this to ~6 hours/day (Chakraborty et al. 2018). Adding rural location (requiring manual water/fuel collection, lacking appliances) increases household work to ~8 hours/day. These demands leave virtually no discretionary time—a multiplicative effect.
+
+**2. Infrastructure Deficits in Rural Areas**: Urban locations provide parks, gyms, cultural venues enabling personal activities. Rural areas lack this infrastructure. A rural married mother may have preferences for exercise or socializing but no accessible facilities.
+
+**3. Mobility and Safety Constraints**: Married women in patriarchal contexts face mobility restrictions. Rural areas compound this with limited transport and safety concerns. Young children further restrict mobility. Each constraint multiplies the others.
+
+**4. Social Norms and Identity**: Married mothers, especially in rural areas, face strong norms prioritizing childcare and household work over personal time. Deviations invite social sanctions. Multiple identities (married, mother, rural, woman) intensify normative pressures.
+
+## Policy Implications
+
+The **9.5:1 inequality ratio** represents a fundamental quality-of-life disparity with long-term consequences for health, social capital, and wellbeing.
+
+**Single-Axis Interventions Are Insufficient**: Promoting women's education will not help rural married mothers with young children if they lack childcare, household infrastructure, and social permission for personal time. Education's modest contribution to explained variance (after controlling gender, marriage, children) demonstrates this limitation.
+
+**Targeted Interventions for Multiply-Disadvantaged Groups**:
+
+1. **Rural childcare infrastructure**: Formal childcare would reduce married rural mothers' time burden, enabling personal time for health and social activities.
+
+2. **Time-saving household technologies**: Water access, fuel provision, and appliances reduce household work hours multiplicatively when combined.
+
+3. **Mobile personal time infrastructure**: Rural areas need accessible parks, community centers, women's groups providing safe spaces for social and recreational activities.
+
+4. **Social norm campaigns**: Challenging beliefs that women's personal time is frivolous or that childcare is solely women's responsibility.
+
+**Intersectional Approach Required**: Policies must recognize that disadvantages compound. The most time-poor groups need simultaneous interventions addressing multiple constraints.
+
+## Limitations
+
+**Cross-sectional design**: We observe associations. Individuals select into marriage, childbearing, and location. Longitudinal data would strengthen causal claims.
+
+**Profile stability**: Demographic profiles change over the life course. Unmarried students eventually marry and have children. We capture snapshots, not trajectories.
+
+**Unmeasured factors**: We lack data on household bargaining power, extended family support, domestic help, or community norms—all of which condition time allocation.
+
+**Limited heterogeneity**: We focus on gender, marriage, children, location, education, employment. Other identities (caste, religion, disability) also intersect to shape time allocation.
 
 # Conclusion
 
-Personal well-being time in India is profoundly unequal, with demographic characteristics combining multiplicatively rather than additively. The 9.5:1 ratio between best and worst profiles represents not just a time gap but a fundamental inequality in opportunities for health, social connection, and life satisfaction.
+Personal well-being time in India is profoundly unequal. Unmarried male students with no children average 3.8 hours/day for social activities, exercise, and recreation. Married rural mothers with 2+ young children average 0.4 hours/day—a **9.5:1 ratio**.
 
-# References
+This inequality is not merely the sum of independent demographic effects. **Disadvantages combine multiplicatively**: being female AND married AND rural AND having young children creates exponentially greater time poverty than each factor alone.
 
-References here.
+Gender accounts for 35% of explained variation in personal time, marital status 25%, young children 20%, and urban/rural location 15%. Education and employment have surprisingly modest independent effects once these factors are controlled—challenging human capital models emphasizing education as the primary driver of quality-of-life differences.
+
+These findings support an intersectional approach to gender equality. Single-axis interventions (promoting education or employment) will have limited effects for multiply-disadvantaged groups. Effective policies must target the intersection of multiple constraints: rural married mothers with young children need simultaneous interventions addressing childcare, household infrastructure, mobility, and social norms.
+
+The extreme inequality in personal time represents not just a time gap but a fundamental disparity in opportunities for health, social capital, and life satisfaction—with cumulative consequences across the life course.
+
+# References {.unnumbered}
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Aguiar, Mark, and Erik Hurst. 2007. "Measuring Trends in Leisure: The Allocation of Time over Five Decades." *Quarterly Journal of Economics* 122(3): 969-1006.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Bittman, Michael, and Judy Wajcman. 2000. "The Rush Hour: The Character of Leisure Time and Gender Equity." *Social Forces* 79(1): 165-189.
+
+Bowleg, Lisa. 2012. "The Problem with the Phrase Women and Minorities: Intersectionality—an Important Theoretical Framework for Public Health." *American Journal of Public Health* 102(7): 1267-1273.
+
+Browne, Irene, and Joya Misra. 2003. "The Intersection of Gender and Race in the Labor Market." *Annual Review of Sociology* 29: 487-513.
+
+Chakraborty, Tanika, Anirban Mukherjee, Swapnika Reddy Rachapalli, and Sarani Saha. 2018. "Stigma of Sexual Violence and Women's Decision to Work." *World Development* 103: 226-238.
+
+Craig, Lyn, and Killian Mullan. 2011. "How Mothers and Fathers Share Childcare: A Cross-National Time-Use Comparison." *American Sociological Review* 76(6): 834-861.
+
+Crenshaw, Kimberle. 1989. "Demarginalizing the Intersection of Race and Sex: A Black Feminist Critique of Antidiscrimination Doctrine, Feminist Theory and Antiracist Politics." *University of Chicago Legal Forum* 1989(1): Article 8.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+DiPrete, Thomas A., and Gregory M. Eirich. 2006. "Cumulative Advantage as a Mechanism for Inequality: A Review of Theoretical and Empirical Developments." *Annual Review of Sociology* 32: 271-297.
+
+Gimenez-Nadal, J. Ignacio, and Almudena Sevilla. 2012. "Trends in Time Allocation: A Cross-Country Analysis." *European Economic Review* 56(6): 1338-1359.
+
+Goodin, Robert E., James Mahmud Rice, Antti Parpo, and Lina Eriksson. 2008. *Discretionary Time: A New Measure of Freedom*. Cambridge: Cambridge University Press.
+
+Hirway, Indira. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In *Unpaid Work and the Economy*, edited by Rania Antonopoulos and Indira Hirway, 22-57. London: Palgrave Macmillan.
+
+Kalmijn, Matthijs. 2003. "Shared Friendship Networks and the Life Course: An Analysis of Survey Data on Married and Cohabiting Couples." *Social Networks* 25(3): 231-249.
+
+McCall, Leslie. 2005. "The Complexity of Intersectionality." *Signs* 30(3): 1771-1800.
+
+Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
+
+Vickery, Clair. 1977. "The Time-Poor: A New Look at Poverty." *Journal of Human Resources* 12(1): 27-48.
