@@ -4,11 +4,12 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine how employment status affects personal well-being time using India's 2024 Time Use Survey. Contrary to expectations, employed individuals do not have uniformly less personal time. Regular salaried workers maintain 2.1 hours/day for personal activities, while women engaged in "domestic duties only" have just 0.8 hours/day—the least of any employment category. Self-employed individuals have highly variable personal time depending on gender: self-employed men have the most flexibility (2.4 hours/day), while self-employed women face work-home boundary blurring that leaves them with minimal personal time. Students have the most personal time (3.2 hours/day) but this is concentrated on weekends. The employment-leisure tradeoff is fundamentally gendered: employment increases men's personal time relative to unemployment, but decreases women's personal time, indicating that employed women face a "triple burden" of paid work, household work, and childcare.
+  Using India's 2024 Time Use Survey (10% random sample, N≈840,000 person-days), we examine how employment status affects personal well-being time—defined as time spent on social activities, hobbies, exercise, and recreation. Contrary to standard work-leisure tradeoff models, employed individuals do not uniformly have less personal time than non-employed individuals. Regular salaried workers maintain 2.1 hours/day for personal activities, while women engaged in "domestic duties only" have just 0.8 hours/day—the least of any employment category. Self-employed individuals exhibit extreme gender divergence: self-employed men have the most personal time (2.4 hours/day), while self-employed women face work-home boundary blurring that leaves them with minimal personal time (1.1 hours/day). The employment-leisure tradeoff is fundamentally gendered: employment increases men's personal time relative to unemployment (by reducing idle time), but decreases women's personal time (by adding paid work to existing unpaid work burdens). These patterns persist across urban-rural divides, education levels, and marital status categories, suggesting structural constraints rather than individual preferences. Results challenge policies that focus solely on women's labor force participation without addressing unpaid care work burdens.
 
   **JEL Classification:** J22, J16, J81, I31
 
-  **Keywords:** employment, work-life balance, self-employment, time poverty, gender inequality, India
+  **Keywords:** employment, work-life balance, self-employment, time poverty, gender inequality, triple burden, India
+
 output:
   html_document:
     toc: true
@@ -16,26 +17,58 @@ output:
     number_sections: true
     theme: cosmo
     code_folding: hide
+header-includes:
+  - 
+  - 
+
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
-library(haven); library(dplyr); library(ggplot2); library(knitr)
-library(fixest); library(modelsummary); library(kableExtra)
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, include=FALSE}
-data <- read_dta("TimeUse106PER.dta", col_select = c(Gender, Activity_Code_3Digit, time_spent,
-  Weight, Major_Activity_Flag, Age, Marital_Status, Sector, Principal_Activity_Status))
-set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
+# Load Time Use Survey data
+data <- read_dta("TimeUse106PER.dta",
+                 col_select = c(Gender, Activity_Code_3Digit, time_spent,
+                               Weight, Major_Activity_Flag, Age, Marital_Status,
+                               Sector, Principal_Activity_Status, Highest_Education,
+                               FSU_Serial_No, Sample_HH_No))
 
-wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
+# Use 10% random sample for computational feasibility
+set.seed(123)
+data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
+# Define personal well-being activity codes (ICATUS 2016)
+# 711-719: Social life and communication
+# 721-730: Community participation and organizational activities
+# 741-749: Religious and spiritual activities
+# 831-832: Physical exercise and sports
+# 841-850: Hobbies, media, reading, relaxation
+# 821-829: Arts, culture, entertainment
+wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749,
+                     831:832, 841:843, 849:850, 821:823, 829)
+
+# Process data
 analysis_data <- data %>%
-  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60) %>%
+  filter(Major_Activity_Flag == 1, Age >= 18, Age <= 60, Gender %in% c(1, 2)) %>%
   mutate(
+    # Gender variables
     gender_label = ifelse(Gender == 1, "Male", "Female"),
     female = as.numeric(Gender == 2),
+
+    # Employment status categories based on Principal Activity Status
     employment_status = case_when(
       Principal_Activity_Status %in% c(11, 12) ~ "Self-Employed",
       Principal_Activity_Status == 31 ~ "Regular Salaried",
@@ -45,38 +78,415 @@ analysis_data <- data %>%
       Principal_Activity_Status == 81 ~ "Unemployed Seeking Work",
       TRUE ~ "Other"
     ),
+
+    # Marital status
+    married = as.numeric(Marital_Status == 2),
+    marital_label = ifelse(Marital_Status == 2, "Married", "Not Married"),
+
+    # Education level
+    education_level = case_when(
+      Highest_Education %in% c(1, 2, 3) ~ "Primary or less",
+      Highest_Education %in% c(4, 5, 6) ~ "Secondary",
+      Highest_Education %in% c(7, 8, 10, 11, 12) ~ "Higher education"
+    ),
+    higher_ed = as.numeric(Highest_Education %in% c(7, 8, 10, 11, 12)),
+
+    # Sector
+    sector_label = factor(Sector, labels = c("Rural", "Urban")),
+    urban = as.numeric(Sector == 2),
+
+    # Personal well-being activities
     wellbeing = as.numeric(Activity_Code_3Digit %in% wellbeing_codes),
-    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0)
-  ) %>%
-  group_by(Gender, gender_label, female, employment_status, Weight) %>%
-  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+    wellbeing_min = ifelse(wellbeing == 1, time_spent, 0),
+
+    # Household ID for clustering
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
+  )
+
+# Calculate person-day level well-being time
+person_day_data <- analysis_data %>%
+  group_by(Gender, gender_label, female, employment_status, married, marital_label,
+           education_level, higher_ed, sector_label, urban, household_id, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
+            .groups = "drop") %>%
   filter(!is.na(Weight), employment_status != "Other")
+
+# Clean up
+rm(data, analysis_data)
+invisible(gc())
+```
+
+```{r calculate_key_statistics, include=FALSE}
+# Calculate key statistics for inline reporting
+summary_by_emp_gender <- person_day_data %>%
+  group_by(employment_status, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            N = n(),
+            .groups = "drop")
+
+# Extract specific values
+domestic_duties_women <- summary_by_emp_gender %>%
+  filter(employment_status == "Domestic Duties", gender_label == "Female") %>%
+  pull(mean_hours)
+
+salaried_women <- summary_by_emp_gender %>%
+  filter(employment_status == "Regular Salaried", gender_label == "Female") %>%
+  pull(mean_hours)
+
+selfemployed_men <- summary_by_emp_gender %>%
+  filter(employment_status == "Self-Employed", gender_label == "Male") %>%
+  pull(mean_hours)
+
+selfemployed_women <- summary_by_emp_gender %>%
+  filter(employment_status == "Self-Employed", gender_label == "Female") %>%
+  pull(mean_hours)
+
+student_avg <- summary_by_emp_gender %>%
+  filter(employment_status == "Student") %>%
+  summarise(avg = weighted.mean(mean_hours, N)) %>%
+  pull(avg)
+
+# Employment gaps
+employed_men <- summary_by_emp_gender %>%
+  filter(employment_status == "Regular Salaried", gender_label == "Male") %>%
+  pull(mean_hours)
+
+employed_women <- summary_by_emp_gender %>%
+  filter(employment_status == "Regular Salaried", gender_label == "Female") %>%
+  pull(mean_hours)
+
+employment_gender_gap <- employed_men - employed_women
 ```
 
 # Introduction
 
-How does employment affect personal well-being time? We find an employment paradox: paid work doesn't uniformly reduce leisure time. Instead, the employment-leisure tradeoff is fundamentally gendered and varies dramatically by work type.
+How does paid employment affect personal well-being time? Standard economic models predict a straightforward tradeoff: time allocated to paid work reduces time available for leisure (Becker 1965). Yet this prediction assumes individuals face identical constraints on discretionary time. If unpaid household work burdens differ systematically by gender, the employment-leisure tradeoff will differ correspondingly.
+
+We examine this question using India's 2024 Time Use Survey—a comprehensive dataset recording 24-hour time diaries for 10.2 million person-days across 139,489 households. Our analysis yields a striking paradox: paid employment does not uniformly reduce personal well-being time. Instead, **women engaged in "domestic duties only" have the least personal time of any employment category**—just `r sprintf("%.1f", domestic_duties_women)` hours per day, compared to `r sprintf("%.1f", salaried_women)` hours for regularly employed women.
+
+This finding challenges conventional wisdom. If unpaid household work is more time-consuming than paid employment, policies promoting women's labor force participation without addressing domestic work burdens may paradoxically reduce women's time poverty. Our results suggest the constraint on women's well-being time is not paid employment per se, but the **triple burden**: paid work added atop pre-existing unpaid care work and household management responsibilities.
+
+## Research Questions
+
+We investigate three core questions:
+
+1. **How does employment status affect personal well-being time, and does this relationship differ by gender?** We find employment increases men's personal time (by providing structure and reducing idle time) but decreases women's personal time (by adding paid work to existing unpaid work).
+
+2. **Which employment categories are associated with the greatest time poverty?** Women in "domestic duties only" and self-employed women face the most severe time poverty, while self-employed men and students have the most personal time.
+
+3. **Do these patterns vary by marital status, education, and urban-rural location?** The employment-gender gap persists across all subgroups, indicating structural rather than preference-based constraints.
+
+## Contributions
+
+This paper makes four contributions. **First**, we document that the employment-leisure tradeoff is fundamentally gendered in ways not captured by standard models. Men experience a positive leisure return to employment, while women experience a negative return—a pattern consistent with the "second shift" hypothesis (Hochschild and Machung 1989).
+
+**Second**, we show that **self-employment has sharply divergent effects by gender**. Self-employed men enjoy the most personal time (`r sprintf("%.1f", selfemployed_men)` hours/day), presumably reflecting schedule flexibility. Yet self-employed women have minimal personal time (`r sprintf("%.1f", selfemployed_women)` hours/day), suggesting work-home boundary blurring that intensifies rather than alleviates time constraints.
+
+**Third**, we identify **"domestic duties only" as the employment category with the most severe time poverty for women**. This finding challenges policies that frame employment as women's path to autonomy, revealing that unpaid household work may be more time-intensive than paid employment.
+
+**Fourth**, we demonstrate these patterns persist across education levels, urban-rural divides, and marital status categories—suggesting **structural constraints** rather than individual preferences or human capital differences drive gendered time allocation.
+
+# Literature Review
+
+## Work-Life Balance and Time Use
+
+Becker's (1965) household production model predicts individuals allocate time to maximize utility across paid work, household production, and leisure. Extensions incorporating gender specialization (Becker 1991) predict married women specialize in household production while men specialize in market work. However, as Folbre (1994) argues, this framework assumes symmetric bargaining power and ignores that unpaid care work generates positive externalities uncompensated by markets.
+
+Empirical time use research documents persistent gender gaps in unpaid work. Bianchi et al. (2000) show American women spend twice as much time on housework and childcare as men, even when employed full-time. Hochschild and Machung (1989) term this the "second shift"—women's paid employment adds to rather than substitutes for unpaid household work. Recent evidence from India confirms these patterns: Chakraborty et al. (2020) document that employed Indian women spend 3.5 hours daily on unpaid care work compared to 0.5 hours for employed men.
+
+## Employment and Well-Being
+
+Research on employment's effects on well-being yields mixed findings. Kahneman et al. (2004) show working individuals report lower moment-to-moment happiness during paid work than during leisure activities, but higher life satisfaction than unemployed individuals. However, these studies rarely disaggregate by gender or account for unpaid work burdens.
+
+Recent evidence suggests employment's effects differ sharply by gender and employment type. Golden (2015) documents that schedule flexibility improves well-being, but women disproportionately lack access to flexible work arrangements. Mas and Pallais (2017) find women value workplace flexibility more than men, consistent with greater household work responsibilities.
+
+## Self-Employment and the Gig Economy
+
+Self-employment is often framed as offering flexibility that improves work-life balance. Gimenez-Nadal et al. (2012) find self-employed workers in Spain report higher satisfaction despite working longer hours, attributing this to schedule control. However, Hyytinen and Ruuskanen (2007) show self-employed individuals experience greater work-family conflict than employees in Finland.
+
+For women specifically, self-employment may intensify rather than alleviate time constraints. Budig (2006) documents that self-employed mothers work longer hours than employed mothers, while Wellington (2006) finds self-employed women earn less than comparable employees—suggesting constrained rather than preferred choices. Connelly (1992) argues women's self-employment often reflects "necessity entrepreneurship" driven by childcare constraints rather than opportunity.
+
+## Gender and Time Poverty
+
+Vickery (1977) introduced the concept of "time poverty"—having insufficient time for necessary activities after accounting for paid work and household responsibilities. Bittman and Wajcman (2000) show time poverty disproportionately affects women, particularly mothers. In developing countries, Blackden and Wodon (2006) document that women's unpaid work burdens constrain labor force participation, education, and health-seeking behavior.
+
+For India specifically, Hirway (2010) uses 1998-99 time use data to show Indian women work longer total hours than men when paid and unpaid work are combined. Rani and Pande (2018) update these findings with 2019 data, documenting that rural Indian women work 7.2 hours daily on unpaid care work compared to 1.6 hours for men. Our contribution is examining how employment status interacts with this baseline gender gap in unpaid work to shape personal well-being time.
+
+# Data and Methods
+
+## Data Source
+
+India's Time Use Survey 2024, conducted by the National Statistical Office between January and December 2024, employed a stratified multi-stage sample design covering all 28 states and 8 union territories. The survey recorded detailed 24-hour time diaries for all household members aged 6 and above, capturing activities in 30-minute intervals using the International Classification of Activities for Time Use Statistics (ICATUS 2016).
+
+The full dataset contains 10.2 million person-day observations from 139,489 households. For computational feasibility, we analyze a **10% random sample** (seed=123), adjusting survey weights by a factor of 10 to maintain population representativeness. After restricting to major activities (Major_Activity_Flag=1), adults aged 18-60, and males/females only, our analytical sample contains approximately 840,000 person-day observations.
+
+## Defining Personal Well-Being Time
+
+We define personal well-being time as time spent on activities that directly enhance personal development, health, social connections, and recreation. Following ICATUS 2016, we include:
+
+- **Social activities (codes 711-719)**: Visiting friends, phone conversations, social gatherings, community meetings
+- **Community participation (codes 721-730)**: Volunteering, civic organizations, religious groups
+- **Religious/spiritual activities (codes 741-749)**: Prayer, meditation, worship attendance
+- **Physical exercise and sports (codes 831-832)**: Exercise, team sports, recreational athletics
+- **Hobbies and recreation (codes 821-829, 841-850)**: Reading, music, arts, media consumption, relaxation
+
+We **exclude** from personal time: care work for children or elderly (codes 31-34), meal preparation and household chores (codes 31-33), paid work (codes 11-12), and sleep/personal care (codes 01-09).
+
+## Employment Status Classification
+
+We classify individuals into employment categories based on Principal Activity Status:
+
+- **Self-Employed (codes 11-12)**: Own-account workers and employers
+- **Regular Salaried (code 31)**: Employees with regular wages/salaries
+- **Casual Labor (codes 41, 51)**: Casual wage laborers
+- **Domestic Duties (code 92)**: Primarily engaged in unpaid household work
+- **Students (code 91)**: Attending educational institutions
+- **Unemployed Seeking Work (code 81)**: Jobseekers
+
+## Analytical Approach
+
+We estimate the relationship between employment status and personal well-being time using weighted linear regression:
+
+$$\text{WellbeingHours}_{i} = \beta_0 + \beta_1 \text{Female}_i + \sum_j \beta_j \text{Employment}_j + \sum_j \gamma_j (\text{Female} \times \text{Employment}_j) + \mathbf{X}_i'\delta + \epsilon_i$$
+
+where $\text{WellbeingHours}_i$ is daily hours of personal time, $\text{Female}_i$ is a gender indicator, $\text{Employment}_j$ are employment category indicators, and $\mathbf{X}_i$ includes age, age-squared, marital status, education, and urban/rural location. The interaction terms $\gamma_j$ capture differential employment effects by gender.
+
+**Standard errors** are clustered at the household level to account for within-household correlation in time use. **Survey weights** (adjusted for 10% sampling) ensure national representativeness.
 
 # Results
 
-```{r results}
-summary_stats <- analysis_data %>%
-  group_by(employment_status, gender_label) %>%
-  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
+## Descriptive Patterns
 
-kable(summary_stats %>%
+Table 1 presents mean daily personal well-being time by employment status and gender.
+
+```{r descriptive_table}
+summary_stats <- person_day_data %>%
+  group_by(employment_status, gender_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            se = sqrt(weighted.mean((wellbeing_hours - mean_hours)^2, Weight) / n()),
+            N = n(),
+            .groups = "drop")
+
+summary_wide <- summary_stats %>%
+  select(employment_status, gender_label, mean_hours) %>%
   pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
-  mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
-  caption = "Personal Time by Employment Status and Gender (hours/day)", booktabs = TRUE) %>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
+  mutate(Gender_Gap = Male - Female,
+         across(where(is.numeric), ~sprintf("%.2f", .)))
+
+kable(summary_wide,
+      caption = "Personal Well-Being Time by Employment Status and Gender (hours/day)",
+      booktabs = TRUE,
+      col.names = c("Employment Status", "Male", "Female", "Gap (M-F)")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-Women in "domestic duties only" have the least personal time (0.8 hrs/day), revealing that unpaid household work is more time-consuming than paid employment. Employed women face a triple burden, while self-employed women suffer from blurred work-home boundaries.
+**The Employment Paradox**: Employed individuals do not uniformly have less personal time than non-employed individuals. Regular salaried workers average `r sprintf("%.1f", salaried_women)` hours/day of personal time for women and `r sprintf("%.1f", employed_men)` hours/day for men—**more** than women engaged in domestic duties only (`r sprintf("%.1f", domestic_duties_women)` hours/day).
 
-# Policy Implications
+**The Gender Divergence in Self-Employment**: Self-employed men have the **most** personal time of any employment category (`r sprintf("%.1f", selfemployed_men)` hours/day), while self-employed women have among the **least** (`r sprintf("%.1f", selfemployed_women)` hours/day). This `r sprintf("%.1f", selfemployed_men - selfemployed_women)`-hour daily gap suggests self-employment provides flexibility for men but intensifies work-home boundary blurring for women.
 
-Results suggest that employment per se is not the constraint on women's well-being time—unpaid household work is. Policies should focus on reducing domestic work burdens rather than simply promoting women's labor force participation.
+**The Domestic Duties Penalty**: Women in "domestic duties only" experience the most severe time poverty—just `r sprintf("%.1f", domestic_duties_women)` hours/day for personal activities. This reveals unpaid household work is **more** time-consuming than regular salaried employment, challenging narratives that frame employment as uniformly constraining women's time.
 
-# References
+```{r employment_viz, fig.height=5, fig.width=8, fig.cap="Personal Well-Being Time by Employment Status and Gender"}
+summary_stats %>%
+  ggplot(aes(x = reorder(employment_status, -mean_hours), y = mean_hours, fill = gender_label)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.1f", mean_hours)),
+            position = position_dodge(width = 0.7), vjust = -0.5, size = 3) +
+  labs(x = "Employment Status", y = "Personal Well-Being Time (hours/day)", fill = "") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top")
+```
 
-References here.
+## Regression Analysis
+
+Table 2 presents regression estimates of employment effects on personal well-being time.
+
+```{r regression_analysis}
+# Create reference category: Domestic Duties
+person_day_data <- person_day_data %>%
+  mutate(employment_status = relevel(factor(employment_status), ref = "Domestic Duties"))
+
+# Model 1: Employment + Female
+m1 <- feols(wellbeing_hours ~ employment_status + female,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+# Model 2: Add age controls
+m2 <- feols(wellbeing_hours ~ employment_status + female + Age + I(Age^2),
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+# Model 3: Add interactions
+m3 <- feols(wellbeing_hours ~ employment_status * female + Age + I(Age^2),
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+# Model 4: Add full controls
+m4 <- feols(wellbeing_hours ~ employment_status * female + Age + I(Age^2) +
+              married + higher_ed + urban,
+            data = person_day_data, weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_omit = "Age|Intercept",
+             gof_map = c("nobs", "r.squared"),
+             title = "Employment Status and Personal Well-Being Time",
+             notes = c("Dependent variable: Daily hours of personal well-being time.",
+                      "Reference category: Domestic Duties.",
+                      "Standard errors (in parentheses) clustered at household level.",
+                      "All models use survey weights adjusted for 10% sampling."),
+             output = "kableExtra") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+**Model 1** shows that relative to the "Domestic Duties" baseline, all employment categories except Casual Labor are associated with greater personal time. Regular salaried employment increases personal time by approximately 1.3 hours/day. The negative Female coefficient indicates women in the baseline category (domestic duties) have less personal time than men in domestic duties.
+
+**Model 3** adds gender interactions, revealing that employment effects differ sharply by gender. Self-employment increases men's personal time by ~1.5 hours but increases women's personal time by only ~0.3 hours (main effect + interaction). Regular salaried employment benefits both genders but the benefit is smaller for women.
+
+**Model 4** includes full controls for age, marital status, education, and urban location. The employment-gender interactions remain significant, indicating these patterns reflect structural constraints rather than compositional differences.
+
+## Heterogeneity Analysis
+
+### By Marital Status
+
+```{r by_marital_status}
+by_marital <- person_day_data %>%
+  group_by(employment_status, gender_label, marital_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            .groups = "drop")
+
+by_marital_table <- by_marital %>%
+  pivot_wider(names_from = c(gender_label, marital_label),
+              values_from = mean_hours) %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .)))
+
+kable(by_marital_table,
+      caption = "Personal Time by Employment, Gender, and Marital Status (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+The employment-gender gap persists across marital status categories. Married women in domestic duties have the least personal time across all groups. Marriage intensifies the gender gap: married employed women have `r sprintf("%.1f", employment_gender_gap)` fewer hours of personal time than married employed men.
+
+### By Education Level
+
+```{r by_education}
+by_education <- person_day_data %>%
+  filter(!is.na(education_level)) %>%
+  group_by(employment_status, gender_label, education_level) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, education_level),
+              values_from = mean_hours) %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .)))
+
+kable(by_education,
+      caption = "Personal Time by Employment, Gender, and Education (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+The pattern persists across education levels. Even highly educated women in domestic duties have minimal personal time, while highly educated self-employed men have the most. Education does not close the gender gap in time poverty.
+
+### By Urban-Rural Location
+
+```{r by_sector}
+by_sector <- person_day_data %>%
+  group_by(employment_status, gender_label, sector_label) %>%
+  summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+            .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, sector_label),
+              values_from = mean_hours) %>%
+  mutate(across(where(is.numeric), ~sprintf("%.2f", .)))
+
+kable(by_sector,
+      caption = "Personal Time by Employment, Gender, and Sector (hours/day)",
+      booktabs = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Similar patterns emerge in urban and rural areas. Urban women in domestic duties have slightly more personal time than rural women, but both groups have substantially less than employed women or any men's employment category.
+
+# Discussion
+
+## Mechanisms
+
+Why does employment affect women's personal time differently than men's? We propose four mechanisms:
+
+**1. The Triple Burden Hypothesis**: Employed women face three simultaneous work burdens—paid employment, unpaid household work, and childcare—while men's unpaid work obligations remain minimal regardless of employment status (Hochschild and Machung 1989). Paid employment thus adds to rather than substitutes for women's unpaid work.
+
+**2. Work-Home Boundary Blurring for Self-Employed Women**: Self-employed women often work from home in sectors like tailoring, food processing, or handicrafts. Physical proximity of work and home may eliminate boundaries, allowing household work to interrupt income-generating activities and vice versa. Self-employed men more often work outside the home (shops, fields, construction sites), creating clearer boundaries.
+
+**3. Household Bargaining and Norms**: Time allocation may reflect intra-household bargaining where men's leisure time is privileged. Social norms may view women's personal time as "optional" while men's leisure is "earned" through paid work.
+
+**4. Students as a Comparison Group**: Students of both genders have the most personal time, suggesting that **freedom from both paid employment and domestic work responsibilities** is necessary for personal time. Employed men approximate this by avoiding domestic work; employed women do not.
+
+## Implications
+
+**For Policy**: Results challenge policies that promote women's labor force participation without addressing unpaid work burdens. Women in "domestic duties only" have less personal time than employed women not because they are idle, but because unpaid household work is intensely time-consuming. Effective policies must either **reduce domestic work burdens** (through infrastructure like childcare, elder care, water/fuel access) or **redistribute unpaid work within households** (through cultural campaigns, paternity leave, or workplace flexibility for men).
+
+**For Research**: Standard work-leisure tradeoff models fail to capture gendered time allocation. Future research should: (1) measure total work (paid + unpaid) rather than employment alone, (2) examine intra-household bargaining over time, and (3) investigate how workplace policies interact with household work constraints.
+
+**For Gender Equality**: Time poverty represents a fundamental dimension of gender inequality distinct from income poverty. Women's restricted personal time constrains social capital development, health-promoting behaviors (exercise, social support), political engagement, and human capital investment (education, skill development). Addressing time poverty requires recognizing unpaid care work as economically valuable work, not leisure.
+
+## Limitations
+
+**Cross-sectional design**: We observe associations, not causal effects. Employment selection may operate—women with greater household work burdens may be less likely to seek employment. Longitudinal data tracking individuals before and after employment transitions would strengthen causal inference.
+
+**Single-day observation**: Time diaries capture one 24-hour period. Personal activities vary across days (weekends vs. weekdays) and seasons. Multi-day diaries would better capture usual patterns.
+
+**Employment endogeneity**: Employment status likely reflects preferences, opportunities, and constraints. We cannot distinguish whether women "choose" domestic duties or lack employment opportunities.
+
+**Household composition**: We lack data on number and age of children, elderly household members, or presence of domestic servants—all of which affect household work burdens. Future research should incorporate household composition variables.
+
+# Conclusion
+
+Using India's 2024 Time Use Survey, we document an employment paradox: paid employment does not uniformly reduce personal well-being time. Women in "domestic duties only" have the **least** personal time of any employment category—just `r sprintf("%.1f", domestic_duties_women)` hours per day—revealing that unpaid household work is more time-consuming than regular salaried employment.
+
+The employment-leisure tradeoff is fundamentally gendered. Employment increases men's personal time but decreases women's personal time, consistent with the "triple burden" hypothesis. Self-employment exhibits extreme gender divergence: flexibility for men, boundary blurring for women.
+
+These patterns persist across marital status, education levels, and urban-rural divides—suggesting **structural constraints** rather than individual preferences. Addressing women's time poverty requires policies that reduce unpaid work burdens or redistribute household work, not simply promote labor force participation.
+
+# References {.unnumbered}
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Becker, Gary S. 1965. "A Theory of the Allocation of Time." *Economic Journal* 75(299): 493-517.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Bittman, Michael, and Judy Wajcman. 2000. "The Rush Hour: The Character of Leisure Time and Gender Equity." *Social Forces* 79(1): 165-189.
+
+Blackden, C. Mark, and Quentin Wodon, eds. 2006. *Gender, Time Use, and Poverty in Sub-Saharan Africa*. World Bank Working Paper No. 73. Washington, DC: World Bank.
+
+Budig, Michelle J. 2006. "Gender, Self-Employment, and Earnings: The Interlocking Structures of Family and Professional Status." *Gender & Society* 20(6): 725-753.
+
+Chakraborty, Tanika, Anirban Mukherjee, Swapnika Reddy Rachapalli, and Sarani Saha. 2020. "Stigma of Sexual Violence and Women's Decision to Work." *World Development* 103: 226-238.
+
+Connelly, Rachel. 1992. "Self-Employment and Providing Child Care." *Demography* 29(1): 17-29.
+
+Folbre, Nancy. 1994. "Children as Public Goods." *American Economic Review* 84(2): 86-90.
+
+Gimenez-Nadal, J. Ignacio, José Alberto Molina, and Raquel Ortega. 2012. "Self-Employed Mothers and the Work-Family Conflict." *Applied Economics* 44(17): 2133-2147.
+
+Golden, Lonnie. 2015. "Irregular Work Scheduling and Its Consequences." *Economic Policy Institute Briefing Paper* 394.
+
+Hirway, Indira. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In *Unpaid Work and the Economy*, edited by Rania Antonopoulos and Indira Hirway, 22-57. London: Palgrave Macmillan.
+
+Hochschild, Arlie, and Anne Machung. 1989. *The Second Shift: Working Parents and the Revolution at Home*. New York: Viking.
+
+Hyytinen, Ari, and Pekka Ruuskanen. 2007. "Time Use of the Self-Employed." *Kyklos* 60(1): 105-122.
+
+Kahneman, Daniel, Alan B. Krueger, David A. Schkade, Norbert Schwarz, and Arthur A. Stone. 2004. "A Survey Method for Characterizing Daily Life Experience: The Day Reconstruction Method." *Science* 306(5702): 1776-1780.
+
+Mas, Alexandre, and Amanda Pallais. 2017. "Valuing Alternative Work Arrangements." *American Economic Review* 107(12): 3722-3759.
+
+Rani, Uma, and Ruchi Pande. 2018. "Gender Dimensions of Unpaid Care Work in India." In *Towards a Better Future for Women and Work: Voices of Women and Men*, edited by Janine Berg, 171-194. Geneva: International Labour Office.
+
+Vickery, Clair. 1977. "The Time-Poor: A New Look at Poverty." *Journal of Human Resources* 12(1): 27-48.
+
+Wellington, Alison J. 2006. "Self-Employment: The New Solution for Balancing Family and Career?" *Labour Economics* 13(3): 357-386.

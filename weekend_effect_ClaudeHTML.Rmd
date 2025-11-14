@@ -232,7 +232,7 @@ by_education_day_table <- major_only %>%
   # Calculate gaps and penalties
   mutate(
     weekday_gap = Female_Weekday - Male_Weekday,
-    weekend_gap = Weekend_Female - Weekend_Male,
+    weekend_gap = Female_Weekend - Male_Weekend,
     weekend_penalty = weekend_gap - weekday_gap
   ) %>%
   # Arrange and select final columns
