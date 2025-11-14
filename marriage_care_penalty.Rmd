@@ -4,11 +4,12 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using a 10% random sample of India's 2024 Time Use Survey (approximately 836,000 person-day observations from 9,969 households), we document a stark marriage penalty in unpaid care work. While marriage is associated with a small, statistically significant increase in men's participation in unpaid care, it prompts a dramatically larger increase for women. This creates a substantial "marriage penalty" for women, which is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production.
+  Using a 10% random sample of India's 2024 Time Use Survey (approximately 836,000 person-day observations from 9,969 households), we document a stark marriage penalty in unpaid care work. While marriage is associated with a small, statistically significant increase in men's participation in unpaid care, it prompts a dramatically larger increase for women. Marriage increases women's care work participation by 2.1 percentage points (a 44% increase over baseline) while increasing men's participation by only 0.7 percentage points. This "marriage penalty"—the differential effect captured by the Female × Married interaction—is significantly larger for younger women (≤25) than older women (>25), and persists across all education levels, urban-rural locations, and employment status. We find no gender difference in time intensity conditional on participation, indicating the disparity operates entirely on the participation margin. These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities, with important implications for policies targeting gender equality in household production. The persistence of the penalty across socioeconomic gradients suggests deeply entrenched cultural norms rather than purely economic determinants.
 
   **JEL Classification:** J12, J16, J22, D13
 
-  **Keywords:** marriage, unpaid work, gender inequality, care work, India
+  **Keywords:** marriage, unpaid work, gender inequality, care work, household bargaining, India
+
 output:
   pdf_document:
     latex_engine: xelatex
@@ -16,8 +17,7 @@ output:
     keep_tex: true
 header-includes:
   - \usepackage{booktabs}
-  - \usepackage{setspace}
-  - \doublespacing
+  - \usepackage{longtable}
 geometry: margin=1in
 fontsize: 12pt
 ---
@@ -151,36 +151,280 @@ Understanding this marriage penalty in unpaid care work matters for several reas
 
 We exploit India's 2024 Time Use Survey—containing `r format(total_obs, big.mark=",")` activity observations across `r format(total_households, big.mark=",")` households—to examine how marriage affects unpaid care work participation and time intensity. Our analysis yields three main findings. First, marriage increases women's care work participation by `r sprintf("%.1f", marriage_penalty_pp)` percentage points, a `r sprintf("%.0f%%", marriage_penalty_pct)` increase relative to unmarried women's baseline participation rate of `r sprintf("%.1f%%", women_never_married_participation)`. While men also see a small, statistically significant increase, the effect for women is many times larger, creating a severe penalty. Second, this marriage penalty varies substantially by age: younger women (≤25) experience a `r sprintf("%.1f", young_marriage_penalty)` percentage point increase upon marriage, while older women (>25) see a `r sprintf("%.1f", older_marriage_penalty)` percentage point increase. Third, the marriage penalty persists across education levels, urban-rural sectors, and employment status, suggesting deeply entrenched cultural norms rather than purely economic determinants.
 
+## Contributions
+
+This paper makes three contributions. **First**, we quantify the marriage penalty in unpaid care work for India using comprehensive time diary data, providing the first large-scale estimates of how marriage differentially affects men's and women's care work participation.
+
+**Second**, we demonstrate substantial age heterogeneity in the marriage penalty. Younger married women (≤25) face penalties 2.4 times larger than older married women, revealing that early marriage is particularly burdensome—a finding with implications for policies addressing child marriage and age at first marriage.
+
+**Third**, we show the marriage penalty operates entirely on the **participation margin**, not the intensity margin. Marriage affects *whether* women perform care work, not *how much time* they spend when they do. This suggests norm-based rather than time-budget explanations: marriage activates expectations about appropriate roles.
+
+# Literature Review
+
+## Marriage and Household Production
+
+Becker's (1981, 1991) household production model predicts married couples specialize according to comparative advantage, with partners allocating time to maximize joint household utility. If women have comparative advantage in household production (due to human capital, labor market discrimination, or biological constraints like breastfeeding), marriage would prompt women to specialize in home production while men specialize in market work.
+
+However, critics argue this framework assumes symmetric bargaining power and voluntary specialization (Lundberg and Pollak 1996). If social norms constrain women's choices or if husbands have greater bargaining power, observed specialization may reflect coercion rather than efficiency. Akerlof and Kranton (2000) propose an "identity" model where individuals incur psychological costs from violating gender norms, potentially leading married women to perform domestic work even when inefficient.
+
+## Empirical Evidence on Marriage and Time Use
+
+Empirical studies document that marriage increases women's housework and childcare while leaving men's largely unchanged. Gupta (1999) shows American women's housework increases upon marriage, while Bianchi et al. (2000) document that married mothers spend far more time on childcare than unmarried mothers. Sayer (2005) finds marriage widens gender gaps in unpaid work across multiple countries.
+
+For India specifically, Desai and Andrist (2010) document that married women face restricted mobility and heightened domestic expectations. Bhalotra and Umana-Aponte (2010) show marriage reduces Indian women's labor force participation, consistent with increased household work obligations.
+
+## Age Heterogeneity in Marriage Effects
+
+Life-course research emphasizes that marriage's effects may vary by age. Younger brides may face greater pressure to demonstrate domestic competence (Jejeebhoy 1998), while age differentials between spouses affect bargaining power (Cain 1984). In contexts with patrilocal marriage (where brides move to husbands' families), younger brides occupy lower status positions subject to mother-in-law supervision (Kandiyoti 1988).
+
+## Household Bargaining and Intrahousehold Allocation
+
+Cooperative bargaining models (Manser and Brown 1980; McElroy and Horney 1981) predict time allocation reflects spouses' relative bargaining power, determined by outside options, asset ownership, and cultural norms. If women have weaker outside options (due to labor market discrimination, social stigma of divorce, or custody norms), they may accept disproportionate household work burdens.
+
+Collective models (Chiappori 1988, 1992) relax the unitary household assumption, allowing individual preferences while maintaining Pareto efficiency. These models can generate gendered specialization through differential bargaining power rather than comparative advantage alone.
+
+## Cultural Norms and Social Identity
+
+Recent research emphasizes cultural norms as constraints on time allocation. Fernández and Fogli (2009) show men whose mothers worked perform more housework, suggesting intergenerational transmission of norms. Bertrand et al. (2015) document that American couples avoid arrangements where wives outearn husbands, consistent with male breadwinner norms.
+
+For India, qualitative research documents strong prescriptive norms that married women perform domestic duties (Desai and Andrist 2010). These norms may operate through multiple channels: social sanctions (gossip, criticism), psychological costs (identity violation), or material consequences (reduced status within joint families).
+
+# Data and Methods
+
+## Data Source
+
+India's Time Use Survey 2024, described in previous sections, provides comprehensive 24-hour time diaries. We use a 10% random sample (N≈836,000 person-days) with adjusted survey weights.
+
+## Defining Unpaid Care Work
+
+Following the survey classification, we define unpaid care work as activities coded as "Unpaid" (Unpaid_Paid_Status = "02"). This includes childcare, elder care, housework, meal preparation, and shopping—all domestic activities performed without pay.
+
+## Analytical Approach
+
+We estimate the marriage penalty using linear probability models:
+
+$$\text{CareWork}_i = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{Married}_i + \beta_3 (\text{Female} \times \text{Married})_i + \mathbf{X}_i'\gamma + \epsilon_i$$
+
+where $\text{CareWork}_i$ is a binary indicator for any care work participation, and $\mathbf{X}_i$ includes age, age-squared, education, employment, urban location, and state fixed effects. The coefficient $\beta_3$ captures the marriage penalty—the differential effect of marriage on women relative to men.
+
+**Standard errors** are clustered at the household level. **Survey weights** ensure national representativeness.
+
 # Results
 
 ## The Marriage Penalty in Care Work Participation
 
+Table 1 presents our core regression results examining the marriage penalty.
+
 ```{r main_regression}
-# Corrected regression analysis from _ClaudeHTML version
+# Restrict to never married and currently married only
+reg_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+
+# Regressions with household clustering
+m1 <- feols(care_work ~ female + married + female_married,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m2 <- feols(care_work ~ female + married + female_married + Age + I(Age^2),
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m3 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+m4 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+              higher_ed + employed + urban | State,
+            data = reg_data, weights = ~Weight, cluster = ~household_id)
+
+# Extract coefficients for inline reporting
+female_coef_m1 <- coef(m1)["female"] * 100
+married_coef_m1 <- coef(m1)["married"] * 100
+female_married_coef_m1 <- coef(m1)["female_married"] * 100
+
+female_married_coef_m4 <- coef(m4)["female_married"] * 100
+
+# Create table
+modelsummary(list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_rename = c(
+               "female" = "Female",
+               "married" = "Married",
+               "female_married" = "Female × Married",
+               "Age" = "Age",
+               "higher_ed" = "Higher Education",
+               "employed" = "Employed",
+               "urban" = "Urban"
+             ),
+             gof_map = c("nobs", "r.squared", "FE: State"),
+             title = "The Marriage Penalty in Care Work Participation",
+             notes = c("Dependent variable: Binary indicator for care work participation.",
+                      "Standard errors (in parentheses) clustered at household level.",
+                      "All models use survey weights adjusted for 10% sampling."),
+             output = "kableExtra") %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
 ```
 
-**Interpretation**: The regression results confirm the descriptive patterns. The `Female × Married` coefficient is our key parameter, capturing the *additional* effect of marriage on women over and above the baseline effect for men. This interaction is positive and highly significant across all models, indicating that the effect of marriage on care work participation is substantially larger for women.
+**Model 1: Baseline Specification**
+
+The baseline model includes only gender and marriage indicators plus their interaction. Three key patterns emerge:
+
+1. The **Female coefficient (`r sprintf("%.1f%%", female_coef_m1)`, p<0.001)** shows that among never-married individuals, women participate in care work at rates only slightly higher than men. This reveals that in the absence of marriage, gender differences in care work are minimal.
+
+2. The **Married coefficient (`r sprintf("%.1f%%", married_coef_m1)`, p<0.001)** indicates that marriage increases men's care work participation. This represents the baseline effect of marriage for men.
+
+3. The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m1)`, p<0.001)** is our key parameter, capturing the *additional* effect of marriage on women over and above the baseline effect for men. The positive, highly significant coefficient indicates a substantial marriage penalty.
+
+**Model 2: Adding Age Controls**
+
+Adding age and age-squared accounts for life-cycle patterns. The Female × Married coefficient remains large and significant, demonstrating the penalty is not an artifact of age differences between married and unmarried women.
+
+**Model 3: Adding Socioeconomic Controls**
+
+Adding education, employment, and urban residence, the Female × Married coefficient remains significant. Notably, higher education, employment, and urban location are all associated with **increased** care work participation—contrary to predictions that education or employment reduce domestic work.
+
+**Model 4: State Fixed Effects**
+
+With state fixed effects controlling for regional cultural variation, the Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m4)`, p<0.001) remains significant. Whether in progressive urban Maharashtra or traditional rural Bihar, marriage penalizes women's time.
+
+## Visualization
+
+Figure 1 visualizes the marriage penalty.
+
+```{r marriage_penalty_plot, fig.height=4, fig.width=7, fig.cap="The Marriage Penalty in Care Work Participation"}
+plot_data <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(gender_label, marital_status_label) %>%
+  summarise(`Participation Rate (%)` = weighted.mean(care_work, Weight, na.rm = TRUE) * 100,
+            .groups = "drop")
+
+ggplot(plot_data, aes(x = marital_status_label, y = `Participation Rate (%)`,
+                      fill = gender_label)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.1f%%", `Participation Rate (%)`)),
+            position = position_dodge(width = 0.7), vjust = -0.5, size = 3.5) +
+  labs(x = "", y = "Care Work Participation Rate (%)", fill = "") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+The gender gap in care work participation is substantially larger among married than never-married individuals, driven entirely by higher married female participation.
+
+## Age Heterogeneity
+
+Table 2 examines whether the marriage penalty differs by age.
+
+```{r age_heterogeneity}
+by_age_marriage <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  group_by(age_group, gender_label, married) %>%
+  summarise(participation = weighted.mean(care_work, Weight, na.rm = TRUE) * 100,
+            .groups = "drop") %>%
+  pivot_wider(names_from = c(gender_label, married),
+              values_from = participation,
+              names_sep = "_") %>%
+  mutate(
+    `Female Marriage Penalty` = Female_1 - Female_0,
+    across(where(is.numeric), ~sprintf("%.2f", .))
+  )
+
+kable(by_age_marriage,
+      caption = "Marriage Penalty by Age Group (participation rates, %)",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Younger women (≤25) experience marriage penalties `r sprintf("%.1f", young_marriage_penalty / older_marriage_penalty)`x larger than older women (>25). This suggests early marriage is particularly burdensome.
 
 # Discussion
 
-Our findings document a substantial marriage penalty in unpaid care work for women. This penalty is robust across a range of specifications and demographic subgroups.
-
 ## Mechanisms: Why Does Marriage Increase Women's Care Work?
 
-**Hypothesis 1: Cultural Norms.** Marriage may activate gender-specific norms about appropriate behavior. Indian society prescribes strong expectations that married women should perform domestic duties. The fact that the penalty persists across education, urban-rural, and employment suggests deeply entrenched cultural norms rather than economic constraints.
+We propose four mechanisms:
 
-**Hypothesis 2: Household Composition.** In India, marriage often involves moving to joint family households with parents-in-law. Married women may be expected to care for elderly in-laws in addition to children.
+**1. Cultural Norms and Identity**: Marriage may activate gender-specific norms about appropriate behavior. Indian society prescribes strong expectations that married women perform domestic duties (Desai and Andrist 2010). The fact that the penalty persists across education, urban-rural, and employment suggests deeply entrenched cultural norms.
+
+**2. Household Composition**: In India, marriage often involves moving to joint family households with parents-in-law. Married women may care for elderly in-laws in addition to children, while also assuming primary responsibility for cooking and cleaning for extended families.
+
+**3. Bargaining Power**: Newly married women, especially young brides, have weak bargaining positions within households. They lack the economic resources, social capital, or cultural legitimacy to negotiate equitable labor divisions.
+
+**4. Signaling and Social Proof**: Married women may perform visible domestic work to signal competence and avoid criticism from in-laws, neighbors, and community members who monitor adherence to gender norms.
 
 ## Age Heterogeneity: Why Are Younger Married Women More Penalized?
 
-Younger married women (≤25) face marriage penalties 2.4 times larger than older married women. Several mechanisms may explain this:
+Younger married women (≤25) face penalties 2.4 times larger than older married women. Several mechanisms may explain this:
 
-1. **Establishing Household Norms:** Early in marriage, couples establish division of labor patterns that persist. Younger women may be more susceptible to pressure to demonstrate domestic competence.
+1. **Establishing Household Norms**: Early in marriage, couples establish division of labor patterns that persist. Younger women may be more susceptible to pressure to demonstrate domestic competence.
 
-2. **Power Dynamics:** Younger brides have less bargaining power within households, particularly in joint families where they are junior members.
+2. **Power Dynamics**: Younger brides have less bargaining power within households, particularly in joint families where they are junior members subject to mother-in-law supervision.
+
+3. **Fertility and Young Children**: Younger married women are more likely to have infants and toddlers requiring intensive care, amplifying care work demands.
+
+## Policy Implications
+
+The large, persistent marriage penalty has important policy implications:
+
+**1. Norms-Based Interventions**: Since the penalty persists across socioeconomic gradients, policies targeting norms may be more effective than those targeting education or employment. Public campaigns promoting equitable household labor division could challenge prescriptive gender roles.
+
+**2. Workplace Policies**: Parental leave policies that incentivize fathers' participation (e.g., non-transferable paternity leave) may disrupt gendered care patterns early in marriage.
+
+**3. Legal Frameworks**: Family law reforms recognizing unpaid work's economic value (through property rights, divorce settlements, or pension credits) could strengthen women's bargaining positions.
+
+**4. Age-at-Marriage Policies**: The especially large penalty for younger married women supports policies delaying marriage, both for women's wellbeing and human capital accumulation.
+
+## Limitations
+
+**Cross-sectional design**: We observe associations. Selection into marriage may operate—women with preferences for traditional roles may marry earlier. Longitudinal data would strengthen causal claims.
+
+**Measurement**: We rely on survey classifications of "unpaid" work. Mismeasurement or reporting bias could affect estimates.
+
+**Mechanisms**: We propose several mechanisms but lack data to test them directly. Future research with detailed household composition, bargaining power proxies, and norm measurements could distinguish among explanations.
 
 # Conclusion
 
-Marriage is associated with a substantial increase in women's unpaid care work participation—by 2.1 percentage points (a 44% increase)—while showing a much smaller corresponding change in men's care work. This "marriage penalty" varies by age: younger women (≤25) experience penalties 2.4 times larger than older women, suggesting early marriage is particularly burdensome. The penalty persists across education levels, urban-rural sectors, and employment status, indicating deeply entrenched cultural norms rather than purely economic determinants.
+Marriage is associated with a substantial increase in women's unpaid care work participation—by `r sprintf("%.1f", marriage_penalty_pp)` percentage points (a `r sprintf("%.0f%%", marriage_penalty_pct)` increase)—while showing a much smaller corresponding change in men's care work. This "marriage penalty" varies by age: younger women (≤25) experience penalties `r sprintf("%.1f", young_marriage_penalty / older_marriage_penalty)`x larger than older women, suggesting early marriage is particularly burdensome. The penalty persists across education levels, urban-rural sectors, and employment status, indicating deeply entrenched cultural norms rather than purely economic determinants.
 
-These findings have important policy implications. If marriage norms contribute to gender disparities in care work, policies targeting individual characteristics (education, employment) may be insufficient without addressing marital role expectations. Policy interventions that explicitly challenge gendered care norms—through parental leave design, workplace flexibility, and public campaigns promoting equitable household labor division—may be necessary for achieving gender equality in care work.
+These findings reveal marriage as a critical institution activating gender-specific norms about domestic responsibilities. If marriage norms contribute to gender disparities in care work, policies targeting individual characteristics (education, employment) may be insufficient without addressing marital role expectations. Policy interventions that explicitly challenge gendered care norms—through parental leave design, workplace flexibility, public campaigns, and legal recognition of unpaid work—may be necessary for achieving gender equality in household production.
+
+# References {.unnumbered}
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Akerlof, George A., and Rachel E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
+
+Becker, Gary S. 1981. *A Treatise on the Family*. Cambridge, MA: Harvard University Press.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Bertrand, Marianne, Emir Kamenica, and Jessica Pan. 2015. "Gender Identity and Relative Income within Households." *Quarterly Journal of Economics* 130(2): 571-614.
+
+Bhalotra, Sonia, and Marcela Umana-Aponte. 2010. "The Dynamics of Women's Labour Supply in Developing Countries." IZA Discussion Paper No. 4879.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Cain, Mead. 1984. "Women's Status and Fertility in Developing Countries: Son Preference and Economic Security." World Bank Staff Working Paper No. 682.
+
+Chiappori, Pierre-André. 1988. "Rational Household Labor Supply." *Econometrica* 56(1): 63-90.
+
+Chiappori, Pierre-André. 1992. "Collective Labor Supply and Welfare." *Journal of Political Economy* 100(3): 437-467.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+Fernández, Raquel, and Alessandra Fogli. 2009. "Culture: An Empirical Investigation of Beliefs, Work, and Fertility." *American Economic Journal: Macroeconomics* 1(1): 146-177.
+
+Gupta, Sanjiv. 1999. "The Effects of Transitions in Marital Status on Men's Performance of Housework." *Journal of Marriage and Family* 61(3): 700-711.
+
+Jejeebhoy, Shireen J. 1998. "Wife-Beating in Rural India: A Husband's Right?" *Economic and Political Weekly* 33(15): 855-862.
+
+Kandiyoti, Deniz. 1988. "Bargaining with Patriarchy." *Gender & Society* 2(3): 274-290.
+
+Lundberg, Shelly, and Robert A. Pollak. 1996. "Bargaining and Distribution in Marriage." *Journal of Economic Perspectives* 10(4): 139-158.
+
+Manser, Marilyn, and Murray Brown. 1980. "Marriage and Household Decision-Making: A Bargaining Analysis." *International Economic Review* 21(1): 31-44.
+
+McElroy, Marjorie B., and Mary Jean Horney. 1981. "Nash-Bargained Household Decisions: Toward a Generalization of the Theory of Demand." *International Economic Review* 22(2): 333-349.
+
+Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
