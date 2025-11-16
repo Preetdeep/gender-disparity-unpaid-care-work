@@ -49,13 +49,25 @@ data <- read_dta("TimeUse106PER.dta",
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
                                State, Religion, FSU_Serial_No, Sample_HH_No,
-                               Household_Size))
+                               Person_Serial_No))
 
 # Use 10% random sample with weight adjustment for computational efficiency
 set.seed(123)
 data <- data %>%
   slice_sample(prop = 0.1) %>%
   mutate(Weight = Weight / 0.1)
+
+# Calculate household size for each household
+household_size_df <- data %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(Household_Size = n_distinct(Person_Serial_No), .groups = "drop")
+
+# Merge household size back to main data
+data <- data %>%
+  left_join(household_size_df, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+# Clean up
+rm(household_size_df)
 
 # Create analysis dataset
 analysis_data <- data %>%
