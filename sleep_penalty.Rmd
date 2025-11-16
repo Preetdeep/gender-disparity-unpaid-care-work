@@ -92,7 +92,7 @@ processed_data <- data %>%
 
     # Sleep and Care Work variables
     # ICATUS Activity code 01: Sleep and related activities
-    sleep_minutes = ifelse(Activity_Code_2Digit == 01, time_spent, 0),
+    sleep_minutes = ifelse(Activity_Code_2Digit == 1, time_spent, 0),
     # ICATUS Activity codes 31-33: Care for household members
     care_work_minutes = ifelse(Activity_Code_2Digit >= 31 & Activity_Code_2Digit <= 33, time_spent, 0),
 

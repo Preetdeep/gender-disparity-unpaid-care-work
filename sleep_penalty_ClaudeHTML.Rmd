@@ -81,7 +81,7 @@ processed_data <- data %>%
 
     # Sleep and Care Work variables
     # ICATUS Activity code 01: Sleep and related activities
-    sleep_minutes = ifelse(Activity_Code_2Digit == 01, time_spent, 0),
+    sleep_minutes = ifelse(Activity_Code_2Digit == 1, time_spent, 0),
     # ICATUS Activity codes 31-33: Care for household members
     care_work_minutes = ifelse(Activity_Code_2Digit >= 31 & Activity_Code_2Digit <= 33, time_spent, 0),
 
@@ -145,7 +145,13 @@ The formal economic analysis of sleep began with Biddle and Hamermesh (1990), wh
 A large and consistent body of research documents the profound gender inequality in the division of unpaid labor in India. Analyses of the 2019 Time Use Survey, the first of its kind in India, have been particularly revealing. The Observer Research Foundation (2021) found that Indian women spend, on average, eight times more hours on unpaid care work than men. This disparity persists across all socioeconomic strata. Frankiewicz (2020) and others have noted that women's educational attainment and employment status do little to rebalance this domestic workload. Marriage is a key institution that solidifies this unequal division, with women typically assuming the vast majority of household and care responsibilities upon entering the marital home.
 
 ## Connecting Care Work, Gender, and Health
-While the literature has established the existence of the "second shift" for women, much of the focus has been on its economic consequences, such as lower labor force participation and wage penalties. Less attention has been paid to the direct health and well-being consequences of this time burden. Our paper fills this gap by focusing on sleep as a critical health outcome. While some studies in high-income countries have documented sleep loss for mothers of young children (Reid et al., 2009), there is a lack of large-scale evidence from developing countries on the broader impact of unpaid care work on women's sleep, particularly within the institution of marriage. By linking the well-documented phenomenon of gendered care work in India to the under-researched outcome of sleep, we provide a new lens through which to understand the full costs of gender inequality.
+While the literature has established the existence of the "second shift" for women (Hochschild & Machung, 2012), much of the focus has been on its economic consequences, such as lower labor force participation and wage penalties (Kleven et al., 2019). Less attention has been paid to the direct health and well-being consequences of this time burden. Our paper fills this gap by focusing on sleep as a critical health outcome.
+
+Sleep deprivation has serious health consequences. Medical research demonstrates that chronic sleep restriction increases risk of cardiovascular disease, diabetes, obesity, and premature mortality (Cappuccio et al., 2011; Knutson et al., 2007). Mental health outcomes are similarly affected, with insufficient sleep linked to depression, anxiety, and cognitive impairment (Baglioni et al., 2011). For women specifically, sleep disruption during pregnancy and the postpartum period affects both maternal and infant health (Reid et al., 2009; Okun et al., 2011).
+
+The gender dimensions of sleep have received limited attention in economics. Studies in high-income countries have documented sleep loss for mothers of young children (Reid et al., 2009; Venn et al., 2008), but there is a lack of large-scale evidence from developing countries on the broader impact of unpaid care work on women's sleep across the life course, particularly within the institution of marriage. Recent work on time poverty in developing countries (Blackden & Wodon, 2006; Hirway, 2010) has documented women's time constraints but has not specifically examined sleep as an outcome.
+
+By linking the well-documented phenomenon of gendered care work in India to the under-researched outcome of sleep, we provide a new lens through which to understand the full costs of gender inequality.
 
 # Data and Methodology
 
@@ -244,16 +250,32 @@ These findings underscore the need for policies that promote a more equitable sh
 
 # References {.unnumbered}
 
-Biddle, J. E., & Hamermesh, D. S. (1990). Sleep and the Allocation of Time. *Journal of Political Economy, 98*(5), 922–943.
+Baglioni, C., Battagliese, G., Feige, B., Spiegelhalder, K., Nissen, C., Voderholzer, U., Lombardo, C., & Riemann, D. (2011). Insomnia as a predictor of depression: A meta-analytic evaluation of longitudinal epidemiological studies. *Journal of Affective Disorders*, 135(1-3), 10-19.
+
+Biddle, J. E., & Hamermesh, D. S. (1990). Sleep and the Allocation of Time. *Journal of Political Economy*, 98(5), 922–943.
+
+Blackden, C. M., & Wodon, Q. (Eds.). (2006). *Gender, time use, and poverty in sub-Saharan Africa*. World Bank Publications.
+
+Cappuccio, F. P., D'Elia, L., Strazzullo, P., & Miller, M. A. (2011). Quantity and quality of sleep and incidence of type 2 diabetes: a systematic review and meta-analysis. *Diabetes Care*, 34(2), 414-420.
 
 Frankiewicz, B. (2020). 5 ways we lack gender balance in the workplace. World Economic Forum.
 
-Gibson, M., & Shrader, J. (2018). Time Use and Labor Productivity: The Returns to Sleep. *The Review of Economics and Statistics, 100*(5), 783–798.
+Gibson, M., & Shrader, J. (2018). Time Use and Labor Productivity: The Returns to Sleep. *The Review of Economics and Statistics*, 100(5), 783–798.
+
+Hirway, I. (2010). Understanding Poverty: Insights Emerging from Time Use of the Poor. In R. Antonopoulos & I. Hirway (Eds.), *Unpaid Work and the Economy* (pp. 22-57). Palgrave Macmillan.
 
 Hochschild, A. R., & Machung, A. (2012). *The second shift: Working families and the revolution at home*. Penguin.
 
+Kleven, H., Landais, C., & Søgaard, J. E. (2019). Children and gender inequality: Evidence from Denmark. *American Economic Journal: Applied Economics*, 11(4), 181-209.
+
+Knutson, K. L., Ryden, A. M., Mander, B. A., & Van Cauter, E. (2007). Role of sleep duration and quality in the risk and severity of type 2 diabetes mellitus. *Archives of Internal Medicine*, 166(16), 1768-1774.
+
 Observer Research Foundation. (2021). Building India's Economy on the Backs of Women's Unpaid Work: A Gendered Analysis of Time-Use Data.
 
-Reid, K. J., Facco, F. L., Grobman, W. A., Parker, C. B., Herlehy, S. S., Hunter, S., ... & Zee, P. C. (2009). Sleep during pregnancy: the Generation R study. *Sleep, 32*(5), 627-633.
+Okun, M. L., Schetter, C. D., & Glynn, L. M. (2011). Poor sleep quality is associated with preterm birth. *Sleep*, 34(11), 1493-1498.
+
+Reid, K. J., Facco, F. L., Grobman, W. A., Parker, C. B., Herlehy, S. S., Hunter, S., ... & Zee, P. C. (2009). Sleep during pregnancy: the Generation R study. *Sleep*, 32(5), 627-633.
+
+Venn, S., Arber, S., Meadows, R., & Hislop, J. (2008). The fourth shift: Exploring the gendered nature of sleep disruption among couples with children. *The British Journal of Sociology*, 59(1), 79-97.
 
 Walker, M. (2017). *Why we sleep: Unlocking the power of sleep and dreams*. Simon and Schuster.
