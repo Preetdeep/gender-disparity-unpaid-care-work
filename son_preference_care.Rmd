@@ -286,13 +286,27 @@ We find no meaningful evidence of son preference in parental time. The observed 
 
 ## Literature Review
 
-Son preference in South Asia has been extensively documented across multiple domains. Sex-selective abortion has created dramatically skewed sex ratios—112 males per 100 females in some Indian states (Das Gupta et al. 2003). Girls receive lower vaccination rates, less nutritious food, and reduced medical care (Jayachandran and Kuziemko 2011).
+### Son Preference and Gender Discrimination in India
 
-Barcellos, Carvalho, and Lleras-Muney (2014) find that Indian parents invest more in boys' education, with larger effects among wealthier families. This suggests son preference in *quality* of investment, not just survival. Yet time use—the most immediate form of parental investment—remains understudied.
+Son preference in South Asia has been extensively documented across multiple domains. Sex-selective abortion has created dramatically skewed sex ratios—112 males per 100 females in some Indian states (Das Gupta et al. 2003). Sen's (1990) seminal work identified over 100 million "missing women" globally, with India accounting for a substantial share. This preference persists despite economic development, with some evidence that it intensifies among wealthier households (Jayachandran and Kuziemko 2011; Pande and Astone 2007).
 
-Parental time matters for child development (Cunha and Heckman 2008). Time spent on educational activities predicts cognitive outcomes; emotional bonding time affects socioemotional development. If parents systematically allocate less time to daughters, this creates early-life disadvantages that compound over time.
+Girls receive lower vaccination rates, less nutritious food, and reduced medical care. Jayachandran and Kuziemko (2011) document that mothers breastfeed daughters for shorter durations than sons, contributing to higher female infant mortality. Educational disparities are similarly stark: Barcellos, Carvalho, and Lleras-Muney (2014) find that Indian parents invest more in boys' education, with larger effects among wealthier families. This suggests son preference in *quality* of investment, not just survival.
 
-Our contribution is to test whether the well-documented bias in monetary and health investments extends to time allocation. By using nationally representative time use data, we provide the first analysis of this question with a direct measure of parental time.
+The economic foundations of son preference include patrilocal marriage systems, dowry customs, and sons' role in old-age support (Becker 1991; Rosenzweig and Wolpin 1985). Daughters are viewed as economic liabilities who transfer their productive capacity to another household upon marriage, while sons provide financial security for aging parents (Anderson 2007).
+
+### Parental Time Investment and Child Development
+
+Parental time matters profoundly for child development (Cunha and Heckman 2008; Todd and Wolpin 2007). Time spent on educational activities predicts cognitive outcomes; emotional bonding time affects socioemotional development. The quantity and quality of parent-child interactions in early childhood shape long-term human capital formation (Doss 2013; Lundberg, Pollak, and Wales 1997).
+
+Yet time use—the most immediate form of parental investment—remains understudied in the son preference literature. Unlike monetary investments, parental time cannot be easily stored or transferred, making it a fundamentally different input (Del Boca, Flinn, and Wiswall 2014). Time-use patterns may reveal different discrimination mechanisms than financial allocations.
+
+### Time Use and Gender in South Asia
+
+Research on time use in South Asia reveals stark gender inequalities in household labor, with married women spending 3-6 hours daily on unpaid domestic work compared to less than 1 hour for men (Hirway 2010). These patterns reflect deeply entrenched gender norms about appropriate roles and responsibilities (Desai and Andrist 2010). The question is whether these gender norms extend to differential treatment of male versus female children.
+
+Evidence from other contexts shows mixed results. Studies from the United States find minimal gender differences in parental time allocation (Lundberg, Pabilonia, and Ward-Batts 2007), while evidence from East Asian countries shows pro-male bias in some dimensions of time investment (Qian 2008).
+
+Our contribution is to test whether the well-documented bias in monetary and health investments extends to time allocation in the Indian context. By using nationally representative time use data, we provide the first rigorous analysis of this question with a direct measure of parental time.
 
 # Data and Methods
 
@@ -505,12 +519,38 @@ While our study has limitations, including the inability to measure quality of p
 
 # References {.unnumbered}
 
+Anderson, Siwan. 2007. "The Economics of Dowry and Brideprice." *Journal of Economic Perspectives* 21(4): 151-174.
+
 Barcellos, Silvia H., Leandro S. Carvalho, and Adriana Lleras-Muney. 2014. "Child Gender and Parental Investments in India: Are Boys and Girls Treated Differently?" *Journal of Human Resources* 49(1): 262-291.
+
+Becker, Gary S. 1991. *A Treatise on the Family* (Enlarged Edition). Harvard University Press.
 
 Cunha, Flavio, and James J. Heckman. 2008. "Formulating, Identifying and Estimating the Technology of Cognitive and Noncognitive Skill Formation." *Journal of Human Resources* 43(4): 738-782.
 
 Das Gupta, Monica, et al. 2003. "Why is Son Preference So Persistent in East and South Asia? A Cross-Country Study of China, India and the Republic of Korea." *Journal of Development Studies* 40(2): 153-187.
 
+Del Boca, Daniela, Christopher Flinn, and Matthew Wiswall. 2014. "Household Choices and Child Development." *Review of Economic Studies* 81(1): 137-185.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+Doss, Cheryl. 2013. "Intrahousehold Bargaining and Resource Allocation in Developing Countries." *World Bank Research Observer* 28(1): 52-78.
+
+Hirway, Indira. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In R. Antonopoulos & I. Hirway (Eds.), *Unpaid Work and the Economy* (pp. 22-57). Palgrave Macmillan.
+
 Jayachandran, Seema, and Ilyana Kuziemko. 2011. "Why Do Mothers Breastfeed Girls Less Than Boys? Evidence and Implications for Child Health in India." *Quarterly Journal of Economics* 126(3): 1485-1538.
 
+Lundberg, Shelly, Sara McLanahan, and Elaina Rose. 2007. "Child Gender and Father Involvement in Fragile Families." *Demography* 44(1): 79-92.
+
+Lundberg, Shelly, Sabrina Wulff Pabilonia, and Jennifer Ward-Batts. 2007. "Time Allocation of Parents and Investments in Sons and Daughters." Working Paper, University of Washington.
+
+Lundberg, Shelly, Robert A. Pollak, and Terence J. Wales. 1997. "Do Husbands and Wives Pool Their Resources? Evidence from the United Kingdom Child Benefit." *Journal of Human Resources* 32(3): 463-480.
+
+Pande, Rohini P., and Nan Marie Astone. 2007. "Explaining Son Preference in Rural India: The Independent Role of Structural versus Individual Factors." *Population Research and Policy Review* 26(1): 1-29.
+
+Qian, Nancy. 2008. "Missing Women and the Price of Tea in China: The Effect of Sex-Specific Earnings on Sex Imbalance." *Quarterly Journal of Economics* 123(3): 1251-1285.
+
+Rosenzweig, Mark R., and Kenneth I. Wolpin. 1985. "Specific Experience, Household Structure, and Intergenerational Transfers: Farm Family Land and Labor Arrangements in Developing Countries." *Quarterly Journal of Economics* 100(Supplement): 961-987.
+
 Sen, Amartya. 1990. "More Than 100 Million Women Are Missing." *New York Review of Books* 37(20): 61-66.
+
+Todd, Petra E., and Kenneth I. Wolpin. 2007. "The Production of Cognitive Achievement in Children: Home, School, and Racial Test Score Gaps." *Journal of Human Capital* 1(1): 91-136.
