@@ -42,7 +42,7 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_3Digit, time_spent,
                                Weight, Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               Relationship_To_Head, FSU_Serial_No, Sample_HH_No,
+                               FSU_Serial_No, Sample_HH_No,
                                Person_Serial_No))
 
 # Use 10% random sample for computational feasibility
@@ -52,8 +52,7 @@ data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 # Count children in households
 hh_children <- data %>%
   filter(Major_Activity_Flag == 1) %>%
-  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Age, Gender,
-         Relationship_To_Head) %>%
+  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Age, Gender) %>%
   distinct() %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(
