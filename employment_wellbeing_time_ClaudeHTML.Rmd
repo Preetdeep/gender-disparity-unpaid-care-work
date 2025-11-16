@@ -106,7 +106,7 @@ analysis_data <- data %>%
 # Calculate person-day level well-being time
 person_day_data <- analysis_data %>%
   group_by(Gender, gender_label, female, employment_status, married, marital_label,
-           education_level, higher_ed, sector_label, urban, household_id, Weight) %>%
+           education_level, higher_ed, sector_label, urban, household_id, Weight, Age) %>%
   summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60,
             .groups = "drop") %>%
   filter(!is.na(Weight), employment_status != "Other")
