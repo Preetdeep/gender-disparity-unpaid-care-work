@@ -265,7 +265,27 @@ This asymmetry reveals how gender norms about parental responsibilities shape ti
 
 Our findings contribute to three literatures. First, we extend the child penalty literature beyond labor market outcomes to well-being time (Bertrand 2011; Angelov, Johansson, and Lindahl 2016). This is important because time poverty affects health and life satisfaction independently of income effects. Second, we add to research on time use and gender inequality in developing countries (Ilahi 2000; Blackden and Wodon 2006; Hirway 2010), providing evidence on how traditional gender norms operate through major life events like childbearing. Third, we contribute to policy discussions about work-family balance by quantifying the magnitude of gendered time burdens and their heterogeneity across child ages and family structures.
 
-The remainder of this paper proceeds as follows. Section 2 describes our data and measurement approach. Section 3 presents descriptive findings on the child penalty across demographic groups. Section 4 conducts multivariate analysis to isolate the effects of children while controlling for confounders. Section 5 explores mechanisms and heterogeneity. Section 6 discusses policy implications and concludes.
+The remainder of this paper proceeds as follows. Section 2 reviews the relevant literature. Section 3 describes our data and measurement approach. Section 4 presents descriptive findings on the child penalty across demographic groups. Section 5 conducts multivariate analysis to isolate the effects of children while controlling for confounders. Section 6 explores mechanisms and heterogeneity. Section 7 discusses policy implications and concludes.
+
+# Literature Review
+
+## The Child Penalty on Labor Market Outcomes
+
+Recent research has documented substantial and persistent penalties associated with motherhood across diverse economies. Kleven, Landais, and Søgaard (2019) show that in Denmark, women experience a 20% decline in earnings following the birth of their first child, an effect that persists for decades. This "child penalty" is driven by reductions in labor force participation, hours worked, and wage rates. Similar patterns emerge in Germany (Adda, Dustmann, and Stevens 2017), the United States (Bertrand 2011), and the United Kingdom (Angelov, Johansson, and Lindahl 2016).
+
+Importantly, these studies find minimal or no child penalty for fathers. The asymmetry suggests that the penalty is not merely about children requiring parental time, but about how that requirement is distributed between mothers and fathers based on gender norms (Olivetti and Petrongolo 2017). In developing country contexts, where gender norms are often more traditional, we might expect even larger asymmetries.
+
+## Time Use and Gender Inequality
+
+Time use research reveals that women worldwide perform the majority of unpaid domestic work and caregiving, even when employed full-time (Ferrant, Pesando, and Nowacka 2014). In South Asia specifically, married women spend 3-6 hours daily on unpaid work compared to less than 1 hour for men (Hirway 2010; Chakraborty and Chatterjee 2019). This "second shift" crowds out time for leisure, self-care, and social activities.
+
+The temporal demands intensify dramatically with children. Mothers spend substantially more time than fathers on both routine childcare (feeding, bathing, dressing) and interactive childcare (playing, reading, teaching), with this gap widening as the number of children increases (Craig and Mullan 2011; Gimenez-Nadal and Sevilla 2012). Time diary studies show mothers' leisure time declines sharply with each additional child, while fathers' leisure remains relatively stable (Bianchi, Robinson, and Milkie 2006).
+
+## Personal Time and Well-Being
+
+Personal time for health-promoting and socially enriching activities is critical for physical health, mental health, and life satisfaction. Exercise reduces cardiovascular disease and improves mental health (Warburton, Nicol, and Bredin 2006). Social activities build social capital and reduce isolation (Putnam 2000). Religious participation is associated with better health outcomes and longevity (Koenig, King, and Carson 2012).
+
+When mothers lose time for these activities due to childcare demands, the consequences extend beyond immediate time pressure to long-term health and well-being. Research on maternal health shows that mothers of young children have elevated rates of depression, anxiety, and stress-related conditions (Evenson and Simon 2005), outcomes potentially linked to time poverty and social isolation.
 
 # Data and Methods
 
@@ -450,11 +470,25 @@ The consequences extend beyond individual well-being to gender equality, materna
 
 # References
 
+Adda, J., Dustmann, C., & Stevens, K. (2017). The career costs of children. *Journal of Political Economy*, 125(2), 293-337.
+
 Angelov, N., Johansson, P., & Lindahl, E. (2016). Parenthood and the gender gap in pay. *Journal of Labor Economics*, 34(3), 545-579.
 
 Bertrand, M. (2011). New perspectives on gender. In *Handbook of Labor Economics* (Vol. 4, pp. 1543-1590). Elsevier.
 
+Bianchi, S. M., Robinson, J. P., & Milkie, M. A. (2006). *Changing Rhythms of American Family Life*. Russell Sage Foundation.
+
 Blackden, C. M., & Wodon, Q. (Eds.). (2006). *Gender, time use, and poverty in sub-Saharan Africa*. World Bank Publications.
+
+Chakraborty, T., & Chatterjee, U. (2019). Women's Household Decision-Making and Time Allocation in India: A Story of Changing Contours. *The Indian Journal of Labour Economics*, 62(3), 423-443.
+
+Craig, L., & Mullan, K. (2011). How mothers and fathers share childcare: A cross-national time-use comparison. *American Sociological Review*, 76(6), 834-861.
+
+Evenson, R. J., & Simon, R. W. (2005). Clarifying the relationship between parenthood and depression. *Journal of Health and Social Behavior*, 46(4), 341-358.
+
+Ferrant, G., Pesando, L. M., & Nowacka, K. (2014). Unpaid Care Work: The missing link in the analysis of gender gaps in labour outcomes. *OECD Development Centre*.
+
+Gimenez-Nadal, J. I., & Sevilla, A. (2012). Trends in time allocation: A cross-country analysis. *European Economic Review*, 56(6), 1338-1359.
 
 Hirway, I. (2010). Understanding poverty: Insights emerging from time use of the poor. In *Unpaid work and the economy: Gender, time use and poverty in developing countries* (pp. 22-57). Palgrave Macmillan.
 
@@ -462,4 +496,12 @@ Ilahi, N. (2000). The intra-household allocation of time and tasks: What have we
 
 Kleven, H., Landais, C., & Søgaard, J. E. (2019). Children and gender inequality: Evidence from Denmark. *American Economic Journal: Applied Economics*, 11(4), 181-209.
 
+Koenig, H. G., King, D. E., & Carson, V. B. (2012). *Handbook of Religion and Health* (2nd ed.). Oxford University Press.
+
 Kotsadam, A., & Finseraas, H. (2011). The state intervenes in the battle of the sexes: Causal effects of paternity leave. *Social Science Research*, 40(6), 1611-1622.
+
+Olivetti, C., & Petrongolo, B. (2017). The economic consequences of family policies: Lessons from a century of legislation in high-income countries. *Journal of Economic Perspectives*, 31(1), 205-230.
+
+Putnam, R. D. (2000). *Bowling Alone: The Collapse and Revival of American Community*. Simon & Schuster.
+
+Warburton, D. E., Nicol, C. W., & Bredin, S. S. (2006). Health benefits of physical activity: the evidence. *Canadian Medical Association Journal*, 174(6), 801-809.
