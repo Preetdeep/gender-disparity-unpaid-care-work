@@ -51,14 +51,23 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               FSU_Serial_No, Sample_HH_No,
-                               Day_Of_Week, Type_Of_Day))
+                               FSU_Serial_No, Sample_HH_No, Person_Serial_No))
 
 # Use 10% sample for faster processing
 set.seed(123)
 data_sample <- data %>% slice_sample(prop = 0.1)
 # Adjust weights for sampling
 data_sample <- data_sample %>% mutate(Weight = Weight / 0.1)
+
+# Calculate household size
+hh_size_calc <- data_sample %>%
+  filter(Major_Activity_Flag == 1) %>%
+  group_by(FSU_Serial_No, Sample_HH_No) %>%
+  summarise(HH_Size = n_distinct(Person_Serial_No), .groups = "drop")
+
+# Merge household size back to main data
+data_sample <- data_sample %>%
+  left_join(hh_size_calc, by = c("FSU_Serial_No", "Sample_HH_No"))
 
 # Define personal well-being activity codes
 # Based on Time Use Survey classification:
