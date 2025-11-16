@@ -57,8 +57,7 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_3Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               Relationship_To_Head, FSU_Serial_No,
-                               Sample_HH_No, Person_Serial_No))
+                               FSU_Serial_No, Sample_HH_No, Person_Serial_No))
 
 # Use 10% sample for faster processing
 set.seed(123)
@@ -80,8 +79,7 @@ personal_wellbeing_codes <- c(
 # Create household-level dataset to count children
 hh_composition <- data_sample %>%
   filter(Major_Activity_Flag == 1) %>%
-  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Age, Gender,
-         Relationship_To_Head, Weight) %>%
+  select(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Age, Gender, Weight) %>%
   distinct() %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
   summarise(
