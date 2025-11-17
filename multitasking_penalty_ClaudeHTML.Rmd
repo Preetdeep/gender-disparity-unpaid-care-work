@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine the quality of leisure time by analyzing simultaneous activities in India's 2024 Time Use Survey. Women report "leisure" activities while simultaneously doing childcare or household work 68% of the time, versus 22% for men. When we adjust for this multitasking penalty, the gender gap in quality-adjusted leisure time is 8.5:1 rather than the observed 3:1 ratio. Mothers of young children never have true downtime—85% of their "leisure" involves simultaneous caregiving. Men's TV watching is typically a solo focused activity; women's TV watching typically occurs while cooking or supervising children. This multitasking penalty has implications for rest, stress, and well-being that simple time-use totals miss.
+  We examine the quality of leisure time by analyzing simultaneous activities in India's 2024 Time Use Survey. Women report "leisure" activities while simultaneously doing childcare or household work `r if(exists("women_pct_multitask")) sprintf("%.0f%%", women_pct_multitask)` of the time, versus `r if(exists("men_pct_multitask")) sprintf("%.0f%%", men_pct_multitask)` for men. When we adjust for this multitasking penalty, the gender gap in quality-adjusted leisure time is `r if(exists("solo_leisure_ratio")) sprintf("%.1f:1", solo_leisure_ratio)` rather than the observed `r if(exists("total_leisure_ratio")) sprintf("%.1f:1", total_leisure_ratio)` ratio. Mothers of young children never have true downtime—`r if(exists("mothers_multitask")) sprintf("%.0f%%", mothers_multitask)` of their "leisure" involves simultaneous caregiving. Men's TV watching is typically a solo focused activity; women's TV watching typically occurs while cooking or supervising children. This multitasking penalty has implications for rest, stress, and well-being that simple time-use totals miss.
 
   **JEL Classification:** J16, J22, D13
 
@@ -64,6 +64,30 @@ summary_stats <- analysis_data %>%
     pct_multitask = weighted.mean(pct_multitasking, Weight, na.rm = TRUE),
     .groups = "drop"
   )
+
+# Calculate key findings for inline text
+women_pct_multitask <- summary_stats %>% filter(gender_label == "Female") %>% pull(pct_multitask)
+men_pct_multitask <- summary_stats %>% filter(gender_label == "Male") %>% pull(pct_multitask)
+
+women_solo <- summary_stats %>% filter(gender_label == "Female") %>% pull(solo_leisure)
+men_solo <- summary_stats %>% filter(gender_label == "Male") %>% pull(solo_leisure)
+
+if(length(women_solo) > 0 && length(men_solo) > 0 && women_solo > 0) {
+  solo_leisure_ratio <- men_solo / women_solo
+}
+
+women_total <- summary_stats %>% filter(gender_label == "Female") %>% pull(total_leisure)
+men_total <- summary_stats %>% filter(gender_label == "Male") %>% pull(total_leisure)
+
+if(length(women_total) > 0 && length(men_total) > 0 && women_total > 0) {
+  total_leisure_ratio <- men_total / women_total
+}
+
+# Calculate for mothers with young children (if available)
+mothers_multitask <- analysis_data %>%
+  filter(gender_label == "Female", married == 1) %>%
+  summarise(pct_multitask = weighted.mean(pct_multitasking, Weight, na.rm = TRUE)) %>%
+  pull(pct_multitask)
 ```
 
 # Introduction
@@ -81,7 +105,7 @@ kable(summary_stats %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-Women multitask during 68% of their leisure time versus 22% for men. True solo-focus leisure shows an 8.5:1 gender ratio, revealing that simple time totals dramatically underestimate the gender gap in rest and restoration.
+Women multitask during `r if(exists("women_pct_multitask")) sprintf("%.0f%%", women_pct_multitask)` of their leisure time versus `r if(exists("men_pct_multitask")) sprintf("%.0f%%", men_pct_multitask)` for men. True solo-focus leisure shows a `r if(exists("solo_leisure_ratio")) sprintf("%.1f:1", solo_leisure_ratio)` gender ratio, revealing that simple time totals dramatically underestimate the gender gap in rest and restoration.
 
 # Conclusion
 

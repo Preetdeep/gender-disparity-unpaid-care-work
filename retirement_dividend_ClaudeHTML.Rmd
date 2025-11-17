@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine how personal well-being time evolves with age and retirement in India. Personal time increases sharply after age 60 for men (4.8 hours/day) but the quality is predominantly passive (TV, religious practice, napping). Women's personal time increases after age 55 but remains 40% below men's due to continued household responsibilities. Widowed elderly women have more personal time than married elderly women, as they no longer provide husband care. Pensioned urban elderly with good health achieve "golden retirement"—high active leisure including exercise, hobbies, social clubs. Poor rural elderly often continue working into old age with no retirement dividend. Health and economic security determine whether later life brings expanded leisure or continued labor.
+  We examine how personal well-being time evolves with age and retirement in India. Personal time increases sharply after age 60 for men (`r if(exists("elderly_men_60plus")) sprintf("%.1f hours/day", elderly_men_60plus)`) but the quality is predominantly passive (TV, religious practice, napping). Women's personal time increases after age 55 but remains `r if(exists("women_pct_below_men")) sprintf("%.0f%%", women_pct_below_men)` below men's due to continued household responsibilities. Widowed elderly women have more personal time than married elderly women, as they no longer provide husband care. Pensioned urban elderly with good health achieve "golden retirement"—high active leisure including exercise, hobbies, social clubs. Poor rural elderly often continue working into old age with no retirement dividend. Health and economic security determine whether later life brings expanded leisure or continued labor.
 
   **JEL Classification:** J14, J22, J26
 
@@ -75,6 +75,17 @@ age_stats <- analysis_data %>%
     passive = weighted.mean(passive_hours, Weight, na.rm = TRUE),
     .groups = "drop"
   )
+
+# Calculate key findings for inline text
+elderly_men_60plus <- age_stats %>% filter(age_group == "60-69" | age_group == "70+", gender_label == "Male") %>%
+  summarise(avg = mean(total, na.rm = TRUE)) %>% pull(avg)
+
+elderly_women_60plus <- age_stats %>% filter(age_group == "60-69" | age_group == "70+", gender_label == "Female") %>%
+  summarise(avg = mean(total, na.rm = TRUE)) %>% pull(avg)
+
+if(length(elderly_men_60plus) > 0 && length(elderly_women_60plus) > 0 && elderly_men_60plus > 0) {
+  women_pct_below_men <- ((elderly_men_60plus - elderly_women_60plus) / elderly_men_60plus) * 100
+}
 ```
 
 # Introduction
@@ -93,7 +104,7 @@ kable(age_stats %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-Elderly men have abundant personal time (4.8 hours/day for ages 60+) but it's dominated by passive activities. Elderly women have less time and continued household responsibilities. Exercise time remains low even in retirement, representing a missed public health opportunity.
+Elderly men have abundant personal time (`r if(exists("elderly_men_60plus")) sprintf("%.1f hours/day", elderly_men_60plus)` for ages 60+) but it's dominated by passive activities. Elderly women have less time and continued household responsibilities. Exercise time remains low even in retirement, representing a missed public health opportunity.
 
 # Conclusion
 
