@@ -119,6 +119,61 @@ rm(data)
 invisible(gc())
 ```
 
+```{r calculate_key_stats, include=FALSE}
+# Calculate key statistics for inline reporting
+
+# Employed women by SES
+employed_women_stats <- major_only %>%
+  filter(gender_label == "Female", employed == 1, Age >= 25, Age <= 50,
+         ses_group %in% c("High SES", "Low SES")) %>%
+  group_by(ses_group) %>%
+  summarise(
+    physical = weighted.mean(physical_tasks, Weight, na.rm = TRUE),
+    management = weighted.mean(management_tasks, Weight, na.rm = TRUE),
+    care = weighted.mean(care_tasks, Weight, na.rm = TRUE),
+    total = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+high_ses_total <- employed_women_stats %>% filter(ses_group == "High SES") %>% pull(total)
+low_ses_total <- employed_women_stats %>% filter(ses_group == "Low SES") %>% pull(total)
+total_reduction_pct <- ((low_ses_total - high_ses_total) / low_ses_total) * 100
+
+high_ses_physical <- employed_women_stats %>% filter(ses_group == "High SES") %>% pull(physical)
+low_ses_physical <- employed_women_stats %>% filter(ses_group == "Low SES") %>% pull(physical)
+physical_reduction_pct <- ((low_ses_physical - high_ses_physical) / low_ses_physical) * 100
+
+high_ses_management <- employed_women_stats %>% filter(ses_group == "High SES") %>% pull(management)
+low_ses_management <- employed_women_stats %>% filter(ses_group == "Low SES") %>% pull(management)
+management_increase_pct <- ((high_ses_management - low_ses_management) / low_ses_management) * 100
+
+# Childcare among employed mothers
+childcare_stats <- major_only %>%
+  filter(gender_label == "Female", employed == 1, Age >= 25, Age <= 45,
+         ses_group %in% c("High SES", "Low SES")) %>%
+  group_by(ses_group) %>%
+  summarise(
+    childcare = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+high_ses_childcare <- childcare_stats %>% filter(ses_group == "High SES") %>% pull(childcare)
+low_ses_childcare <- childcare_stats %>% filter(ses_group == "Low SES") %>% pull(childcare)
+
+# Men's statistics
+men_stats <- major_only %>%
+  filter(gender_label == "Male", employed == 1, Age >= 25, Age <= 50,
+         ses_group %in% c("High SES", "Low SES")) %>%
+  group_by(ses_group) %>%
+  summarise(
+    total = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+high_ses_men <- men_stats %>% filter(ses_group == "High SES") %>% pull(total)
+low_ses_men <- men_stats %>% filter(ses_group == "Low SES") %>% pull(total)
+```
+
 # Introduction
 
 The "second shift" describes employed women's double burden: paid work during the day, unpaid housework at night (Hochschild 1989). But what happens when women have the resources to hire household help? Does outsourcing domestic labor to servants, nannies, and cleaners enable employed women to focus on careers? Or does it simply add a "third shift"—managing domestic workers—to their existing burdens?
@@ -137,13 +192,13 @@ Using India's 2024 Time Use Survey with 10.2 million observations, we compare em
 
 Our findings reveal a troubling pattern:
 
-**Modest Total Reduction**: Employed women in high-SES households (urban, higher education—proxying access to household help) spend 108 minutes/day on domestic work. Employed women in low-SES households spend 135 minutes. The 20% reduction is substantial but far from liberation.
+**Modest Total Reduction**: Employed women in high-SES households (urban, higher education—proxying access to household help) spend `r sprintf("%.0f", high_ses_total)` minutes/day on domestic work. Employed women in low-SES households spend `r sprintf("%.0f", low_ses_total)` minutes. The `r sprintf("%.0f%%", total_reduction_pct)` reduction is substantial but far from liberation.
 
-**The Management Substitution**: High-SES employed women spend 65% less time on cooking/cleaning than low-SES employed women (28 vs. 80 minutes). But they spend 210% more time on household management and shopping (32 vs. 15 minutes). Physical labor is outsourced; management work intensifies.
+**The Management Substitution**: High-SES employed women spend `r sprintf("%.0f%%", physical_reduction_pct)` less time on cooking/cleaning than low-SES employed women (`r sprintf("%.0f", high_ses_physical)` vs. `r sprintf("%.0f", low_ses_physical)` minutes). But they spend `r sprintf("%.0f%%", management_increase_pct)` more time on household management and shopping (`r sprintf("%.0f", high_ses_management)` vs. `r sprintf("%.0f", low_ses_management)` minutes). Physical labor is outsourced; management work intensifies.
 
-**The Childcare Paradox**: Among employed mothers, high-SES women spend MORE time on childcare than low-SES women (48 vs. 35 minutes/day). Despite access to nannies and ayahs, affluent working mothers intensify maternal involvement, consistent with "intensive mothering" norms (Hays 1996).
+**The Childcare Paradox**: Among employed mothers, high-SES women spend MORE time on childcare than low-SES women (`r sprintf("%.0f", high_ses_childcare)` vs. `r sprintf("%.0f", low_ses_childcare)` minutes/day). Despite access to nannies and ayahs, affluent working mothers intensify maternal involvement, consistent with "intensive mothering" norms (Hays 1996).
 
-**Men: Still Absent**: Employed men's domestic time shows no variation with SES or partner's employment. High-SES employed men average 19 minutes/day; low-SES employed men average 18 minutes. Household help doesn't change men's contribution because they contribute almost nothing to begin with.
+**Men: Still Absent**: Employed men's domestic time shows no variation with SES or partner's employment. High-SES employed men average `r sprintf("%.0f", high_ses_men)` minutes/day; low-SES employed men average `r sprintf("%.0f", low_ses_men)` minutes. Household help doesn't change men's contribution because they contribute almost nothing to begin with.
 
 **The Third Shift**: Rather than reducing employed women's burdens, household help transforms them. Affluent working women work for pay, manage domestic workers, and personally handle "quality" care—especially for children. They escape scrubbing floors but not household responsibility.
 
@@ -223,7 +278,7 @@ kable(employed_women_time %>% select(-n),
   kable_styling(latex_options = c("HOLD_position"))
 ```
 
-**Key Finding**: High-SES employed women spend 20% less total domestic time, but this masks dramatic compositional changes—physical work drops 65%, management work increases 210%.
+**Key Finding**: High-SES employed women spend `r sprintf("%.0f%%", total_reduction_pct)` less total domestic time, but this masks dramatic compositional changes—physical work drops `r sprintf("%.0f%%", physical_reduction_pct)`, management work increases `r sprintf("%.0f%%", management_increase_pct)`.
 
 ## The Childcare Paradox
 
@@ -266,7 +321,7 @@ kable(employed_men,
   kable_styling(latex_options = c("HOLD_position"))
 ```
 
-**Finding**: Employed men average ~19 minutes/day regardless of SES. Household help availability doesn't affect men's contributions.
+**Finding**: Employed men average ~`r sprintf("%.0f", (high_ses_men + low_ses_men) / 2)` minutes/day regardless of SES. Household help availability doesn't affect men's contributions.
 
 ## Visualization: The Three Shifts
 
@@ -374,7 +429,7 @@ Household help enables women's employment but doesn't change men's domestic cont
 
 # Conclusion
 
-Employed women in affluent Indian households face a "third shift": paid work, managing domestic workers, and personal care work. While household help reduces physical labor by 65%, it increases management work by 210%. Childcare time doesn't decrease and may increase among affluent working mothers, reflecting intensive mothering norms. Men's domestic contributions remain unchanged.
+Employed women in affluent Indian households face a "third shift": paid work, managing domestic workers, and personal care work. While household help reduces physical labor by `r sprintf("%.0f%%", physical_reduction_pct)`, it increases management work by `r sprintf("%.0f%%", management_increase_pct)`. Childcare time doesn't decrease and may increase among affluent working mothers, reflecting intensive mothering norms. Men's domestic contributions remain unchanged.
 
 These findings challenge narratives celebrating private domestic service as women's empowerment. Household help enables employment but preserves gendered household responsibility, simply transforming its nature. True equality requires not just resources to hire help, but fundamental challenges to norms defining domestic management and care as women's domains.
 
