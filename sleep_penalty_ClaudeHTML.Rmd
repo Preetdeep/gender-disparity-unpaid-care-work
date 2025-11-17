@@ -174,7 +174,7 @@ In subsequent models, we add unpaid care work as a key explanatory variable to e
 
 ## Descriptive Statistics
 
-On average, men in our sample sleep 8.2 hours per day, while women sleep 8.1 hours. However, this small unconditional difference masks large disparities when we consider marital status. Never-married women sleep slightly more than never-married men. Upon marriage, men's sleep time increases, while women's sleep time decreases, opening up a significant gap.
+On average, men in our sample sleep `r sprintf("%.1f", male_sleep)` hours per day, while women sleep `r sprintf("%.1f", female_sleep)` hours. However, this small unconditional difference masks large disparities when we consider marital status. Never-married women sleep slightly more than never-married men. Upon marriage, men's sleep time increases, while women's sleep time decreases, opening up a significant gap.
 
 ```{r descriptive_stats_sleep}
 sleep_stats <- person_day_data %>%
@@ -187,6 +187,16 @@ sleep_stats <- person_day_data %>%
     mean_care_hours = weighted.mean(total_care_work_hours, Weight, na.rm = TRUE),
     .groups = "drop"
   )
+
+# Calculate overall means by gender for inline reporting
+overall_sleep <- person_day_data %>%
+  filter(Marital_Status %in% c(1,2), Age >= 18, Age <= 65) %>%
+  mutate(gender_label = ifelse(female==1, "Female", "Male")) %>%
+  group_by(gender_label) %>%
+  summarise(mean_sleep_hours = weighted.mean(total_sleep_minutes, Weight, na.rm = TRUE) / 60, .groups = "drop")
+
+male_sleep <- overall_sleep %>% filter(gender_label == "Male") %>% pull(mean_sleep_hours)
+female_sleep <- overall_sleep %>% filter(gender_label == "Female") %>% pull(mean_sleep_hours)
 
 kable(sleep_stats, digits = 2,
       caption = "Mean Sleep and Care Work by Gender and Marital Status",
