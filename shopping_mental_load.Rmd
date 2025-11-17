@@ -243,7 +243,7 @@ We acknowledge several important measurement limitations that affect interpretat
 
 **2. Lower bound on mental load**: Shopping and household management capture only the *visible* components of mental load—time spent physically shopping or managing finances. The cognitive work of planning what to buy, remembering what's needed, mentally tracking household inventories, and coordinating logistics occurs "in the background" and is not captured by time diaries. Thus our estimates represent a **lower bound** on total mental load gender gaps. The true cognitive burden likely exceeds what we observe.
 
-**3. Low daily participation rates**: As shown in Table 0, shopping and household management are relatively infrequent on any single day (5-7% for women, 2-3% for men). Unlike cooking or childcare which occur daily, most people do not shop every day. This means:
+**3. Low daily participation rates**: As shown in Table 0, shopping and household management are relatively infrequent on any single day (`r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Female") %>% pull("Either Activity %"))` for women, `r sprintf("%.1f%%", activity_freq %>% filter(gender_label == "Male") %>% pull("Either Activity %"))` for men). Unlike cooking or childcare which occur daily, most people do not shop every day. This means:
    - Results primarily capture the extensive margin (who bears responsibility?) rather than intensive margin (how much time if participating?)
    - Gender gaps in total time are driven more by who shops at all than by time differences among those who shop
    - Single-day observations may miss household patterns where tasks are divided across days
@@ -558,6 +558,15 @@ plot_data_comprehensive <- bind_rows(
     select(group, gender_label, `Shopping Minutes`, category)
 )
 
+# Calculate ratios for all subgroups for inline reporting
+subgroup_ratios <- plot_data_comprehensive %>%
+  pivot_wider(names_from = gender_label, values_from = `Shopping Minutes`) %>%
+  mutate(ratio = Female / Male) %>%
+  filter(!is.na(ratio), !is.infinite(ratio))
+
+min_ratio <- min(subgroup_ratios$ratio, na.rm = TRUE)
+max_ratio <- max(subgroup_ratios$ratio, na.rm = TRUE)
+
 ggplot(plot_data_comprehensive, aes(x = gender_label, y = `Shopping Minutes`, fill = gender_label)) +
   geom_col(position = "dodge") +
   geom_text(aes(label = sprintf("%.1f", `Shopping Minutes`)),
@@ -575,7 +584,7 @@ ggplot(plot_data_comprehensive, aes(x = gender_label, y = `Shopping Minutes`, fi
         strip.text = element_text(size = 9, face = "bold"))
 ```
 
-**Interpretation**: The shopping gap exists across all demographic subgroups, with women consistently spending 2-3 times as much time as men. The gap is largest among married individuals (3.0:1 ratio) and persists even among the employed and highly educated.
+**Interpretation**: The shopping gap exists across all demographic subgroups, with women consistently spending `r sprintf("%.1f", min_ratio)`-`r sprintf("%.1f", max_ratio)` times as much time as men. The gap persists even among the employed and highly educated.
 
 # Regression Analysis
 
@@ -618,13 +627,25 @@ modelsummary(list("Shopping\nMinutes" = m1, "Shopping\nMinutes" = m2,
                          "factor(Highest_Education)7" = "Higher education"),
              title = "Gender Gaps in Shopping Time and Participation",
              notes = "Robust standard errors in parentheses. State fixed effects included in models 2 and 4.")
+
+# Extract key coefficients for inline reporting
+female_coef_time_m1 <- coef(m1)["female"]
+female_coef_time_m2 <- coef(m2)["female"]
+female_coef_participation_m4 <- coef(m4)["female"] * 100  # Convert to percentage points
+
+# Calculate relative increase (need male baseline participation rate)
+male_baseline_participation <- major_only %>%
+  filter(gender_label == "Male") %>%
+  summarise(rate = weighted.mean(shopping, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+relative_increase_pct <- (female_coef_participation_m4 / male_baseline_participation) * 100
 ```
 
-**Column 1** shows that women spend 4.1 more minutes per day shopping than men (p < 0.001).
+**Column 1** shows that women spend `r sprintf("%.1f", female_coef_time_m1)` more minutes per day shopping than men (p < 0.001).
 
-**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (4.0 minutes) and highly significant. Shopping increases with age (peaking in middle age), is slightly higher in urban areas, and is lower among employed individuals.
+**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (`r sprintf("%.1f", female_coef_time_m2)` minutes) and highly significant. Shopping increases with age (peaking in middle age), is slightly higher in urban areas, and is lower among employed individuals.
 
-**Columns 3-4** examine participation. Women are 3.8 percentage points more likely to shop on any given day, a 127% increase relative to the male baseline.
+**Columns 3-4** examine participation. Women are `r sprintf("%.1f", female_coef_participation_m4)` percentage points more likely to shop on any given day, a `r sprintf("%.0f%%", relative_increase_pct)` increase relative to the male baseline.
 
 ## Marriage and the Mental Load Transfer
 
