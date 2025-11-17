@@ -26,7 +26,7 @@ library(kableExtra)
 ```
 
 \begin{abstract}
-We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates more than 3 times higher than men (a 3.06-fold difference), yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
+We decompose gender disparities in unpaid care work using India's 2024 Time Use Survey (10.2 million observations, 139,489 households). Women perform unpaid care work at rates `r sprintf("%.2f", participation_fold)` times higher than men, yet conditional on participation, men and women work similar durations. This "participation puzzle" reveals that cultural norms governing who performs care work, rather than differences in work intensity, drive gender inequality. Our findings redirect policy focus from redistributing hours among current participants toward normalizing male participation.
 
 \textbf{JEL Classification:} J16, J22, D13, O15
 
@@ -39,7 +39,7 @@ Gender inequality in unpaid care work constitutes a fundamental mechanism reprod
 
 This distinction matters. If gender gaps stem from women working longer hours when performing care activities, interventions might focus on redistributing workload among current participants through household bargaining or service provision. If gaps instead reflect lower male participation rates at similar intensities, policy must target the cultural norms and institutional structures that exempt men from care responsibilities entirely.
 
-We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78\% versus 1.56\% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
+We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates `r sprintf("%.1f", participation_fold)` times higher than men (`r sprintf("%.2f", female_participation)`\% versus `r sprintf("%.2f", male_participation)`\% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (`r sprintf("%.1f", male_mins_participant)` versus `r sprintf("%.1f", female_mins_participant)` minutes per activity). We term this the "participation puzzle."
 
 \subsection{Contributions}
 
@@ -119,13 +119,26 @@ kable(participation, digits = 2, booktabs = TRUE,
       col.names = c("Gender", "N", "Care Activities", "Participation (\\%)",
                     "Minutes/Participant", "Minutes/Person")) %>%
   kable_styling(latex_options = "HOLD_position")
+
+# Extract key statistics for inline reporting
+female_participation <- participation %>% filter(Gender == "Female") %>% pull(participation_rate)
+male_participation <- participation %>% filter(Gender == "Male") %>% pull(participation_rate)
+participation_fold <- female_participation / male_participation
+
+female_mins_participant <- participation %>% filter(Gender == "Female") %>% pull(minutes_per_participant)
+male_mins_participant <- participation %>% filter(Gender == "Male") %>% pull(minutes_per_participant)
+mins_diff_participant <- male_mins_participant - female_mins_participant
+
+female_mins_person <- participation %>% filter(Gender == "Female") %>% pull(minutes_per_person)
+male_mins_person <- participation %>% filter(Gender == "Male") %>% pull(minutes_per_person)
+aggregate_fold <- female_mins_person / male_mins_person
 ```
 
-Table 1 presents our core finding. Women participate in unpaid care work at 4.78\% daily frequency versus 1.56\% for men—a 3.06-fold difference. This participation gap is the primary source of gender disparity in care work burden.
+Table 1 presents our core finding. Women participate in unpaid care work at `r sprintf("%.2f", female_participation)`\% daily frequency versus `r sprintf("%.2f", male_participation)`\% for men—a `r sprintf("%.2f", participation_fold)`-fold difference. This participation gap is the primary source of gender disparity in care work burden.
 
-Yet conditional on participation, the gender gap vanishes. Men who perform care work spend 50.7 minutes per activity versus 47.4 minutes for women—a statistically insignificant 3.3-minute difference.
+Yet conditional on participation, the gender gap vanishes. Men who perform care work spend `r sprintf("%.1f", male_mins_participant)` minutes per activity versus `r sprintf("%.1f", female_mins_participant)` minutes for women—a statistically insignificant `r sprintf("%.1f", mins_diff_participant)`-minute difference.
 
-At the population level, accounting for non-participants, women average 2.25 minutes daily care work versus 0.77 minutes for men. This 2.9x aggregate gap reflects the participation disparity rather than differential work intensity.
+At the population level, accounting for non-participants, women average `r sprintf("%.2f", female_mins_person)` minutes daily care work versus `r sprintf("%.2f", male_mins_person)` minutes for men. This `r sprintf("%.1f", aggregate_fold)`x aggregate gap reflects the participation disparity rather than differential work intensity.
 
 ```{r visualization, fig.height=4, fig.width=7, fig.cap="Gender Gap in Care Work: Participation vs. Intensity"}
 plot_data <- participation %>%
@@ -255,7 +268,7 @@ By identifying low male participation as the binding constraint, our results sug
 
 \section{Conclusion}
 
-Women in India bear a disproportionate burden of unpaid care work, performing care activities at rates more than three times higher than men. However, this gap emerges not from differences in work intensity among participants, but from stark differences in who participates. When men do engage in care work, they work comparable hours to women. The central challenge is expanding male participation from its currently marginal levels.
+Women in India bear a disproportionate burden of unpaid care work, performing care activities at rates `r sprintf("%.1f", participation_fold)` times higher than men. However, this gap emerges not from differences in work intensity among participants, but from stark differences in who participates. When men do engage in care work, they work comparable hours to women. The central challenge is expanding male participation from its currently marginal levels.
 
 This "participation puzzle" has first-order implications for gender equality policy. Meaningful progress requires policies explicitly targeting male participation: parental leave design encouraging father involvement, workplace flexibility enabling male caregiving, and public campaigns challenging masculine norms that treat care work as women's domain.
 
