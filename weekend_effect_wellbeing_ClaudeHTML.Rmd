@@ -26,9 +26,21 @@ theme_set(theme_minimal(base_size = 11))
 ```
 
 ```{r load_data, include=FALSE}
-data <- read_dta("TimeUse106PER.dta", col_select = c(
+# Load person-level data
+person_data <- read_dta("TimeUse106PER.dta", col_select = c(
   Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
-  Age, Marital_Status, Sector, Principal_Activity_Status, Day_Of_Week))
+  Age, Marital_Status, Sector, Principal_Activity_Status,
+  FSU_Serial_No, Sample_HH_No, Day_Of_Week))
+
+# Load household-level data
+household_data <- read_dta("TimeUse106HH.dta", col_select = c(
+  FSU_Serial_No, Sample_HH_No, Religion))
+
+# Merge household and person data
+data <- person_data %>%
+  left_join(household_data, by = c("FSU_Serial_No", "Sample_HH_No"))
+
+rm(person_data, household_data)
 
 set.seed(123)
 data_sample <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)

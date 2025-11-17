@@ -327,9 +327,13 @@ kable(by_ses_male,
       caption = "Men's Domestic Work Time by SES: No Difference",
       booktabs = TRUE) %>%
   kable_styling(latex_options = c("HOLD_position"))
+
+# Calculate range for inline reporting
+male_ses_min <- min(by_ses_male$`Total Domestic (min)`)
+male_ses_max <- max(by_ses_male$`Total Domestic (min)`)
 ```
 
-**Finding**: Men average 18-22 minutes/day across all socioeconomic groups. Household help doesn't change men's contribution because it was minimal to begin with.
+**Finding**: Men average `r sprintf("%.0f", male_ses_min)`-`r sprintf("%.0f", male_ses_max)` minutes/day across all socioeconomic groups. Household help doesn't change men's contribution because it was minimal to begin with.
 
 # Regression Analysis
 

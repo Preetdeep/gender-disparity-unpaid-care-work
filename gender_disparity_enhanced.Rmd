@@ -88,13 +88,39 @@ rm(data)
 gc()
 ```
 
+```{r calculate_key_stats, include=FALSE}
+# Calculate key statistics for inline reporting in introduction
+participation_stats <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(gender_label) %>%
+  summarise(
+    participation_rate = sum(care_work) / n() * 100,
+    mins_participant = weighted.mean(time_spent[care_work == 1],
+                                     Weight[care_work == 1], na.rm = TRUE),
+    mins_person = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+female_participation_rate <- participation_stats %>% filter(gender_label == "Female") %>% pull(participation_rate)
+male_participation_rate <- participation_stats %>% filter(gender_label == "Male") %>% pull(participation_rate)
+participation_fold_diff <- female_participation_rate / male_participation_rate
+
+female_mins_participant <- participation_stats %>% filter(gender_label == "Female") %>% pull(mins_participant)
+male_mins_participant <- participation_stats %>% filter(gender_label == "Male") %>% pull(mins_participant)
+mins_diff <- male_mins_participant - female_mins_participant
+
+female_mins_person <- participation_stats %>% filter(gender_label == "Female") %>% pull(mins_person)
+male_mins_person <- participation_stats %>% filter(gender_label == "Male") %>% pull(mins_person)
+aggregate_gap_ratio <- female_mins_person / male_mins_person
+```
+
 # Introduction
 
 Gender inequality in unpaid care work constitutes a fundamental mechanism reproducing economic disadvantage across generations. Women worldwide devote substantially more time to unpaid domestic and care activities than men, constraining their labor force participation, earnings potential, and career advancement (Ferrant et al. 2014; Folbre 2006). Yet the precise nature of this disparity—whether rooted in differential participation rates or differential time intensity conditional on participation—remains empirically underexplored.
 
 This distinction matters. If gender gaps stem from women working longer hours when performing care activities, interventions might focus on redistributing workload among current participants through household bargaining or service provision. If gaps instead reflect lower male participation rates at similar intensities, policy must target the cultural norms and institutional structures that exempt men from care responsibilities entirely.
 
-We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates 3.5 times higher than men (4.78% versus 1.56% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (50.7 versus 47.4 minutes per activity). We term this the "participation puzzle."
+We exploit India's 2024 Time Use Survey—a nationally representative dataset capturing 10.2 million activity observations across 139,489 households—to decompose gender disparities in unpaid care work along participation and intensity margins. Our analysis yields a striking pattern: women perform unpaid care work at rates `r sprintf("%.1f", participation_fold_diff)` times higher than men (`r sprintf("%.2f", female_participation_rate)`% versus `r sprintf("%.2f", male_participation_rate)`% daily participation), yet conditional on participation, men and women devote statistically indistinguishable time to care activities (`r sprintf("%.1f", male_mins_participant)` versus `r sprintf("%.1f", female_mins_participant)` minutes per activity). We term this the "participation puzzle."
 
 This finding reframes the policy problem. The primary barrier to gender equality in care work is not persuading participating men to work more hours, but persuading non-participating men to contribute at all. The challenge is extensive margin (participation) rather than intensive margin (hours worked).
 
@@ -170,7 +196,7 @@ Following TUS guidelines, we analyze only "major activities" (Major_Activity_Fla
 
 ## The Participation-Intensity Decomposition
 
-Table \ref{tab:participation} presents our core finding. Women participate in unpaid care work at 4.78% daily frequency versus 1.56% for men—a 3.06-fold difference. This participation gap is the primary source of gender disparity in care work burden.
+Table \ref{tab:participation} presents our core finding. Women participate in unpaid care work at `r sprintf("%.2f", female_participation_rate)`% daily frequency versus `r sprintf("%.2f", male_participation_rate)`% for men—a `r sprintf("%.2f", participation_fold_diff)`-fold difference. This participation gap is the primary source of gender disparity in care work burden.
 
 ```{r participation_table}
 participation <- major_only %>%
@@ -185,15 +211,15 @@ participation <- major_only %>%
     `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE)
   )
 
-kable(participation, digits = 2, 
+kable(participation, digits = 2,
       caption = "\\label{tab:participation}Participation and Time Intensity in Care Work",
       booktabs = TRUE) %>%
   kable_styling(latex_options = c("HOLD_position"))
 ```
 
-Yet conditional on participation, the gender gap vanishes. Men who perform care work spend 50.7 minutes per activity versus 47.4 minutes for women—a statistically insignificant 3.3-minute difference. The t-test for equality of means yields p = 0.12, failing to reject the null of equal intensity.
+Yet conditional on participation, the gender gap vanishes. Men who perform care work spend `r sprintf("%.1f", male_mins_participant)` minutes per activity versus `r sprintf("%.1f", female_mins_participant)` minutes for women—a statistically insignificant `r sprintf("%.1f", mins_diff)`-minute difference. The t-test for equality of means yields p = 0.12, failing to reject the null of equal intensity.
 
-At the population level, accounting for non-participants, women average 2.25 minutes daily care work versus 0.77 minutes for men. This 2.9x aggregate gap reflects the participation disparity rather than differential work intensity.
+At the population level, accounting for non-participants, women average `r sprintf("%.2f", female_mins_person)` minutes daily care work versus `r sprintf("%.2f", male_mins_person)` minutes for men. This `r sprintf("%.1f", aggregate_gap_ratio)`x aggregate gap reflects the participation disparity rather than differential work intensity.
 
 ## Heterogeneity Analysis
 

@@ -102,7 +102,7 @@ major_only <- major_only %>%
   left_join(activity_categories, by = "Activity_Code_3Digit")
 
 person_day_wellbeing <- major_only %>%
-  group_by(FSU_Serial_No, Sample_HH_No, Gender, gender_label, married,
+  group_by(FSU_Serial_No, Sample_HH_No, Gender, gender_label, female, married,
            sector_label, urban, education_level, employed, Weight) %>%
   summarise(
     total_wellbeing_minutes = sum(wellbeing_minutes, na.rm = TRUE),

@@ -24,7 +24,7 @@ header-includes:
   - \usepackage{threeparttable}
   - \usepackage{dcolumn}
 abstract: |
-  Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is **39 times more common** than in-person socializing. Only 0.04% of individuals engage in face-to-face social activities on a given day, compared to 1.55% who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage reduces participation by 4.1 percentage points for women but only 0.5 percentage points for men. Urban residents are 2.3 times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by 80%, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social isolation, mental health, and digital inclusion policies.
+  Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing (phone calls, video chats, messaging) is `r sprintf("%.0f", remote_inperson_ratio)` times more common than in-person socializing. Only `r sprintf("%.2f%%", inperson_pct)` of individuals engage in face-to-face social activities on a given day, compared to `r sprintf("%.2f%%", remote_pct)` who socialize remotely. We analyze the demographic determinants of remote socializing, finding that marriage reduces participation differentially by gender. Urban residents are `r sprintf("%.1f", urban_rural_ratio)` times more likely to socialize remotely than rural residents, revealing a substantial digital divide. Higher education increases participation by `r sprintf("%.0f%%", education_increase_pct)`, highlighting the role of digital literacy. Our findings document India's rapid digital transformation and its heterogeneous effects across gender, geography, and socioeconomic status. We discuss implications for social isolation, mental health, and digital inclusion policies.
 bibliography: references.bib
 ---
 
@@ -76,9 +76,9 @@ Yet despite this digital expansion, we know surprisingly little about how Indian
 
 ## A Striking Pattern in Time Use Data
 
-This paper uses India's 2024 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is 39 times more common than in-person socializing**.
+This paper uses India's 2024 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is `r sprintf("%.0f", remote_inperson_ratio)` times more common than in-person socializing**.
 
-On a typical day, only 0.04% of Indians engage in face-to-face social activities (visiting friends, social gatherings), compared to 1.55% who socialize remotely (phone calls, video chats, messaging). This represents a profound shift in the structure of social life—one with potentially far-reaching consequences for community cohesion, mental health, and social capital.
+On a typical day, only `r sprintf("%.2f%%", inperson_pct)` of Indians engage in face-to-face social activities (visiting friends, social gatherings), compared to `r sprintf("%.2f%%", remote_pct)` who socialize remotely (phone calls, video chats, messaging). This represents a profound shift in the structure of social life—one with potentially far-reaching consequences for community cohesion, mental health, and social capital.
 
 ## Research Questions
 
@@ -96,13 +96,13 @@ Our main findings are:
 
 **Marriage Penalty**: Marriage reduces remote socializing participation by 4.1 percentage points (pp) for women but only 0.5 pp for men. This differential penalty suggests that marriage disproportionately constrains women's social connections.
 
-**Digital Divide**: Urban residents are 2.3 times more likely to socialize remotely than rural residents (2.1% vs 0.9% participation). This gap persists even after controlling for age, education, and gender.
+**Digital Divide**: Urban residents are `r sprintf("%.1f", urban_rural_ratio)` times more likely to socialize remotely than rural residents (`r sprintf("%.1f%%", urban_pct)` vs `r sprintf("%.1f%%", rural_pct)` participation). This gap persists even after controlling for age, education, and gender.
 
-**Education Gradient**: Individuals with higher education are 80% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
+**Education Gradient**: Individuals with higher education are `r sprintf("%.0f%%", education_increase_pct)` more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
 
-**Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at 1.8-2.0%, declining to 1.2% among youth (18-24) and elderly (65+). This U-shaped pattern differs from typical leisure activities.
+**Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at `r sprintf("%.1f", age_35_44_pct)`-`r sprintf("%.1f%%", age_45_54_pct)`, declining to `r sprintf("%.1f%%", age_18_24_pct)` among youth (18-24) and `r sprintf("%.1f%%", age_65plus_pct)` among elderly (65+). This U-shaped pattern differs from typical leisure activities.
 
-**Gender Gap**: Women participate in remote socializing at slightly lower rates than men (1.4% vs 1.7%), but conditional on participation, they spend similar amounts of time (85 vs 87 minutes).
+**Gender Gap**: Women participate in remote socializing at slightly lower rates than men (`r sprintf("%.1f%%", female_pct)` vs `r sprintf("%.1f%%", male_pct)`), but conditional on participation, they spend similar amounts of time.
 
 ## Contributions
 
@@ -490,6 +490,11 @@ cat("\n=== KEY FINDING ===\n")
 cat(sprintf("Remote socializing participation: %.2f percent\n", participation_rates$pct_remote))
 cat(sprintf("In-person socializing participation: %.2f percent\n", participation_rates$pct_inperson))
 cat(sprintf("Ratio (Remote/In-person): %.1fx\n\n", participation_rates$ratio))
+
+# Save key statistics for inline reporting
+remote_inperson_ratio <- participation_rates$ratio
+remote_pct <- participation_rates$pct_remote
+inperson_pct <- participation_rates$pct_inperson
 ```
 
 ```{r table-participation-overview, results='asis'}
@@ -530,7 +535,7 @@ kable(overview_table,
            footnote_as_chunk = TRUE)
 ```
 
-**Finding 1**: Remote socializing is **approximately 39 times more common** than in-person socializing (see Table 2 above for exact participation rates).
+**Finding 1**: Remote socializing is **approximately `r sprintf("%.0f", remote_inperson_ratio)` times more common** than in-person socializing (see Table 2 above for exact participation rates).
 
 ## Figure 1: The 39x Ratio
 
@@ -631,6 +636,27 @@ demo_table <- demo_table %>%
 kable(demo_table,
       caption = "Remote Socializing Participation by Demographics",
       booktabs = TRUE)
+
+# Extract key statistics for inline reporting
+# Urban vs rural ratio
+urban_pct <- by_sector %>% filter(sector_label == "Urban") %>% pull(pct_remote)
+rural_pct <- by_sector %>% filter(sector_label == "Rural") %>% pull(pct_remote)
+urban_rural_ratio <- urban_pct / rural_pct
+
+# Education gradient (higher vs primary)
+higher_ed_pct <- by_education %>% filter(education_level == "Higher education") %>% pull(pct_remote)
+primary_ed_pct <- by_education %>% filter(education_level == "Primary or less") %>% pull(pct_remote)
+education_increase_pct <- ((higher_ed_pct - primary_ed_pct) / primary_ed_pct) * 100
+
+# Age patterns
+age_35_44_pct <- by_age %>% filter(age_group == "35-44") %>% pull(pct_remote)
+age_45_54_pct <- by_age %>% filter(age_group == "45-54") %>% pull(pct_remote)
+age_18_24_pct <- by_age %>% filter(age_group == "18-24") %>% pull(pct_remote)
+age_65plus_pct <- by_age %>% filter(age_group == "65+") %>% pull(pct_remote)
+
+# Gender gap
+male_pct <- by_gender %>% filter(gender_label == "Male") %>% pull(pct_remote)
+female_pct <- by_gender %>% filter(gender_label == "Female") %>% pull(pct_remote)
 ```
 
 **Key Patterns**:
@@ -1127,9 +1153,9 @@ High-risk groups (married women, rural residents, less educated) should receive 
 
 # Conclusion
 
-Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing is 39 times more common than in-person socializing. This reflects India's rapid digital transformation but also reveals profound inequalities.
+Using India's 2024 Time Use Survey, we document a striking pattern: remote socializing is `r sprintf("%.0f", remote_inperson_ratio)` times more common than in-person socializing. This reflects India's rapid digital transformation but also reveals profound inequalities.
 
-Marriage reduces remote socializing more for women than men, suggesting that marriage constrains women's social autonomy. Urban residents socialize remotely at twice the rate of rural residents, and higher education increases participation by 80%, highlighting digital divides in social connectivity.
+Marriage reduces remote socializing more for women than men, suggesting that marriage constrains women's social autonomy. Urban residents socialize remotely at `r sprintf("%.1f", urban_rural_ratio)` times the rate of rural residents, and higher education increases participation by `r sprintf("%.0f%%", education_increase_pct)`, highlighting digital divides in social connectivity.
 
 Our findings raise important questions about the future of social life in India and other developing countries undergoing digital transformation. As face-to-face interaction declines and digital communication expands, who is included—and excluded—from digital social networks? How does this shift affect mental health, community cohesion, and social capital?
 

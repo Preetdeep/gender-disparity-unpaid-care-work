@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine how eldercare responsibilities affect personal well-being time using India's 2024 Time Use Survey. Households with special care needs (elderly or disabled members) lose 1.5 hours/day of personal time, with women absorbing 85% of this burden. The "sandwich generation" (ages 40-55 caring for both children and elderly) experiences the most severe time poverty—women in this group average just 0.35 hours/day for personal activities. Daughters-in-law provide 2.8x more eldercare than daughters, revealing gendered family obligations. The eldercare penalty is entirely uncompensated by other household members, creating compounded disadvantage for caregiving women. These findings have urgent implications as India's population ages rapidly.
+  We examine how eldercare responsibilities affect personal well-being time using India's 2024 Time Use Survey. Households with special care needs (elderly or disabled members) lose `r sprintf("%.1f", time_loss)` hours/day of personal time, with women absorbing `r sprintf("%.0f%%", female_burden_share)` of this burden. The "sandwich generation" (ages 40-55 caring for both children and elderly) experiences the most severe time poverty—women in this group average just `r sprintf("%.2f", sandwich_female)` hours/day for personal activities, only `r sprintf("%.0f%%", sandwich_pct_of_no_care)` of the time enjoyed by women without caregiving responsibilities. The eldercare penalty is entirely uncompensated by other household members, creating compounded disadvantage for caregiving women. These findings have urgent implications as India's population ages rapidly.
 
   **JEL Classification:** J14, J16, J22, I11
 
@@ -72,6 +72,51 @@ summary_stats <- analysis_data %>%
   )) %>%
   group_by(care_status, gender_label) %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
+
+# Calculate key statistics for inline reporting
+sandwich_female <- summary_stats %>% filter(care_status == "Sandwich Gen", gender_label == "Female") %>% pull(mean_hours)
+no_care_female <- summary_stats %>% filter(care_status == "No Eldercare", gender_label == "Female") %>% pull(mean_hours)
+eldercare_only_female <- summary_stats %>% filter(care_status == "Eldercare Only", gender_label == "Female") %>% pull(mean_hours)
+
+if(length(no_care_female) > 0 && length(sandwich_female) > 0) {
+  sandwich_pct_of_no_care <- (sandwich_female / no_care_female) * 100
+  time_loss <- no_care_female - eldercare_only_female
+} else {
+  sandwich_pct_of_no_care <- NA
+  time_loss <- NA
+}
+
+# Calculate burden share
+# Time loss for households with elderly vs without
+time_by_elderly_gender <- analysis_data %>%
+  group_by(has_elderly, gender_label) %>%
+  summarise(avg_time = weighted.mean(wellbeing_hours, Weight), .groups = "drop")
+
+no_elderly_female <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Female") %>% pull(avg_time)
+elderly_female <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Female") %>% pull(avg_time)
+no_elderly_male <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Male") %>% pull(avg_time)
+elderly_male <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Male") %>% pull(avg_time)
+
+female_loss <- no_elderly_female - elderly_female
+male_loss <- no_elderly_male - elderly_male
+female_burden_share <- (female_loss / (female_loss + male_loss)) * 100
+
+# Calculate daughter-in-law vs daughter ratio
+daughter_in_law_time <- analysis_data %>%
+  filter(is_daughter_in_law == 1, has_elderly == 1) %>%
+  summarise(avg = weighted.mean(wellbeing_hours, Weight)) %>%
+  pull(avg)
+
+daughter_time <- analysis_data %>%
+  filter(is_daughter == 1, has_elderly == 1) %>%
+  summarise(avg = weighted.mean(wellbeing_hours, Weight)) %>%
+  pull(avg)
+
+if(length(daughter_time) > 0 && length(daughter_in_law_time) > 0 && daughter_in_law_time > 0) {
+  daughter_ratio <- daughter_time / daughter_in_law_time
+} else {
+  daughter_ratio <- NA
+}
 ```
 
 # Introduction
@@ -89,7 +134,7 @@ kable(summary_stats %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-The sandwich generation penalty is devastating for women but barely affects men. Women caring for both children and elderly have just 0.35 hours/day for personal activities—less than 10% of the time enjoyed by women without caregiving responsibilities.
+The sandwich generation penalty is devastating for women but barely affects men. Women caring for both children and elderly have just `r sprintf("%.2f", sandwich_female)` hours/day for personal activities—only `r sprintf("%.0f%%", sandwich_pct_of_no_care)` of the time enjoyed by women without caregiving responsibilities.
 
 # Policy Implications
 

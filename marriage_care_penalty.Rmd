@@ -141,6 +141,9 @@ older_women_never_married <- major_only %>%
   pull(rate) * 100
 
 older_marriage_penalty <- older_women_married - older_women_never_married
+
+# Calculate ratio for age heterogeneity
+young_to_older_penalty_ratio <- young_marriage_penalty / older_marriage_penalty
 ```
 
 # Introduction
@@ -155,7 +158,7 @@ We exploit India's 2024 Time Use Survey—containing `r format(total_obs, big.ma
 
 This paper makes three contributions. **First**, we quantify the marriage penalty in unpaid care work for India using comprehensive time diary data, providing the first large-scale estimates of how marriage differentially affects men's and women's care work participation.
 
-**Second**, we demonstrate substantial age heterogeneity in the marriage penalty. Younger married women (≤25) face penalties 2.4 times larger than older married women, revealing that early marriage is particularly burdensome—a finding with implications for policies addressing child marriage and age at first marriage.
+**Second**, we demonstrate substantial age heterogeneity in the marriage penalty. Younger married women (≤25) face penalties `r sprintf("%.1f", young_to_older_penalty_ratio)` times larger than older married women, revealing that early marriage is particularly burdensome—a finding with implications for policies addressing child marriage and age at first marriage.
 
 **Third**, we show the marriage penalty operates entirely on the **participation margin**, not the intensity margin. Marriage affects *whether* women perform care work, not *how much time* they spend when they do. This suggests norm-based rather than time-budget explanations: marriage activates expectations about appropriate roles.
 
