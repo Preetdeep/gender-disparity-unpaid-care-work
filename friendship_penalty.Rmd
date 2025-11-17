@@ -102,67 +102,98 @@ by_marriage_gender_stats <- major_only %>%
   )
 
 # Women's statistics
-women_never_married_participation <- by_marriage_gender_stats %>%
+women_never_married_participation_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Never Married") %>%
   pull(participation_rate)
 
-women_married_participation <- by_marriage_gender_stats %>%
+women_married_participation_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Married") %>%
   pull(participation_rate)
 
-women_participation_decline_pct <- 100 * (women_never_married_participation - women_married_participation) / women_never_married_participation
+# Safely extract values with defaults
+women_never_married_participation <- if(length(women_never_married_participation_vec) > 0) women_never_married_participation_vec[1] else 0
+women_married_participation <- if(length(women_married_participation_vec) > 0) women_married_participation_vec[1] else 0
 
-women_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+women_participation_decline_pct <- if(women_never_married_participation > 0) {
+  100 * (women_never_married_participation - women_married_participation) / women_never_married_participation
+} else 0
+
+women_never_married_minutes_per_participant_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Never Married") %>%
   pull(minutes_per_participant)
 
-women_married_minutes_per_participant <- by_marriage_gender_stats %>%
+women_married_minutes_per_participant_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Married") %>%
   pull(minutes_per_participant)
 
-women_time_intensity_decline_pct <- 100 * (women_never_married_minutes_per_participant - women_married_minutes_per_participant) / women_never_married_minutes_per_participant
+women_never_married_minutes_per_participant <- if(length(women_never_married_minutes_per_participant_vec) > 0) women_never_married_minutes_per_participant_vec[1] else 0
+women_married_minutes_per_participant <- if(length(women_married_minutes_per_participant_vec) > 0) women_married_minutes_per_participant_vec[1] else 0
 
-women_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+women_time_intensity_decline_pct <- if(women_never_married_minutes_per_participant > 0) {
+  100 * (women_never_married_minutes_per_participant - women_married_minutes_per_participant) / women_never_married_minutes_per_participant
+} else 0
+
+women_never_married_minutes_per_person_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Never Married") %>%
   pull(minutes_per_person)
 
-women_married_minutes_per_person <- by_marriage_gender_stats %>%
+women_married_minutes_per_person_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Female", marital_status_label == "Married") %>%
   pull(minutes_per_person)
 
-women_total_decline_pct <- 100 * (women_never_married_minutes_per_person - women_married_minutes_per_person) / women_never_married_minutes_per_person
+women_never_married_minutes_per_person <- if(length(women_never_married_minutes_per_person_vec) > 0) women_never_married_minutes_per_person_vec[1] else 0
+women_married_minutes_per_person <- if(length(women_married_minutes_per_person_vec) > 0) women_married_minutes_per_person_vec[1] else 0
+
+women_total_decline_pct <- if(women_never_married_minutes_per_person > 0) {
+  100 * (women_never_married_minutes_per_person - women_married_minutes_per_person) / women_never_married_minutes_per_person
+} else 0
 
 # Men's statistics
-men_never_married_participation <- by_marriage_gender_stats %>%
+men_never_married_participation_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Never Married") %>%
   pull(participation_rate)
 
-men_married_participation <- by_marriage_gender_stats %>%
+men_married_participation_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Married") %>%
   pull(participation_rate)
 
-men_participation_decline_pct <- 100 * (men_never_married_participation - men_married_participation) / men_never_married_participation
+men_never_married_participation <- if(length(men_never_married_participation_vec) > 0) men_never_married_participation_vec[1] else 0
+men_married_participation <- if(length(men_married_participation_vec) > 0) men_married_participation_vec[1] else 0
 
-men_never_married_minutes_per_participant <- by_marriage_gender_stats %>%
+men_participation_decline_pct <- if(men_never_married_participation > 0) {
+  100 * (men_never_married_participation - men_married_participation) / men_never_married_participation
+} else 0
+
+men_never_married_minutes_per_participant_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Never Married") %>%
   pull(minutes_per_participant)
 
-men_married_minutes_per_participant <- by_marriage_gender_stats %>%
+men_married_minutes_per_participant_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Married") %>%
   pull(minutes_per_participant)
 
-men_never_married_minutes_per_person <- by_marriage_gender_stats %>%
+men_never_married_minutes_per_participant <- if(length(men_never_married_minutes_per_participant_vec) > 0) men_never_married_minutes_per_participant_vec[1] else 0
+men_married_minutes_per_participant <- if(length(men_married_minutes_per_participant_vec) > 0) men_married_minutes_per_participant_vec[1] else 0
+
+men_never_married_minutes_per_person_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Never Married") %>%
   pull(minutes_per_person)
 
-men_married_minutes_per_person <- by_marriage_gender_stats %>%
+men_married_minutes_per_person_vec <- by_marriage_gender_stats %>%
   filter(gender_label == "Male", marital_status_label == "Married") %>%
   pull(minutes_per_person)
 
-men_total_decline_pct <- 100 * (men_never_married_minutes_per_person - men_married_minutes_per_person) / men_never_married_minutes_per_person
+men_never_married_minutes_per_person <- if(length(men_never_married_minutes_per_person_vec) > 0) men_never_married_minutes_per_person_vec[1] else 0
+men_married_minutes_per_person <- if(length(men_married_minutes_per_person_vec) > 0) men_married_minutes_per_person_vec[1] else 0
+
+men_total_decline_pct <- if(men_never_married_minutes_per_person > 0) {
+  100 * (men_never_married_minutes_per_person - men_married_minutes_per_person) / men_never_married_minutes_per_person
+} else 0
 
 # Gender comparison statistics
-married_women_to_men_ratio_pct <- 100 * women_married_minutes_per_person / men_married_minutes_per_person
+married_women_to_men_ratio_pct <- if(men_married_minutes_per_person > 0) {
+  100 * women_married_minutes_per_person / men_married_minutes_per_person
+} else 0
 
 # Participation penalty in percentage points
 women_participation_penalty_pp <- women_never_married_participation - women_married_participation
