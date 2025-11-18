@@ -63,10 +63,14 @@ data <- data %>% slice_sample(prop = 0.1)
 # Adjust survey weights
 data <- data %>% mutate(Weight = Weight / 0.1)
 
-# Process data
-major_only <- data %>%
+# Process data at activity level first
+activity_data <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    # Person and household IDs
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
     # Demographics
     gender_label = case_when(Gender == 1 ~ "Male", Gender == 2 ~ "Female"),
     female = as.numeric(Gender == 2),
@@ -75,9 +79,6 @@ major_only <- data %>%
     married = as.numeric(Marital_Status == 2),
     widowed = as.numeric(Marital_Status == 3),
     divorced_separated = as.numeric(Marital_Status == 4),
-
-    # Household ID for clustering
-    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
 
     # Dependent Variable: Exercise
     # Code 71: Physical exercise, sports, outdoors
@@ -93,8 +94,19 @@ major_only <- data %>%
     state_factor = as.factor(State)
   )
 
+# Aggregate to person-day level
+major_only <- activity_data %>%
+  group_by(person_id, FSU_Serial_No, Sample_HH_No, Gender, Age,
+           household_id, gender_label, female, married, widowed, divorced_separated,
+           Marital_Status, urban, higher_ed, employed, state_factor, Weight) %>%
+  summarise(
+    exercise_minutes = sum(exercise_minutes, na.rm = TRUE),
+    exercise = as.numeric(exercise_minutes > 0),
+    .groups = "drop"
+  )
+
 # Free memory
-rm(data)
+rm(data, activity_data)
 invisible(gc())
 ```
 
@@ -377,3 +389,11 @@ Umberson, D., Liu, H., & Powers, D. (2006). Marital Status, Marital Transitions,
 Utz, R. L., Carr, D., Nesse, R., & Wortman, C. B. (2002). The Effect of Widowhood on Older Adults' Social Participation: An Evaluation of Activity, Disengagement, and Continuity Theories. *The Gerontologist*, 42(4), 522-533.
 
 Waite, L. J., & Gallagher, M. (2000). *The Case for Marriage: Why Married People Are Happier, Healthier, and Better Off Financially*. Doubleday.
+
+Folbre, Nancy. (2012). Should Women Care Less? Intrinsic Motivation and Gender Inequality. *British Journal of Industrial Relations*, 50(4), 597-619.
+
+NSSO (National Sample Survey Office). (2020). *Time Use in India 2019*. New Delhi: Ministry of Statistics and Programme Implementation.
+
+United Nations. (2022). *World Population Prospects 2022*. New York: United Nations Department of Economic and Social Affairs, Population Division.
+
+World Bank. (2023). *World Development Indicators 2023*. Washington, DC: World Bank.
