@@ -104,12 +104,10 @@ Our analysis proceeds as follows: We first present the descriptive evidence that
 
 ## The Class Gradient: Gender Gaps Widen with Wealth
 
-```{r gender_gap_by_ses}
-# First aggregate to person-day level
-person_day_ses <- major_only %>%
 ```{r calculate_key_stats, include=FALSE}
 # Calculate gender gaps by SES for inline reporting
-gap_by_ses <- major_only %>%
+# First aggregate to person-day level
+person_day_ses <- major_only %>%
   filter(gender_label %in% c("Male", "Female"),
          married == 1,
          ses_level %in% c("High SES", "Low SES")) %>%
@@ -224,7 +222,7 @@ Our analysis proceeds as follows: We first present the descriptive evidence that
 
 ## The Class Gradient: Gender Gaps Widen with Wealth
 
-```{r gender_gap_by_ses}
+```{r gender_gap_by_ses_table}
 kable(gap_by_ses %>%
         select(ses_level,
                Male = `Domestic Minutes_Male`,

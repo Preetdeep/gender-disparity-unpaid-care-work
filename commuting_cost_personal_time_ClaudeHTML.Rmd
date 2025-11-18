@@ -66,10 +66,8 @@ summary_stats <- analysis_data %>%
   group_by(commute_category, gender_label) %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
             n = n(), .groups = "drop")
-```
 
-```{r calculate_key_stats, include=FALSE}
-# Calculate key statistics for inline reporting in abstract
+# Calculate key statistics for inline reporting in abstract (moved here for early availability)
 commute_stats_for_abstract <- analysis_data %>%
   group_by(commute_category, gender_label) %>%
   summarise(

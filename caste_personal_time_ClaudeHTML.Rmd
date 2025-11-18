@@ -26,7 +26,7 @@ library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest
 ```{r analysis, include=FALSE}
 data <- read_dta("TimeUse106PER.dta", col_select = c(
   Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
-  Age, Social_Group, Sector, Highest_Education, Principal_Activity_Status))
+  Age, social_group, Sector, Highest_Education, Principal_Activity_Status))
 
 set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 wellbeing_codes <- c(711:713, 719, 721:723, 729:730, 741:742, 749, 831:832, 841:843, 849:850, 821:823, 829)
@@ -36,10 +36,10 @@ analysis_data <- data %>%
   mutate(
     gender_label = ifelse(Gender == 1, "Male", "Female"),
     social_group_label = case_when(
-      Social_Group == 1 ~ "Scheduled Tribe",
-      Social_Group == 2 ~ "Scheduled Caste",
-      Social_Group == 3 ~ "OBC",
-      Social_Group == 9 ~ "General",
+      social_group == 1 ~ "Scheduled Tribe",
+      social_group == 2 ~ "Scheduled Caste",
+      social_group == 3 ~ "OBC",
+      social_group == 9 ~ "General",
       TRUE ~ "Other"
     ),
     urban = as.numeric(Sector == 2),

@@ -319,7 +319,7 @@ cat("Data preparation complete.\n")
 cat("Adult sample size:", nrow(data_adults), "\n")
 ```
 
-```{r compute-abstract-statistics}
+```{r compute-abstract-statistics, include=FALSE}
 # Create person-level dataset for abstract statistics
 person_data_temp <- data_adults %>%
   group_by(Person_ID, household_id, Gender, female, gender_label,
