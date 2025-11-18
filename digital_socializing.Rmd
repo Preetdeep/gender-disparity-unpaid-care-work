@@ -67,6 +67,9 @@ data <- data %>% mutate(Weight = Weight / 0.1)
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    # Person ID for aggregation
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
+
     # Demographics
     gender_label = case_when(Gender == 1 ~ "Male", Gender == 2 ~ "Female"),
     female = as.numeric(Gender == 2),
@@ -103,10 +106,19 @@ invisible(gc())
 
 ```{r calculate_abstract_values, include=FALSE}
 # Calculate key statistics for the paper
-participation_stats <- major_only %>%
+# First aggregate to person-day level
+person_day_overall <- major_only %>%
+  group_by(person_id, Weight) %>%
   summarise(
-    remote_rate = weighted.mean(remote_social, Weight, na.rm = TRUE) * 100,
-    in_person_rate = weighted.mean(in_person_social, Weight, na.rm = TRUE) * 100
+    did_remote = as.numeric(sum(remote_social, na.rm = TRUE) > 0),
+    did_in_person = as.numeric(sum(in_person_social, na.rm = TRUE) > 0),
+    .groups = "drop"
+  )
+
+participation_stats <- person_day_overall %>%
+  summarise(
+    remote_rate = weighted.mean(did_remote, Weight, na.rm = TRUE) * 100,
+    in_person_rate = weighted.mean(did_in_person, Weight, na.rm = TRUE) * 100
   )
 
 remote_participation_rate <- participation_stats$remote_rate
@@ -114,13 +126,21 @@ in_person_participation_rate <- participation_stats$in_person_rate
 ratio_remote_to_in_person <- remote_participation_rate / in_person_participation_rate
 
 # Breakdown by demographics
-demographic_breakdown <- major_only %>%
+person_day_demographics <- major_only %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
   mutate(marital_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(person_id, gender_label, marital_label, Weight) %>%
+  summarise(
+    did_remote = as.numeric(sum(remote_social, na.rm = TRUE) > 0),
+    did_in_person = as.numeric(sum(in_person_social, na.rm = TRUE) > 0),
+    .groups = "drop"
+  )
+
+demographic_breakdown <- person_day_demographics %>%
   group_by(gender_label, marital_label) %>%
   summarise(
-    remote_rate = weighted.mean(remote_social, Weight, na.rm = TRUE) * 100,
-    in_person_rate = weighted.mean(in_person_social, Weight, na.rm = TRUE) * 100,
+    remote_rate = weighted.mean(did_remote, Weight, na.rm = TRUE) * 100,
+    in_person_rate = weighted.mean(did_in_person, Weight, na.rm = TRUE) * 100,
     .groups = "drop"
   )
 ```
@@ -178,11 +198,20 @@ Where $\text{SocialActivity}_{i}$ is a binary indicator for either remote or in-
 The most striking finding from the data is the vast difference in participation rates between remote and in-person socializing.
 
 ```{r participation_table}
-participation_summary <- major_only %>%
+# Aggregate to person-day level for participation table
+person_day_table <- major_only %>%
+  group_by(person_id, Weight) %>%
   summarise(
-    `Remote Socializing` = sprintf("%.2f%%", weighted.mean(remote_social, Weight) * 100),
-    `In-Person Socializing` = sprintf("%.2f%%", weighted.mean(in_person_social, Weight) * 100),
-    `N (Observations)` = format(n(), big.mark = ",")
+    did_remote = as.numeric(sum(remote_social, na.rm = TRUE) > 0),
+    did_in_person = as.numeric(sum(in_person_social, na.rm = TRUE) > 0),
+    .groups = "drop"
+  )
+
+participation_summary <- person_day_table %>%
+  summarise(
+    `Remote Socializing` = sprintf("%.2f%%", weighted.mean(did_remote, Weight) * 100),
+    `In-Person Socializing` = sprintf("%.2f%%", weighted.mean(did_in_person, Weight) * 100),
+    `N (Person-Days)` = format(n(), big.mark = ",")
   )
 
 kable(participation_summary,
@@ -215,19 +244,27 @@ Figure 1 illustrates this disparity. The preference for remote socializing is ov
 Table 2 presents the results from our linear probability models predicting participation in remote and in-person socializing. All models include controls for a flexible quadratic in age (`Age` and `Age`-squared), and the coefficients for `female`, `married`, and their interaction should be interpreted relative to the baseline group of never-married men.
 
 ```{r main_regression_digital}
-# Filter data for regression
-reg_data <- major_only %>%
-  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+# First aggregate to person-day level for regression analysis
+person_day_regression <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  group_by(person_id, Gender, female, married, Age, higher_ed, employed,
+           urban, state_factor, household_id, Weight) %>%
+  summarise(
+    did_remote = as.numeric(sum(remote_social, na.rm = TRUE) > 0),
+    did_in_person = as.numeric(sum(in_person_social, na.rm = TRUE) > 0),
+    .groups = "drop"
+  ) %>%
+  mutate(female_married = female * married)
 
-# Model for Remote Socializing
-m_remote <- feols(remote_social ~ female + married + female_married + Age + I(Age^2) +
+# Model for Remote Socializing (person-day level)
+m_remote <- feols(did_remote ~ female + married + female_married + Age + I(Age^2) +
                     higher_ed + employed + urban | state_factor,
-                  data = reg_data, weights = ~Weight, cluster = ~household_id)
+                  data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
-# Model for In-Person Socializing
-m_inperson <- feols(in_person_social ~ female + married + female_married + Age + I(Age^2) +
+# Model for In-Person Socializing (person-day level)
+m_inperson <- feols(did_in_person ~ female + married + female_married + Age + I(Age^2) +
                       higher_ed + employed + urban | state_factor,
-                    data = reg_data, weights = ~Weight, cluster = ~household_id)
+                    data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
 # Create table
 modelsummary(list("DV: Remote Social" = m_remote, "DV: In-Person Social" = m_inperson),
@@ -294,13 +331,22 @@ ggplot(plot_df, aes(x = estimate_pp, y = term, color = model)) +
 To ensure our findings are robust, we test whether the patterns hold across different subgroups. We analyze the "marriage penalty" for in-person socializing and the "marriage premium" for remote socializing separately for urban and rural areas.
 
 ```{r robustness_by_sector}
+# Use person-day regression data (already created above)
 # Urban
-m_remote_urban <- feols(remote_social ~ female + married + female_married, data = reg_data %>% filter(urban==1), weights = ~Weight, cluster = ~household_id)
-m_inperson_urban <- feols(in_person_social ~ female + married + female_married, data = reg_data %>% filter(urban==1), weights = ~Weight, cluster = ~household_id)
+m_remote_urban <- feols(did_remote ~ female + married + female_married,
+                        data = person_day_regression %>% filter(urban==1),
+                        weights = ~Weight, cluster = ~household_id)
+m_inperson_urban <- feols(did_in_person ~ female + married + female_married,
+                          data = person_day_regression %>% filter(urban==1),
+                          weights = ~Weight, cluster = ~household_id)
 
 # Rural
-m_remote_rural <- feols(remote_social ~ female + married + female_married, data = reg_data %>% filter(urban==0), weights = ~Weight, cluster = ~household_id)
-m_inperson_rural <- feols(in_person_social ~ female + married + female_married, data = reg_data %>% filter(urban==0), weights = ~Weight, cluster = ~household_id)
+m_remote_rural <- feols(did_remote ~ female + married + female_married,
+                        data = person_day_regression %>% filter(urban==0),
+                        weights = ~Weight, cluster = ~household_id)
+m_inperson_rural <- feols(did_in_person ~ female + married + female_married,
+                          data = person_day_regression %>% filter(urban==0),
+                          weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Remote (Urban)" = m_remote_urban, "In-Person (Urban)" = m_inperson_urban,
                   "Remote (Rural)" = m_remote_rural, "In-Person (Rural)" = m_inperson_rural),
@@ -337,7 +383,19 @@ The shift towards "digital distance" socializing is a double-edged sword. It off
 \setlength{\parskip}{8pt}
 \noindent
 
+Bourdieu, Pierre. 1986. "The Forms of Capital." In *Handbook of Theory and Research for the Sociology of Education*, edited by John Richardson, 241-258. New York: Greenwood Press.
+
+Boyd, Danah. 2014. *It's Complicated: The Social Lives of Networked Teens*. New Haven, CT: Yale University Press.
+
+Castells, Manuel. 2001. *The Internet Galaxy: Reflections on the Internet, Business, and Society*. Oxford: Oxford University Press.
+
+Coleman, James S. 1988. "Social Capital in the Creation of Human Capital." *American Journal of Sociology* 94: S95-S120.
+
 Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+DiMaggio, Paul, Eszter Hargittai, Coral Celeste, and Steven Shafer. 2004. "Digital Inequality: From Unequal Access to Differentiated Use." In *Social Inequality*, edited by Kathryn Neckerman, 355-400. New York: Russell Sage Foundation.
+
+Ellison, Nicole B., Charles Steinfield, and Cliff Lampe. 2007. "The Benefits of Facebook 'Friends:' Social Capital and College Students' Use of Online Social Network Sites." *Journal of Computer-Mediated Communication* 12(4): 1143-1168.
 
 GSMA. 2020. "The Mobile Gender Gap Report 2020." London: GSMA.
 
@@ -345,8 +403,24 @@ Hampton, Keith N., and Barry Wellman. 2003. "Neighboring in Netville: How the In
 
 Hargittai, Eszter. 2002. "Second-Level Digital Divide: Differences in People's Online Skills." *First Monday* 7(4).
 
+Kraut, Robert, Sara Kiesler, Bonka Boneva, Jonathon Cummings, Vicki Helgeson, and Anne Crawford. 2002. "Internet Paradox Revisited." *Journal of Social Issues* 58(1): 49-74.
+
+Lin, Nan. 2001. *Social Capital: A Theory of Social Structure and Action*. Cambridge: Cambridge University Press.
+
+Ling, Rich. 2008. *New Tech, New Ties: How Mobile Communication is Reshaping Social Cohesion*. Cambridge, MA: MIT Press.
+
+Norris, Pippa. 2001. *Digital Divide: Civic Engagement, Information Poverty, and the Internet Worldwide*. Cambridge: Cambridge University Press.
+
+Pinkett, Randal D. 2003. "Community Technology and Community Building: Early Results from the Creating Community Connections Project." *The Information Society* 19(5): 365-379.
+
 Putnam, Robert D. 2000. *Bowling Alone: The Collapse and Revival of American Community*. New York: Simon & Schuster.
 
-Singh, Tripti. 2015. "Mobile Phones and Empowerment of Women in Rural India." *International Journal of Gender and Women’s Studies* 3(1): 75-83.
+Rainie, Lee, and Barry Wellman. 2012. *Networked: The New Social Operating System*. Cambridge, MA: MIT Press.
+
+Singh, Tripti. 2015. "Mobile Phones and Empowerment of Women in Rural India." *International Journal of Gender and Women's Studies* 3(1): 75-83.
 
 Turkle, Sherry. 2011. *Alone Together: Why We Expect More from Technology and Less from Each Other*. New York: Basic Books.
+
+van Dijk, Jan A.G.M. 2005. *The Deepening Divide: Inequality in the Information Society*. Thousand Oaks, CA: Sage Publications.
+
+Wellman, Barry, Anabel Quan-Haase, Jeffrey Boase, Wenhong Chen, Keith Hampton, Isabel Díaz, and Kakuko Miyata. 2003. "The Social Affordances of the Internet for Networked Individualism." *Journal of Computer-Mediated Communication* 8(3): JCMC834.
