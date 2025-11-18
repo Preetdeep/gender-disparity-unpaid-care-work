@@ -70,7 +70,7 @@ data_sample <- data_sample %>% mutate(Weight = Weight / 0.1)
 hh_size_calc <- data_sample %>%
   filter(Major_Activity_Flag == 1) %>%
   group_by(FSU_Serial_No, Sample_HH_No) %>%
-  summarise(HH_Size = n_distinct(Person_Serial_No), .groups = "drop")
+  summarise(household_size = n_distinct(Person_Serial_No), .groups = "drop")
 
 # Merge household size back to main data
 data_sample <- data_sample %>%
@@ -162,9 +162,9 @@ major_only <- data_sample %>%
 
     # Household size categories
     hh_size_category = case_when(
-      HH_Size <= 3 ~ "Small (1-3)",
-      HH_Size <= 5 ~ "Medium (4-5)",
-      HH_Size > 5 ~ "Large (6+)"
+      household_size <= 3 ~ "Small (1-3)",
+      household_size <= 5 ~ "Medium (4-5)",
+      household_size > 5 ~ "Large (6+)"
     ),
 
     # Employment status
