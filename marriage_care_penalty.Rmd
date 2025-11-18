@@ -88,7 +88,7 @@ rm(data)
 invisible(gc())
 ```
 
-```{r calculate_key_stats, include=FALSE}
+```{r calculate_key_stats, include=FALSE, cache=FALSE}
 # Aggregate to person-day level first
 person_day <- major_only %>%
   group_by(person_id, Gender, female, male, married, never_married, Age,
