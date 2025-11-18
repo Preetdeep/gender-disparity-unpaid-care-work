@@ -32,14 +32,16 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               State))
+                               State, FSU_Serial_No, Sample_HH_No, Person_Serial_No))
 
 set.seed(123)
 data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
-major_only <- data %>%
+activity_data <- data %>%
   filter(Major_Activity_Flag == 1, Marital_Status == 2, Age >= 25, Age <= 50) %>%
   mutate(
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No, sep = "_"),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
     female = as.numeric(Gender == 2),
     domestic_work = as.numeric(Activity_Code_2Digit %in% c(31:35)),
     domestic_minutes = ifelse(domestic_work == 1, time_spent, 0),
@@ -55,7 +57,19 @@ major_only <- data %>%
 
     state_factor = as.factor(State)
   )
-rm(data); invisible(gc())
+
+# Aggregate to person-day level
+major_only <- activity_data %>%
+  group_by(person_id, FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, Age,
+           household_id, female, urban, higher_ed, employed, progressive_individual,
+           traditional_individual, state_factor, Marital_Status, Weight) %>%
+  summarise(
+    domestic_minutes = sum(domestic_minutes, na.rm = TRUE),
+    any_domestic = as.numeric(domestic_minutes > 0),
+    .groups = "drop"
+  )
+
+rm(data, activity_data); invisible(gc())
 ```
 
 # Introduction
@@ -174,14 +188,57 @@ Urban, educated, dual-earner Indian couples espouse egalitarian values but pract
 
 This "modernity paradox" reveals that cultural change requires more than education and urbanization. Without deliberate challenges to gendered norms—workplace policies, social accountability, men taking responsibility—egalitarian discourse will remain symbolic rather than substantive.
 
-# References
+# References {.unnumbered}
 
-[Core references from previous papers plus:]
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Akerlof, George A., and Rachel E. Kranton. 2000. "Economics and Identity." *Quarterly Journal of Economics* 115(3): 715-753.
+
+Becker, Gary S. 1991. *A Treatise on the Family* (Enlarged Edition). Harvard University Press.
+
+Bertrand, Marianne, Emir Kamenica, and Jessica Pan. 2015. "Gender Identity and Relative Income within Households." *Quarterly Journal of Economics* 130(2): 571-614.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Coltrane, Scott. 2000. "Research on Household Labor: Modeling and Measuring the Social Embeddedness of Routine Family Work." *Journal of Marriage and Family* 62(4): 1208-1233.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
 
 Deutsch, Francine M. 2007. "Undoing Gender." *Gender & Society* 21(1): 106-127.
 
+Fernández, Raquel, and Alessandra Fogli. 2009. "Culture: An Empirical Investigation of Beliefs, Work, and Fertility." *American Economic Journal: Macroeconomics* 1(1): 146-177.
+
+Folbre, Nancy. 2012. "Should Women Care Less? Intrinsic Motivation and Gender Inequality." *British Journal of Industrial Relations* 50(4): 597-619.
+
+Hochschild, Arlie Russell. 1989. *The Second Shift: Working Parents and the Revolution at Home*. New York: Viking.
+
+Kandiyoti, Deniz. 1988. "Bargaining with Patriarchy." *Gender & Society* 2(3): 274-290.
+
+Lundberg, Shelly, and Robert A. Pollak. 1996. "Bargaining and Distribution in Marriage." *Journal of Economic Perspectives* 10(4): 139-158.
+
+Manser, Marilyn, and Murray Brown. 1980. "Marriage and Household Decision-Making: A Bargaining Analysis." *International Economic Review* 21(1): 31-44.
+
+NSSO (National Sample Survey Office). 2020. *Time Use in India 2019*. New Delhi: Ministry of Statistics and Programme Implementation.
+
+Offer, Shira, and Barbara Schneider. 2011. "Revisiting the Gender Gap in Time-Use Patterns: Multitasking and Well-Being among Mothers and Fathers in Dual-Earner Families." *American Sociological Review* 76(6): 809-833.
+
 Pedulla, David S., and Sarah Thébaud. 2015. "Can We Finish the Revolution? Gender, Work-Family Ideals, and Institutional Constraint." *American Sociological Review* 80(1): 116-139.
 
+Qian, Nancy. 2008. "Missing Women and the Price of Tea in China: The Effect of Sex-Specific Earnings on Sex Imbalance." *Quarterly Journal of Economics* 123(3): 1251-1285.
+
 Rao, Vijayendra. 1997. "Wife-Beating in Rural South India: A Qualitative and Econometric Analysis." *Social Science & Medicine* 44(8): 1169-1180.
+
+Ridgeway, Cecilia L. 2011. *Framed by Gender: How Gender Inequality Persists in the Modern World*. Oxford: Oxford University Press.
+
+Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
+
+United Nations. 2022. *World Population Prospects 2022*. New York: United Nations Department of Economic and Social Affairs, Population Division.
+
+West, Candace, and Don H. Zimmerman. 1987. "Doing Gender." *Gender & Society* 1(2): 125-151.
+
+World Bank. 2023. *World Development Indicators 2023*. Washington, DC: World Bank.
 
 Zuo, Jiping, and Shengming Tang. 2000. "Breadwinner Status and Gender Ideologies of Men and Women Regarding Family Roles." *Sociological Perspectives* 43(1): 29-43.
