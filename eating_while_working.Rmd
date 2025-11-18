@@ -200,6 +200,9 @@ if ("Relationship_to_Head" %in% names(data)) {
 # STEP 4: Process data
 processed_data <- data %>%
   mutate(
+    # Person ID for aggregation
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No, sep = "_"),
+
     # Gender variables
     gender_label = case_when(
       Gender == 1 ~ "Male",
@@ -916,9 +919,56 @@ More provocatively, the inability to observe the "eating gap" in standard survey
 
 Future research should: (1) use survey instruments that explicitly prompt for secondary activities during eating, (2) employ alternative methods like experience sampling or direct observation, and (3) validate self-reported multitasking against objective measures. Only by making women's fragmented time visible in data can we adequately measure—and address—gender-based time poverty.
 
-# References
+# References {.unnumbered}
 
-[References would be added here in full paper]
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Becker, Gary S. 1965. "A Theory of the Allocation of Time." *Economic Journal* 75(299): 493-517.
+
+Bianchi, Suzanne M., Melissa A. Milkie, Liana C. Sayer, and John P. Robinson. 2000. "Is Anyone Doing the Housework? Trends in the Gender Division of Household Labor." *Social Forces* 79(1): 191-228.
+
+Bittman, Michael, and Judy Wajcman. 2000. "The Rush Hour: The Character of Leisure Time and Gender Equity." *Social Forces* 79(1): 165-189.
+
+Bose, Christine E., and Rosemary Wemmerus. 1996. "Rethinking Women's Oppression." In *The Worth of Women's Work: A Qualitative Synthesis*, edited by Anne Statham, Eleanor M. Miller, and Hans O. Mauksch, 53-75. Albany: SUNY Press.
+
+Brines, Julie. 1994. "Economic Dependency, Gender, and the Division of Labor at Home." *American Journal of Sociology* 100(3): 652-688.
+
+Coltrane, Scott. 2000. "Research on Household Labor: Modeling and Measuring the Social Embeddedness of Routine Family Work." *Journal of Marriage and Family* 62(4): 1208-1233.
+
+Craig, Lyn, and Killian Mullan. 2011. "How Mothers and Fathers Share Childcare: A Cross-National Time-Use Comparison." *American Sociological Review* 76(6): 834-861.
+
+Daminger, Allison. 2019. "The Cognitive Dimension of Household Labor." *American Sociological Review* 84(4): 609-633.
+
+England, Paula. 2010. "The Gender Revolution: Uneven and Stalled." *Gender & Society* 24(2): 149-166.
+
+Folbre, Nancy. 2006. "Measuring Care: Gender, Empowerment, and the Care Economy." *Journal of Human Development* 7(2): 183-199.
+
+Goodin, Robert E., James Mahmud Rice, Antti Parpo, and Lina Eriksson. 2008. *Discretionary Time: A New Measure of Freedom*. Cambridge: Cambridge University Press.
+
+Hochschild, Arlie Russell, and Anne Machung. 1989. *The Second Shift: Working Parents and the Revolution at Home*. New York: Viking.
+
+Hook, Jennifer L. 2010. "Gender Inequality in the Welfare State: Sex Segregation in Housework, 1965-2003." *American Journal of Sociology* 115(5): 1480-1523.
+
+Juster, F. Thomas, and Frank P. Stafford. 1991. "The Allocation of Time: Empirical Findings, Behavioral Models, and Problems of Measurement." *Journal of Economic Literature* 29(2): 471-522.
+
+Kalenkoski, Charlene Marie, David C. Ribar, and Leslie S. Stratton. 2005. "Parental Child Care in Single-Parent, Cohabiting, and Married-Couple Families: Time-Diary Evidence from the United Kingdom." *American Economic Review* 95(2): 194-198.
+
+Kan, Man Yee, and Stephen Pudney. 2008. "Measurement Error in Stylized and Diary Data on Time Use." *Sociological Methodology* 38(1): 101-132.
+
+Lachance-Grzela, Mylène, and Geneviève Bouchard. 2010. "Why Do Women Do the Lion's Share of Housework? A Decade of Research." *Sex Roles* 63(11-12): 767-780.
+
+NSSO (National Sample Survey Office). 2020. *Time Use in India 2019*. Ministry of Statistics and Programme Implementation, Government of India.
+
+Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
+
+Sullivan, Oriel. 2013. "What Do We Learn About Gender by Analyzing Housework Separately from Child Care? Some Considerations from Time-Use Evidence." *Journal of Family Theory & Review* 5(2): 72-84.
+
+Vickery, Clair. 1977. "The Time-Poor: A New Look at Poverty." *Journal of Human Resources* 12(1): 27-48.
+
+Wajcman, Judy. 2015. *Pressed for Time: The Acceleration of Life in Digital Capitalism*. Chicago: University of Chicago Press.
 
 ```{r session_info, include=FALSE}
 # Session info for reproducibility

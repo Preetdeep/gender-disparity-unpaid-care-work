@@ -169,7 +169,7 @@ Economic theories of household labor emphasize specialization based on comparati
 
 Sociological theories emphasize "doing gender"—household labor as performance and reinforcement of gender identity (West and Zimmerman 1987). Even in dual-earner couples with equal earnings, women perform substantially more housework, suggesting that domestic labor division reflects norms, not just economics.
 
-Time use studies document that women globally perform 2-4 times as much unpaid domestic work as men (OECD 2020). This gap narrows with women's employment and education but persists even among highly educated professionals (Sayer 2005).
+Time use studies document that women globally perform 2-4 times as much unpaid domestic work as men (OECD 2020). This gap narrows with women's employment and education but persists even among highly educated professionals (Sayer 2005). Cross-national studies confirm this pattern holds across diverse contexts (Craig and Mullan 2011), and research emphasizes the importance of distinguishing between different types of unpaid work, particularly housework versus childcare (Sullivan 2013). The care economy literature highlights how measuring and valuing women's unpaid care work is essential for understanding gender empowerment (Folbre 2006). Coltrane (2000) emphasizes that household labor must be understood as socially embedded routine work shaped by broader institutional and cultural contexts.
 
 ## Household Help and the Outsourcing Hypothesis
 
@@ -243,15 +243,25 @@ NOTE: Because wealth and household help variables are not available in TUS 2024,
 # NOTE: Using education × urban as proxy for socioeconomic status
 # Wealth and household help variables not available in TUS 2024
 
-by_wealth_gender <- major_only %>%
+# First aggregate to person-day level, then calculate means
+person_day_data <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
-  # group_by(wealth_quintile, gender_label) %>%
+  group_by(household_id, FSU_Serial_No, Sample_HH_No, Gender, education_level, urban, gender_label, Weight) %>%
+  summarise(
+    physical_domestic_total = sum(physical_domestic, na.rm = TRUE),
+    cognitive_domestic_total = sum(cognitive_domestic, na.rm = TRUE),
+    care_work_total_sum = sum(care_work_total, na.rm = TRUE),
+    total_domestic_sum = sum(total_domestic, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+by_wealth_gender <- person_day_data %>%
   group_by(education_level, urban, gender_label) %>%
   summarise(
-    `Cooking/Cleaning (min)` = weighted.mean(physical_domestic, Weight, na.rm = TRUE),
-    `Shopping/Management (min)` = weighted.mean(cognitive_domestic, Weight, na.rm = TRUE),
-    `Care Work (min)` = weighted.mean(care_work_total, Weight, na.rm = TRUE),
-    `Total Domestic (min)` = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    `Cooking/Cleaning (min)` = weighted.mean(physical_domestic_total, Weight, na.rm = TRUE),
+    `Shopping/Management (min)` = weighted.mean(cognitive_domestic_total, Weight, na.rm = TRUE),
+    `Care Work (min)` = weighted.mean(care_work_total_sum, Weight, na.rm = TRUE),
+    `Total Domestic (min)` = weighted.mean(total_domestic_sum, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   )
@@ -272,9 +282,18 @@ kable(by_wealth_gender %>% select(-n) %>% head(12),
 ## The Management Penalty Visualization
 
 ```{r management_penalty_plot, fig.width=8, fig.height=6, fig.cap="The Servant Paradox: Physical Work Decreases but Management Work Increases"}
-# Compare high vs low SES women
-plot_data <- major_only %>%
+# Compare high vs low SES women - use person-day aggregated data
+person_day_female <- major_only %>%
   filter(gender_label == "Female") %>%
+  group_by(household_id, FSU_Serial_No, Sample_HH_No, education_level, urban, Weight) %>%
+  summarise(
+    physical_domestic_total = sum(physical_domestic, na.rm = TRUE),
+    cognitive_domestic_total = sum(cognitive_domestic, na.rm = TRUE),
+    care_work_total_sum = sum(care_work_total, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+plot_data <- person_day_female %>%
   mutate(ses_group = case_when(
     education_level == "Higher education" & urban == 1 ~ "High SES\n(Urban, Higher Ed)",
     education_level == "Primary or less" & urban == 0 ~ "Low SES\n(Rural, Primary Ed)",
@@ -283,9 +302,9 @@ plot_data <- major_only %>%
   filter(ses_group != "Middle SES") %>%
   group_by(ses_group) %>%
   summarise(
-    Physical = weighted.mean(physical_domestic, Weight, na.rm = TRUE),
-    Cognitive = weighted.mean(cognitive_domestic, Weight, na.rm = TRUE),
-    Care = weighted.mean(care_work_total, Weight, na.rm = TRUE),
+    Physical = weighted.mean(physical_domestic_total, Weight, na.rm = TRUE),
+    Cognitive = weighted.mean(cognitive_domestic_total, Weight, na.rm = TRUE),
+    Care = weighted.mean(care_work_total_sum, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   pivot_longer(cols = c(Physical, Cognitive, Care),
@@ -312,13 +331,21 @@ ggplot(plot_data, aes(x = ses_group, y = `Minutes per Day`, fill = `Work Type`))
 ## Men: Unchanged Across Wealth
 
 ```{r men_unchanged}
-by_ses_male <- major_only %>%
+# Aggregate to person-day level for males
+person_day_male <- major_only %>%
   filter(gender_label == "Male") %>%
+  group_by(household_id, FSU_Serial_No, Sample_HH_No, education_level, urban, Weight) %>%
+  summarise(
+    total_domestic_sum = sum(total_domestic, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+by_ses_male <- person_day_male %>%
   mutate(ses = ifelse(education_level == "Higher education" & urban == 1,
                       "High SES", "Low SES")) %>%
   group_by(ses) %>%
   summarise(
-    `Total Domestic (min)` = weighted.mean(total_domestic, Weight, na.rm = TRUE),
+    `Total Domestic (min)` = weighted.mean(total_domestic_sum, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -334,6 +361,49 @@ male_ses_max <- max(by_ses_male$`Total Domestic (min)`)
 ```
 
 **Finding**: Men average `r sprintf("%.0f", male_ses_min)`-`r sprintf("%.0f", male_ses_max)` minutes/day across all socioeconomic groups. Household help doesn't change men's contribution because it was minimal to begin with.
+
+## The Gender Gap Persists Across Socioeconomic Status
+
+```{r gender_gap_plot, fig.width=8, fig.height=6, fig.cap="Gender Gap in Domestic Work Persists Across All SES Groups"}
+# Create gender comparison data
+person_day_all <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(household_id, FSU_Serial_No, Sample_HH_No, gender_label, education_level, urban, Weight) %>%
+  summarise(
+    total_domestic_sum = sum(total_domestic, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+gender_gap_data <- person_day_all %>%
+  mutate(ses = case_when(
+    education_level == "Higher education" & urban == 1 ~ "High SES\n(Urban, Higher Ed)",
+    education_level == "Primary or less" & urban == 0 ~ "Low SES\n(Rural, Primary Ed)",
+    TRUE ~ "Middle SES"
+  )) %>%
+  filter(ses != "Middle SES") %>%
+  group_by(ses, gender_label) %>%
+  summarise(
+    `Minutes per Day` = weighted.mean(total_domestic_sum, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(gender_gap_data, aes(x = ses, y = `Minutes per Day`, fill = gender_label)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = sprintf("%.0f", `Minutes per Day`)),
+            position = position_dodge(width = 0.7),
+            vjust = -0.5, size = 4, fontface = "bold") +
+  labs(x = "", y = "Minutes per Day",
+       title = "Gender Gap in Total Domestic Work Remains Massive Across SES Groups",
+       subtitle = "Women bear the domestic burden regardless of socioeconomic status",
+       fill = "Gender") +
+  scale_fill_manual(values = c("Female" = "#e74c3c", "Male" = "#3498db")) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 14)) +
+  ylim(0, max(gender_gap_data$`Minutes per Day`) * 1.15)
+```
+
+**Key Finding**: The gender gap in domestic work is enormous and shows little variation by socioeconomic status. Whether high or low SES, women perform vastly more domestic work than men. Household resources may change the *type* of women's work but don't reduce the gender inequality.
 
 # Regression Analysis
 
@@ -467,3 +537,11 @@ Ray, Raka, and Seemin Qayum. 2009. *Cultures of Servitude: Modernity, Domesticit
 Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's Paid Work, Unpaid Work and Free Time." *Social Forces* 84(1): 285-303.
 
 West, Candace, and Don H. Zimmerman. 1987. "Doing Gender." *Gender & Society* 1(2): 125-151.
+
+Craig, Lyn, and Killian Mullan. 2011. "How Mothers and Fathers Share Childcare: A Cross-National Time-Use Comparison." *American Sociological Review* 76(6): 834-861.
+
+Coltrane, Scott. 2000. "Research on Household Labor: Modeling and Measuring the Social Embeddedness of Routine Family Work." *Journal of Marriage and Family* 62(4): 1208-1233.
+
+Folbre, Nancy. 2006. "Measuring Care: Gender, Empowerment, and the Care Economy." *Journal of Human Development* 7(2): 183-199.
+
+Sullivan, Oriel. 2013. "What Do We Learn About Gender by Analyzing Housework Separately from Child Care? Some Considerations from Time Use Evidence." *Journal of Family Theory & Review* 5(2): 72-84.

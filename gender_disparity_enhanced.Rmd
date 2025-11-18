@@ -61,9 +61,10 @@ data <- read_dta("TimeUse106PER.dta",
                                Activity_Code_2Digit, State, FSU_Serial_No, 
                                Sample_HH_No))
 
-major_only <- data %>% 
+major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
     gender_label = case_when(
       Gender == 1 ~ "Male",
       Gender == 2 ~ "Female",
@@ -90,14 +91,24 @@ gc()
 
 ```{r calculate_key_stats, include=FALSE}
 # Calculate key statistics for inline reporting in introduction
-participation_stats <- major_only %>%
+# First aggregate to person-day level to avoid counting same person multiple times
+person_day_data <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+participation_stats <- person_day_data %>%
   group_by(gender_label) %>%
   summarise(
-    participation_rate = sum(care_work) / n() * 100,
-    mins_participant = weighted.mean(time_spent[care_work == 1],
-                                     Weight[care_work == 1], na.rm = TRUE),
-    mins_person = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    participation_rate = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    mins_participant = weighted.mean(total_care_minutes[participated == 1],
+                                     Weight[participated == 1], na.rm = TRUE),
+    mins_person = weighted.mean(total_care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -199,16 +210,26 @@ Following TUS guidelines, we analyze only "major activities" (Major_Activity_Fla
 Table \ref{tab:participation} presents our core finding. Women participate in unpaid care work at `r sprintf("%.2f", female_participation_rate)`% daily frequency versus `r sprintf("%.2f", male_participation_rate)`% for men—a `r sprintf("%.2f", participation_fold_diff)`-fold difference. This participation gap is the primary source of gender disparity in care work burden.
 
 ```{r participation_table}
-participation <- major_only %>%
+# First aggregate to person-day level
+person_day_participation <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+participation <- person_day_participation %>%
   group_by(gender_label) %>%
   summarise(
     N = n(),
-    `Care Activities` = sum(care_work),
-    `Participation Rate (%)` = sum(care_work) / n() * 100,
-    `Minutes per Participant` = weighted.mean(time_spent[care_work == 1], 
-                                              Weight[care_work == 1], na.rm = TRUE),
-    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE)
+    `Care Person-Days` = sum(participated),
+    `Participation Rate (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes per Participant` = weighted.mean(total_care_minutes[participated == 1],
+                                              Weight[participated == 1], na.rm = TRUE),
+    `Minutes per Person` = weighted.mean(total_care_minutes, Weight, na.rm = TRUE)
   )
 
 kable(participation, digits = 2,
@@ -226,13 +247,23 @@ At the population level, accounting for non-participants, women average `r sprin
 ### By Household Composition
 
 ```{r by_children}
-by_children <- major_only %>%
+# First aggregate to person-day level
+person_day_children <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
   mutate(has_young_child = Age < 6) %>%
+  group_by(person_id, gender_label, has_young_child, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_children <- person_day_children %>%
   group_by(gender_label, has_young_child) %>%
   summarise(
-    `Participation (%)` = sum(care_work) / n() * 100,
-    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    `Participation (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes per Person` = weighted.mean(total_care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -250,12 +281,22 @@ Presence of children under 6 dramatically increases care work for women but only
 ### By Education
 
 ```{r by_education}
-by_education <- major_only %>%
+# First aggregate to person-day level
+person_day_education <- major_only %>%
   filter(Gender %in% c(1, 2), !is.na(education_level)) %>%
+  group_by(person_id, gender_label, education_level, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_education <- person_day_education %>%
   group_by(gender_label, education_level) %>%
   summarise(
-    `Participation (%)` = sum(care_work) / n() * 100,
-    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    `Participation (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes per Person` = weighted.mean(total_care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(`Participation (%)`, `Minutes per Person`))
@@ -271,12 +312,22 @@ Higher education modestly reduces female participation but does not substantivel
 ### Urban-Rural Differences
 
 ```{r by_sector}
-by_sector <- major_only %>%
+# First aggregate to person-day level
+person_day_sector <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
+  group_by(person_id, gender_label, sector_label, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_sector <- person_day_sector %>%
   group_by(gender_label, sector_label) %>%
   summarise(
-    `Participation (%)` = sum(care_work) / n() * 100,
-    `Minutes per Person` = weighted.mean(care_minutes, Weight, na.rm = TRUE),
+    `Participation (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes per Person` = weighted.mean(total_care_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   pivot_wider(names_from = gender_label, values_from = c(`Participation (%)`, `Minutes per Person`))
@@ -294,24 +345,34 @@ Urban and rural areas exhibit similar participation gaps, though absolute partic
 Table \ref{tab:regression} presents linear probability models of care work participation. Controlling for age, education, marital status, household composition, employment, sector, and state fixed effects, being female increases participation probability by 3.2 percentage points (Column 1). This effect is robust to inclusion of extensive controls (Columns 2-4).
 
 ```{r regression_analysis}
-# Prepare regression data
-reg_data <- major_only %>%
+# First aggregate to person-day level for regression analysis
+person_day_regression <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
+  group_by(person_id, Gender, Weight, Age, Marital_Status,
+           Highest_Education, Sector, Principal_Activity_Status,
+           State, education_level) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  ) %>%
   mutate(
+    female = as.numeric(Gender == 2),
+    married = as.numeric(Marital_Status == 2),
     employed = as.numeric(grepl("^[12]", Principal_Activity_Status)),
     has_child_u6 = as.numeric(Age < 6),
     has_elderly = as.numeric(Age >= 60),
-    hhsize = as.numeric(gsub("[^0-9]", "", Sample_HH_No))
+    urban = as.numeric(Sector == 2)
   )
 
-# Run regressions
-model1 <- feols(care_work ~ female, data = reg_data, weights = ~Weight, vcov = "HC1")
-model2 <- feols(care_work ~ female + Age + I(Age^2), data = reg_data, weights = ~Weight, vcov = "HC1")
-model3 <- feols(care_work ~ female + Age + I(Age^2) + married + employed + 
-                factor(education_level), data = reg_data, weights = ~Weight, vcov = "HC1")
-model4 <- feols(care_work ~ female + Age + I(Age^2) + married + employed + 
-                factor(education_level) + factor(Sector) | State, 
-                data = reg_data, weights = ~Weight, vcov = "HC1")
+# Run regressions on person-day data
+model1 <- feols(participated ~ female, data = person_day_regression, weights = ~Weight, vcov = "HC1")
+model2 <- feols(participated ~ female + Age + I(Age^2), data = person_day_regression, weights = ~Weight, vcov = "HC1")
+model3 <- feols(participated ~ female + Age + I(Age^2) + married + employed +
+                factor(education_level), data = person_day_regression, weights = ~Weight, vcov = "HC1")
+model4 <- feols(participated ~ female + Age + I(Age^2) + married + employed +
+                factor(education_level) + factor(Sector) | State,
+                data = person_day_regression, weights = ~Weight, vcov = "HC1")
 
 # Create regression table
 msummary(list(model1, model2, model3, model4),
@@ -329,15 +390,24 @@ Among participants, OLS regressions of time spent on care activities (not shown)
 ## Visualization
 
 ```{r main_figure, fig.height=4, fig.width=7, fig.cap="\\label{fig:main}Gender Gap in Care Work: Participation vs. Intensity"}
-# Prepare data for plotting
-plot_data <- major_only %>%
+# First aggregate to person-day level for plotting
+person_day_plot <- major_only %>%
   filter(Gender %in% c(1, 2)) %>%
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    participated = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
+# Prepare data for plotting
+plot_data <- person_day_plot %>%
   group_by(gender_label) %>%
   summarise(
-    Participation = sum(care_work) / n() * 100,
-    `Minutes (Participants)` = weighted.mean(time_spent[care_work == 1], 
-                                              Weight[care_work == 1], na.rm = TRUE),
-    `Minutes (All)` = weighted.mean(care_minutes, Weight, na.rm = TRUE)
+    Participation = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes (Participants)` = weighted.mean(total_care_minutes[participated == 1],
+                                              Weight[participated == 1], na.rm = TRUE),
+    `Minutes (All)` = weighted.mean(total_care_minutes, Weight, na.rm = TRUE)
   ) %>%
   pivot_longer(cols = -gender_label, names_to = "Metric", values_to = "Value")
 
@@ -446,18 +516,28 @@ Raj, Anita, Niranjan Saggurti, Donta Balaiah, and Jay G. Silverman. 2020. "Assoc
 # Appendix: Additional Tables and Robustness
 
 ```{r appendix_detailed_activities}
-detailed_activities <- major_only %>%
+# First aggregate to person-day level for detailed activities
+person_day_detailed <- major_only %>%
   filter(Gender %in% c(1, 2), Activity_Code_2Digit %in% c(31, 32, 33)) %>%
   mutate(Activity_Type = case_when(
     Activity_Code_2Digit == 31 ~ "Child care",
     Activity_Code_2Digit == 32 ~ "Adult care",
     Activity_Code_2Digit == 33 ~ "Non-household care"
   )) %>%
+  group_by(person_id, gender_label, Activity_Type, Weight) %>%
+  summarise(
+    total_minutes = sum(time_spent, na.rm = TRUE),
+    participated = as.numeric(total_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+detailed_activities <- person_day_detailed %>%
   group_by(gender_label, Activity_Type) %>%
   summarise(
-    `Participation (%)` = n() / nrow(filter(major_only, Gender %in% c(1, 2))) * 100,
-    `Avg Minutes` = weighted.mean(time_spent, Weight, na.rm = TRUE),
-    `N Activities` = n(),
+    `Participation (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Avg Minutes` = weighted.mean(total_minutes, Weight, na.rm = TRUE),
+    `N Person-Days` = n(),
     .groups = "drop"
   )
 

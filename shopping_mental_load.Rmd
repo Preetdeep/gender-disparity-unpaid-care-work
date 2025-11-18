@@ -70,6 +70,9 @@ data <- data %>% mutate(Weight = Weight / 0.1)
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    # Create person identifier (combination of household + individual characteristics)
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
+
     # Gender variables
     gender_label = case_when(
       Gender == 1 ~ "Male",
@@ -279,15 +282,29 @@ For computational efficiency, we use a **10% random sample** (N = 1,022,000 pers
 Table 1 shows participation rates and time spent on shopping and household management by gender.
 
 ```{r shopping_by_gender}
-by_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_data <- major_only %>%
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    shopping_total = sum(shopping_minutes, na.rm = TRUE),
+    household_mgmt_total = sum(household_mgmt_minutes, na.rm = TRUE),
+    mental_load_total = sum(mental_load_minutes, na.rm = TRUE),
+    did_shopping = as.numeric(shopping_total > 0),
+    did_household_mgmt = as.numeric(household_mgmt_total > 0),
+    did_mental_load = as.numeric(mental_load_total > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_gender <- person_day_data %>%
   group_by(gender_label) %>%
   summarise(
-    `Shopping Participation (%)` = 100 * weighted.mean(shopping, Weight, na.rm = TRUE),
-    `Shopping Minutes` = weighted.mean(shopping_minutes, Weight, na.rm = TRUE),
-    `Household Mgmt Participation (%)` = 100 * weighted.mean(household_mgmt, Weight, na.rm = TRUE),
-    `Household Mgmt Minutes` = weighted.mean(household_mgmt_minutes, Weight, na.rm = TRUE),
-    `Mental Load Participation (%)` = 100 * weighted.mean(mental_load, Weight, na.rm = TRUE),
-    `Mental Load Minutes` = weighted.mean(mental_load_minutes, Weight, na.rm = TRUE),
+    `Shopping Participation (%)` = 100 * weighted.mean(did_shopping, Weight, na.rm = TRUE),
+    `Shopping Minutes` = weighted.mean(shopping_total, Weight, na.rm = TRUE),
+    `Household Mgmt Participation (%)` = 100 * weighted.mean(did_household_mgmt, Weight, na.rm = TRUE),
+    `Household Mgmt Minutes` = weighted.mean(household_mgmt_total, Weight, na.rm = TRUE),
+    `Mental Load Participation (%)` = 100 * weighted.mean(did_mental_load, Weight, na.rm = TRUE),
+    `Mental Load Minutes` = weighted.mean(mental_load_total, Weight, na.rm = TRUE),
     n = n()
   ) %>%
   filter(gender_label %in% c("Male", "Female"))
@@ -367,12 +384,22 @@ ggplot(plot_data, aes(x = gender_label, y = `Shopping Minutes`, fill = gender_la
 Table 2 examines how marriage affects shopping patterns.
 
 ```{r shopping_by_marital}
-by_marital_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_marital <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(person_id, marital_status_label, gender_label, Weight) %>%
+  summarise(
+    shopping_total = sum(shopping_minutes, na.rm = TRUE),
+    did_shopping = as.numeric(shopping_total > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_marital_gender <- person_day_marital %>%
   group_by(marital_status_label, gender_label) %>%
   summarise(
-    `Shopping Minutes` = weighted.mean(shopping_minutes, Weight, na.rm = TRUE),
-    `Shopping Participation (%)` = 100 * weighted.mean(shopping, Weight, na.rm = TRUE),
+    `Shopping Minutes` = weighted.mean(shopping_total, Weight, na.rm = TRUE),
+    `Shopping Participation (%)` = 100 * weighted.mean(did_shopping, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   ) %>%
@@ -430,13 +457,23 @@ This suggests that interventions focused only on married couples may be insuffic
 Table 3 examines whether employed women reduce their shopping time or face a "double burden."
 
 ```{r shopping_by_employment}
-by_employment_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_employment <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
   mutate(employment_label = ifelse(employed == 1, "Employed", "Not Employed")) %>%
+  group_by(person_id, employment_label, gender_label, Weight) %>%
+  summarise(
+    shopping_total = sum(shopping_minutes, na.rm = TRUE),
+    did_shopping = as.numeric(shopping_total > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_employment_gender <- person_day_employment %>%
   group_by(employment_label, gender_label) %>%
   summarise(
-    `Shopping Minutes` = weighted.mean(shopping_minutes, Weight, na.rm = TRUE),
-    `Shopping Participation (%)` = 100 * weighted.mean(shopping, Weight, na.rm = TRUE),
+    `Shopping Minutes` = weighted.mean(shopping_total, Weight, na.rm = TRUE),
+    `Shopping Participation (%)` = 100 * weighted.mean(did_shopping, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   )
@@ -494,11 +531,20 @@ The fact that employed men's shopping time is identical to unemployed men's is e
 Table 4 tests whether education narrows the shopping gap.
 
 ```{r shopping_by_education}
-by_education_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_education <- major_only %>%
   filter(gender_label %in% c("Male", "Female"), !is.na(education_level)) %>%
+  group_by(person_id, education_level, gender_label, Weight) %>%
+  summarise(
+    shopping_total = sum(shopping_minutes, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_education_gender <- person_day_education %>%
   group_by(education_level, gender_label) %>%
   summarise(
-    `Shopping Minutes` = weighted.mean(shopping_minutes, Weight, na.rm = TRUE),
+    `Shopping Minutes` = weighted.mean(shopping_total, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   ) %>%
@@ -551,8 +597,11 @@ plot_data_comprehensive <- bind_rows(
   # By urban/rural
   major_only %>%
     filter(gender_label %in% c("Male", "Female")) %>%
+    group_by(person_id, sector_label, gender_label, Weight) %>%
+    summarise(shopping_total = sum(shopping_minutes, na.rm = TRUE),
+              .groups = "drop") %>%
     group_by(sector_label, gender_label) %>%
-    summarise(`Shopping Minutes` = weighted.mean(shopping_minutes, Weight, na.rm = TRUE),
+    summarise(`Shopping Minutes` = weighted.mean(shopping_total, Weight, na.rm = TRUE),
               .groups = "drop") %>%
     mutate(group = as.character(sector_label), category = "Location") %>%
     select(group, gender_label, `Shopping Minutes`, category)
@@ -592,25 +641,51 @@ ggplot(plot_data_comprehensive, aes(x = gender_label, y = `Shopping Minutes`, fi
 
 Table 5 presents linear regressions predicting shopping time.
 
+```{r prepare_regression_data, include=FALSE}
+# Create person-day dataset for regression analyses
+# Aggregate all activities to person-day level
+person_day_regression <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(person_id, Gender, Age, Marital_Status, Highest_Education,
+           Sector, Principal_Activity_Status, State, Weight) %>%
+  summarise(
+    shopping_minutes = sum(shopping_minutes, na.rm = TRUE),
+    household_mgmt_minutes = sum(household_mgmt_minutes, na.rm = TRUE),
+    mental_load_minutes = sum(mental_load_minutes, na.rm = TRUE),
+    shopping = as.numeric(shopping_minutes > 0),
+    household_mgmt = as.numeric(household_mgmt_minutes > 0),
+    mental_load = as.numeric(mental_load_minutes > 0),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+    married = as.numeric(Marital_Status == 2),
+    urban = as.numeric(Sector == 2),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    state_factor = as.factor(State)
+  )
+```
+
 ```{r main_regressions}
 # Regression 1: Shopping minutes, female only
 m1 <- feols(shopping_minutes ~ female,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, vcov = "HC1")
 
 # Regression 2: Shopping minutes, with controls
 m2 <- feols(shopping_minutes ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, vcov = "HC1")
 
 # Regression 3: Shopping participation, female only
 m3 <- feols(shopping ~ female,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, vcov = "HC1")
 
 # Regression 4: Shopping participation, with controls
 m4 <- feols(shopping ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, vcov = "HC1")
 
 # Create nice output table
@@ -634,8 +709,8 @@ female_coef_time_m2 <- coef(m2)["female"]
 female_coef_participation_m4 <- coef(m4)["female"] * 100  # Convert to percentage points
 
 # Calculate relative increase (need male baseline participation rate)
-male_baseline_participation <- major_only %>%
-  filter(gender_label == "Male") %>%
+male_baseline_participation <- person_day_regression %>%
+  filter(male == 1) %>%
   summarise(rate = weighted.mean(shopping, Weight, na.rm = TRUE) * 100) %>%
   pull(rate)
 relative_increase_pct <- (female_coef_participation_m4 / male_baseline_participation) * 100
@@ -652,9 +727,9 @@ relative_increase_pct <- (female_coef_participation_m4 / male_baseline_participa
 Table 6 restricts to married individuals and tests employment interactions.
 
 ```{r married_regressions}
-# Restrict to married individuals
-married_data <- major_only %>%
-  filter(Marital_Status == 2, gender_label %in% c("Male", "Female"))
+# Restrict to married individuals (using person-day data)
+married_data <- person_day_regression %>%
+  filter(Marital_Status == 2)
 
 # Regression 1: Shopping, married individuals
 m5 <- feols(shopping_minutes ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
@@ -702,20 +777,20 @@ Table 7 tests heterogeneity by education and location.
 ```{r heterogeneity}
 # Regression with interactions: Female × Higher education
 m9 <- feols(shopping_minutes ~ female * I(Highest_Education >= 7) + Age + I(Age^2) + urban + employed | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, vcov = "HC1")
 
 m10 <- feols(mental_load_minutes ~ female * I(Highest_Education >= 7) + Age + I(Age^2) + urban + employed | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, vcov = "HC1")
 
 # Regression with interactions: Female × Urban
 m11 <- feols(shopping_minutes ~ female * urban + Age + I(Age^2) + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, vcov = "HC1")
 
 m12 <- feols(mental_load_minutes ~ female * urban + Age + I(Age^2) + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, vcov = "HC1")
 
 modelsummary(list("Shopping" = m9, "Mental Load" = m10, "Shopping" = m11, "Mental Load" = m12),

@@ -109,6 +109,9 @@ major_only <- data %>%
     # Any care work (either childcare or adult care)
     any_care = as.numeric(childcare == 1 | adultcare == 1),
 
+    # Create person identifier (combination of household + individual characteristics)
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
+
     # Create household ID for clustering
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
 
@@ -212,14 +215,27 @@ Table 1 shows participation rates and time spent on different types of care work
 **Important Note on Interpretation**: These are **population-level estimates** averaged across all individuals, including those in households without children or elderly members requiring care. We cannot condition on presence of care recipients because household roster data are unavailable. Therefore, low male participation rates may reflect both: (1) men avoiding care when care is needed, and (2) men living in households without care demands. Our estimates capture the lived reality of who performs care work in the population, but cannot isolate within-household gender gaps conditional on care needs. This limitation affects all subsequent analyses (see Limitations section for detailed discussion).
 
 ```{r care_by_gender}
-by_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_data <- major_only %>%
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    childcare_total = sum(childcare_minutes, na.rm = TRUE),
+    adultcare_total = sum(adultcare_minutes, na.rm = TRUE),
+    did_childcare = as.numeric(childcare_total > 0),
+    did_adultcare = as.numeric(adultcare_total > 0),
+    did_any_care = as.numeric(childcare_total > 0 | adultcare_total > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_gender <- person_day_data %>%
   group_by(gender_label) %>%
   summarise(
-    `Childcare Participation (%)` = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
-    `Childcare Minutes` = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    `Adult Care Participation (%)` = 100 * weighted.mean(adultcare, Weight, na.rm = TRUE),
-    `Adult Care Minutes` = weighted.mean(adultcare_minutes, Weight, na.rm = TRUE),
-    `Any Care Participation (%)` = 100 * weighted.mean(any_care, Weight, na.rm = TRUE),
+    `Childcare Participation (%)` = 100 * weighted.mean(did_childcare, Weight, na.rm = TRUE),
+    `Childcare Minutes` = weighted.mean(childcare_total, Weight, na.rm = TRUE),
+    `Adult Care Participation (%)` = 100 * weighted.mean(did_adultcare, Weight, na.rm = TRUE),
+    `Adult Care Minutes` = weighted.mean(adultcare_total, Weight, na.rm = TRUE),
+    `Any Care Participation (%)` = 100 * weighted.mean(did_any_care, Weight, na.rm = TRUE),
     n = n()
   ) %>%
   filter(gender_label %in% c("Male", "Female"))
@@ -364,14 +380,26 @@ ggplot(gaps_all, aes(x = group, y = `Gap (pp)`, fill = `Gap Type`)) +
 Table 2 restricts to currently married individuals, where care work burdens are typically highest.
 
 ```{r care_married}
-by_gender_married <- major_only %>%
+# First aggregate to person-day level for married individuals only
+person_day_married <- major_only %>%
   filter(Marital_Status == 2) %>%  # Currently married only
+  group_by(person_id, gender_label, Weight) %>%
+  summarise(
+    childcare_total = sum(childcare_minutes, na.rm = TRUE),
+    adultcare_total = sum(adultcare_minutes, na.rm = TRUE),
+    did_childcare = as.numeric(childcare_total > 0),
+    did_adultcare = as.numeric(adultcare_total > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_gender_married <- person_day_married %>%
   group_by(gender_label) %>%
   summarise(
-    `Childcare Participation (%)` = 100 * weighted.mean(childcare, Weight, na.rm = TRUE),
-    `Childcare Minutes` = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    `Adult Care Participation (%)` = 100 * weighted.mean(adultcare, Weight, na.rm = TRUE),
-    `Adult Care Minutes` = weighted.mean(adultcare_minutes, Weight, na.rm = TRUE),
+    `Childcare Participation (%)` = 100 * weighted.mean(did_childcare, Weight, na.rm = TRUE),
+    `Childcare Minutes` = weighted.mean(childcare_total, Weight, na.rm = TRUE),
+    `Adult Care Participation (%)` = 100 * weighted.mean(did_adultcare, Weight, na.rm = TRUE),
+    `Adult Care Minutes` = weighted.mean(adultcare_total, Weight, na.rm = TRUE),
     n = n()
   ) %>%
   filter(gender_label %in% c("Male", "Female"))
@@ -500,12 +528,22 @@ ggplot(participation_data, aes(x = `Care Type`, y = `Participation Rate (%)`, fi
 Table 3 examines whether gender gaps in care work vary by age. Younger individuals (25 and below) are more likely to be involved in childcare (if they have young children), while older individuals face higher adult care demands (aging parents or in-laws).
 
 ```{r care_by_age_gender}
-by_age_gender <- major_only %>%
+# First aggregate to person-day level by age group
+person_day_age <- major_only %>%
   filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(person_id, age_group, gender_label, Weight) %>%
+  summarise(
+    childcare_total = sum(childcare_minutes, na.rm = TRUE),
+    adultcare_total = sum(adultcare_minutes, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_age_gender <- person_day_age %>%
   group_by(age_group, gender_label) %>%
   summarise(
-    `Childcare Minutes` = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
-    `Adult Care Minutes` = weighted.mean(adultcare_minutes, Weight, na.rm = TRUE),
+    `Childcare Minutes` = weighted.mean(childcare_total, Weight, na.rm = TRUE),
+    `Adult Care Minutes` = weighted.mean(adultcare_total, Weight, na.rm = TRUE),
     n = n(), .groups = "drop"
   )
 
@@ -560,25 +598,50 @@ Gender disparities in care work exist at all ages. The patterns vary by age grou
 
 Table 4 presents linear probability regressions predicting care work participation. The unit of analysis is person-day; dependent variables are binary indicators for childcare participation (Columns 1-2) and adult care participation (Columns 3-4).
 
+```{r prepare_regression_data, include=FALSE}
+# Create person-day dataset for regression analyses
+# Aggregate all activities to person-day level
+person_day_regression <- major_only %>%
+  filter(gender_label %in% c("Male", "Female")) %>%
+  group_by(person_id, Gender, Age, Marital_Status, Highest_Education,
+           Sector, Principal_Activity_Status, State, Weight, household_id) %>%
+  summarise(
+    childcare_minutes = sum(childcare_minutes, na.rm = TRUE),
+    adultcare_minutes = sum(adultcare_minutes, na.rm = TRUE),
+    childcare = as.numeric(childcare_minutes > 0),
+    adultcare = as.numeric(adultcare_minutes > 0),
+    time_spent = max(time_spent, na.rm = TRUE),  # For intensive margin analysis
+    .groups = "drop"
+  ) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    male = as.numeric(Gender == 1),
+    married = as.numeric(Marital_Status == 2),
+    urban = as.numeric(Sector == 2),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    state_factor = as.factor(State)
+  )
+```
+
 ```{r main_regressions}
 # Regression 1: Childcare participation, female only
 m1 <- feols(childcare ~ female,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, cluster = ~household_id)
 
 # Regression 2: Childcare participation, with controls
 m2 <- feols(childcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, cluster = ~household_id)
 
 # Regression 3: Adult care participation, female only
 m3 <- feols(adultcare ~ female,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, cluster = ~household_id)
 
 # Regression 4: Adult care participation, with controls
 m4 <- feols(adultcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, cluster = ~household_id)
 
 # Create nice output table
@@ -629,9 +692,9 @@ gap_size_ratio <- childcare_gap_pp / adultcare_gap_pp
 Table 5 restricts to currently married individuals and includes interactions between female and married status.
 
 ```{r married_regressions}
-# Restrict to married individuals
-married_data <- major_only %>%
-  filter(Marital_Status == 2, gender_label %in% c("Male", "Female"))
+# Restrict to married individuals (using person-day data)
+married_data <- person_day_regression %>%
+  filter(Marital_Status == 2)
 
 # Regression 1: Childcare, married individuals
 m5 <- feols(childcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
@@ -681,20 +744,20 @@ Table 6 tests whether gender gaps in care work narrow among educated or urban po
 ```{r heterogeneity}
 # Regression with interactions: Female × Higher education
 m9 <- feols(childcare ~ female * I(Highest_Education >= 7) + Age + I(Age^2) + urban + employed | state_factor,
-            data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+            data = person_day_regression,
             weights = ~Weight, cluster = ~household_id)
 
 m10 <- feols(adultcare ~ female * I(Highest_Education >= 7) + Age + I(Age^2) + urban + employed | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, cluster = ~household_id)
 
 # Regression with interactions: Female × Urban
 m11 <- feols(childcare ~ female * urban + Age + I(Age^2) + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, cluster = ~household_id)
 
 m12 <- feols(adultcare ~ female * urban + Age + I(Age^2) + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+             data = person_day_regression,
              weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Childcare" = m9, "Adult Care" = m10, "Childcare" = m11, "Adult Care" = m12),
@@ -724,20 +787,20 @@ Table 7 presents comprehensive robustness checks to verify the core findings.
 ```{r robustness}
 # Alternative 1: Log minutes (to handle skewness)
 m13 <- feols(log(childcare_minutes + 1) ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Marital_Status == 2),
+             data = person_day_regression %>% filter(Marital_Status == 2),
              weights = ~Weight, cluster = ~household_id)
 
 m14 <- feols(log(adultcare_minutes + 1) ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Marital_Status == 2),
+             data = person_day_regression %>% filter(Marital_Status == 2),
              weights = ~Weight, cluster = ~household_id)
 
 # Alternative 2: Participants only (intensive margin analysis)
-m15 <- feols(time_spent ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), childcare == 1),
+m15 <- feols(childcare_minutes ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
+             data = person_day_regression %>% filter(childcare == 1),
              weights = ~Weight, cluster = ~household_id)
 
-m16 <- feols(time_spent ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), adultcare == 1),
+m16 <- feols(adultcare_minutes ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
+             data = person_day_regression %>% filter(adultcare == 1),
              weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("log(Childcare\nMinutes)" = m13, "log(Adult Care\nMinutes)" = m14,
@@ -765,20 +828,20 @@ modelsummary(list("log(Childcare\nMinutes)" = m13, "log(Adult Care\nMinutes)" = 
 ```{r age_robustness}
 # Test if results hold for prime working age population (25-60)
 m17 <- feols(childcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Age >= 25, Age <= 60),
+             data = person_day_regression %>% filter(Age >= 25, Age <= 60),
              weights = ~Weight, cluster = ~household_id)
 
 m18 <- feols(adultcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Age >= 25, Age <= 60),
+             data = person_day_regression %>% filter(Age >= 25, Age <= 60),
              weights = ~Weight, cluster = ~household_id)
 
 # Test for younger population (18-40, more likely to have young children)
 m19 <- feols(childcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Age >= 18, Age <= 40),
+             data = person_day_regression %>% filter(Age >= 18, Age <= 40),
              weights = ~Weight, cluster = ~household_id)
 
 m20 <- feols(adultcare ~ female + Age + I(Age^2) + urban + employed + factor(Highest_Education) | state_factor,
-             data = major_only %>% filter(gender_label %in% c("Male", "Female"), Age >= 18, Age <= 40),
+             data = person_day_regression %>% filter(Age >= 18, Age <= 40),
              weights = ~Weight, cluster = ~household_id)
 
 modelsummary(list("Childcare\n(25-60)" = m17, "Adult Care\n(25-60)" = m18,

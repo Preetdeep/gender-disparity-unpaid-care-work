@@ -52,6 +52,7 @@ data <- data %>% mutate(Weight = Weight / 0.1)
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
     gender_label = case_when(
       Gender == 1 ~ "Male",
       Gender == 2 ~ "Female",
@@ -88,16 +89,26 @@ invisible(gc())
 
 ```{r calculate_abstract_values, include=FALSE}
 # Calculate key statistics for abstract and paper
-by_marriage_gender_stats <- major_only %>%
+# First aggregate to person-day level
+person_day_abstract <- major_only %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
   mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(person_id, gender_label, marital_status_label, Weight) %>%
+  summarise(
+    total_social_minutes = sum(social_minutes, na.rm = TRUE),
+    participated = as.numeric(total_social_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_marriage_gender_stats <- person_day_abstract %>%
   group_by(gender_label, marital_status_label) %>%
   summarise(
     N = n(),
-    participation_rate = 100 * sum(social_activity) / n(),
-    minutes_per_participant = weighted.mean(time_spent[social_activity == 1],
-                                           Weight[social_activity == 1], na.rm = TRUE),
-    minutes_per_person = weighted.mean(social_minutes, Weight, na.rm = TRUE),
+    participation_rate = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    minutes_per_participant = weighted.mean(total_social_minutes[participated == 1],
+                                           Weight[participated == 1], na.rm = TRUE),
+    minutes_per_person = weighted.mean(total_social_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -269,16 +280,26 @@ where $i$ indexes individuals, $h$ indexes households, $d$ indexes diary days, a
 ## The Friendship Penalty
 
 ```{r by_marriage_gender}
-by_marriage_gender <- major_only %>%
+# First aggregate to person-day level
+person_day_table <- major_only %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
   mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
+  group_by(person_id, gender_label, marital_status_label, Weight) %>%
+  summarise(
+    total_social_minutes = sum(social_minutes, na.rm = TRUE),
+    participated = as.numeric(total_social_minutes > 0),
+    .groups = "drop"
+  )
+
+# Then calculate statistics across person-days
+by_marriage_gender <- person_day_table %>%
   group_by(gender_label, marital_status_label) %>%
   summarise(
     N = n(),
-    `Participation (%)` = sum(social_activity) / n() * 100,
-    `Minutes per Participant` = weighted.mean(time_spent[social_activity == 1],
-                                              Weight[social_activity == 1], na.rm = TRUE),
-    `Minutes per Person` = weighted.mean(social_minutes, Weight, na.rm = TRUE),
+    `Participation (%)` = weighted.mean(participated, Weight, na.rm = TRUE) * 100,
+    `Minutes per Participant` = weighted.mean(total_social_minutes[participated == 1],
+                                              Weight[participated == 1], na.rm = TRUE),
+    `Minutes per Person` = weighted.mean(total_social_minutes, Weight, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -308,24 +329,32 @@ Most strikingly, married women end up with just **`r sprintf("%.0f%%", married_w
 ## Regression Analysis
 
 ```{r main_regression}
-# Restrict to never married and currently married only
-reg_data <- major_only %>%
-  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
+# First aggregate to person-day level for regressions
+person_day_regression <- major_only %>%
+  filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
+  group_by(person_id, Gender, female, married, Age, higher_ed, employed,
+           urban, state_factor, household_id, Weight) %>%
+  summarise(
+    total_social_minutes = sum(social_minutes, na.rm = TRUE),
+    participated = as.numeric(total_social_minutes > 0),
+    .groups = "drop"
+  ) %>%
+  mutate(female_married = female * married)
 
-# Regressions with household clustering
-m1 <- feols(social_activity ~ female + married + female_married,
-            data = reg_data, weights = ~Weight, cluster = ~household_id)
+# Regressions with household clustering on person-day data
+m1 <- feols(participated ~ female + married + female_married,
+            data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
-m2 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2),
-            data = reg_data, weights = ~Weight, cluster = ~household_id)
+m2 <- feols(participated ~ female + married + female_married + Age + I(Age^2),
+            data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
-m3 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
+m3 <- feols(participated ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban,
-            data = reg_data, weights = ~Weight, cluster = ~household_id)
+            data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
-m4 <- feols(social_activity ~ female + married + female_married + Age + I(Age^2) +
+m4 <- feols(participated ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban | state_factor,
-            data = reg_data, weights = ~Weight, cluster = ~household_id)
+            data = person_day_regression, weights = ~Weight, cluster = ~household_id)
 
 # Extract female_married coefficient from model 1 for inline text
 female_married_coef_m1 <- 100 * coef(m1)["female_married"]

@@ -153,12 +153,13 @@ data_with_children <- data %>%
   left_join(household_composition, by = c("FSU_Serial_No", "Sample_HH_No"))
 
 # STEP 4: Filter to adults in households with children
-analysis_data <- data_with_children %>%
+activity_data <- data_with_children %>%
   filter(Major_Activity_Flag == 1,
          Age >= 25, Age <= 50,
          Marital_Status == 2,  # currently married
          has_children == 1) %>%  # only households with children
   mutate(
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
     female = as.numeric(Gender == 2),
     male = as.numeric(Gender == 1),
@@ -172,20 +173,36 @@ analysis_data <- data_with_children %>%
     state_factor = as.factor(State)
   )
 
-cat(sprintf("\nAnalysis sample: %s observations\n",
+cat(sprintf("\nActivity-level data: %s observations\n",
+            format(nrow(activity_data), big.mark = ",")))
+
+# STEP 5: Aggregate to person-day level
+analysis_data <- activity_data %>%
+  group_by(person_id, FSU_Serial_No, Sample_HH_No, Gender, Age, female, male,
+           gender_label, household_id, urban, higher_ed, employed, age_squared,
+           state_factor, only_sons, only_daughters, mixed_children, any_sons,
+           any_daughters, has_children, num_sons, num_daughters, total_children) %>%
+  summarise(
+    childcare_minutes = sum(childcare_minutes, na.rm = TRUE),
+    any_childcare = as.numeric(childcare_minutes > 0),
+    Weight = first(Weight),
+    .groups = "drop"
+  )
+
+cat(sprintf("\nPerson-day analysis sample: %s observations\n",
             format(nrow(analysis_data), big.mark = ",")))
 
 # Clean up memory
-rm(data, data_with_children)
+rm(data, data_with_children, activity_data)
 invisible(gc())
 ```
 
 ```{r calculate_results, cache=FALSE, include=FALSE}
-# Calculate main results for inline reporting
+# Calculate main results for inline reporting (using person-day data)
 main_results <- analysis_data %>%
   group_by(gender_label, only_sons, only_daughters, mixed_children) %>%
   summarize(
-    participation_rate = weighted.mean(childcare, Weight, na.rm = TRUE) * 100,
+    participation_rate = weighted.mean(any_childcare, Weight, na.rm = TRUE) * 100,
     mean_minutes = weighted.mean(childcare_minutes, Weight, na.rm = TRUE),
     n = n(),
     .groups = "drop"

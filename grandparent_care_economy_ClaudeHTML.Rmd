@@ -213,7 +213,8 @@ major_only <- data %>%
     # Total care work
     total_care_minutes = childcare_minutes + eldercare_minutes,
 
-    # Create household ID
+    # Create person ID and household ID
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No, sep = "_"),
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
 
     # Education
@@ -800,9 +801,48 @@ This null result is profoundly important. It suggests that the informal, family-
 
 The key takeaway for policymakers is that there is no shortcut. If India is to unlock the economic potential of its female workforce, it cannot rely on the assumed capacity of informal family arrangements. The path forward requires strategic, sustained public investment in a formal care economy: affordable childcare centers, support for elderly care, and social policies that value and remunerate care work. Our findings demonstrate that in the absence of such infrastructure, the burden of care remains squarely on mothers' shoulders, with or without a grandparent in the home.
 
-# References
+# References {.unnumbered}
 
-[References would be added here in full paper]
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Afridi, Farzana, Taryn Dinkelman, and Kanika Mahajan. 2018. "Why Are Fewer Married Women Joining the Work Force in Rural India? A Decomposition Analysis over Two Decades." *Journal of Population Economics* 31(3): 783-818.
+
+Arpino, Bruno, Valeria Bordone, and Arnstein Aassve. 2014. "Effects of Grandparental Support on Mothers' Labour Market Participation: An Instrumental Variable Approach." *European Sociological Review* 30(5): 645-662.
+
+Becker, Gary S. 1991. *A Treatise on the Family*. Enlarged Edition. Cambridge, MA: Harvard University Press.
+
+Chatterjee, Urmila, Rinku Murgai, and Martin Rama. 2018. *Job Opportunities Along the Rural-Urban Gradation and Female Labor Force Participation in India*. World Bank Policy Research Working Paper No. 8244.
+
+Compton, Janice, and Robert A. Pollak. 2014. "Family Proximity, Childcare, and Women's Labor Force Attachment." *Journal of Urban Economics* 79: 72-90.
+
+Desai, Sonalde, and Santosh Joshi. 2019. *Maids, Maternalists, and Managers: Understanding Gender Gaps in Household Work in India*. Working Paper, NCAER.
+
+Field, Erica, Rohini Pande, Natalia Rigol, Simone Schaner, and Charity Troyer Moore. 2021. "On Her Own Account: How Strengthening Women's Financial Control Impacts Labor Supply and Gender Norms." *American Economic Review* 111(7): 2342-2375.
+
+Hank, Karsten, and Isabella Buber. 2009. "Grandparents Caring for Their Grandchildren: Findings from the 2004 Survey of Health, Ageing, and Retirement in Europe." *Journal of Family Issues* 30(1): 53-73.
+
+IHDS (India Human Development Survey). 2018. *India Human Development Survey-II (IHDS-II), 2011-12*. Inter-university Consortium for Political and Social Research.
+
+Klasen, Stephan, and Janneke Pieters. 2015. "What Explains the Stagnation of Female Labor Force Participation in Urban India?" *The World Bank Economic Review* 29(3): 449-478.
+
+Lee, Ronald, and Andrew Mason. 2011. *Population Aging and the Generational Economy: A Global Perspective*. Cheltenham, UK: Edward Elgar Publishing.
+
+NSSO (National Sample Survey Office). 2020. *Time Use in India 2019*. Ministry of Statistics and Programme Implementation, Government of India.
+
+Pal, Sarmistha, and Robert Palacios. 2011. "Understanding Poverty Among the Elderly in India: Implications for Social Pension Policy." *Journal of Development Studies* 47(7): 1017-1037.
+
+Rajan, S. Irudaya, and S. Kumar. 2003. "Living Arrangements Among Indian Elderly: New Evidence from National Family Health Survey." *Economic and Political Weekly* 38(1): 75-80.
+
+Samanta, Tanushree, Yue Chen, and Pat Lindersson. 2015. "Living Arrangements and Health of Older Adults in India." *The Journals of Gerontology: Series B* 70(6): 937-947.
+
+United Nations. 2022. *World Population Prospects 2022*. Department of Economic and Social Affairs, Population Division.
+
+Vera-Sanso, Penny. 2006. "Experiences in Old Age: A South Indian Example of How Functional Age Is Socially Structured." *Oxford Development Studies* 34(4): 457-472.
+
+World Bank. 2023. *World Development Indicators 2023*. Washington, DC: World Bank.
 
 ```{r session_info, include=FALSE}
 # Session info for reproducibility
