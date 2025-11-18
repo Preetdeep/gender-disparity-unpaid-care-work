@@ -268,6 +268,9 @@ employed_female_weekend <- employed_female_stats %>%
   filter(day_type == "Weekend") %>%
   pull(minutes)
 employed_female_increase_pct <- 100 * (employed_female_weekend - employed_female_weekday) / employed_female_weekday
+
+# Calculate baseline gender participation ratio
+baseline_participation_ratio <- female_weekday_pct / male_weekday_pct
 ```
 
 # Introduction
@@ -278,7 +281,7 @@ This distinction matters for theory and policy. Economic models emphasizing time
 
 We exploit India's 2024 Time Use Survey—capturing 10.2 million person-day observations across 139,489 households—to examine how gender gaps in unpaid care work differ between weekdays and weekends. Our analysis reveals that **both men and women increase their care work participation on weekends by similar proportional amounts**, maintaining rather than widening the gender gap. Women's participation increases from `r sprintf("%.1f%%", female_weekday_pct)` on weekdays to `r sprintf("%.1f%%", female_weekend_pct)` on weekends (`r sprintf("%+.1f%%", female_pct_change)` increase), while men's participation increases from `r sprintf("%.1f%%", male_weekday_pct)` to `r sprintf("%.1f%%", male_weekend_pct)` (`r sprintf("%+.1f%%", male_pct_change)` increase). The gender gap thus changes minimally from `r sprintf("%.1f", weekday_gap_pp)` to `r sprintf("%.1f", weekend_gap_pp)` percentage points. In terms of time spent, both genders increase by approximately `r sprintf("%.2f", female_min_change_abs)` minutes per day on weekends—a negligible amount representing just a few seconds of additional care work.
 
-This pattern of proportional increases—rather than gender-specific weekend effects—holds across all socioeconomic strata. We observe similar minimal gap changes among dual-earner couples, educated urban populations, rural households, and across education levels. The large baseline gender gap in care work (women participate 3 times more than men) persists essentially unchanged from weekdays to weekends.
+This pattern of proportional increases—rather than gender-specific weekend effects—holds across all socioeconomic strata. We observe similar minimal gap changes among dual-earner couples, educated urban populations, rural households, and across education levels. The large baseline gender gap in care work (women participate `r sprintf("%.1f", baseline_participation_ratio)` times more than men) persists essentially unchanged from weekdays to weekends.
 
 Our findings contribute to several literatures. First, we advance research on gender and time use by documenting weekend patterns in care work participation across a developing country context (Connelly and Kimmel 2009; Craig and Mullan 2012). Second, we inform debates about work-family balance policies: while time availability enables both genders to increase care work slightly, it does not alter the fundamental division of responsibilities—suggesting that deeply rooted norms rather than time constraints primarily drive the gender gap (Bianchi et al. 2012). Third, we provide evidence on the persistence of gender inequality in domestic work even when time availability changes (Akerlof and Kranton 2000). Fourth, we contribute methodologically by using household-clustered standard errors and a very large sample to detect precise but substantively small effects.
 

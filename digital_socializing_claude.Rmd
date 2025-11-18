@@ -330,6 +330,77 @@ cat("Data preparation complete.\n")
 cat("Adult sample size:", nrow(data_adults), "\n")
 ```
 
+```{r compute-abstract-statistics}
+# Create person-level dataset for abstract statistics
+person_data_temp <- data_adults %>%
+  group_by(Person_ID, household_id, Gender, female, gender_label,
+           Marital_Status, married, never_married, widowed, divorced_separated, marital_label,
+           Age, age_group, age_squared,
+           Highest_Education, education_level,
+           Sector, urban, sector_label,
+           State, Weight) %>%
+  summarise(
+    # Participation (any remote socializing)
+    participate_remote = if_else(max(socializing_remote, na.rm = TRUE) == 1, 1, 0),
+    participate_inperson = if_else(max(socializing_inperson, na.rm = TRUE) == 1, 1, 0),
+    participate_any = if_else(max(socializing_any, na.rm = TRUE) == 1, 1, 0),
+    # Total time spent
+    total_time_remote = sum(time_remote, na.rm = TRUE),
+    total_time_inperson = sum(time_inperson, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Calculate participation rates for abstract
+participation_rates_temp <- person_data_temp %>%
+  summarise(
+    pct_remote = weighted.mean(participate_remote, Weight, na.rm = TRUE) * 100,
+    pct_inperson = weighted.mean(participate_inperson, Weight, na.rm = TRUE) * 100,
+    ratio = pct_remote / pct_inperson
+  )
+
+# Calculate demographic statistics for abstract
+by_sector_temp <- person_data_temp %>%
+  group_by(sector_label) %>%
+  summarise(pct_remote = weighted.mean(participate_remote, Weight, na.rm = TRUE) * 100, .groups = "drop")
+
+by_education_temp <- person_data_temp %>%
+  filter(!is.na(education_level)) %>%
+  group_by(education_level) %>%
+  summarise(pct_remote = weighted.mean(participate_remote, Weight, na.rm = TRUE) * 100, .groups = "drop")
+
+by_age_temp <- person_data_temp %>%
+  filter(!is.na(age_group), age_group != "<18") %>%
+  group_by(age_group) %>%
+  summarise(pct_remote = weighted.mean(participate_remote, Weight, na.rm = TRUE) * 100, .groups = "drop")
+
+by_gender_temp <- person_data_temp %>%
+  group_by(gender_label) %>%
+  summarise(pct_remote = weighted.mean(participate_remote, Weight, na.rm = TRUE) * 100, .groups = "drop")
+
+# Extract key statistics for inline reporting in abstract
+remote_inperson_ratio <- participation_rates_temp$ratio
+remote_pct <- participation_rates_temp$pct_remote
+inperson_pct <- participation_rates_temp$pct_inperson
+
+urban_pct <- by_sector_temp %>% filter(sector_label == "Urban") %>% pull(pct_remote)
+rural_pct <- by_sector_temp %>% filter(sector_label == "Rural") %>% pull(pct_remote)
+urban_rural_ratio <- urban_pct / rural_pct
+
+higher_ed_pct <- by_education_temp %>% filter(education_level == "Higher education") %>% pull(pct_remote)
+primary_ed_pct <- by_education_temp %>% filter(education_level == "Primary or less") %>% pull(pct_remote)
+education_increase_pct <- ((higher_ed_pct - primary_ed_pct) / primary_ed_pct) * 100
+
+age_35_44_pct <- by_age_temp %>% filter(age_group == "35-44") %>% pull(pct_remote)
+age_45_54_pct <- by_age_temp %>% filter(age_group == "45-54") %>% pull(pct_remote)
+age_18_24_pct <- by_age_temp %>% filter(age_group == "18-24") %>% pull(pct_remote)
+age_65plus_pct <- by_age_temp %>% filter(age_group == "65+") %>% pull(pct_remote)
+
+male_pct <- by_gender_temp %>% filter(gender_label == "Male") %>% pull(pct_remote)
+female_pct <- by_gender_temp %>% filter(gender_label == "Female") %>% pull(pct_remote)
+
+cat("Abstract statistics computed successfully.\n")
+```
+
 ## Summary Statistics
 
 Table 1 presents summary statistics for our sample.

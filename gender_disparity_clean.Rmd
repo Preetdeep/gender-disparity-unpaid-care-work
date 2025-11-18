@@ -94,6 +94,38 @@ table(major_only$Unpaid_Paid_Status) %>%
   kable_styling(latex_options = "HOLD_position")
 ```
 
+```{r compute_abstract_statistics}
+# Compute statistics needed for abstract and introduction
+participation_temp <- major_only %>%
+  filter(Gender %in% c(1, 2)) %>%
+  group_by(Gender) %>%
+  summarise(
+    N = n(),
+    care_activities = sum(Unpaid_Paid_Status == "02"),
+    participation_rate = care_activities / n() * 100,
+    minutes_per_participant = weighted.mean(time_spent[Unpaid_Paid_Status == "02"],
+                                            Weight[Unpaid_Paid_Status == "02"],
+                                            na.rm = TRUE),
+    minutes_per_person = weighted.mean(ifelse(Unpaid_Paid_Status == "02", time_spent, 0),
+                                       Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Gender = factor(Gender, levels = c(1, 2), labels = c("Male", "Female")))
+
+# Extract key statistics for inline reporting in abstract
+female_participation <- participation_temp %>% filter(Gender == "Female") %>% pull(participation_rate)
+male_participation <- participation_temp %>% filter(Gender == "Male") %>% pull(participation_rate)
+participation_fold <- female_participation / male_participation
+
+female_mins_participant <- participation_temp %>% filter(Gender == "Female") %>% pull(minutes_per_participant)
+male_mins_participant <- participation_temp %>% filter(Gender == "Male") %>% pull(minutes_per_participant)
+mins_diff_participant <- male_mins_participant - female_mins_participant
+
+female_mins_person <- participation_temp %>% filter(Gender == "Female") %>% pull(minutes_per_person)
+male_mins_person <- participation_temp %>% filter(Gender == "Male") %>% pull(minutes_per_person)
+aggregate_fold <- female_mins_person / male_mins_person
+```
+
 \section{Results}
 
 \subsection{The Participation-Intensity Decomposition}

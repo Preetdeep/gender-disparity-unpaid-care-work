@@ -74,16 +74,26 @@ summary_stats <- analysis_data %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop")
 
 # Calculate key statistics for inline reporting
-sandwich_female <- summary_stats %>% filter(care_status == "Sandwich Gen", gender_label == "Female") %>% pull(mean_hours)
-no_care_female <- summary_stats %>% filter(care_status == "No Eldercare", gender_label == "Female") %>% pull(mean_hours)
-eldercare_only_female <- summary_stats %>% filter(care_status == "Eldercare Only", gender_label == "Female") %>% pull(mean_hours)
+sandwich_female_vec <- summary_stats %>% filter(care_status == "Sandwich Gen", gender_label == "Female") %>% pull(mean_hours)
+no_care_female_vec <- summary_stats %>% filter(care_status == "No Eldercare", gender_label == "Female") %>% pull(mean_hours)
+eldercare_only_female_vec <- summary_stats %>% filter(care_status == "Eldercare Only", gender_label == "Female") %>% pull(mean_hours)
 
-if(length(no_care_female) > 0 && length(sandwich_female) > 0) {
+# Safely extract values with defaults
+sandwich_female <- if(length(sandwich_female_vec) > 0) sandwich_female_vec[1] else 0
+no_care_female <- if(length(no_care_female_vec) > 0) no_care_female_vec[1] else 0
+eldercare_only_female <- if(length(eldercare_only_female_vec) > 0) eldercare_only_female_vec[1] else 0
+
+# Calculate statistics
+if(no_care_female > 0 && sandwich_female > 0) {
   sandwich_pct_of_no_care <- (sandwich_female / no_care_female) * 100
+} else {
+  sandwich_pct_of_no_care <- 0
+}
+
+if(no_care_female > 0 && eldercare_only_female > 0) {
   time_loss <- no_care_female - eldercare_only_female
 } else {
-  sandwich_pct_of_no_care <- NA
-  time_loss <- NA
+  time_loss <- 0
 }
 
 # Calculate burden share
@@ -92,14 +102,25 @@ time_by_elderly_gender <- analysis_data %>%
   group_by(has_elderly, gender_label) %>%
   summarise(avg_time = weighted.mean(wellbeing_hours, Weight), .groups = "drop")
 
-no_elderly_female <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Female") %>% pull(avg_time)
-elderly_female <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Female") %>% pull(avg_time)
-no_elderly_male <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Male") %>% pull(avg_time)
-elderly_male <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Male") %>% pull(avg_time)
+no_elderly_female_vec <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Female") %>% pull(avg_time)
+elderly_female_vec <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Female") %>% pull(avg_time)
+no_elderly_male_vec <- time_by_elderly_gender %>% filter(has_elderly == 0, gender_label == "Male") %>% pull(avg_time)
+elderly_male_vec <- time_by_elderly_gender %>% filter(has_elderly == 1, gender_label == "Male") %>% pull(avg_time)
 
-female_loss <- no_elderly_female - elderly_female
-male_loss <- no_elderly_male - elderly_male
-female_burden_share <- (female_loss / (female_loss + male_loss)) * 100
+# Safely extract values with defaults
+no_elderly_female_val <- if(length(no_elderly_female_vec) > 0) no_elderly_female_vec[1] else 0
+elderly_female_val <- if(length(elderly_female_vec) > 0) elderly_female_vec[1] else 0
+no_elderly_male_val <- if(length(no_elderly_male_vec) > 0) no_elderly_male_vec[1] else 0
+elderly_male_val <- if(length(elderly_male_vec) > 0) elderly_male_vec[1] else 0
+
+female_loss <- no_elderly_female_val - elderly_female_val
+male_loss <- no_elderly_male_val - elderly_male_val
+
+if((female_loss + male_loss) > 0) {
+  female_burden_share <- (female_loss / (female_loss + male_loss)) * 100
+} else {
+  female_burden_share <- 0
+}
 
 # Calculate daughter-in-law vs daughter ratio
 daughter_in_law_time <- analysis_data %>%

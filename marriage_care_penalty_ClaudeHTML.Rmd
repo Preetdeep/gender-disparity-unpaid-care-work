@@ -180,6 +180,113 @@ never_married_women_minutes <- major_only %>%
   filter(Gender == 2, Marital_Status == 1, care_work == 1) %>%
   summarise(mins = weighted.mean(time_spent, Weight, na.rm = TRUE)) %>%
   pull(mins)
+
+# Age-specific participation rates for descriptive stats (for line 546)
+young_women_married_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+young_women_never_married_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age <= 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_women_married_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+older_women_never_married_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, Age > 25) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  pull(rate) * 100
+
+# Widowed and divorced rates for line 812
+widowed_women_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 3) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+divorced_women_rate <- major_only %>%
+  filter(Gender == 2, Marital_Status == 4) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+# Education-specific marriage penalties for lines 731-751
+higher_ed_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, education_level == "Higher education") %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+higher_ed_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, education_level == "Higher education") %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+higher_ed_penalty <- higher_ed_married - higher_ed_never_married
+
+primary_ed_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, education_level == "Primary or less") %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+primary_ed_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, education_level == "Primary or less") %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+primary_ed_penalty <- primary_ed_married - primary_ed_never_married
+
+# Urban-rural marriage penalties for line 774
+urban_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, urban == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+urban_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, urban == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+urban_penalty <- urban_women_married - urban_women_never_married
+
+rural_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, urban == 0) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+rural_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, urban == 0) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+rural_penalty <- rural_women_married - rural_women_never_married
+
+# Employment-specific marriage penalties for line 813
+employed_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, employed == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+employed_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, employed == 1) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+employed_penalty <- employed_women_married - employed_women_never_married
+
+not_employed_women_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 2, employed == 0) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+not_employed_women_never_married <- major_only %>%
+  filter(Gender == 2, Marital_Status == 1, employed == 0) %>%
+  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>%
+  pull(rate)
+
+not_employed_penalty <- not_employed_women_married - not_employed_women_never_married
 ```
 
 ```{r verify_coding, include=FALSE}
@@ -451,6 +558,10 @@ avg_minutes_when_participating <- major_only %>%
   pull(mins)
 additional_slots_per_month <- (female_married_coef_m4 / 100) * 30 * (avg_minutes_when_participating / 30)
 
+# Calculate magnitudes for line 509-512
+marriage_penalty_m4_abs <- female_married_coef_m4
+marriage_penalty_m4_pct_increase <- (marriage_penalty_m4_abs / never_married_women_baseline) * 100
+
 # Create table
 modelsummary(list(m1, m2, m3, m4),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -492,24 +603,24 @@ Crucially, the **Female × Married coefficient (`r sprintf("%.1f%%", female_marr
 
 Column (3) adds education, employment, and urban residence. Key insights:
 
-1. **Higher Education (1.3%, p<0.001):** More educated individuals participate more in care work, potentially reflecting greater awareness of children's developmental needs or greater resources to outsource other domestic tasks.
+1. **Higher Education (`r sprintf("%.1f%%", higher_ed_coef_m3)`, p<0.001):** More educated individuals participate more in care work, potentially reflecting greater awareness of children's developmental needs or greater resources to outsource other domestic tasks.
 
-2. **Employed (-1.1%, p<0.001):** Employment significantly reduces care work participation, as expected given time constraints. The fact that the marriage penalty persists even after controlling for employment demonstrates it operates independently of labor supply decisions.
+2. **Employed (`r sprintf("%.1f%%", employed_coef_m3)`, p<0.001):** Employment significantly reduces care work participation, as expected given time constraints. The fact that the marriage penalty persists even after controlling for employment demonstrates it operates independently of labor supply decisions.
 
-3. **Urban (0.0%, n.s.):** Urban residence has no effect, suggesting the marriage penalty is equally strong in traditional rural areas and modernizing urban centers—evidence of deeply entrenched cultural norms.
+3. **Urban (`r sprintf("%.1f%%", urban_coef_m3)`, n.s.):** Urban residence has no effect, suggesting the marriage penalty is equally strong in traditional rural areas and modernizing urban centers—evidence of deeply entrenched cultural norms.
 
-The **Female × Married coefficient (3.2%, p<0.001)** remains robust, indicating the marriage penalty persists across all education levels, employment statuses, and geographic locations.
+The **Female × Married coefficient (`r sprintf("%.1f%%", female_married_coef_m3)`, p<0.001)** remains robust, indicating the marriage penalty persists across all education levels, employment statuses, and geographic locations.
 
 **Column (4): Adding State Fixed Effects**
 
-Column (4) adds state fixed effects to account for regional variation in cultural norms, economic development, and policy environments. The marriage penalty (3.2%, p<0.001) remains virtually unchanged, demonstrating remarkable consistency across India's diverse states. Whether in prosperous Kerala or traditional Uttar Pradesh, marriage penalizes women's time allocation to the same degree.
+Column (4) adds state fixed effects to account for regional variation in cultural norms, economic development, and policy environments. The marriage penalty (`r sprintf("%.1f%%", female_married_coef_m4)`, p<0.001) remains virtually unchanged, demonstrating remarkable consistency across India's diverse states. Whether in prosperous Kerala or traditional Uttar Pradesh, marriage penalizes women's time allocation to the same degree.
 
 **Magnitudes and Interpretation**
 
-The 3.2 percentage point marriage penalty (Column 4, our preferred specification) represents:
-- A **44% increase** relative to never-married women's baseline participation rate (7.3%)
-- A **3.2 percentage point increase** in absolute terms when comparing married (10.5%) to never-married (7.3%) women
-- The equivalent of **7.4 additional 30-minute time slots per month** devoted to care work
+The `r sprintf("%.1f", marriage_penalty_m4_abs)` percentage point marriage penalty (Column 4, our preferred specification) represents:
+- A **`r sprintf("%.0f%%", marriage_penalty_m4_pct_increase)` increase** relative to never-married women's baseline participation rate (`r sprintf("%.1f%%", never_married_women_baseline)`)
+- A **`r sprintf("%.1f", marriage_penalty_m4_abs)` percentage point increase** in absolute terms when comparing married (`r sprintf("%.1f%%", married_women_observed_rate)`) to never-married (`r sprintf("%.1f%%", never_married_women_observed_rate)`) women
+- The equivalent of **`r sprintf("%.1f", additional_slots_per_month)` additional 30-minute time slots per month** devoted to care work
 
 Strikingly, all coefficients on the marriage interaction term are statistically significant at the 0.1% level, with t-statistics exceeding 20. This is not a marginal or uncertain effect—it is one of the most robust findings in the entire analysis.
 
@@ -543,7 +654,7 @@ ggplot(plot_data, aes(x = marital_status_label, y = `Participation Rate (%)`,
 
 ## Descriptive Patterns by Age
 
-Table \ref{tab:by_age_marriage} examines how the marriage penalty varies by age group. Among younger women (≤25), married women participate at 8.6% versus 4.8% for never-married—a 3.8 percentage point gap. Among older women (>25), married women participate at 6.3% versus 4.7% for never-married—a 1.6 percentage point gap.
+Table \ref{tab:by_age_marriage} examines how the marriage penalty varies by age group. Among younger women (≤25), married women participate at `r sprintf("%.1f%%", young_women_married_rate)` versus `r sprintf("%.1f%%", young_women_never_married_rate)` for never-married—a `r sprintf("%.1f", young_women_married_rate - young_women_never_married_rate)` percentage point gap. Among older women (>25), married women participate at `r sprintf("%.1f%%", older_women_married_rate)` versus `r sprintf("%.1f%%", older_women_never_married_rate)` for never-married—a `r sprintf("%.1f", older_women_married_rate - older_women_never_married_rate)` percentage point gap.
 
 ```{r by_age_marriage}
 # Focus on women's marriage penalty by age group
@@ -574,11 +685,11 @@ kable(by_age_marriage_women %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
-The marriage penalty is **2.4 times larger** for younger women than older women. This suggests that early marriage particularly burdens women with care responsibilities.
+The marriage penalty is **`r sprintf("%.1f", age_penalty_ratio)` times larger** for younger women than older women. This suggests that early marriage particularly burdens women with care responsibilities.
 
 **Figure: Marriage Penalty by Age Group**
 
-```{r age_penalty_viz, fig.height=4, fig.width=7, fig.cap="Marriage Penalty by Age Group (Women Only). Younger women (age $\\leq$ 25) face a marriage penalty of 3.8 percentage points—more than double the 1.6 pp penalty for older women (age $>$ 25). This dramatic age heterogeneity suggests that early marriage coincides with childbearing demands and stronger normative pressures for young brides to demonstrate domestic competence, making marriage particularly constraining for women's time allocation during the critical early career years."}
+```{r age_penalty_viz, fig.height=4, fig.width=7, fig.cap=sprintf("Marriage Penalty by Age Group (Women Only). Younger women (age $\\leq$ 25) face a marriage penalty of %.1f percentage points—more than double the %.1f pp penalty for older women (age $>$ 25). This dramatic age heterogeneity suggests that early marriage coincides with childbearing demands and stronger normative pressures for young brides to demonstrate domestic competence, making marriage particularly constraining for women's time allocation during the critical early career years.", young_marriage_penalty, older_marriage_penalty)}
 # Visualize marriage penalty by age
 age_penalty_data <- by_age_marriage_women %>%
   select(age_group, `Marriage Penalty (pp)`)
@@ -594,11 +705,11 @@ ggplot(age_penalty_data, aes(x = age_group, y = `Marriage Penalty (pp)`, fill = 
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
 
-This visualization starkly illustrates the differential burden of marriage by age. Women aged 25 and below experience a marriage penalty more than twice as large (11.8 pp) compared to women above 25 (5.4 pp), highlighting how early marriage particularly constrains young women's time allocation.
+This visualization starkly illustrates the differential burden of marriage by age. Women aged 25 and below experience a marriage penalty more than twice as large (`r sprintf("%.1f", young_marriage_penalty)` pp) compared to women above 25 (`r sprintf("%.1f", older_marriage_penalty)` pp), highlighting how early marriage particularly constrains young women's time allocation.
 
 ## Regression Analysis with Age Interactions
 
-Table \ref{tab:age_interaction} tests whether age differences are statistically significant. Column (1) includes a triple interaction: Female × Married × (Age ≤ 25). The coefficient is 1.8 percentage points (p < 0.01), confirming that younger married women face larger penalties than older married women.
+Table \ref{tab:age_interaction} tests whether age differences are statistically significant. Column (1) includes a triple interaction: Female × Married × (Age ≤ 25). The coefficient is `r sprintf("%.1f", female_married_young_coef_m1)` percentage points (p < 0.01), confirming that younger married women face larger penalties than older married women.
 
 ```{r age_interaction_regression}
 # Create age interaction terms
@@ -624,6 +735,10 @@ m_age3 <- feols(care_work ~ female + married + female_married +
                   Age + I(Age^2) + higher_ed + employed + urban | State,
                 data = reg_data_age, weights = ~Weight, vcov = ~household_id)
 
+# Extract coefficients for inline reporting
+female_married_young_coef_m1 <- coef(m_age1)["female_married_young"] * 100
+female_married_young_coef_m3 <- coef(m_age3)["female_married_young"] * 100
+
 modelsummary(list(m_age1, m_age2, m_age3),
              stars = c('*' = .1, '**' = .05, '***' = .01),
              coef_rename = c(
@@ -646,7 +761,7 @@ modelsummary(list(m_age1, m_age2, m_age3),
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
-Column (3) with full controls confirms the pattern: the marriage penalty is 1.6 percentage points larger for younger women (p < 0.01).
+Column (3) with full controls confirms the pattern: the marriage penalty is `r sprintf("%.1f", female_married_young_coef_m3)` percentage points larger for younger women (p < 0.01).
 
 ## Alternative Age Cutoffs
 
@@ -692,7 +807,7 @@ kable(age_robust_results, digits = 4,
 
 ## By Education Level
 
-Does the marriage penalty vary by education? Table \ref{tab:by_education} shows the penalty persists across all education levels. College-educated women experience a 1.8 percentage point marriage penalty; women with primary education or less experience a 2.3 percentage point penalty.
+Does the marriage penalty vary by education? Table \ref{tab:by_education} shows the penalty persists across all education levels. College-educated women experience a `r sprintf("%.1f", higher_ed_penalty)` percentage point marriage penalty; women with primary education or less experience a `r sprintf("%.1f", primary_ed_penalty)` percentage point penalty.
 
 ```{r by_education}
 # Calculate marriage penalty by education for women
@@ -712,11 +827,11 @@ kable(by_education_marriage_women, digits = 2,
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
-Higher education modestly reduces the penalty but does not eliminate it, suggesting cultural norms transcend socioeconomic status. Even college-educated women experience an 8.2 percentage point marriage penalty.
+Higher education modestly reduces the penalty but does not eliminate it, suggesting cultural norms transcend socioeconomic status. Even college-educated women experience a `r sprintf("%.1f", higher_ed_penalty)` percentage point marriage penalty.
 
 **Figure: Marriage Penalty Persists Across Education Levels**
 
-```{r education_penalty_viz, fig.height=4, fig.width=7, fig.cap="Marriage Penalty by Education Level (Women Only). The marriage penalty persists across all education levels, ranging from 4.5 pp for women with primary education to 8.2 pp for women with higher education. Even college-educated women—who have better labor market opportunities and potentially more egalitarian attitudes—experience substantial marriage penalties. This persistence across the education gradient demonstrates that gendered marriage norms transcend socioeconomic boundaries and affect women regardless of educational attainment."}
+```{r education_penalty_viz, fig.height=4, fig.width=7, fig.cap=sprintf("Marriage Penalty by Education Level (Women Only). The marriage penalty persists across all education levels, ranging from %.1f pp for women with primary education to %.1f pp for women with higher education. Even college-educated women—who have better labor market opportunities and potentially more egalitarian attitudes—experience substantial marriage penalties. This persistence across the education gradient demonstrates that gendered marriage norms transcend socioeconomic boundaries and affect women regardless of educational attainment.", primary_ed_penalty, higher_ed_penalty)}
 ggplot(by_education_marriage_women, aes(x = reorder(education_level, -`Marriage Penalty (pp)`),
                                          y = `Marriage Penalty (pp)`, fill = education_level)) +
   geom_col(show.legend = FALSE) +
@@ -731,11 +846,11 @@ ggplot(by_education_marriage_women, aes(x = reorder(education_level, -`Marriage 
   coord_flip()
 ```
 
-This figure demonstrates that the marriage penalty is not driven by education differences. While the penalty is somewhat smaller for highly educated women (8.2 pp) compared to those with primary education or less (4.5 pp), it remains substantial across all groups. The persistence of the penalty even among college-educated women—who presumably have better labor market opportunities and potentially more egalitarian attitudes—suggests deeply entrenched cultural norms about married women's domestic roles.
+This figure demonstrates that the marriage penalty is not driven by education differences. While the penalty is somewhat smaller for highly educated women (`r sprintf("%.1f", higher_ed_penalty)` pp) compared to those with primary education or less (`r sprintf("%.1f", primary_ed_penalty)` pp), it remains substantial across all groups. The persistence of the penalty even among college-educated women—who presumably have better labor market opportunities and potentially more egalitarian attitudes—suggests deeply entrenched cultural norms about married women's domestic roles.
 
 ## Urban vs. Rural
 
-Does urbanization moderate the marriage penalty? Table \ref{tab:by_sector} shows similar penalties in urban (2.0 pp) and rural (2.2 pp) areas.
+Does urbanization moderate the marriage penalty? Table \ref{tab:by_sector} shows similar penalties in urban (`r sprintf("%.1f", urban_penalty)` pp) and rural (`r sprintf("%.1f", rural_penalty)` pp) areas.
 
 ```{r by_sector}
 by_sector_marriage <- major_only %>%
@@ -774,7 +889,7 @@ kable(by_employment_marriage, digits = 2,
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
-Employed married women face a 1.8 pp penalty; non-employed married women face a 2.4 pp penalty. Even employed women experience substantial marriage penalties in care work.
+Employed married women face a `r sprintf("%.1f", employed_penalty)` pp penalty; non-employed married women face a `r sprintf("%.1f", not_employed_penalty)` pp penalty. Even employed women experience substantial marriage penalties in care work.
 
 ## Alternative Care Work Definitions
 
@@ -809,7 +924,7 @@ Our main analysis restricts the sample to never-married (Marital_Status = 1) and
 
 **Conceptual Justification:** Our research question focuses on the effect of *entering* marriage on time allocation. Widowed and divorced individuals represent the effect of *exiting* marriage—a fundamentally different research question with different mechanisms. Widowed individuals may face care burdens from late-life illness of spouses or increased elder care responsibilities. Divorced individuals may have elevated care work due to single parenthood. Including these groups would confound the marriage entry effect with marriage exit and dissolution effects.
 
-**Empirical Verification:** Table \ref{tab:widowed_divorced_check} shows care work participation rates for all marital status categories. Widowed and divorced women show elevated participation rates (`r sprintf("%.1f%%", major_only %>% filter(Gender == 2, Marital_Status == 3) %>% summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>% pull(rate))` and `r sprintf("%.1f%%", major_only %>% filter(Gender == 2, Marital_Status == 4) %>% summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE) * 100) %>% pull(rate))` respectively) compared to currently married women (`r sprintf("%.1f%%", women_married_participation)`), but these reflect different mechanisms (bereavement, single parenthood) than the marriage penalty we study.
+**Empirical Verification:** Table \ref{tab:widowed_divorced_check} shows care work participation rates for all marital status categories. Widowed and divorced women show elevated participation rates (`r sprintf("%.1f%%", widowed_women_rate)` and `r sprintf("%.1f%%", divorced_women_rate)` respectively) compared to currently married women (`r sprintf("%.1f%%", women_married_participation)`), but these reflect different mechanisms (bereavement, single parenthood) than the marriage penalty we study.
 
 ```{r widowed_divorced_check}
 # Check care work participation across all marital statuses
@@ -862,6 +977,18 @@ m_not_employed <- feols(care_work ~ female + married + female_married + Age + I(
                           higher_ed + urban | State,
                         data = filter(reg_data, employed == 0), weights = ~Weight, vcov = ~household_id)
 
+# Extract coefficients for inline reporting
+female_married_rural <- coef(m_rural)["female_married"] * 100
+female_married_urban <- coef(m_urban)["female_married"] * 100
+female_married_employed <- coef(m_employed)["female_married"] * 100
+female_married_not_employed <- coef(m_not_employed)["female_married"] * 100
+
+# Range of coefficients
+min_coef_robustness <- min(female_married_rural, female_married_urban,
+                          female_married_employed, female_married_not_employed)
+max_coef_robustness <- max(female_married_rural, female_married_urban,
+                          female_married_employed, female_married_not_employed)
+
 modelsummary(list("Rural" = m_rural, "Urban" = m_urban,
                   "Employed" = m_employed, "Not Employed" = m_not_employed),
              stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -877,7 +1004,7 @@ modelsummary(list("Rural" = m_rural, "Urban" = m_urban,
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
-The Female × Married coefficient is positive and statistically significant across all subsamples, ranging from 1.8 to 2.4 percentage points.
+The Female × Married coefficient is positive and statistically significant across all subsamples, ranging from `r sprintf("%.1f", min_coef_robustness)` to `r sprintf("%.1f", max_coef_robustness)` percentage points.
 
 # Discussion
 
@@ -891,11 +1018,11 @@ Our findings document a substantial marriage penalty in unpaid care work for wom
 
 **Hypothesis 3: Household Composition.** In India, marriage often involves moving to joint family households with parents-in-law. Married women may be expected to care for elderly in-laws in addition to children. The larger penalty for younger women is consistent with this: younger brides often face stronger expectations to demonstrate domestic competence to in-laws.
 
-**Hypothesis 4: Labor Supply Response.** Married women may reduce labor force participation and increase home production. However, our finding that employed married women also face penalties (1.8 pp) suggests the mechanism operates beyond labor supply.
+**Hypothesis 4: Labor Supply Response.** Married women may reduce labor force participation and increase home production. However, our finding that employed married women also face penalties (`r sprintf("%.1f", employed_penalty)` pp) suggests the mechanism operates beyond labor supply.
 
 ## Age Heterogeneity: Why Are Younger Married Women More Penalized?
 
-Younger married women (≤25) face marriage penalties 2.4 times larger than older married women. Several mechanisms may explain this:
+Younger married women (≤25) face marriage penalties `r sprintf("%.1f", age_penalty_ratio)` times larger than older married women. Several mechanisms may explain this:
 
 1. **Establishing Household Norms:** Early in marriage, couples establish division of labor patterns that persist. Younger women may be more susceptible to pressure to demonstrate domestic competence.
 
@@ -937,7 +1064,7 @@ Our finding that marriage increases care work even before childbearing suggests 
 
 # Conclusion
 
-Marriage is associated with a substantial increase in women's unpaid care work participation—by 2.1 percentage points (a 44% increase)—while showing no corresponding change in men's care work. This "marriage penalty" varies by age: younger women (≤25) experience penalties 2.4 times larger than older women, suggesting early marriage is particularly burdensome. The penalty persists across education levels, urban-rural sectors, and employment status, indicating deeply entrenched cultural norms rather than purely economic determinants.
+Marriage is associated with a substantial increase in women's unpaid care work participation—by `r sprintf("%.1f", marriage_penalty_pp)` percentage points (a `r sprintf("%.0f%%", marriage_penalty_pct)` increase)—while showing no corresponding change in men's care work. This "marriage penalty" varies by age: younger women (≤25) experience penalties `r sprintf("%.1f", age_penalty_ratio)` times larger than older women, suggesting early marriage is particularly burdensome. The penalty persists across education levels, urban-rural sectors, and employment status, indicating deeply entrenched cultural norms rather than purely economic determinants.
 
 While our analysis cannot definitively establish causality due to potential selection into marriage and unobserved confounders, the patterns we document are consistent with marriage functioning as a critical institution reinforcing gender inequality in household production. The robustness of the association across multiple specifications, demographic groups, and geographic contexts suggests the marriage penalty reflects genuine changes in time allocation rather than compositional artifacts. However, future research using quasi-experimental methods (e.g., marriage age discontinuities, policy changes affecting marriage timing) would strengthen causal inference.
 

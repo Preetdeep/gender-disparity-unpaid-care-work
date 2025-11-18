@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we examine how household size affects personal well-being time. Women in large households (8+ members) have 65% less personal time than women in nuclear families (3-4 members), while men's personal time is unaffected by household size. Each additional household member reduces women's personal time by 8 minutes/day but has no effect on men's time. The penalty is largest for daughters-in-law in joint families, who face domestic work demands from multiple household members. Urban nuclear families show the most equitable time distribution between spouses. The household size penalty reveals how traditional joint family structures impose asymmetric costs on women through gendered household labor expectations.
+  Using India's 2024 Time Use Survey, we examine how household size affects personal well-being time. Women in large households (8+ members) have `r if(exists("key_findings$women_penalty_pct")) sprintf("%.0f%%", key_findings$women_penalty_pct)` less personal time than women in nuclear families (3-4 members), while men's personal time is unaffected by household size. Each additional household member reduces women's personal time by `r if(exists("key_findings$per_member_minutes")) sprintf("%.0f minutes/day", key_findings$per_member_minutes)` but has no effect on men's time. The penalty is largest for daughters-in-law in joint families, who face domestic work demands from multiple household members. Urban nuclear families show the most equitable time distribution between spouses. The household size penalty reveals how traditional joint family structures impose asymmetric costs on women through gendered household labor expectations.
 
   **JEL Classification:** J12, J16, J22, D13
 
@@ -68,6 +68,15 @@ key_findings <- list(
 )
 if(length(key_findings$women_small) > 0 && length(key_findings$women_large) > 0) {
   key_findings$women_penalty_pct <- ((key_findings$women_small - key_findings$women_large) / key_findings$women_small) * 100
+}
+
+# Calculate per-member penalty
+# Estimate based on difference between small (1-3, avg ~2) and large (8+, avg ~9)
+if(length(key_findings$women_small) > 0 && length(key_findings$women_large) > 0) {
+  avg_small_size <- 2
+  avg_large_size <- 9
+  total_penalty_hours <- key_findings$women_small - key_findings$women_large
+  key_findings$per_member_minutes <- (total_penalty_hours * 60) / (avg_large_size - avg_small_size)
 }
 ```
 

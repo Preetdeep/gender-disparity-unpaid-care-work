@@ -123,6 +123,7 @@ women_modern <- results_by_tech %>%
   pull(total_domestic)
 
 time_savings_pct <- 100 * (women_traditional - women_modern) / women_traditional
+time_savings_abs <- women_traditional - women_modern
 
 men_traditional <- results_by_tech %>%
   filter(gender_label == "Men", tech_category == "Traditional (no modern tech)") %>%
@@ -131,6 +132,40 @@ men_traditional <- results_by_tech %>%
 men_modern <- results_by_tech %>%
   filter(gender_label == "Men", tech_category == "Fully modern (LPG+electric)") %>%
   pull(total_domestic)
+
+# Calculate by employment status for women
+results_by_employment <- major_only %>%
+  filter(!is.na(tech_category), female == 1) %>%
+  mutate(
+    employment_label = ifelse(employed == 1, "Employed", "Not employed"),
+    tech_simple = ifelse(tech_category == "Fully modern (LPG+electric)", "Full appliances", "No appliances")
+  ) %>%
+  group_by(employment_label, tech_simple) %>%
+  summarise(
+    total_domestic_mean = weighted.mean(total_domestic_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Extract employment interaction values
+not_employed_no_appliances <- results_by_employment %>%
+  filter(employment_label == "Not employed", tech_simple == "No appliances") %>%
+  pull(total_domestic_mean)
+
+not_employed_full_appliances <- results_by_employment %>%
+  filter(employment_label == "Not employed", tech_simple == "Full appliances") %>%
+  pull(total_domestic_mean)
+
+employed_no_appliances <- results_by_employment %>%
+  filter(employment_label == "Employed", tech_simple == "No appliances") %>%
+  pull(total_domestic_mean)
+
+employed_full_appliances <- results_by_employment %>%
+  filter(employment_label == "Employed", tech_simple == "Full appliances") %>%
+  pull(total_domestic_mean)
+
+# Calculate employment effects
+employment_gap_no_appliances <- not_employed_no_appliances - employed_no_appliances
+employment_gap_full_appliances <- not_employed_full_appliances - employed_full_appliances
 ```
 
 # Introduction
@@ -141,13 +176,13 @@ Yet historical research reveals a paradox: as appliances diffused, housework tim
 
 Does this "technology paradox" operate in contemporary India? Using India's 2024 Time Use Survey linked to household asset data, we test whether appliance ownership reduces women's domestic time burden.
 
-**Main Finding**: Women in households with full appliance suites spend only 18% less time on cooking/cleaning than women without appliances (78 vs. 95 minutes), despite these technologies theoretically enabling 60-70% time reductions per task.
+**Main Finding**: Women in households with full appliance suites spend only `r sprintf("%.0f%%", time_savings_pct)` less time on cooking/cleaning than women without appliances (`r sprintf("%.0f", women_modern)` vs. `r sprintf("%.0f", women_traditional)` minutes), despite these technologies theoretically enabling 60-70% time reductions per task.
 
 **Standards Escalation**: Appliances enable higher standards. With mixer grinders, women make more elaborate masalas. With washing machines, clothes get washed more frequently. With refrigerators, meal variety expands (requiring more preparation).
 
-**Men Unchanged**: Men average 18-20 minutes/day on cooking/cleaning regardless of appliance availability. Technology doesn't enable men to share more; it enables women to do more.
+**Men Unchanged**: Men average `r sprintf("%.0f", men_traditional)`-`r sprintf("%.0f", men_modern)` minutes/day on cooking/cleaning regardless of appliance availability. Technology doesn't enable men to share more; it enables women to do more.
 
-**Employment Effect**: The only clear time liberation comes when appliances enable women's labor force exit from full domestic work by facilitating employment. But even employed women in appliance-rich households spend 85 minutes/day on domestic work.
+**Employment Effect**: The only clear time liberation comes when appliances enable women's labor force exit from full domestic work by facilitating employment. But even employed women in appliance-rich households spend `r sprintf("%.0f", employed_full_appliances)` minutes/day on domestic work.
 
 # Literature Review
 
@@ -241,16 +276,16 @@ ggplot(decomp_data, aes(x = reorder(category, time_change), y = time_change, fil
 ```{r men_unchanged_tech}
 # Men's time by appliance access
 men_by_appliance <- data.frame(
-  appliance_level = c("No appliances", "Full suite"),
-  minutes = c(18, 20),
-  difference = c(0, 2)
+  appliance_level = c("Traditional (no modern tech)", "Fully modern (LPG+electric)"),
+  minutes = c(men_traditional, men_modern),
+  difference = c(0, men_modern - men_traditional)
 )
 
 kable(men_by_appliance, digits = 1,
       caption = "Men's Domestic Time: Unaffected by Technology",
       col.names = c("Household Appliances", "Minutes/Day", "Difference vs Baseline"),
       ) %>%
-  kable_styling(latex_options = "HOLD_position")
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
 **Finding**: Men's domestic contributions don't respond to appliance availability. Technology enables women to do more, not men to share more.
@@ -262,15 +297,16 @@ kable(men_by_appliance, digits = 1,
 employment_interaction <- data.frame(
   group = c("Not employed, no appliances", "Not employed, full appliances",
             "Employed, no appliances", "Employed, full appliances"),
-  minutes = c(185, 165, 145, 85),
-  employment_gap = c(NA, NA, -40, -80)
+  minutes = c(not_employed_no_appliances, not_employed_full_appliances,
+              employed_no_appliances, employed_full_appliances),
+  employment_gap = c(NA, NA, -employment_gap_no_appliances, -employment_gap_full_appliances)
 )
 
 kable(employment_interaction, digits = 1,
       caption = "Appliances Enable Employment, Which Reduces Domestic Time",
       col.names = c("Group", "Domestic Minutes/Day", "Employment Effect"),
       ) %>%
-  kable_styling(latex_options = "HOLD_position")
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
 ```
 
 **Key Pattern**: Appliances reduce time modestly for all women, but the big effect comes through enabling employment. Employed women with appliances spend dramatically less time because they've exited full-time domestic work.
@@ -317,7 +353,7 @@ Technology changes what women do, not who does what. Men don't increase contribu
 
 Household appliances—washing machines, refrigerators, mixer grinders—reduce the time per task but barely reduce women's total domestic time burden. Standards escalate, frequency increases, and new tasks emerge, absorbing the productivity gains. Meanwhile, men's contributions remain unchanged regardless of technology availability, revealing that gendered norms, not task difficulty, drive inequality.
 
-The only clear liberation comes when appliances enable employment, allowing women to exit full-time domestic work. But even employed women in appliance-rich households spend 85 minutes/day on domestic work—far more than their husbands.
+The only clear liberation comes when appliances enable employment, allowing women to exit full-time domestic work. But even employed women in appliance-rich households spend `r sprintf("%.0f", employed_full_appliances)` minutes/day on domestic work—far more than their husbands.
 
 These findings suggest that the promise of technological liberation was naive. Without challenging cultural norms about whose responsibility household work is, technology just changes what women do, not whether they remain primarily responsible. The path to gender equality requires not just better appliances but better norms.
 
