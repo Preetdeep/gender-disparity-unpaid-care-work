@@ -80,6 +80,7 @@ major_only <- data %>%
     female_married = female * married,
     female_married_young = female * married * age_25_or_less,
     female_married_older = female * married * age_over_25,
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_")
   )
 
@@ -88,29 +89,41 @@ invisible(gc())
 ```
 
 ```{r calculate_key_stats, include=FALSE}
+# Aggregate to person-day level first
+person_day <- major_only %>%
+  group_by(person_id, Gender, female, male, married, never_married, Age,
+           age_25_or_less, age_over_25, age_group, Marital_Status,
+           gender_label, sector_label, urban, education_level, higher_ed,
+           employed, female_married, household_id, Weight, State) %>%
+  summarise(
+    total_care_minutes = sum(care_minutes, na.rm = TRUE),
+    any_care_work = as.numeric(total_care_minutes > 0),
+    .groups = "drop"
+  )
+
 # Calculate key statistics for abstract and introduction
-total_obs <- nrow(major_only)
-total_households <- length(unique(paste(major_only$FSU_Serial_No, major_only$Sample_HH_No)))
+total_obs <- nrow(person_day)
+total_households <- length(unique(person_day$household_id))
 
 # Gender and marital status patterns
-women_never_married_participation <- major_only %>%
+women_never_married_participation <- person_day %>%
   filter(Gender == 2, Marital_Status == 1) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
-women_married_participation <- major_only %>%
+women_married_participation <- person_day %>%
   filter(Gender == 2, Marital_Status == 2) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
-men_never_married_participation <- major_only %>%
+men_never_married_participation <- person_day %>%
   filter(Gender == 1, Marital_Status == 1) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
-men_married_participation <- major_only %>%
+men_married_participation <- person_day %>%
   filter(Gender == 1, Marital_Status == 2) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
 # Marriage penalty for women
@@ -118,26 +131,26 @@ marriage_penalty_pp <- women_married_participation - women_never_married_partici
 marriage_penalty_pct <- (marriage_penalty_pp / women_never_married_participation) * 100
 
 # Age-specific marriage penalties
-young_women_married <- major_only %>%
+young_women_married <- person_day %>%
   filter(Gender == 2, Marital_Status == 2, Age <= 25) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
-young_women_never_married <- major_only %>%
+young_women_never_married <- person_day %>%
   filter(Gender == 2, Marital_Status == 1, Age <= 25) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
 young_marriage_penalty <- young_women_married - young_women_never_married
 
-older_women_married <- major_only %>%
+older_women_married <- person_day %>%
   filter(Gender == 2, Marital_Status == 2, Age > 25) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
-older_women_never_married <- major_only %>%
+older_women_never_married <- person_day %>%
   filter(Gender == 2, Marital_Status == 1, Age > 25) %>%
-  summarise(rate = weighted.mean(care_work, Weight, na.rm = TRUE)) %>%
+  summarise(rate = weighted.mean(any_care_work, Weight, na.rm = TRUE)) %>%
   pull(rate) * 100
 
 older_marriage_penalty <- older_women_married - older_women_never_married
@@ -219,22 +232,22 @@ where $\text{CareWork}_i$ is a binary indicator for any care work participation,
 Table 1 presents our core regression results examining the marriage penalty.
 
 ```{r main_regression}
-# Restrict to never married and currently married only
-reg_data <- major_only %>%
+# Use person-day data, restrict to never married and currently married only
+reg_data <- person_day %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2))
 
 # Regressions with household clustering
-m1 <- feols(care_work ~ female + married + female_married,
+m1 <- feols(any_care_work ~ female + married + female_married,
             data = reg_data, weights = ~Weight, cluster = ~household_id)
 
-m2 <- feols(care_work ~ female + married + female_married + Age + I(Age^2),
+m2 <- feols(any_care_work ~ female + married + female_married + Age + I(Age^2),
             data = reg_data, weights = ~Weight, cluster = ~household_id)
 
-m3 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+m3 <- feols(any_care_work ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban,
             data = reg_data, weights = ~Weight, cluster = ~household_id)
 
-m4 <- feols(care_work ~ female + married + female_married + Age + I(Age^2) +
+m4 <- feols(any_care_work ~ female + married + female_married + Age + I(Age^2) +
               higher_ed + employed + urban | State,
             data = reg_data, weights = ~Weight, cluster = ~household_id)
 
@@ -293,11 +306,11 @@ With state fixed effects controlling for regional cultural variation, the Female
 Figure 1 visualizes the marriage penalty.
 
 ```{r marriage_penalty_plot, fig.height=4, fig.width=7, fig.cap="The Marriage Penalty in Care Work Participation"}
-plot_data <- major_only %>%
+plot_data <- person_day %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
   mutate(marital_status_label = ifelse(married == 1, "Married", "Never Married")) %>%
   group_by(gender_label, marital_status_label) %>%
-  summarise(`Participation Rate (%)` = weighted.mean(care_work, Weight, na.rm = TRUE) * 100,
+  summarise(`Participation Rate (%)` = weighted.mean(any_care_work, Weight, na.rm = TRUE) * 100,
             .groups = "drop")
 
 ggplot(plot_data, aes(x = marital_status_label, y = `Participation Rate (%)`,
@@ -318,10 +331,10 @@ The gender gap in care work participation is substantially larger among married 
 Table 2 examines whether the marriage penalty differs by age.
 
 ```{r age_heterogeneity}
-by_age_marriage <- major_only %>%
+by_age_marriage <- person_day %>%
   filter(Gender %in% c(1, 2), Marital_Status %in% c(1, 2)) %>%
   group_by(age_group, gender_label, married) %>%
-  summarise(participation = weighted.mean(care_work, Weight, na.rm = TRUE) * 100,
+  summarise(participation = weighted.mean(any_care_work, Weight, na.rm = TRUE) * 100,
             .groups = "drop") %>%
   pivot_wider(names_from = c(gender_label, married),
               values_from = participation,
