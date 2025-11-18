@@ -122,6 +122,24 @@ rm(data)
 invisible(gc())
 ```
 
+```{r compute_abstract_stats, include=FALSE, cache=FALSE}
+# Pre-compute statistics needed for abstract
+# Run simple regressions to get gender coefficients
+m1_temp <- feols(childcare ~ female,
+                 data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+                 weights = ~Weight, cluster = ~household_id)
+m3_temp <- feols(adultcare ~ female,
+                 data = major_only %>% filter(gender_label %in% c("Male", "Female")),
+                 weights = ~Weight, cluster = ~household_id)
+
+# Extract coefficients for abstract (convert to percentage points)
+m1_female_coef <- coef(m1_temp)["female"] * 100
+m3_female_coef <- coef(m3_temp)["female"] * 100
+
+# Clean up temporary objects
+rm(m1_temp, m3_temp)
+```
+
 ```{r care_by_gender}
 by_gender <- major_only %>%
   group_by(gender_label) %>%

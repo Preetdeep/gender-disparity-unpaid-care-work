@@ -623,6 +623,24 @@ person_day_regression <- major_only %>%
   )
 ```
 
+```{r compute_abstract_stats, include=FALSE, cache=FALSE}
+# Pre-compute statistics needed for abstract
+# Run simple regressions to get gender coefficients
+m1_temp <- feols(childcare ~ female,
+                 data = person_day_regression,
+                 weights = ~Weight, cluster = ~household_id)
+m3_temp <- feols(adultcare ~ female,
+                 data = person_day_regression,
+                 weights = ~Weight, cluster = ~household_id)
+
+# Extract coefficients for abstract (convert to percentage points)
+m1_female_coef <- coef(m1_temp)["female"] * 100
+m3_female_coef <- coef(m3_temp)["female"] * 100
+
+# Clean up temporary objects
+rm(m1_temp, m3_temp)
+```
+
 ```{r main_regressions}
 # Regression 1: Childcare participation, female only
 m1 <- feols(childcare ~ female,
