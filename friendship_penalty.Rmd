@@ -87,7 +87,7 @@ rm(data)
 invisible(gc())
 ```
 
-```{r calculate_abstract_values, include=FALSE}
+```{r calculate_abstract_values, include=FALSE, cache=FALSE}
 # Calculate key statistics for abstract and paper
 # First aggregate to person-day level
 person_day_abstract <- major_only %>%

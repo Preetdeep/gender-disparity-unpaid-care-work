@@ -336,7 +336,7 @@ kable(desc_stats, booktabs = TRUE, digits = 2,
   add_header_above(c(" " = 3, "Demographics" = 1, "Exercise" = 2, "SES" = 3))
 ```
 
-```{r calculate_stats, include=FALSE}
+```{r calculate_stats, include=FALSE, cache=FALSE}
 # Calculate all statistics for inline reporting
 # This chunk computes values from data and regression results to replace hardcoded numbers
 
