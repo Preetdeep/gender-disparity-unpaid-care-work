@@ -60,9 +60,12 @@ set.seed(123)
 data <- data %>% slice_sample(prop = 0.1)
 data <- data %>% mutate(Weight = Weight / 0.1)
 
-major_only <- data %>%
+activity_data <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, sep = "_"),
+    household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
+
     gender_label = case_when(
       Gender == 1 ~ "Male",
       Gender == 2 ~ "Female",
@@ -87,12 +90,6 @@ major_only <- data %>%
     eldercare = as.numeric(Activity_Code_2Digit == 32),
     eldercare_minutes = ifelse(eldercare == 1, time_spent, 0),
 
-    # Aggregate measures
-    physical_tasks = cooking_cleaning_minutes,
-    management_tasks = shopping_minutes + household_mgmt_minutes,
-    care_tasks = childcare_minutes + eldercare_minutes,
-    total_domestic = physical_tasks + management_tasks + care_tasks,
-
     # SES proxy
     urban = as.numeric(Sector == 2),
     education_level = case_when(
@@ -115,7 +112,31 @@ major_only <- data %>%
     state_factor = as.factor(State)
   )
 
-rm(data)
+# Aggregate to person-day level
+major_only <- activity_data %>%
+  group_by(person_id, FSU_Serial_No, Sample_HH_No, Gender, Age,
+           household_id, gender_label, female, married, Marital_Status,
+           urban, education_level, employed, employment_label, ses_group,
+           state_factor, Weight) %>%
+  summarise(
+    cooking_cleaning_minutes = sum(cooking_cleaning_minutes, na.rm = TRUE),
+    shopping_minutes = sum(shopping_minutes, na.rm = TRUE),
+    household_mgmt_minutes = sum(household_mgmt_minutes, na.rm = TRUE),
+    childcare_minutes = sum(childcare_minutes, na.rm = TRUE),
+    eldercare_minutes = sum(eldercare_minutes, na.rm = TRUE),
+
+    # Recreate aggregate measures
+    physical_tasks = cooking_cleaning_minutes,
+    management_tasks = shopping_minutes + household_mgmt_minutes,
+    care_tasks = childcare_minutes + eldercare_minutes,
+    total_domestic = physical_tasks + management_tasks + care_tasks,
+
+    # Participation flags
+    childcare = as.numeric(childcare_minutes > 0),
+    .groups = "drop"
+  )
+
+rm(data, activity_data)
 invisible(gc())
 ```
 
@@ -403,3 +424,25 @@ Lundberg, Shelly, and Robert A. Pollak. 1996. "Bargaining and Distribution in Ma
 Ray, Raka, and Seemin Qayum. 2009. *Cultures of Servitude*. Stanford: Stanford University Press.
 
 Sayer, Liana C. 2005. "Gender, Time and Inequality." *Social Forces* 84(1): 285-303.
+
+Becker, Gary S. 1991. *A Treatise on the Family* (Enlarged Edition). Harvard University Press.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+Folbre, Nancy. 2012. "Should Women Care Less? Intrinsic Motivation and Gender Inequality." *British Journal of Industrial Relations* 50(4): 597-619.
+
+Hirway, Indira. 2010. "Understanding Poverty: Insights Emerging from Time Use of the Poor." In *Unpaid Work and the Economy*, edited by Rania Antonopoulos and Indira Hirway, 22-57. Palgrave Macmillan.
+
+Kandiyoti, Deniz. 1988. "Bargaining with Patriarchy." *Gender & Society* 2(3): 274-290.
+
+NSSO (National Sample Survey Office). 2020. *Time Use in India 2019*. New Delhi: Ministry of Statistics and Programme Implementation.
+
+Offer, Shira, and Barbara Schneider. 2011. "Revisiting the Gender Gap in Time-Use Patterns: Multitasking and Well-Being among Mothers and Fathers in Dual-Earner Families." *American Sociological Review* 76(6): 809-833.
+
+Ridgeway, Cecilia L. 2011. *Framed by Gender: How Gender Inequality Persists in the Modern World*. Oxford: Oxford University Press.
+
+United Nations. 2022. *World Population Prospects 2022*. New York: United Nations Department of Economic and Social Affairs, Population Division.
+
+West, Candace, and Don H. Zimmerman. 1987. "Doing Gender." *Gender & Society* 1(2): 125-151.
+
+World Bank. 2023. *World Development Indicators 2023*. Washington, DC: World Bank.
