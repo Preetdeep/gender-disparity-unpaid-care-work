@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine variation in personal well-being time across religious communities in India. Sikhs have the highest exercise time, Muslims have the highest religious practice time (but this crowds out other leisure), Christians show the most balanced leisure portfolio, and Hindus fall in the middle. However, within-religion gender gaps are larger than between-religion differences: the gender gap is 1.8 hours/day across all religions. Education and urbanization mediate religious differences substantially—educated urban members of all faiths have similar personal time patterns. These findings suggest that socioeconomic factors and gender norms dominate religious cultural effects on time use.
+  We examine variation in personal well-being time across religious communities in India. Sikhs have the highest exercise time, Muslims have the highest religious practice time (but this crowds out other leisure), Christians show the most balanced leisure portfolio, and Hindus fall in the middle. However, within-religion gender gaps are larger than between-religion differences: the gender gap is `r if(exists("avg_gender_gap")) sprintf("%.1f hours/day", avg_gender_gap)` across all religions. Education and urbanization mediate religious differences substantially—educated urban members of all faiths have similar personal time patterns. These findings suggest that socioeconomic factors and gender norms dominate religious cultural effects on time use.
 
   **JEL Classification:** J16, J22, Z12
 
@@ -71,6 +71,14 @@ summary_stats <- analysis_data %>%
     mean_religious = weighted.mean(religious_hours, Weight, na.rm = TRUE),
     n = n(), .groups = "drop"
   )
+
+# Calculate average gender gap across all religions
+gender_gaps <- summary_stats %>%
+  select(religion_label, gender_label, mean_total) %>%
+  pivot_wider(names_from = gender_label, values_from = mean_total) %>%
+  mutate(gap = Male - Female)
+
+avg_gender_gap <- mean(gender_gaps$gap, na.rm = TRUE)
 ```
 
 # Introduction

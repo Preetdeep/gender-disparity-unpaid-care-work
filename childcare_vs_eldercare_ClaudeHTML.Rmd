@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we provide population-level estimates of gender disparities across two forms of unpaid care work: childcare and adult care. We cannot condition on household composition (presence of children or elderly members). Men's participation rates remain extremely low for both activities. The gender participation gap in childcare (16.2 percentage points) substantially exceeds that in adult care (4.1 percentage points). This pattern persists across education levels, urban-rural locations, and age groups, reflecting deeply entrenched cultural norms assigning care work to women. As India's 60+ population share doubles to 20% by 2050, these findings highlight urgent needs for care infrastructure and cultural transformation.
+  Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we provide population-level estimates of gender disparities across two forms of unpaid care work: childcare and adult care. We cannot condition on household composition (presence of children or elderly members). Men's participation rates remain extremely low for both activities. The gender participation gap in childcare (`r sprintf("%.1f", m1_female_coef)` percentage points) substantially exceeds that in adult care (`r sprintf("%.1f", m3_female_coef)` percentage points). This pattern persists across education levels, urban-rural locations, and age groups, reflecting deeply entrenched cultural norms assigning care work to women. As India's 60+ population share doubles to 20% by 2050, these findings highlight urgent needs for care infrastructure and cultural transformation.
 
   **JEL Classification:** J12, J13, J14, J16, I10
 
@@ -203,7 +203,14 @@ We restrict analysis to **major activities only** (Major_Activity_Flag = 1), whi
 
 ## Overall Gender Gaps in Care Work Participation
 
-Table 1 shows participation rates and time spent on different types of care work by gender. Women are 4.0 times more likely than men to participate in any form of care work (childcare or adult care): 9.8% of women vs. 2.5% of men reported care work as a major activity on their diary day.
+```{r calculate_initial_stats, include=FALSE}
+# Calculate overall care work statistics for narrative
+female_any_care_pct <- by_gender %>% filter(gender_label == "Female") %>% pull(`Any Care Participation (%)`)
+male_any_care_pct <- by_gender %>% filter(gender_label == "Male") %>% pull(`Any Care Participation (%)`)
+any_care_ratio <- female_any_care_pct / male_any_care_pct
+```
+
+Table 1 shows participation rates and time spent on different types of care work by gender. Women are `r sprintf("%.1f", any_care_ratio)` times more likely than men to participate in any form of care work (childcare or adult care): `r sprintf("%.1f%%", female_any_care_pct)` of women vs. `r sprintf("%.1f%%", male_any_care_pct)` of men reported care work as a major activity on their diary day.
 
 **Important Note on Interpretation**: These are **population-level estimates** averaged across all individuals, including those in households without children or elderly members requiring care. We cannot condition on presence of care recipients because household roster data are unavailable. Therefore, low male participation rates may reflect both: (1) men avoiding care when care is needed, and (2) men living in households without care demands. Our estimates capture the lived reality of who performs care work in the population, but cannot isolate within-household gender gaps conditional on care needs. This limitation affects all subsequent analyses (see Limitations section for detailed discussion).
 
@@ -559,10 +566,29 @@ kable(selectivity_by_age,
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE, font_size = 10)
 ```
 
+```{r calculate_age_ratios, include=FALSE}
+# Extract ratios from selectivity_by_age for inline reporting
+age_25_below_childcare_ratio <- selectivity_by_age %>%
+  filter(age_group == "25 and below", `Care Type` == "Childcare Minutes") %>%
+  pull(`Gender Ratio (F/M)`)
+
+age_25_below_adultcare_ratio <- selectivity_by_age %>%
+  filter(age_group == "25 and below", `Care Type` == "Adult Care Minutes") %>%
+  pull(`Gender Ratio (F/M)`)
+
+age_over_25_childcare_ratio <- selectivity_by_age %>%
+  filter(age_group == "Above 25", `Care Type` == "Childcare Minutes") %>%
+  pull(`Gender Ratio (F/M)`)
+
+age_over_25_adultcare_ratio <- selectivity_by_age %>%
+  filter(age_group == "Above 25", `Care Type` == "Adult Care Minutes") %>%
+  pull(`Gender Ratio (F/M)`)
+```
+
 Key findings:
 
-- Among those 25 and below: Women/men childcare ratio is 2.7:1; adult care ratio is 5.2:1
-- Among those above 25: Women/men childcare ratio is 3.4:1; adult care ratio is 11.2:1
+- Among those 25 and below: Women/men childcare ratio is `r sprintf("%.1f", age_25_below_childcare_ratio)`:1; adult care ratio is `r sprintf("%.1f", age_25_below_adultcare_ratio)`:1
+- Among those above 25: Women/men childcare ratio is `r sprintf("%.1f", age_over_25_childcare_ratio)`:1; adult care ratio is `r sprintf("%.1f", age_over_25_adultcare_ratio)`:1
 
 Gender disparities in care work exist at all ages. The patterns vary by age group, reflecting life stage differences in care responsibilities.
 
@@ -634,17 +660,32 @@ modelsummary(list("Childcare" = m1, "Childcare" = m2,
              notes = "Standard errors clustered at household level in parentheses. State fixed effects included in models 2 and 4.")
 ```
 
-**Column 1** shows that women are 16.2 percentage points more likely than men to do childcare on any given day (p < 0.001). Given a male baseline participation rate of 0.71% (Table 1), the female-male gap represents approximately 23 times higher participation for women.
+```{r extract_regression_coefs, include=FALSE}
+# Extract coefficients for inline reporting
+m1_female_coef <- coef(m1)["female"] * 100  # Convert to percentage points
+m2_female_coef <- coef(m2)["female"] * 100
+m3_female_coef <- coef(m3)["female"] * 100
+m4_female_coef <- coef(m4)["female"] * 100
 
-**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (13.4 pp) and highly significant. Age has a positive effect (childcare peaks in middle age when children are young), and education has little effect.
+# Calculate participation ratios
+childcare_participation_ratio <- (male_childcare_pct + m1_female_coef) / male_childcare_pct
+adultcare_participation_ratio <- (male_adultcare_pct + m3_female_coef) / male_adultcare_pct
+
+# Calculate gap ratio
+gap_size_ratio <- childcare_gap_pp / adultcare_gap_pp
+```
+
+**Column 1** shows that women are `r sprintf("%.1f", m1_female_coef)` percentage points more likely than men to do childcare on any given day (p < 0.001). Given a male baseline participation rate of `r sprintf("%.2f%%", male_childcare_pct)` (Table 1), the female-male gap represents approximately `r sprintf("%.0f", childcare_participation_ratio)` times higher participation for women.
+
+**Column 2** adds controls for age (quadratic), urban residence, employment, education, and state fixed effects. The female coefficient remains large (`r sprintf("%.1f", m2_female_coef)` pp) and highly significant. Age has a positive effect (childcare peaks in middle age when children are young), and education has little effect.
 
 **Employment Effect on Care Work**: The employment coefficient is negative and statistically significant for both childcare and adult care. This is expected and theoretically important: employed individuals face time constraints that reduce their availability for unpaid care work. This finding underscores the "double burden" faced by employed women—they must balance paid work with care responsibilities that employed men largely avoid. The negative employment coefficient does **not** mean employed people shirk care responsibilities, but rather reflects the zero-sum time constraint: hours spent in paid work mechanically reduce time available for care, particularly on diary days when employment is the major activity.
 
-**Column 3** shows that women are 4.1 percentage points more likely than men to do adult care (p < 0.001). Given a male baseline participation rate of 0.41% (Table 1), women's participation is approximately 11 times higher than men's.
+**Column 3** shows that women are `r sprintf("%.1f", m3_female_coef)` percentage points more likely than men to do adult care (p < 0.001). Given a male baseline participation rate of `r sprintf("%.2f%%", male_adultcare_pct)` (Table 1), women's participation is approximately `r sprintf("%.0f", adultcare_participation_ratio)` times higher than men's.
 
-**Column 4** adds the same controls. The female coefficient remains large (3.4 pp) and highly significant. Notably, adult care increases with age (as parents age), is lower among employed individuals (due to time constraints), and shows little education gradient.
+**Column 4** adds the same controls. The female coefficient remains large (`r sprintf("%.1f", m4_female_coef)` pp) and highly significant. Notably, adult care increases with age (as parents age), is lower among employed individuals (due to time constraints), and shows little education gradient.
 
-**Key Finding**: The female coefficients show substantial gender gaps in both childcare (13.4-16.2 pp) and adult care (3.4-4.1 pp). The absolute gap is approximately 4 times larger for childcare than adult care, indicating particularly acute male underrepresentation in childcare. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
+**Key Finding**: The female coefficients show substantial gender gaps in both childcare (`r sprintf("%.1f", m2_female_coef)`-`r sprintf("%.1f", m1_female_coef)` pp) and adult care (`r sprintf("%.1f", m4_female_coef)`-`r sprintf("%.1f", m3_female_coef)` pp). The absolute gap is approximately `r sprintf("%.0f", gap_size_ratio)` times larger for childcare than adult care, indicating particularly acute male underrepresentation in childcare. The negative employment coefficients in both models confirm that care work and paid work compete for time, highlighting the structural tension between employment and unpaid care burdens.
 
 ## Married Individuals: Gender Gaps Within Households
 

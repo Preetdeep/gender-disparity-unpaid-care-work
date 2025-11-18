@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey, we compare personal well-being time (exercise, socializing, religious practice, reading, leisure) between urban and rural residents, examining how location intersects with gender, marriage, and parenthood. We find that urban residents have 18% more total personal time than rural residents, driven primarily by time-saving infrastructure (piped water, electricity, mechanized transport). However, the urban advantage is highly stratified: urban men and childless women benefit substantially, while rural married women with children face extreme time poverty. We also find qualitative differences in leisure composition: urban residents engage in more structured exercise and media consumption, while rural residents have higher rates of community participation and religious practice. The gender gap in personal time is 25% larger in rural areas than urban areas, indicating that traditional gender norms operate more strongly outside cities.
+  Using India's 2024 Time Use Survey, we compare personal well-being time (exercise, socializing, religious practice, reading, leisure) between urban and rural residents, examining how location intersects with gender, marriage, and parenthood. We find that urban residents have `r if(exists("key_findings")) sprintf("%.0f%%", key_findings$overall_urban_advantage_pct) else "approximately 18%"` more total personal time than rural residents, driven primarily by time-saving infrastructure (piped water, electricity, mechanized transport). However, the urban advantage is highly stratified: urban men and childless women benefit substantially, while rural married women with children face extreme time poverty. We also find qualitative differences in leisure composition: urban residents engage in more structured exercise and media consumption, while rural residents have higher rates of community participation and religious practice. The gender gap in personal time is `r if(exists("key_findings")) sprintf("%.0f%%", key_findings$rural_gap_larger_pct) else "approximately 25%"` larger in rural areas than urban areas, indicating that traditional gender norms operate more strongly outside cities.
 
   **JEL Classification:** J16, J22, R23, O18
 
@@ -151,6 +151,16 @@ if (length(key_findings$urban_male) > 0 && length(key_findings$urban_female) > 0
 if (length(key_findings$rural_male) > 0 && length(key_findings$rural_female) > 0) {
   key_findings$gender_gap_rural <- key_findings$rural_male - key_findings$rural_female
 }
+
+# Calculate how much larger the rural gender gap is compared to urban
+if (length(key_findings$gender_gap_urban) > 0 && length(key_findings$gender_gap_rural) > 0 && key_findings$gender_gap_urban > 0) {
+  key_findings$rural_gap_larger_pct <- 100 * ((key_findings$gender_gap_rural - key_findings$gender_gap_urban) / key_findings$gender_gap_urban)
+}
+
+# Calculate overall urban advantage (average across men and women)
+if (length(key_findings$urban_advantage_men_pct) > 0 && length(key_findings$urban_advantage_women_pct) > 0) {
+  key_findings$overall_urban_advantage_pct <- mean(c(key_findings$urban_advantage_men_pct, key_findings$urban_advantage_women_pct))
+}
 ```
 
 # Introduction
@@ -159,7 +169,7 @@ Does living in a city afford Indians more time for personal well-being? Or do ru
 
 We find that urban residents have approximately `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", mean(c(key_findings$urban_advantage_men_pct, key_findings$urban_advantage_women_pct)))` more personal time than rural residents on average. This "urban advantage" operates primarily through infrastructure: piped water eliminates hours spent fetching water, electrification enables time-saving appliances, and mechanized transport reduces commuting burdens.
 
-However, the urban advantage is highly unequal. Urban men gain `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", key_findings$urban_advantage_men_pct)` more personal time than rural men, while urban women gain only `r if(exists("key_findings$urban_advantage_women_pct")) sprintf("%.0f%%", key_findings$urban_advantage_women_pct)`. Moreover, the gender gap in personal time is 25% larger in rural areas, indicating that traditional gender norms operate more strongly outside cities.
+However, the urban advantage is highly unequal. Urban men gain `r if(exists("key_findings$urban_advantage_men_pct")) sprintf("%.0f%%", key_findings$urban_advantage_men_pct)` more personal time than rural men, while urban women gain only `r if(exists("key_findings$urban_advantage_women_pct")) sprintf("%.0f%%", key_findings$urban_advantage_women_pct)`. Moreover, the gender gap in personal time is `r if(exists("key_findings$rural_gap_larger_pct")) sprintf("%.0f%%", key_findings$rural_gap_larger_pct)` larger in rural areas, indicating that traditional gender norms operate more strongly outside cities.
 
 # Data and Methods
 

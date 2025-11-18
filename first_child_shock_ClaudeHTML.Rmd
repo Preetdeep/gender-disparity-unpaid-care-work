@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We trace how personal well-being time evolves through the parenting life cycle from pre-children to empty nest. First child causes catastrophic 78% drop in mothers' personal time (from 1.9 to 0.4 hours/day); second child causes additional 35% drop (to 0.26 hours/day); third+ has diminishing marginal effect. Mothers' personal time recovers to only 45% of pre-child baseline once youngest child turns 12, and full recovery occurs only at empty nest (age 50+). Fathers show no significant variation across the entire parenting lifecycle—their personal time remains stable regardless of number or ages of children. Grandparent co-residence buffers first-child shock by 28% but only if grandparents actively provide childcare. The asymmetric parenting penalty reveals that children transform mothers' but not fathers' time allocation.
+  We trace how personal well-being time evolves through the parenting life cycle from pre-children to empty nest. First child causes catastrophic `r sprintf("%.0f%%", first_child_drop_pct)` drop in mothers' personal time (from `r sprintf("%.1f", no_children_female)` to `r sprintf("%.1f", has_child_0_5_female)` hours/day); second child causes additional `r sprintf("%.0f%%", second_child_drop_pct)` drop (to `r sprintf("%.2f", two_children_female)` hours/day); third+ has diminishing marginal effect. Mothers' personal time recovers to only `r sprintf("%.0f%%", recovery_6_12_pct)` of pre-child baseline once youngest child turns 12, and full recovery occurs only at empty nest (age 50+). Fathers show no significant variation across the entire parenting lifecycle—their personal time remains stable regardless of number or ages of children. The asymmetric parenting penalty reveals that children transform mothers' but not fathers' time allocation.
 
   **JEL Classification:** J13, J16, J22
 
@@ -80,11 +80,73 @@ number_stats <- analysis_data %>%
   group_by(n_children_category, gender_label) %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), n = n(), .groups = "drop") %>%
   filter(n >= 20)
+
+# Calculate key statistics for inline reporting
+no_children_female <- stage_stats %>%
+  filter(parenting_stage == "0. No children", gender_label == "Female") %>%
+  pull(mean_hours)
+
+has_child_0_5_female <- stage_stats %>%
+  filter(parenting_stage == "1. Has child 0-5", gender_label == "Female") %>%
+  pull(mean_hours)
+
+if(length(no_children_female) > 0 && length(has_child_0_5_female) > 0) {
+  first_child_drop_pct <- 100 * (no_children_female - has_child_0_5_female) / no_children_female
+} else {
+  first_child_drop_pct <- NA
+}
+
+# Calculate recovery percentage for adolescent children
+youngest_13_17_female <- stage_stats %>%
+  filter(parenting_stage == "3. Youngest 13-17", gender_label == "Female") %>%
+  pull(mean_hours)
+
+youngest_6_12_female <- stage_stats %>%
+  filter(parenting_stage == "2. Youngest 6-12", gender_label == "Female") %>%
+  pull(mean_hours)
+
+if(length(no_children_female) > 0 && length(youngest_6_12_female) > 0) {
+  recovery_6_12_pct <- 100 * youngest_6_12_female / no_children_female
+} else {
+  recovery_6_12_pct <- NA
+}
+
+if(length(no_children_female) > 0 && length(youngest_13_17_female) > 0) {
+  recovery_pct <- 100 * youngest_13_17_female / no_children_female
+} else {
+  recovery_pct <- NA
+}
+
+# Calculate stats for 1 child, 2 children, 3+ children
+one_child_female <- number_stats %>%
+  filter(n_children_category == "1 child", gender_label == "Female") %>%
+  pull(mean_hours)
+
+two_children_female <- number_stats %>%
+  filter(n_children_category == "2 children", gender_label == "Female") %>%
+  pull(mean_hours)
+
+three_plus_children_female <- number_stats %>%
+  filter(n_children_category == "3+ children", gender_label == "Female") %>%
+  pull(mean_hours)
+
+# Calculate second child drop
+if(length(one_child_female) > 0 && length(two_children_female) > 0) {
+  second_child_drop_pct <- 100 * (one_child_female - two_children_female) / one_child_female
+} else {
+  second_child_drop_pct <- NA
+}
+
+if(length(three_plus_children_female) > 0) {
+  three_plus_minutes <- three_plus_children_female * 60
+} else {
+  three_plus_minutes <- NA
+}
 ```
 
 # Introduction
 
-Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only 45% of pre-child personal time even when children reach adolescence.
+Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only `r sprintf("%.0f%%", recovery_6_12_pct)` of pre-child personal time even when children reach adolescence.
 
 # Results
 

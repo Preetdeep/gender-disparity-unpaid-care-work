@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine how caste/social group affects personal well-being time in India. General category men have 42% more personal time than SC/ST men, driven by better employment quality and ability to outsource household work. For women, caste gaps are smaller than gender gaps, indicating that gender oppression operates similarly across caste lines. SC/ST youth have less time for education and skill development, perpetuating intergenerational inequality. Personal time inequality by caste is largest in rural areas and smallest in metro cities, suggesting urbanization partially disrupts caste hierarchies. The intersection of caste and gender creates compounded disadvantage: SC/ST rural women have 1/6th the personal time of General category urban men.
+  We examine how caste/social group affects personal well-being time in India. General category men have `r if(exists("caste_gap_pct")) sprintf("%.0f%%", caste_gap_pct)` more personal time than SC/ST men, driven by better employment quality and ability to outsource household work. For women, caste gaps are smaller than gender gaps, indicating that gender oppression operates similarly across caste lines. SC/ST youth have less time for education and skill development, perpetuating intergenerational inequality. Personal time inequality by caste is largest in rural areas and smallest in metro cities, suggesting urbanization partially disrupts caste hierarchies. The intersection of caste and gender creates compounded disadvantage: SC/ST rural women have `r if(exists("time_ratio")) sprintf("1/%.0f", time_ratio)` the personal time of General category urban men.
 
   **JEL Classification:** J15, J16, J22, D63
 
@@ -59,6 +59,27 @@ summary_stats <- analysis_data %>%
 urban_stats <- analysis_data %>%
   group_by(social_group_label, gender_label, urban) %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE), .groups = "drop")
+
+# Calculate key findings for inline text
+general_men <- summary_stats %>% filter(social_group_label == "General", gender_label == "Male") %>% pull(mean_hours)
+scst_men_st <- summary_stats %>% filter(social_group_label == "Scheduled Tribe", gender_label == "Male") %>% pull(mean_hours)
+scst_men_sc <- summary_stats %>% filter(social_group_label == "Scheduled Caste", gender_label == "Male") %>% pull(mean_hours)
+scst_men <- min(scst_men_st, scst_men_sc, na.rm = TRUE)
+
+# Calculate the percentage difference
+if(length(general_men) > 0 && length(scst_men) > 0) {
+  caste_gap_pct <- ((general_men - scst_men) / scst_men) * 100
+}
+
+# Calculate ratio for SC/ST rural women vs General urban men
+scst_rural_women_st <- urban_stats %>% filter(social_group_label == "Scheduled Tribe", gender_label == "Female", urban == 0) %>% pull(mean_hours)
+scst_rural_women_sc <- urban_stats %>% filter(social_group_label == "Scheduled Caste", gender_label == "Female", urban == 0) %>% pull(mean_hours)
+scst_rural_women <- min(scst_rural_women_st, scst_rural_women_sc, na.rm = TRUE)
+general_urban_men <- urban_stats %>% filter(social_group_label == "General", gender_label == "Male", urban == 1) %>% pull(mean_hours)
+
+if(length(scst_rural_women) > 0 && length(general_urban_men) > 0) {
+  time_ratio <- general_urban_men / scst_rural_women
+}
 ```
 
 # Introduction

@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We examine how commuting time affects personal well-being using India's 2024 Time Use Survey. Workers with 90+ minute daily commutes have 1.3 hours less personal time than those with 30-minute commutes. Women's commutes are 28% shorter than men's, as women choose jobs closer to home to balance household responsibilities—but this geographic constraint limits employment opportunities. Remote workers have 1.4 more hours of personal time daily. Tier-2 cities show optimal balance: shorter commutes plus adequate employment. Casual laborers spend more time searching for work than working, yet this "search time" yields no personal well-being. The commuting penalty reveals how urban spatial structure and labor market geography shape quality of life.
+  We examine how commuting time affects personal well-being using India's 2024 Time Use Survey. Workers with 90+ minute daily commutes have `r sprintf("%.1f", commute_time_diff)` hours less personal time than those with 30-minute commutes. Women's commutes are `r sprintf("%.0f", commute_gender_diff_pct)`% shorter than men's, as women choose jobs closer to home to balance household responsibilities—but this geographic constraint limits employment opportunities. Remote workers have `r sprintf("%.1f", remote_additional_time)` more hours of personal time daily. Tier-2 cities show optimal balance: shorter commutes plus adequate employment. Casual laborers spend more time searching for work than working, yet this "search time" yields no personal well-being. The commuting penalty reveals how urban spatial structure and labor market geography shape quality of life.
 
   **JEL Classification:** R23, J22, R41
 
@@ -66,6 +66,49 @@ summary_stats <- analysis_data %>%
   group_by(commute_category, gender_label) %>%
   summarise(mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
             n = n(), .groups = "drop")
+```
+
+```{r calculate_key_stats, include=FALSE}
+# Calculate key statistics for inline reporting in abstract
+commute_stats_for_abstract <- analysis_data %>%
+  group_by(commute_category, gender_label) %>%
+  summarise(
+    mean_wellbeing_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    mean_commute_min = weighted.mean(total_commute_min, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Get personal time for different commute categories
+no_commute_time <- commute_stats_for_abstract %>%
+  filter(commute_category == "No commute (remote/home-based)") %>%
+  pull(mean_wellbeing_hours) %>% mean()
+
+short_commute_time <- commute_stats_for_abstract %>%
+  filter(commute_category == "Short (<=30 min)") %>%
+  pull(mean_wellbeing_hours) %>% mean()
+
+very_long_commute_time <- commute_stats_for_abstract %>%
+  filter(commute_category == "Very Long (>90 min)") %>%
+  pull(mean_wellbeing_hours) %>% mean()
+
+# Difference between very long and short commuters
+commute_time_diff <- short_commute_time - very_long_commute_time
+
+# Remote workers' additional personal time
+remote_additional_time <- no_commute_time - short_commute_time
+
+# Gender differences in commute time
+gender_commute_stats <- analysis_data %>%
+  filter(total_commute_min > 0) %>%
+  group_by(gender_label) %>%
+  summarise(
+    mean_commute_min = weighted.mean(total_commute_min, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+male_commute_min <- gender_commute_stats %>% filter(gender_label == "Male") %>% pull(mean_commute_min)
+female_commute_min <- gender_commute_stats %>% filter(gender_label == "Female") %>% pull(mean_commute_min)
+commute_gender_diff_pct <- (1 - female_commute_min / male_commute_min) * 100
 ```
 
 # Introduction

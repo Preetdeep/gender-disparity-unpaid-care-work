@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (8.4 million observations from 394,405 individuals), we examine the relationship between marriage and physical exercise participation. Raw data show married adults exercise at slightly higher rates than never-married adults (+2.08 percentage points for women, +2.69 percentage points for men), but this apparent "premium" entirely reflects age selection—married individuals are older and in life stages with higher exercise participation. After controlling for age, the marriage premium disappears completely. More strikingly, after controlling for education, employment, urban residence, and state fixed effects, marriage is associated with *reduced* exercise participation: -4.1 percentage points for women and -1.0 percentage point for men. These findings strongly support time poverty theories: marriage increases women's unpaid care work, crowding out leisure activities like exercise. Women face a substantially larger marriage penalty than men, consistent with gendered household labor divisions. Our results demonstrate the critical importance of disentangling selection from causation in family economics research. What appears as a marriage "premium" in raw data is actually a composition effect masking an underlying marriage "penalty" that disproportionately burdens women, validating long-standing theories about marriage, gender, and time use in developing countries.
+  Using India's 2024 Time Use Survey (8.4 million observations from 394,405 individuals), we examine the relationship between marriage and physical exercise participation. Raw data show married adults exercise at slightly higher rates than never-married adults, but this apparent "premium" entirely reflects age selection—married individuals are older and in life stages with higher exercise participation. After controlling for age, the marriage premium disappears completely. More strikingly, after controlling for education, employment, urban residence, and state fixed effects, marriage is associated with *reduced* exercise participation for both women and men. These findings strongly support time poverty theories: marriage increases women's unpaid care work, crowding out leisure activities like exercise. Women face a substantially larger marriage penalty than men, consistent with gendered household labor divisions. Our results demonstrate the critical importance of disentangling selection from causation in family economics research. What appears as a marriage "premium" in raw data is actually a composition effect masking an underlying marriage "penalty" that disproportionately burdens women, validating long-standing theories about marriage, gender, and time use in developing countries.
 
   **JEL Classification:** I12, J12, J16, O15
 
@@ -53,27 +53,27 @@ theme_set(theme_minimal(base_size = 11))
 
 Does marriage increase or decrease physical exercise participation? Standard time poverty theories, developed primarily in Western contexts, predict marriage should reduce leisure time—especially for women who acquire disproportionate unpaid care work burdens (Hochschild 1989; Bianchi et al. 2000). This "marriage penalty" framework has been documented for women's social activities, hobbies, and relaxation time across numerous countries (Mattingly and Bianchi 2003; Craig and Mullan 2010). If exercise is a discretionary leisure activity competing with care work obligations, married women should exercise less than their unmarried counterparts.
 
-When we examine India's comprehensive 2024 Time Use Survey—one of the world's largest time diary studies, covering 394,405 individuals—raw data initially appear to contradict this theory. Married women exercise at 49.75% compared to 47.67% for never-married women (a 2.08 percentage point difference). Married men exercise at 50.98% compared to 48.29% for never-married men (a 2.69 percentage point difference). These raw differences might suggest a "marriage exercise premium."
+When we examine India's comprehensive 2024 Time Use Survey—one of the world's largest time diary studies, covering 394,405 individuals—raw data initially appear to contradict this theory. Married women exercise at `r sprintf("%.2f%%", married_women_pct)` compared to `r sprintf("%.2f%%", never_married_women_pct)` for never-married women (a `r sprintf("%.2f", women_raw_diff)` percentage point difference). Married men exercise at `r sprintf("%.2f%%", married_men_pct)` compared to `r sprintf("%.2f%%", never_married_men_pct)` for never-married men (a `r sprintf("%.2f", men_raw_diff)` percentage point difference). These raw differences might suggest a "marriage exercise premium."
 
-However, this apparent premium is entirely spurious, driven by age composition. Never-married adults are predominantly young (mean age 22-24 years), a life stage when exercise participation is naturally lower. Married adults are older (mean age 38-41 years), in life stages when exercise peaks. Once we control for age, the marriage "premium" vanishes completely. More importantly, after accounting for education, employment, urban residence, and state fixed effects, we find marriage is associated with *reduced* exercise: -4.1 percentage points for women and -1.0 percentage point for men.
+However, this apparent premium is entirely spurious, driven by age composition. Never-married adults are predominantly young (mean age `r sprintf("%.1f", never_married_age)` years), a life stage when exercise participation is naturally lower. Married adults are older (mean age `r sprintf("%.1f", married_age)` years), in life stages when exercise peaks. Once we control for age, the marriage "premium" vanishes completely. More importantly, after accounting for education, employment, urban residence, and state fixed effects, we find marriage is associated with *reduced* exercise: `r sprintf("%.1f", women_marriage_coef)` percentage points for women and `r sprintf("%.1f", men_marriage_coef)` percentage point for men.
 
 These findings strongly validate time poverty theories. Marriage imposes substantial care work burdens—increasing women's domestic work by 4-5 hours daily in India (Chatterjee et al. 2018)—that crowd out leisure activities like exercise. Women face a larger penalty than men because their care work increases dramatically while men's barely changes (Pailhé et al. 2021).
 
 We identify three key findings that demonstrate the critical importance of disentangling selection from causation in marriage research:
 
-**First, age selection entirely explains the raw pattern**. The apparent 2-3 percentage point "premium" in raw data completely disappears after controlling for age. Never-married adults are disproportionately young (mean age 22-24), a life stage when exercise participation is naturally lower due to unstable employment, residential mobility, educational commitments, and lower health awareness. Married adults, concentrated at ages 30-50, are in life stages when exercise participation peaks. This is pure compositional selection—the raw premium reflects who marries and when, not what marriage does to exercise behavior.
+**First, age selection entirely explains the raw pattern**. The apparent `r sprintf("%.1f", mean(c(women_raw_diff, men_raw_diff)))` percentage point "premium" in raw data completely disappears after controlling for age. Never-married adults are disproportionately young (mean age `r sprintf("%.0f", never_married_age)`), a life stage when exercise participation is naturally lower due to unstable employment, residential mobility, educational commitments, and lower health awareness. Married adults, concentrated at ages 30-50, are in life stages when exercise participation peaks. This is pure compositional selection—the raw premium reflects who marries and when, not what marriage does to exercise behavior.
 
-**Second, marriage causally reduces exercise through time poverty**. After controlling for age, education, employment, urban residence, and state fixed effects, marriage is associated with significantly *lower* exercise participation. Married women exercise 4.1 percentage points less than comparable never-married women, while married men exercise 1.0 percentage point less than comparable never-married men. These penalties reflect the time constraints marriage imposes, particularly through increased unpaid care work. Even among exercisers, married individuals spend 8 minutes less per exercise session, suggesting time poverty binds both the participation decision and activity duration.
+**Second, marriage causally reduces exercise through time poverty**. After controlling for age, education, employment, urban residence, and state fixed effects, marriage is associated with significantly *lower* exercise participation. Married women exercise `r sprintf("%.1f", abs(women_marriage_coef))` percentage points less than comparable never-married women, while married men exercise `r sprintf("%.1f", abs(men_marriage_coef))` percentage point less than comparable never-married men. These penalties reflect the time constraints marriage imposes, particularly through increased unpaid care work. Even among exercisers, married individuals spend `r sprintf("%.0f", abs(married_minutes_diff))` minutes less per exercise session, suggesting time poverty binds both the participation decision and activity duration.
 
-**Third, gender asymmetries reveal differential care work burdens**. Women face a marriage penalty four times larger than men's (4.1pp vs. 1.0pp), consistent with gendered household labor divisions. Indian married women acquire 4-5 hours of additional daily domestic work, while men's care work increases minimally. This asymmetric burden explains why marriage crowds out women's leisure activities like exercise far more than men's. The penalty is largest among educated, employed women—precisely those who might otherwise have time and resources for exercise, but face binding care work constraints after marriage.
+**Third, gender asymmetries reveal differential care work burdens**. Women face a marriage penalty `r sprintf("%.1f", penalty_ratio)` times larger than men's (`r sprintf("%.1f", abs(women_marriage_coef))`pp vs. `r sprintf("%.1f", abs(men_marriage_coef))`pp), consistent with gendered household labor divisions. Indian married women acquire 4-5 hours of additional daily domestic work, while men's care work increases minimally. This asymmetric burden explains why marriage crowds out women's leisure activities like exercise far more than men's. The penalty is largest among educated, employed women—precisely those who might otherwise have time and resources for exercise, but face binding care work constraints after marriage.
 
 Our findings make four contributions to family economics, health economics, and the study of gender in developing countries.
 
 **First**, we validate time poverty theory using rigorous data from a developing country context. Contrary to recent speculation that marriage might enable exercise through household resources, we demonstrate that marriage reduces exercise in India—particularly for women. This validates predictions from Western literature about marriage penalties and shows they extend to developing countries with extreme gender inequalities in unpaid care work.
 
-**Second**, we rigorously demonstrate how selection bias can completely reverse apparent findings. Raw data show a 2-3 percentage point marriage "premium," but this entirely disappears after age controls and becomes a significant 1.0-4.1 percentage point *penalty* after full controls. This underscores the critical importance of controlling for age composition in cross-sectional marriage comparisons. What appears as a marriage benefit is actually a composition effect masking an underlying penalty.
+**Second**, we rigorously demonstrate how selection bias can completely reverse apparent findings. Raw data show a `r sprintf("%.1f", mean(c(women_raw_diff, men_raw_diff)))` percentage point marriage "premium," but this entirely disappears after age controls and becomes a significant `r sprintf("%.1f", abs(men_marriage_coef))`-`r sprintf("%.1f", abs(women_marriage_coef))` percentage point *penalty* after full controls. This underscores the critical importance of controlling for age composition in cross-sectional marriage comparisons. What appears as a marriage benefit is actually a composition effect masking an underlying penalty.
 
-**Third**, we quantify the gendered marriage penalty in a high-inequality context. Women face a marriage exercise penalty four times larger than men's (4.1pp vs. 1.0pp), directly reflecting India's extreme gender disparities in unpaid care work. Marriage increases women's domestic labor by 4-5 hours daily while barely affecting men's, creating differential time poverty that manifests in leisure activity constraints. This gendered pattern appears even among educated, employed women who might otherwise have resources for exercise.
+**Third**, we quantify the gendered marriage penalty in a high-inequality context. Women face a marriage exercise penalty `r sprintf("%.1f", penalty_ratio)` times larger than men's (`r sprintf("%.1f", abs(women_marriage_coef))`pp vs. `r sprintf("%.1f", abs(men_marriage_coef))`pp), directly reflecting India's extreme gender disparities in unpaid care work. Marriage increases women's domestic labor by 4-5 hours daily while barely affecting men's, creating differential time poverty that manifests in leisure activity constraints. This gendered pattern appears even among educated, employed women who might otherwise have resources for exercise.
 
 **Fourth**, we demonstrate that time poverty dominates resource effects. While marriage may create dual-income households with greater financial capacity, these resource advantages are overwhelmed by time constraints from care work obligations. Even educated, urban, employed married women—who have maximum access to gyms, parks, and exercise infrastructure—still face significant marriage penalties, revealing that time constraints bind more than resource constraints for exercise participation.
 
@@ -337,11 +337,112 @@ kable(desc_stats, booktabs = TRUE, digits = 2,
   add_header_above(c(" " = 3, "Demographics" = 1, "Exercise" = 2, "SES" = 3))
 ```
 
+```{r calculate_stats, include=FALSE}
+# Calculate all statistics for inline reporting
+# This chunk computes values from data and regression results to replace hardcoded numbers
+
+# Raw exercise rates by marital status and gender
+exercise_rates <- analysis_sample %>%
+  group_by(marital_label, gender_label) %>%
+  summarise(
+    exercise_pct = weighted.mean(any_exercise, Weight, na.rm = TRUE) * 100,
+    .groups = "drop"
+  )
+
+# Extract specific values
+married_women_pct <- exercise_rates %>%
+  filter(marital_label == "Currently married", gender_label == "Female") %>%
+  pull(exercise_pct)
+
+never_married_women_pct <- exercise_rates %>%
+  filter(marital_label == "Never married", gender_label == "Female") %>%
+  pull(exercise_pct)
+
+married_men_pct <- exercise_rates %>%
+  filter(marital_label == "Currently married", gender_label == "Male") %>%
+  pull(exercise_pct)
+
+never_married_men_pct <- exercise_rates %>%
+  filter(marital_label == "Never married", gender_label == "Male") %>%
+  pull(exercise_pct)
+
+# Calculate raw differences (percentage points)
+women_raw_diff <- married_women_pct - never_married_women_pct
+men_raw_diff <- married_men_pct - never_married_men_pct
+
+# Run gender-specific regression models to extract marriage penalties
+women_model <- feols(any_exercise ~ married + Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                     data = analysis_sample %>% filter(gender_label == "Female"),
+                     weights = ~Weight, cluster = ~household_id)
+
+men_model <- feols(any_exercise ~ married + Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                   data = analysis_sample %>% filter(gender_label == "Male"),
+                   weights = ~Weight, cluster = ~household_id)
+
+# Extract marriage coefficients (in percentage points)
+women_marriage_coef <- coef(women_model)["married"] * 100
+men_marriage_coef <- coef(men_model)["married"] * 100
+
+# Calculate the ratio of women's to men's penalty
+penalty_ratio <- abs(women_marriage_coef) / abs(men_marriage_coef)
+
+# Run baseline model for raw premium
+baseline_model <- feols(any_exercise ~ female + married + female:married,
+                       data = analysis_sample,
+                       weights = ~Weight, cluster = ~household_id)
+
+# Extract baseline coefficients
+baseline_married_coef <- coef(baseline_model)["married"] * 100
+
+# Run age-controlled model
+age_model <- feols(any_exercise ~ female + married + female:married + Age + I(Age^2),
+                  data = analysis_sample,
+                  weights = ~Weight, cluster = ~household_id)
+
+# Extract age-controlled coefficient
+age_married_coef <- coef(age_model)["married"] * 100
+
+# Run full model for overall marriage penalty
+full_model <- feols(any_exercise ~ female + married + female:married +
+                    Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                   data = analysis_sample,
+                   weights = ~Weight, cluster = ~household_id)
+
+# Extract full model coefficient
+full_married_coef <- coef(full_model)["married"] * 100
+
+# Calculate intensive margin (exercise duration) effect
+exercisers <- analysis_sample %>% filter(any_exercise == 1)
+intensive_model <- feols(total_exercise_min ~ female + married + female:married +
+                        Age + I(Age^2) + higher_ed + urban + employed | state_factor,
+                        data = exercisers,
+                        weights = ~Weight, cluster = ~household_id)
+
+# Extract minutes difference
+married_minutes_diff <- coef(intensive_model)["married"]
+
+# Age statistics
+age_stats <- analysis_sample %>%
+  group_by(marital_label) %>%
+  summarise(
+    mean_age = weighted.mean(Age, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+never_married_age <- age_stats %>%
+  filter(marital_label == "Never married") %>%
+  pull(mean_age)
+
+married_age <- age_stats %>%
+  filter(marital_label == "Currently married") %>%
+  pull(mean_age)
+```
+
 **Key patterns** from Table 1:
 
-1. **Exercise participation**: Married women exercise at 49.75% and married men at 50.98%, compared to 47.67% for never-married women and 48.29% for never-married men. These raw differences (2.08pp for women, 2.69pp for men) appear to suggest a slight marriage "premium."
+1. **Exercise participation**: Married women exercise at `r sprintf("%.2f%%", married_women_pct)` and married men at `r sprintf("%.2f%%", married_men_pct)`, compared to `r sprintf("%.2f%%", never_married_women_pct)` for never-married women and `r sprintf("%.2f%%", never_married_men_pct)` for never-married men. These raw differences (`r sprintf("%.2f", women_raw_diff)`pp for women, `r sprintf("%.2f", men_raw_diff)`pp for men) appear to suggest a slight marriage "premium."
 
-2. **Age differences**: Never-married individuals average 22-24 years old; married individuals average 38-41 years. This 16-18 year age gap is critical—it represents the difference between young adults (who naturally exercise less) and middle-aged adults (who exercise more). This suggests the raw "premium" is entirely a selection effect.
+2. **Age differences**: Never-married individuals average `r sprintf("%.0f", never_married_age)` years old; married individuals average `r sprintf("%.0f", married_age)` years. This `r sprintf("%.0f", married_age - never_married_age)` year age gap is critical—it represents the difference between young adults (who naturally exercise less) and middle-aged adults (who exercise more). This suggests the raw "premium" is entirely a selection effect.
 
 3. **SES differences**: Never-married individuals have higher education (28-32% vs. 12-17% higher education for married), higher urban residence (40% vs. 39-40%), but lower employment (40% vs. 51%). These compositional differences will be important controls.
 
@@ -357,7 +458,7 @@ Before regression analysis, we document core descriptive patterns. Raw data appe
 
 ## Overall Pattern in Raw Data
 
-Figure 1 visualizes exercise participation rates by marital status and gender. The raw data show married individuals exercising at slightly higher rates than never-married individuals, with differences of 2.08pp for women and 2.69pp for men.
+Figure 1 visualizes exercise participation rates by marital status and gender. The raw data show married individuals exercising at slightly higher rates than never-married individuals, with differences of `r sprintf("%.2f", women_raw_diff)`pp for women and `r sprintf("%.2f", men_raw_diff)`pp for men.
 
 ```{r figure_marriage_premium, fig.cap="Exercise Participation by Marital Status and Gender", fig.height=5, fig.width=7}
 # Calculate weighted means
@@ -544,9 +645,9 @@ modelsummary(list("Model 1: Baseline" = m1),
 
 **Results**:
 
-- $\beta_2$ (Married) = 2.7pp*** — Apparent marriage "premium" in raw data
-- $\beta_3$ (Female × Married) = -0.6pp — Gender difference is small and non-significant
-- Implied apparent premium for women = 2.7 - 0.6 = 2.1pp***
+- $\beta_2$ (Married) = `r sprintf("%.1f", baseline_married_coef)`pp*** — Apparent marriage "premium" in raw data
+- $\beta_3$ (Female × Married) = `r sprintf("%.1f", coef(baseline_model)["female:married"] * 100)`pp — Gender difference is small and non-significant
+- Implied apparent premium for women = `r sprintf("%.1f", baseline_married_coef + coef(baseline_model)["female:married"] * 100)`pp***
 
 Both genders show small apparent "premiums" in raw data, but as we will demonstrate, these are entirely spurious, driven by age composition. The next model tests whether this pattern survives age controls.
 
@@ -581,11 +682,11 @@ modelsummary(list("(1) No Controls" = m1, "(2) Age Controls" = m2),
 
 **Results**:
 
-- **Model 1** (no controls): Married = 2.7pp***
-- **Model 2** (age controls): Married = -0.1pp (non-significant) — **PREMIUM COMPLETELY DISAPPEARS**
+- **Model 1** (no controls): Married = `r sprintf("%.1f", baseline_married_coef)`pp***
+- **Model 2** (age controls): Married = `r sprintf("%.1f", age_married_coef)`pp (non-significant) — **PREMIUM COMPLETELY DISAPPEARS**
 - Age coefficient is highly significant (inverted-U pattern confirmed)
 
-**Critical Interpretation**: Age composition explains **100%** of the apparent raw marriage premium. The premium completely vanishes after adding age controls, demonstrating that the raw 2-3pp difference is entirely a composition effect. Never-married individuals are younger (ages 22-24) and in low-exercise life stages. Married individuals are older (ages 38-41) and in peak exercise years. Within age groups, there is no marriage advantage whatsoever.
+**Critical Interpretation**: Age composition explains **100%** of the apparent raw marriage premium. The premium completely vanishes after adding age controls, demonstrating that the raw `r sprintf("%.1f", mean(c(women_raw_diff, men_raw_diff)))`pp difference is entirely a composition effect. Never-married individuals are younger (age `r sprintf("%.0f", never_married_age)`) and in low-exercise life stages. Married individuals are older (age `r sprintf("%.0f", married_age)`) and in peak exercise years. Within age groups, there is no marriage advantage whatsoever.
 
 This finding demonstrates the power of selection bias. What appeared to be a marriage "premium" was simply an age effect—older people exercise more, and older people are more likely to be married. There is no causal marriage benefit for exercise.
 
@@ -626,10 +727,10 @@ modelsummary(list("(2) Age Only" = m2, "(3) SES Controls" = m3, "(4) State FE" =
 
 **Results**:
 
-- **Marriage coefficient becomes NEGATIVE**: -0.1pp (age only) → -0.7pp** (SES) → -0.7pp* (state FE)
-- **Higher education** *decreases* exercise by 1.7-2.1pp*** (educated people are more sedentary)
-- **Urban residence** *decreases* exercise by 6.1-7.6pp*** (urban infrastructure constraints)
-- **Employment** *decreases* exercise by 10.2-10.7pp*** (time poverty from work)
+- **Marriage coefficient becomes NEGATIVE**: `r sprintf("%.1f", age_married_coef)`pp (age only) → `r sprintf("%.1f", full_married_coef)`pp** (SES/state FE)
+- **Higher education** *decreases* exercise by `r sprintf("%.1f", abs(coef(full_model)["higher_ed"] * 100))`pp*** (educated people are more sedentary)
+- **Urban residence** *decreases* exercise by `r sprintf("%.1f", abs(coef(full_model)["urban"] * 100))`pp*** (urban infrastructure constraints)
+- **Employment** *decreases* exercise by `r sprintf("%.1f", abs(coef(full_model)["employed"] * 100))`pp*** (time poverty from work)
 
 **Critical Interpretation**: After controlling for age and SES, marriage is associated with *reduced* exercise participation. The apparent raw "premium" was entirely compositional. Not only did age explain the premium, but adding education and employment controls reveals an underlying marriage *penalty*.
 
@@ -664,15 +765,15 @@ modelsummary(list("Women Only" = m5_women, "Men Only" = m5_men),
 
 **Key comparisons**:
 
-1. **Marriage penalty**: Women (-4.1pp***) >> Men (-1.0pp**) — **Women face a penalty FOUR TIMES larger than men's**
+1. **Marriage penalty**: Women (`r sprintf("%.1f", women_marriage_coef)`pp***) >> Men (`r sprintf("%.1f", men_marriage_coef)`pp**) — **Women face a penalty `r sprintf("%.1f", penalty_ratio)` TIMES larger than men's**
 
-2. **Education**: Women (-2.9pp***), Men (-0.9pp**) — Education reduces exercise for both (sedentary work)
+2. **Education**: Women (`r sprintf("%.1f", coef(women_model)["higher_ed"] * 100)`pp***), Men (`r sprintf("%.1f", coef(men_model)["higher_ed"] * 100)`pp**) — Education reduces exercise for both (sedentary work)
 
-3. **Employment**: Women (-10.8pp***), Men (-7.8pp***) — Employment severely constrains exercise for both, especially women
+3. **Employment**: Women (`r sprintf("%.1f", coef(women_model)["employed"] * 100)`pp***), Men (`r sprintf("%.1f", coef(men_model)["employed"] * 100)`pp***) — Employment severely constrains exercise for both, especially women
 
-4. **Urban**: Women (-3.2pp***), Men (-8.8pp***) — Urban residence reduces exercise substantially for both
+4. **Urban**: Women (`r sprintf("%.1f", coef(women_model)["urban"] * 100)`pp***), Men (`r sprintf("%.1f", coef(men_model)["urban"] * 100)`pp***) — Urban residence reduces exercise substantially for both
 
-**Critical Interpretation**: Women face a marriage penalty (-4.1pp) that is four times larger than men's (-1.0pp), strongly validating time poverty theory. This massive gender differential directly reflects gendered household labor divisions:
+**Critical Interpretation**: Women face a marriage penalty (`r sprintf("%.1f", women_marriage_coef)`pp) that is `r sprintf("%.1f", penalty_ratio)` times larger than men's (`r sprintf("%.1f", men_marriage_coef)`pp), strongly validating time poverty theory. This massive gender differential directly reflects gendered household labor divisions:
 
 - **Care work burden**: Indian married women acquire 4-5 hours of additional daily domestic work, while men's care work barely increases
 - **Time poverty**: Women's leisure time is severely constrained by marriage through care obligations, while men face minimal time poverty increases
@@ -689,15 +790,15 @@ modelsummary(list("Women Only" = m5_women, "Men Only" = m5_men),
 
 ## Summary of Findings
 
-This study rigorously tests time poverty theory using India's comprehensive 2024 Time Use Survey (394,405 individuals). While raw data show married adults exercising at slightly higher rates than never-married adults (apparent "premium" of 2.08 percentage points for women, 2.69 percentage points for men), this pattern is entirely spurious, driven by age composition. After controlling for confounders, we find marriage *reduces* exercise participation by 4.1 percentage points for women and 1.0 percentage point for men, strongly validating time poverty predictions.
+This study rigorously tests time poverty theory using India's comprehensive 2024 Time Use Survey (394,405 individuals). While raw data show married adults exercising at slightly higher rates than never-married adults (apparent "premium" of `r sprintf("%.2f", women_raw_diff)` percentage points for women, `r sprintf("%.2f", men_raw_diff)` percentage points for men), this pattern is entirely spurious, driven by age composition. After controlling for confounders, we find marriage *reduces* exercise participation by `r sprintf("%.1f", abs(women_marriage_coef))` percentage points for women and `r sprintf("%.1f", abs(men_marriage_coef))` percentage point for men, strongly validating time poverty predictions.
 
 Our decomposition reveals three key findings:
 
-**First, age selection entirely explains the apparent raw premium**. The 2-3 percentage point "premium" in raw data completely disappears after controlling for age. Never-married individuals are younger (mean age 22-24), a life stage characterized by lower exercise participation due to unstable employment, residential mobility, educational commitments, and low health awareness. Married individuals concentrate in ages 30-50, when exercise participation peaks. This is pure compositional selection—the raw pattern reflects who marries and when, not what marriage does to exercise behavior.
+**First, age selection entirely explains the apparent raw premium**. The `r sprintf("%.1f", mean(c(women_raw_diff, men_raw_diff)))` percentage point "premium" in raw data completely disappears after controlling for age. Never-married individuals are younger (mean age `r sprintf("%.0f", never_married_age)`), a life stage characterized by lower exercise participation due to unstable employment, residential mobility, educational commitments, and low health awareness. Married individuals concentrate in ages 30-50, when exercise participation peaks. This is pure compositional selection—the raw pattern reflects who marries and when, not what marriage does to exercise behavior.
 
-**Second, marriage causally reduces exercise through time poverty**. After controlling for age, education, employment, geography, and state fixed effects, marriage is associated with significantly *lower* exercise participation. This penalty reflects the time constraints marriage imposes, particularly through increased unpaid care work. Even among exercisers, married individuals spend 8 minutes less per exercise session, demonstrating that time poverty binds both participation and duration decisions.
+**Second, marriage causally reduces exercise through time poverty**. After controlling for age, education, employment, geography, and state fixed effects, marriage is associated with significantly *lower* exercise participation. This penalty reflects the time constraints marriage imposes, particularly through increased unpaid care work. Even among exercisers, married individuals spend `r sprintf("%.0f", abs(married_minutes_diff))` minutes less per exercise session, demonstrating that time poverty binds both participation and duration decisions.
 
-**Third, gender asymmetries reveal differential care work burdens**. Women face a marriage penalty (-4.1pp) four times larger than men's (-1.0pp), directly reflecting gendered household labor divisions. Indian married women acquire 4-5 hours of additional daily domestic work while men's care work barely increases. This asymmetric burden explains why marriage crowds out women's leisure activities like exercise far more than men's. The penalty persists even among educated, employed women who might otherwise have resources for exercise.
+**Third, gender asymmetries reveal differential care work burdens**. Women face a marriage penalty (`r sprintf("%.1f", women_marriage_coef)`pp) `r sprintf("%.1f", penalty_ratio)` times larger than men's (`r sprintf("%.1f", men_marriage_coef)`pp), directly reflecting gendered household labor divisions. Indian married women acquire 4-5 hours of additional daily domestic work while men's care work barely increases. This asymmetric burden explains why marriage crowds out women's leisure activities like exercise far more than men's. The penalty persists even among educated, employed women who might otherwise have resources for exercise.
 
 ## Theoretical Implications
 
@@ -848,9 +949,9 @@ Marriage is not just a social institution but a health infrastructure. Household
 
 # Conclusion
 
-Does marriage increase or decrease physical exercise? Conventional wisdom, grounded in time poverty theories, predicts marriage reduces women's leisure time through care work burdens. India's 2024 Time Use Survey provides strong validation: after controlling for age and other confounders, marriage is associated with *reduced* exercise participation for both women (-4.1pp) and men (-1.0pp), with women facing a penalty four times larger than men's.
+Does marriage increase or decrease physical exercise? Conventional wisdom, grounded in time poverty theories, predicts marriage reduces women's leisure time through care work burdens. India's 2024 Time Use Survey provides strong validation: after controlling for age and other confounders, marriage is associated with *reduced* exercise participation for both women (`r sprintf("%.1f", women_marriage_coef)`pp) and men (`r sprintf("%.1f", men_marriage_coef)`pp), with women facing a penalty `r sprintf("%.1f", penalty_ratio)` times larger than men's.
 
-This study demonstrates three critical findings. First, selection bias can completely reverse apparent patterns: raw data show a small marriage "premium" (2-3pp), but this entirely reflects age composition and disappears after controls. Second, marriage causally reduces exercise through time poverty: care work obligations crowd out leisure activities, particularly for women who acquire 4-5 hours of additional daily domestic work. Third, time poverty dominates resource effects: even educated, urban, employed married women face significant exercise penalties, revealing that time constraints overwhelm any financial advantages marriage may bring.
+This study demonstrates three critical findings. First, selection bias can completely reverse apparent patterns: raw data show a small marriage "premium" (`r sprintf("%.1f", mean(c(women_raw_diff, men_raw_diff)))`pp), but this entirely reflects age composition and disappears after controls. Second, marriage causally reduces exercise through time poverty: care work obligations crowd out leisure activities, particularly for women who acquire 4-5 hours of additional daily domestic work. Third, time poverty dominates resource effects: even educated, urban, employed married women face significant exercise penalties, revealing that time constraints overwhelm any financial advantages marriage may bring.
 
 Our findings validate time poverty theory, demonstrate the critical importance of disentangling selection from causation in family economics research, and reveal how gendered household labor divisions shape health behavior investments in developing countries. Health promotion interventions targeting married women must address underlying care work burdens—not just provide exercise resources. Policies to equalize unpaid care work between spouses may be prerequisites for enabling married women's health investments.
 

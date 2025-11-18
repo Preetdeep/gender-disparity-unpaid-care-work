@@ -6,7 +6,7 @@ date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
   Does wealth enable household gender equality? Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
 
-  Our analysis reveals a complex and contradictory picture. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears 33% larger in high-SES households (122 minutes/day) than in low-SES households (92 minutes). This is driven by affluent men almost entirely exiting domestic labor.
+  Our analysis reveals a complex and contradictory picture. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes). This is driven by affluent men almost entirely exiting domestic labor.
 
   However, this paradox does not withstand more rigorous analysis. Regression models controlling for age, employment, and state-level differences show the opposite: the gender gap is slightly *smaller* in high-SES households. This suggests the descriptive "paradox" may be an artifact of confounding factors or compositional effects. Our findings caution against simplistic conclusions about the relationship between economic development and household gender equality, highlighting that while wealth may not be a panacea, it does not appear to exacerbate inequality when confounding variables are accounted for.
 
@@ -123,9 +123,107 @@ rm(data)
 invisible(gc())
 ```
 
+```{r calculate_key_stats, include=FALSE}
+# Calculate gender gaps by SES for inline reporting
+gap_by_ses <- major_only %>%
+  filter(gender_label %in% c("Male", "Female"),
+         married == 1,
+         ses_level %in% c("High SES", "Low SES")) %>%
+  group_by(ses_level, gender_label) %>%
+  summarise(
+    `Domestic Minutes` = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+    N = n(),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = gender_label, values_from = c(`Domestic Minutes`, N)) %>%
+  mutate(
+    Male = `Domestic Minutes_Male`,
+    Female = `Domestic Minutes_Female`,
+    `Gender Gap (F - M)` = `Domestic Minutes_Female` - `Domestic Minutes_Male`,
+    `Female Share (%)` = 100 * `Domestic Minutes_Female` / (`Domestic Minutes_Female` + `Domestic Minutes_Male`)
+  )
+
+# Extract key statistics for inline reporting
+high_ses_gap <- gap_by_ses %>% filter(ses_level == "High SES") %>% pull(`Gender Gap (F - M)`)
+low_ses_gap <- gap_by_ses %>% filter(ses_level == "Low SES") %>% pull(`Gender Gap (F - M)`)
+gap_pct_increase <- ((high_ses_gap - low_ses_gap) / low_ses_gap) * 100
+gap_absolute_increase <- high_ses_gap - low_ses_gap
+
+high_ses_male <- gap_by_ses %>% filter(ses_level == "High SES") %>% pull(Male)
+high_ses_female <- gap_by_ses %>% filter(ses_level == "High SES") %>% pull(Female)
+high_ses_female_share <- gap_by_ses %>% filter(ses_level == "High SES") %>% pull(`Female Share (%)`)
+
+low_ses_male <- gap_by_ses %>% filter(ses_level == "Low SES") %>% pull(Male)
+low_ses_female <- gap_by_ses %>% filter(ses_level == "Low SES") %>% pull(Female)
+low_ses_female_share <- gap_by_ses %>% filter(ses_level == "Low SES") %>% pull(`Female Share (%)`)
+
+# Men's statistics
+mens_time_ses <- major_only %>%
+  filter(gender_label == "Male", married == 1,
+         ses_level %in% c("High SES", "Low SES")) %>%
+  group_by(ses_level) %>%
+  summarise(
+    total_domestic = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+high_ses_male_time <- mens_time_ses %>% filter(ses_level == "High SES") %>% pull(total_domestic)
+low_ses_male_time <- mens_time_ses %>% filter(ses_level == "Low SES") %>% pull(total_domestic)
+
+waking_hours <- 16 * 60  # 960 minutes
+high_ses_male_pct <- (high_ses_male_time / waking_hours) * 100
+low_ses_male_pct <- (low_ses_male_time / waking_hours) * 100
+male_time_ratio <- low_ses_male_time / high_ses_male_time
+male_pct_decline <- ((low_ses_male_time - high_ses_male_time) / low_ses_male_time) * 100
+male_absolute_decline <- low_ses_male_time - high_ses_male_time
+
+# Women's statistics
+womens_comp <- major_only %>%
+  filter(gender_label == "Female", married == 1,
+         ses_level %in% c("High SES", "Low SES")) %>%
+  group_by(ses_level) %>%
+  summarise(
+    cooking = weighted.mean(cooking_minutes, Weight, na.rm = TRUE),
+    shopping_mgmt = weighted.mean(shopping_mgmt_minutes, Weight, na.rm = TRUE),
+    total_domestic = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+high_ses_cooking <- womens_comp %>% filter(ses_level == "High SES") %>% pull(cooking)
+low_ses_cooking <- womens_comp %>% filter(ses_level == "Low SES") %>% pull(cooking)
+cooking_pct_reduction <- ((low_ses_cooking - high_ses_cooking) / low_ses_cooking) * 100
+cooking_absolute_reduction <- low_ses_cooking - high_ses_cooking
+
+low_ses_shopping <- womens_comp %>% filter(ses_level == "Low SES") %>% pull(shopping_mgmt)
+high_ses_shopping <- womens_comp %>% filter(ses_level == "High SES") %>% pull(shopping_mgmt)
+shopping_pct_increase <- ((high_ses_shopping - low_ses_shopping) / low_ses_shopping) * 100
+shopping_absolute_increase <- high_ses_shopping - low_ses_shopping
+
+high_ses_female_total <- womens_comp %>% filter(ses_level == "High SES") %>% pull(total_domestic)
+low_ses_female_total <- womens_comp %>% filter(ses_level == "Low SES") %>% pull(total_domestic)
+female_total_pct_reduction <- ((low_ses_female_total - high_ses_female_total) / low_ses_female_total) * 100
+female_total_absolute_reduction <- low_ses_female_total - high_ses_female_total
+
+# Dual-earner statistics
+dual_earner_gaps <- major_only %>%
+  filter(gender_label %in% c("Male", "Female"),
+         married == 1, employed == 1,
+         ses_level %in% c("High SES", "Low SES")) %>%
+  group_by(ses_level, gender_label) %>%
+  summarise(
+    Minutes = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = gender_label, values_from = Minutes) %>%
+  mutate(`Gender Gap` = Female - Male)
+
+high_ses_dual_gap <- dual_earner_gaps %>% filter(ses_level == "High SES") %>% pull(`Gender Gap`)
+low_ses_dual_gap <- dual_earner_gaps %>% filter(ses_level == "Low SES") %>% pull(`Gender Gap`)
+```
+
 # Introduction
 
-Does money buy fairness in household gender relations? At first glance, the answer appears to be a paradoxical "no." Using India's 2024 Time Use Survey, a descriptive analysis of domestic work patterns across socioeconomic strata reveals what could be termed a **"wealth paradox"**: the gender gap in domestic work is 33% larger in high-SES households (122 minutes/day) than in low-SES households (92 minutes/day). This raw difference is driven by men's near-total exit from domestic labor as socioeconomic status rises. While low-SES men perform 63 minutes of domestic work per day, high-SES men do only 14. Meanwhile, women's time commitment remains high, merely shifting from physical tasks like cooking to managerial ones like shopping and household administration.
+Does money buy fairness in household gender relations? At first glance, the answer appears to be a paradoxical "no." Using India's 2024 Time Use Survey, a descriptive analysis of domestic work patterns across socioeconomic strata reveals what could be termed a **"wealth paradox"**: the gender gap in domestic work is `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes/day). This raw difference is driven by men's near-total exit from domestic labor as socioeconomic status rises. While low-SES men perform `r sprintf("%.0f", low_ses_male)` minutes of domestic work per day, high-SES men do only `r sprintf("%.0f", high_ses_male)`. Meanwhile, women's time commitment remains high, merely shifting from physical tasks like cooking to managerial ones like shopping and household administration.
 
 This descriptive story aligns with sociological "doing gender" theories (West and Zimmerman 1987), which posit that wealth may simply provide new tools (e.g., domestic help) for affluent couples to perform traditional gender roles, rather than challenging them. It seems to contradict economic resource bargaining models, which predict that wealth should empower women and lead to more egalitarian outcomes (Lundberg and Pollak 1996).
 
@@ -204,25 +302,6 @@ We employ two complementary strategies:
 ## The Class Gradient: Gender Gaps Widen with Wealth
 
 ```{r gender_gap_by_ses}
-# Calculate gender gaps by SES
-gap_by_ses <- major_only %>%
-  filter(gender_label %in% c("Male", "Female"),
-         married == 1,  # Focus on married couples
-         ses_level %in% c("High SES", "Low SES")) %>%
-  group_by(ses_level, gender_label) %>%
-  summarise(
-    `Domestic Minutes` = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
-    N = n(),
-    .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = gender_label, values_from = c(`Domestic Minutes`, N)) %>%
-  mutate(
-    Male = `Domestic Minutes_Male`,
-    Female = `Domestic Minutes_Female`,
-    `Gender Gap (F - M)` = `Domestic Minutes_Female` - `Domestic Minutes_Male`,
-    `Female Share (%)` = 100 * `Domestic Minutes_Female` / (`Domestic Minutes_Female` + `Domestic Minutes_Male`)
-  )
-
 kable(gap_by_ses %>%
         select(ses_level,
                Male = `Domestic Minutes_Male`,
@@ -239,12 +318,13 @@ kable(gap_by_ses %>%
            general_title = "Note:")
 ```
 
-**Key Finding**: Gender gap is 122 minutes/day in high-SES households vs. 92 minutes in low-SES households—a 33% increase (30 additional minutes relative to 92-minute baseline). Women do 91% of domestic work in affluent households vs. 71% in low-SES households. This comparison uses separate averages for men and women within each SES category, not actual matched spousal pairs (couple-level matching is not possible with available data).
+**Key Finding**: Gender gap is `r sprintf("%.0f", high_ses_gap)` minutes/day in high-SES households vs. `r sprintf("%.0f", low_ses_gap)` minutes in low-SES households—a `r sprintf("%.0f%%", gap_pct_increase)` increase (`r sprintf("%.0f", gap_absolute_increase)` additional minutes relative to `r sprintf("%.0f", low_ses_gap)`-minute baseline). Women do `r sprintf("%.0f%%", high_ses_female_share)` of domestic work in affluent households vs. `r sprintf("%.0f%%", low_ses_female_share)` in low-SES households. This comparison uses separate averages for men and women within each SES category, not actual matched spousal pairs (couple-level matching is not possible with available data).
 
 ## Men's Great Escape
 
 ```{r mens_escape}
-mens_time_ses <- major_only %>%
+# Display men's time by SES
+mens_display <- major_only %>%
   filter(gender_label == "Male", married == 1,
          ses_level %in% c("High SES", "Low SES")) %>%
   group_by(ses_level) %>%
@@ -256,7 +336,7 @@ mens_time_ses <- major_only %>%
     .groups = "drop"
   )
 
-kable(mens_time_ses,
+kable(mens_display,
       digits = 1,
       caption = "Men's Domestic Work Time by SES: Near-Complete Exit Among Affluent",
       ) %>%
@@ -265,12 +345,13 @@ kable(mens_time_ses,
            general_title = "Note:")
 ```
 
-**Striking Pattern**: High-SES men spend 14 minutes/day on all domestic work combined—approximately 1.5% of waking hours (assuming 16-hour waking day = 960 minutes). Low-SES men spend 63 minutes—still low but 4.5 times more than affluent men. This 78% decline (49 minutes) from low to high SES represents near-complete male exit from domestic labor.
+**Striking Pattern**: High-SES men spend `r sprintf("%.0f", high_ses_male_time)` minutes/day on all domestic work combined—approximately `r sprintf("%.1f%%", high_ses_male_pct)` of waking hours (assuming 16-hour waking day = 960 minutes). Low-SES men spend `r sprintf("%.0f", low_ses_male_time)` minutes—still low but `r sprintf("%.1f", male_time_ratio)` times more than affluent men. This `r sprintf("%.0f%%", male_pct_decline)` decline (`r sprintf("%.0f", male_absolute_decline)` minutes) from low to high SES represents near-complete male exit from domestic labor.
 
 ## Women: From Worker to Manager
 
 ```{r womens_composition}
-womens_composition <- major_only %>%
+# Display women's composition by SES
+womens_display <- major_only %>%
   filter(gender_label == "Female", married == 1,
          ses_level %in% c("High SES", "Low SES")) %>%
   group_by(ses_level) %>%
@@ -282,16 +363,16 @@ womens_composition <- major_only %>%
     .groups = "drop"
   )
 
-kable(womens_composition,
+kable(womens_display,
       digits = 1,
       caption = "Women's Domestic Work Composition by SES: Shift from Execution to Management",
       ) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
-  footnote(general = "Married women only. Survey weighted estimates. Composition shift: cooking down 60% (83 minutes), shopping/management up 250% (25 minutes).",
+  footnote(general = paste0("Married women only. Survey weighted estimates. Composition shift: cooking down ", sprintf("%.0f%%", cooking_pct_reduction), " (", sprintf("%.0f", cooking_absolute_reduction), " minutes), shopping/management up ", sprintf("%.0f%%", shopping_pct_increase), " (", sprintf("%.0f", shopping_absolute_increase), " minutes)."),
            general_title = "Note:")
 ```
 
-**Compositional Shift**: High-SES women spend 55 minutes/day on cooking compared to 138 minutes for low-SES women (60% reduction, 83 fewer minutes). However, shopping/management time increases from 10 to 35 minutes (250% increase, 25 additional minutes). Physical labor decreases; planning and management increase. Total domestic time: 136 vs. 155 minutes—only a 12% reduction (19 minutes). Women's total time commitment persists, with compositional reallocation from execution to management.
+**Compositional Shift**: High-SES women spend `r sprintf("%.0f", high_ses_cooking)` minutes/day on cooking compared to `r sprintf("%.0f", low_ses_cooking)` minutes for low-SES women (`r sprintf("%.0f%%", cooking_pct_reduction)` reduction, `r sprintf("%.0f", cooking_absolute_reduction)` fewer minutes). However, shopping/management time increases from `r sprintf("%.0f", low_ses_shopping)` to `r sprintf("%.0f", high_ses_shopping)` minutes (`r sprintf("%.0f%%", shopping_pct_increase)` increase, `r sprintf("%.0f", shopping_absolute_increase)` additional minutes). Physical labor decreases; planning and management increase. Total domestic time: `r sprintf("%.0f", high_ses_female_total)` vs. `r sprintf("%.0f", low_ses_female_total)` minutes—only a `r sprintf("%.0f%%", female_total_pct_reduction)` reduction (`r sprintf("%.0f", female_total_absolute_reduction)` minutes). Women's total time commitment persists, with compositional reallocation from execution to management.
 
 ## Visualization: The Wealth Paradox
 
@@ -334,18 +415,6 @@ ggplot(plot_data, aes(x = ses_level, y = Minutes, fill = gender_label)) +
 ## Even Among Dual-Earners
 
 ```{r dual_earners}
-dual_earner_gaps <- major_only %>%
-  filter(gender_label %in% c("Male", "Female"),
-         married == 1, employed == 1,
-         ses_level %in% c("High SES", "Low SES")) %>%
-  group_by(ses_level, gender_label) %>%
-  summarise(
-    Minutes = weighted.mean(domestic_minutes, Weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = gender_label, values_from = Minutes) %>%
-  mutate(`Gender Gap` = Female - Male)
-
 kable(dual_earner_gaps,
       digits = 1,
       caption = "Gender Gaps Among Dual-Earner Couples: Wealth Still Widens",
@@ -355,7 +424,7 @@ kable(dual_earner_gaps,
            general_title = "Note:")
 ```
 
-**Finding**: Even among employed individuals, the gender gap is larger in high-SES households (103 minutes) than low-SES households (82 minutes). This suggests the wealth paradox persists even when women are employed—employment status does not eliminate the SES effect on gender gaps. However, note these are comparisons of employed men versus employed women within SES categories, not necessarily matched dual-earner couples (we lack spouse identifiers).
+**Finding**: Even among employed individuals, the gender gap is larger in high-SES households (`r sprintf("%.0f", high_ses_dual_gap)` minutes) than low-SES households (`r sprintf("%.0f", low_ses_dual_gap)` minutes). This suggests the wealth paradox persists even when women are employed—employment status does not eliminate the SES effect on gender gaps. However, note these are comparisons of employed men versus employed women within SES categories, not necessarily matched dual-earner couples (we lack spouse identifiers).
 
 # Regression Analysis
 
