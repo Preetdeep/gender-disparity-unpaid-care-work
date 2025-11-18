@@ -66,10 +66,11 @@ data <- data %>% slice_sample(prop = 0.1)
 data <- data %>% mutate(Weight = Weight / 0.1)
 
 # Process data
-major_only <- data %>%
+activity_data <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
-    # Create household cluster ID
+    # Create person and household IDs
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Gender, Age, Day_of_Week, sep = "_"),
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
 
     # Gender variables
@@ -117,8 +118,21 @@ major_only <- data %>%
     state_factor = as.factor(State)
   )
 
+# Aggregate to person-day level
+major_only <- activity_data %>%
+  group_by(person_id, FSU_Serial_No, Sample_HH_No, Gender, Age, Day_of_Week,
+           household_id, gender_label, female, male, married, never_married,
+           marital_status_label, Marital_Status, weekend, day_type, age_25_or_less,
+           age_over_25, sector_label, urban, education_level, employed,
+           state_factor, Weight) %>%
+  summarise(
+    care_minutes = sum(care_minutes, na.rm = TRUE),
+    care_work = as.numeric(care_minutes > 0),
+    .groups = "drop"
+  )
+
 # Clean up
-rm(data)
+rm(data, activity_data)
 invisible(gc())
 ```
 
@@ -874,3 +888,9 @@ Sayer, Liana C. 2005. "Gender, Time and Inequality: Trends in Women's and Men's 
 Shaw, Susan M. 1992. "Dereifying Family Leisure: An Examination of Women's and Men's Everyday Experiences and Perceptions of Family Time." *Leisure Sciences* 14(4): 271-286.
 
 South, Scott J., and Glenna Spitze. 1994. "Housework in Marital and Nonmarital Households." *American Sociological Review* 59(3): 327-347.
+
+United Nations. 2022. *World Population Prospects 2022*. New York: United Nations Department of Economic and Social Affairs, Population Division.
+
+West, Candace, and Don H. Zimmerman. 1987. "Doing Gender." *Gender & Society* 1(2): 125-151.
+
+World Bank. 2023. *World Development Indicators 2023*. Washington, DC: World Bank.
