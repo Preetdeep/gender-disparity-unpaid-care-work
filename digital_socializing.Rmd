@@ -382,9 +382,9 @@ modelsummary(list("Remote (LPM)" = m_remote_lpm,
 # For key variables of interest
 library(marginaleffects)
 ame_remote_married <- avg_slopes(m_remote_logit, variables = "married",
-                                  vcov = ~household_id, wts = "Weight")
+                                  vcov = FALSE, wts = "Weight")
 ame_inperson_married <- avg_slopes(m_inperson_logit, variables = "married",
-                                    vcov = ~household_id, wts = "Weight")
+                                    vcov = FALSE, wts = "Weight")
 ```
 
 **Key Findings:**
