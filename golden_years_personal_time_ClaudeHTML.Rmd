@@ -178,7 +178,7 @@ major_only <- major_only %>%
 # Calculate person-day level aggregates
 person_day_wellbeing <- major_only %>%
   group_by(FSU_Serial_No, Sample_HH_No, Gender, Age, Marital_Status,
-           gender_label, married, marital_label, age_group, education_level,
+           gender_label, female, married, marital_label, age_group, education_level,
            sector_label, urban, employed, student, domestic_duties,
            hh_size_category, Weight) %>%
   summarise(
