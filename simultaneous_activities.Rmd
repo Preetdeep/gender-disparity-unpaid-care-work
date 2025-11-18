@@ -240,7 +240,8 @@ processed_data <- data %>%
       TRUE ~ "Other"
     ),
 
-    # Create household ID
+    # Create IDs
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No, sep = "_"),
     household_id = paste(FSU_Serial_No, Sample_HH_No, sep = "_"),
 
     # Education
@@ -1021,9 +1022,43 @@ Future research should: (1) develop better measures of time fragmentation beyond
 
 Only by making women's invisible time constraints visible—including sequential fragmentation and mental load—can we adequately measure and address gender-based time poverty.
 
-# References
+# References {.unnumbered}
 
-[References would be added here in full paper]
+\setlength{\parindent}{-0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Bardasi, Elena, and Quentin Wodon. 2010. "Working Long Hours and Having No Choice: Time Poverty in Guinea." *Feminist Economics* 16(3): 45-78.
+
+Bianchi, Suzanne M., Liana C. Sayer, Melissa A. Milkie, and John P. Robinson. 2012. "Housework: Who Did, Does or Will Do It, and How Much Does It Matter?" *Social Forces* 91(1): 55-63.
+
+Craig, Lyn. 2006. "Does Father Care Mean Fathers Share? A Comparison of How Mothers and Fathers in Intact Families Spend Time with Children." *Gender & Society* 20(2): 259-281.
+
+Daminger, Allison. 2019. "The Cognitive Dimension of Household Labor." *American Sociological Review* 84(4): 609-633.
+
+Dean, Lydia R., Faith Churchill, and David Ruppel. 2022. "Mental Labor in the Household: Gendered Divisions and Relationship Satisfaction." *Journal of Family Issues* 43(3): 727-751.
+
+Folbre, Nancy. 2012. "Should Women Care Less? Intrinsic Motivation and Gender Inequality." *British Journal of Industrial Relations* 50(4): 597-619.
+
+Goodin, Robert E., James Mahmud Rice, Antti Parpo, and Lina Eriksson. 2008. *Discretionary Time: A New Measure of Freedom*. Cambridge: Cambridge University Press.
+
+Kandiyoti, Deniz. 1988. "Bargaining with Patriarchy." *Gender & Society* 2(3): 274-290.
+
+Mark, Gloria, Daniela Gudith, and Ulrich Klocke. 2014. "The Cost of Interrupted Work: More Speed and Stress." *Proceedings of the SIGCHI Conference on Human Factors in Computing Systems*, 107-110.
+
+NSSO (National Sample Survey Office). 2020. *Time Use in India 2019*. New Delhi: Ministry of Statistics and Programme Implementation.
+
+Offer, Shira, and Barbara Schneider. 2011. "Revisiting the Gender Gap in Time-Use Patterns: Multitasking and Well-Being among Mothers and Fathers in Dual-Earner Families." *American Sociological Review* 76(6): 809-833.
+
+Rubinstein, Joshua S., David E. Meyer, and Jeffrey E. Evans. 2001. "Executive Control of Cognitive Processes in Task Switching." *Journal of Experimental Psychology: Human Perception and Performance* 27(4): 763-797.
+
+Sayer, Liana C., Suzanne M. Bianchi, and John P. Robinson. 2004. "Are Parents Investing Less in Children? Trends in Mothers' and Fathers' Time with Children." *American Journal of Sociology* 110(1): 1-43.
+
+United Nations. 2022. *World Population Prospects 2022*. New York: United Nations Department of Economic and Social Affairs, Population Division.
+
+Vickery, Clair. 1977. "The Time-Poor: A New Look at Poverty." *Journal of Human Resources* 12(1): 27-48.
+
+World Bank. 2023. *World Development Indicators 2023*. Washington, DC: World Bank.
 
 ```{r session_info, include=FALSE}
 # Session info for reproducibility
