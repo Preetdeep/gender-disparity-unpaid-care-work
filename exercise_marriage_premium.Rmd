@@ -225,6 +225,9 @@ data <- data %>%
 major_only <- data %>%
   filter(Major_Activity_Flag == 1) %>%
   mutate(
+    # Person ID for aggregation
+    person_id = paste(FSU_Serial_No, Sample_HH_No, Person_Serial_No, sep = "_"),
+
     # Gender
     female = as.numeric(Gender == 2),
     gender_label = case_when(
