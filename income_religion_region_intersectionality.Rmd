@@ -48,7 +48,7 @@ data <- read_dta("TimeUse106PER.dta",
                  col_select = c(Gender, Activity_Code_2Digit, time_spent, Weight,
                                Major_Activity_Flag, Age, Marital_Status,
                                Highest_Education, Sector, Principal_Activity_Status,
-                               State, religion, FSU_Serial_No, Sample_HH_No,
+                               State, Religion, FSU_Serial_No, Sample_HH_No,
                                Person_Serial_No))
 
 # Use 10% random sample with weight adjustment for computational efficiency
@@ -84,12 +84,12 @@ analysis_data <- data %>%
 
     # Religion coding (focus on major religions)
     religion_label = case_when(
-      religion == 1 ~ "Hindu",
-      religion == 2 ~ "Muslim",
-      religion == 3 ~ "Christian",
-      religion == 4 ~ "Sikh",
-      religion == 5 ~ "Jain",
-      religion == 6 ~ "Buddhist",
+      Religion == 1 ~ "Hindu",
+      Religion == 2 ~ "Muslim",
+      Religion == 3 ~ "Christian",
+      Religion == 4 ~ "Sikh",
+      Religion == 5 ~ "Jain",
+      Religion == 6 ~ "Buddhist",
       TRUE ~ "Other"
     ),
 
