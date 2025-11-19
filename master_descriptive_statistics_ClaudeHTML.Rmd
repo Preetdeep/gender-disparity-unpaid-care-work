@@ -90,8 +90,8 @@ hh_size_cols <- grep("household.*size|Household.*Size|HH.*Size|hhsize",
 
 if ("Household_Size" %in% all_cols) {
   hh_size_col <- "Household_Size"
-} else if ("HH_Size" %in% all_cols) {
-  hh_size_col <- "HH_Size"
+} else if ("household_size" %in% all_cols) {
+  hh_size_col <- "household_size"
 } else if (length(hh_size_cols) > 0) {
   hh_size_col <- hh_size_cols[1]
 } else {
