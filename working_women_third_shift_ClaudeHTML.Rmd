@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households) with direct measurement of household help employment, we examine whether employed women in affluent families successfully outsource domestic and care work, or whether they face a "third shift"—paid work plus managing domestic workers plus residual care work. We directly observe domestic worker presence in households and measure actual household wealth through consumption expenditure rather than proxies. Comparing employed women by wealth quintiles and household help status, we find that affluent working women spend modestly less time on total domestic work than poor working women. However, the composition shifts dramatically: affluent working women do substantially less cooking/cleaning but dramatically more household management. Critically, childcare time increases with wealth among working mothers, suggesting that affluent working mothers intensify rather than reduce maternal involvement—what we term the "quality care" imperative. Meanwhile, employed men's domestic time remains low across all wealth levels, unchanged whether partners have household help or not. These findings suggest that household help enables women's employment but creates new management burdens, while traditional gender norms about intensive mothering remain intact even among the affluent. Our results challenge narratives about private domestic service as women's empowerment and highlight the need for public infrastructure and cultural change.
+  Using India's 2024 Time Use Survey (10.2 million observations, 139,489 households) with direct measurement of household help employment, we examine whether employed women in affluent families successfully outsource domestic and care work, or whether they face a "third shift"—paid work plus managing domestic workers plus residual care work. We directly observe domestic worker presence in households and measure actual household wealth through consumption expenditure rather than proxies. Comparing employed women by wealth quintiles and household help status, we find that affluent working women spend modestly less time on total domestic work than poor working women. However, the composition shifts dramatically: affluent working women do substantially less physical work (food preparation, cleaning, laundry) but dramatically more household management. Critically, childcare time increases with wealth among working mothers, suggesting that affluent working mothers intensify rather than reduce maternal involvement—what we term the "quality care" imperative. Meanwhile, employed men's domestic time remains low across all wealth levels, unchanged whether partners have household help or not. These findings suggest that household help enables women's employment but creates new management burdens, while traditional gender norms about intensive mothering remain intact even among the affluent. Our results challenge narratives about private domestic service as women's empowerment and highlight the need for public infrastructure and cultural change.
 
   **JEL Classification:** J16, J22, D13, J13
 
@@ -94,24 +94,33 @@ major_only <- data %>%
     female = as.numeric(Gender == 2),
     married = as.numeric(Marital_Status == 2),
 
-    # Domestic work categories - expanded and more precise
-    cooking_cleaning = as.numeric(Activity_Code_2Digit == 33),
-    cooking_cleaning_minutes = ifelse(cooking_cleaning == 1, time_spent, 0),
+    # Domestic work categories - CORRECTED to match ICATUS 2016
+    # Physical tasks (most amenable to delegation)
+    food_prep = as.numeric(Activity_Code_2Digit == 31),  # 311-314: Food prep, serving, cleaning
+    food_prep_minutes = ifelse(food_prep == 1, time_spent, 0),
 
-    shopping = as.numeric(Activity_Code_2Digit == 34),
+    dwelling_maint = as.numeric(Activity_Code_2Digit == 32),  # 321: Maintaining dwellings
+    dwelling_maint_minutes = ifelse(dwelling_maint == 1, time_spent, 0),
+
+    clothing_care = as.numeric(Activity_Code_2Digit == 33),  # 331: Laundry, clothing
+    clothing_care_minutes = ifelse(clothing_care == 1, time_spent, 0),
+
+    # Management tasks (supervision and coordination)
+    shopping = as.numeric(Activity_Code_2Digit == 34),  # 341: Shopping
     shopping_minutes = ifelse(shopping == 1, time_spent, 0),
 
-    household_mgmt = as.numeric(Activity_Code_2Digit == 35),
+    household_mgmt = as.numeric(Activity_Code_2Digit %in% c(35, 36)),  # 351-361: Bills, administration
     household_mgmt_minutes = ifelse(household_mgmt == 1, time_spent, 0),
 
-    childcare = as.numeric(Activity_Code_2Digit == 31),
+    # Care tasks (least amenable to full delegation)
+    childcare = as.numeric(Activity_Code_2Digit == 41),  # 411-414: CORRECT childcare codes
     childcare_minutes = ifelse(childcare == 1, time_spent, 0),
 
-    eldercare = as.numeric(Activity_Code_2Digit == 32),
+    eldercare = as.numeric(Activity_Code_2Digit == 42),  # 421: CORRECT eldercare code
     eldercare_minutes = ifelse(eldercare == 1, time_spent, 0),
 
     # Aggregate measures
-    physical_tasks = cooking_cleaning_minutes,
+    physical_tasks = food_prep_minutes + dwelling_maint_minutes + clothing_care_minutes,
     management_tasks = shopping_minutes + household_mgmt_minutes,
     care_tasks = childcare_minutes + eldercare_minutes,
     total_domestic = physical_tasks + management_tasks + care_tasks,
@@ -250,7 +259,7 @@ Our findings reveal a troubling pattern:
 
 **Modest Total Reduction**: Employed women in high-wealth households spend `r sprintf("%.0f", high_wealth_total)` minutes/day on domestic work. Employed women in low-wealth households spend `r sprintf("%.0f", low_wealth_total)` minutes. The `r sprintf("%.0f%%", total_reduction_pct)` reduction is substantial but far from liberation. Critically, `r sprintf("%.0f%%", high_wealth_help_pct)` of high-wealth employed women have domestic help vs. `r sprintf("%.0f%%", low_wealth_help_pct)` of low-wealth employed women—confirming our measure's validity.
 
-**The Management Substitution**: High-wealth employed women spend `r sprintf("%.0f%%", physical_reduction_pct)` less time on cooking/cleaning than low-wealth employed women (`r sprintf("%.0f", high_wealth_physical)` vs. `r sprintf("%.0f", low_wealth_physical)` minutes). But they spend `r sprintf("%.0f%%", management_increase_pct)` more time on household management and shopping (`r sprintf("%.0f", high_wealth_management)` vs. `r sprintf("%.0f", low_wealth_management)` minutes). Physical labor is outsourced; management work intensifies.
+**The Management Substitution**: High-wealth employed women spend `r sprintf("%.0f%%", physical_reduction_pct)` less time on physical tasks (food prep, cleaning, laundry) than low-wealth employed women (`r sprintf("%.0f", high_wealth_physical)` vs. `r sprintf("%.0f", low_wealth_physical)` minutes). But they spend `r sprintf("%.0f%%", management_increase_pct)` more time on household management and shopping (`r sprintf("%.0f", high_wealth_management)` vs. `r sprintf("%.0f", low_wealth_management)` minutes). Physical labor is outsourced; management work intensifies.
 
 **The Childcare Paradox**: Among employed mothers, high-wealth women spend MORE time on childcare than low-wealth women (`r sprintf("%.0f", high_wealth_childcare)` vs. `r sprintf("%.0f", low_wealth_childcare)` minutes/day). Despite access to nannies and ayahs, affluent working mothers intensify maternal involvement, consistent with "intensive mothering" norms (Hays 1996).
 
@@ -353,20 +362,22 @@ We use India's 2024 Time Use Survey, conducted by the National Statistics Office
 
 ### Time Use Categories
 
-We decompose domestic work into three conceptually distinct categories aligned with the "third shift" framework:
+We decompose domestic work into three conceptually distinct categories aligned with the "third shift" framework, using ICATUS 2016 activity codes:
 
 **Physical Tasks** (minutes/day):
-- Cooking and food preparation (Activity Code 33)
+- Food preparation, serving, and meal cleanup (Activity Code 31: codes 311-314)
+- Dwelling maintenance and repairs (Code 32: code 321)
+- Clothing care, laundry, and repairs (Code 33: code 331)
 - These are the tasks most amenable to delegation to domestic workers
 
 **Management Tasks** (minutes/day):
-- Shopping for household goods (Code 34)
-- Household management and planning (Code 35)
+- Shopping for household goods (Code 34: code 341)
+- Household administration: paying bills, paperwork (Codes 35-36: codes 351, 361)
 - These tasks involve supervision, coordination, and quality control—less amenable to full delegation
 
 **Care Tasks** (minutes/day):
-- Childcare (Code 31): physical care, teaching, accompanying children
-- Elder care (Code 32): care for elderly or disabled household members
+- Childcare (Code 41: codes 411-414): physical care, teaching, accompanying children
+- Elder care (Code 42: code 421): care for elderly or disabled household members
 - These tasks may resist outsourcing due to intensive mothering norms and emotional bonds
 
 **Total Domestic Work**: Sum of physical, management, and care tasks
@@ -405,6 +416,7 @@ Before examining time use patterns, we validate our household help measurement b
 
 ```{r household_help_validation}
 help_by_wealth <- major_only %>%
+  filter(!is.na(wealth_quintile)) %>%  # Remove households with missing expenditure data
   group_by(wealth_quintile) %>%
   summarise(
     `Has Domestic Help (%)` = 100 * weighted.mean(has_domestic_help, Weight, na.rm = TRUE),
@@ -551,13 +563,13 @@ ggplot(plot_data, aes(x = wealth_group, y = `Minutes per Day`, fill = `Task Type
             size = 4, fontface = "bold", color = "white") +
   labs(x = "", y = "Minutes per Day (Domestic Work)",
        title = "The Third Shift: Employed Women Trade Physical for Management Labor",
-       subtitle = "High-wealth women do less cooking/cleaning but more management; care work similar",
+       subtitle = "High-wealth women do less physical work but more management; care work increases",
        fill = "") +
   scale_fill_manual(values = c("Physical" = "#e74c3c",
                                 "Management" = "#9b59b6",
                                 "Care" = "#3498db"),
-                    labels = c("Physical\n(Cooking/Cleaning)",
-                              "Management\n(Shopping/Planning)",
+                    labels = c("Physical\n(Food/Cleaning/Laundry)",
+                              "Management\n(Shopping/Administration)",
                               "Care\n(Children/Elderly)")) +
   theme_minimal(base_size = 12) +
   theme(legend.position = "right",
