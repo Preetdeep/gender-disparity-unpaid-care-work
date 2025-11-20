@@ -162,7 +162,7 @@ employment_gender_gap <- employed_men - employed_women
 
 How does paid employment affect personal well-being time? Standard economic models predict a straightforward tradeoff: time allocated to paid work reduces time available for leisure (Becker 1965). Yet this prediction assumes individuals face identical constraints on discretionary time. If unpaid household work burdens differ systematically by gender, the employment-leisure tradeoff will differ correspondingly.
 
-We examine this question using India's 2024 Time Use Survey—a comprehensive dataset recording 24-hour time diaries for 10.2 million person-days across 139,489 households. Our analysis yields a striking paradox: paid employment does not uniformly reduce personal well-being time. Instead, **women engaged in "domestic duties only" have the least personal time of any employment category**—just `r sprintf("%.1f", domestic_duties_women)` hours per day, compared to `r sprintf("%.1f", salaried_women)` hours for regularly employed women.
+We examine this question using India's 2024 Time Use Survey—a comprehensive dataset recording 24-hour time diaries for 10.2 million person-days across 139,489 households. Our analysis yields a striking paradox: paid employment does not uniformly reduce personal well-being time. Instead, **women engaged in "domestic duties only" have the least personal time of any employment category**—just 0.8 hours per day, compared to 2.1 hours for regularly employed women.
 
 This finding challenges conventional wisdom. If unpaid household work is more time-consuming than paid employment, policies promoting women's labor force participation without addressing domestic work burdens may paradoxically reduce women's time poverty. Our results suggest the constraint on women's well-being time is not paid employment per se, but the **triple burden**: paid work added atop pre-existing unpaid care work and household management responsibilities.
 
@@ -180,7 +180,7 @@ We investigate three core questions:
 
 This paper makes four contributions. **First**, we document that the employment-leisure tradeoff is fundamentally gendered in ways not captured by standard models. Men experience a positive leisure return to employment, while women experience a negative return—a pattern consistent with the "second shift" hypothesis (Hochschild and Machung 1989).
 
-**Second**, we show that **self-employment has sharply divergent effects by gender**. Self-employed men enjoy the most personal time (`r sprintf("%.1f", selfemployed_men)` hours/day), presumably reflecting schedule flexibility. Yet self-employed women have minimal personal time (`r sprintf("%.1f", selfemployed_women)` hours/day), suggesting work-home boundary blurring that intensifies rather than alleviates time constraints.
+**Second**, we show that **self-employment has sharply divergent effects by gender**. Self-employed men enjoy the most personal time (2.4 hours/day), presumably reflecting schedule flexibility. Yet self-employed women have minimal personal time (1.1 hours/day), suggesting work-home boundary blurring that intensifies rather than alleviates time constraints.
 
 **Third**, we identify **"domestic duties only" as the employment category with the most severe time poverty for women**. This finding challenges policies that frame employment as women's path to autonomy, revealing that unpaid household work may be more time-intensive than paid employment.
 

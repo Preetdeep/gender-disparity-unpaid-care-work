@@ -558,7 +558,7 @@ gp_effect_employed <- coef(m6)["has_grandparentTRUE"]
 gp_effect_notemployed <- coef(m7)["has_grandparentTRUE"]
 ```
 
-**Results**: The grandparent effect differs by employment status but neither is statistically significant. Employed mothers show a coefficient of `r sprintf("%.2f", gp_effect_employed)` minutes (SE: 0.64, p > 0.10), while non-employed mothers show `r sprintf("%.2f", gp_effect_notemployed)` minutes (SE: 0.79, p > 0.10). The interaction term (Column 1: 0.28, SE: 0.79) is also not significant.
+**Results**: The grandparent effect differs by employment status but neither is statistically significant. Employed mothers show a coefficient of 0.15 minutes (SE: 0.64, p > 0.10), while non-employed mothers show -0.13 minutes (SE: 0.79, p > 0.10). The interaction term (Column 1: 0.28, SE: 0.79) is also not significant.
 
 **Interpretation**: There is no clear evidence that grandparents differentially support employed vs. non-employed mothers in terms of childcare time reduction. Both effects are near zero and not statistically distinguishable from zero or from each other.
 
@@ -603,7 +603,7 @@ gf_only_effect <- coef(m8)["grandparent_typeGrandfather Only"]
 both_effect <- coef(m8)["grandparent_typeBoth"]
 ```
 
-**Results**: Grandparent gender shows minimal effects on mothers' childcare time. Women in households with **only a grandmother** spend `r sprintf("%.2f", gm_only_effect)` minutes differently on childcare (SE: 0.64, p > 0.10). With **only a grandfather**, `r sprintf("%.2f", gf_only_effect)` minutes (SE: 2.03, p > 0.10). Households with **both grandparents** show `r sprintf("%.2f", both_effect)` minutes (SE: 2.00, p > 0.10). None of these effects are statistically significant.
+**Results**: Grandparent gender shows minimal effects on mothers' childcare time. Women in households with **only a grandmother** spend 0.12 minutes differently on childcare (SE: 0.64, p > 0.10). With **only a grandfather**, -1.85 minutes (SE: 2.03, p > 0.10). Households with **both grandparents** show -0.22 minutes (SE: 2.00, p > 0.10). None of these effects are statistically significant.
 
 **Interpretation**: The data do not support differential childcare support by grandparent gender. All effects are near zero and highly uncertain, with large standard errors particularly for grandfather-only households (likely due to small sample size).
 

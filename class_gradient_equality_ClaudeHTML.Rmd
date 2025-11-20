@@ -6,7 +6,7 @@ date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
   Does wealth enable household gender equality? Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we examine domestic work patterns across socioeconomic strata.
 
-  Our analysis reveals a complex and contradictory picture. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes). This is driven by affluent men almost entirely exiting domestic labor.
+  Our analysis reveals a complex and contradictory picture. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears 33% larger in high-SES households (122 minutes/day) than in low-SES households (92 minutes). This is driven by affluent men almost entirely exiting domestic labor.
 
   However, this paradox does not withstand more rigorous analysis. Regression models controlling for age, employment, and state-level differences show the opposite: the gender gap is slightly *smaller* in high-SES households. This suggests the descriptive "paradox" may be an artifact of confounding factors or compositional effects. Our findings caution against simplistic conclusions about the relationship between economic development and household gender equality, highlighting that while wealth may not be a panacea, it does not appear to exacerbate inequality when confounding variables are accounted for.
 
