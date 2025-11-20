@@ -65,9 +65,9 @@ Yet despite this digital expansion, we know surprisingly little about how Indian
 
 ## A Striking Pattern in Time Use Data
 
-This paper uses India's 2024 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is `r sprintf("%.0f", remote_inperson_ratio)` times more common than in-person socializing**.
+This paper uses India's 2024 Time Use Survey (TUS)—a nationally representative survey of 394,405 individuals—to answer these questions. We document a remarkable finding: **remote socializing is approximately 40 times more common than in-person socializing**.
 
-On a typical day, only `r sprintf("%.2f%%", inperson_pct)` of Indians engage in face-to-face social activities (visiting friends, social gatherings), compared to `r sprintf("%.2f%%", remote_pct)` who socialize remotely (phone calls, video chats, messaging). This represents a profound shift in the structure of social life—one with potentially far-reaching consequences for community cohesion, mental health, and social capital.
+On a typical day, only 0.04% of Indians engage in face-to-face social activities (visiting friends, social gatherings), compared to 1.55% who socialize remotely (phone calls, video chats, messaging). This represents a profound shift in the structure of social life—one with potentially far-reaching consequences for community cohesion, mental health, and social capital.
 
 ## Research Questions
 
