@@ -28,7 +28,7 @@ library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest
 ```{r analysis, include=FALSE, cache=FALSE}
 data <- read_dta("TimeUse106PER.dta", col_select = c(
   Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
-  Age, HH_Size, FSU_Serial_No, Sample_HH_No, Relationship_To_Head))
+  Age, Household_Size, FSU_Serial_No, Sample_HH_No, Relationship_To_Head))
 
 set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
