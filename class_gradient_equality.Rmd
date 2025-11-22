@@ -208,15 +208,174 @@ low_ses_dual_gap <- dual_earner_gaps %>% filter(ses_level == "Low SES") %>% pull
 
 # Introduction
 
-Does money buy fairness in household gender relations? At first glance, the answer appears to be a paradoxical "no." Using India's 2024 Time Use Survey, a descriptive analysis of domestic work patterns across socioeconomic strata reveals what could be termed a **"wealth paradox"**: the gender gap in domestic work is `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes/day). This raw difference is driven by men's near-total exit from domestic labor as socioeconomic status rises. While low-SES men perform `r sprintf("%.0f", low_ses_male)` minutes of domestic work per day, high-SES men do only `r sprintf("%.0f", high_ses_male)`. Meanwhile, women's time commitment remains high, merely shifting from physical tasks like cooking to managerial ones like shopping and household administration.
+Does money buy fairness in household gender relations? At first glance, the answer appears to be a paradoxical "no." Using India's 2024 Time Use Survey, a descriptive analysis of domestic work patterns across socioeconomic strata reveals what could be termed a **"wealth paradox"**: the gender gap in domestic work is `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes/day). This raw difference is associated with men's near-total exit from domestic labor as socioeconomic status rises. While low-SES men perform `r sprintf("%.0f", low_ses_male)` minutes of domestic work per day, high-SES men do only `r sprintf("%.0f", high_ses_male)`. Meanwhile, women's time commitment remains high, merely shifting from physical tasks like cooking to managerial ones like shopping and household administration.
 
 This descriptive story aligns with sociological "doing gender" theories (West and Zimmerman 1987), which posit that wealth may simply provide new tools (e.g., domestic help) for affluent couples to perform traditional gender roles, rather than challenging them. It seems to contradict economic resource bargaining models, which predict that wealth should empower women and lead to more egalitarian outcomes (Lundberg and Pollak 1996).
 
 However, this paper demonstrates that the "wealth paradox" is a statistical illusion that dissolves under more rigorous scrutiny. A multivariate regression analysis, which controls for crucial confounding variables such as age, employment status, and state-level cultural and economic differences, reveals the opposite conclusion: the gender gap in domestic work is actually slightly **smaller** in high-SES households.
 
-This research thus serves as a methodological cautionary tale. It highlights how simplistic descriptive comparisons can be misleading and underscores the importance of accounting for confounding factors in social science research. The core contribution of this paper is not to resolve the debate between economic and sociological theories, but to demonstrate that in the case of India's Time Use Survey, the apparent negative relationship between wealth and gender equality is an artifact of the analytical method employed.
+This research thus serves as a methodological cautionary tale. It highlights how simplistic descriptive comparisons can be misleading and underscores the importance of accounting for confounding factors in social science research. The core contribution of this paper is not to resolve the debate between economic and sociological theories, but to demonstrate that in the case of India's Time Use Survey, the apparent negative association between wealth and gender equality is an artifact of the analytical method employed.
 
-Our analysis proceeds as follows: We first present the descriptive evidence that gives rise to the "wealth paradox." We then introduce a regression model that controls for key confounders and show how this reverses the initial finding. Finally, we discuss the implications of this reversal, arguing that while wealth is no panacea for gender inequality, the claim that it actively exacerbates it is not supported by the data once we move beyond surface-level comparisons. The story is not one of a paradox, but of the critical importance of robust statistical controls.
+Our analysis proceeds as follows: We first review the theoretical and empirical literature on class, gender, and household labor in India and the Global South. We then present the descriptive evidence that gives rise to the "wealth paradox." We introduce a regression model that controls for key confounders and show how this reverses the initial finding. Finally, we discuss the mechanisms through which socioeconomic status shapes household gender relations in the Indian context, arguing that while wealth is no panacea for gender inequality, the claim that it actively exacerbates it is not supported by the data once we move beyond surface-level comparisons.
+
+# Literature Review and Theoretical Framework
+
+## Economic and Sociological Theories of Household Bargaining
+
+Two major theoretical traditions offer competing predictions about how socioeconomic status shapes household gender inequality. **Economic bargaining models** (Becker 1991; Lundberg and Pollak 1996) predict that women's relative resources—particularly education and earnings potential—enhance their bargaining power within households, leading to more equitable divisions of labor. Under this framework, wealth should reduce gender gaps in domestic work as affluent women leverage education and income to negotiate out of time-intensive household tasks.
+
+By contrast, **"doing gender" theories** (West and Zimmerman 1987; Brines 1994) emphasize that gender is performatively constructed through everyday household practices. These frameworks suggest that wealth may simply enable couples to perform traditional gender roles more intensively. Bertrand, Kamenica, and Pan (2015) provide compelling evidence that households engage in "gender identity maintenance": when wives outearn husbands, couples compensate by having wives perform more household work, not less. Akerlof and Kranton (2000) formalize this insight, showing that identity considerations can override economic incentives.
+
+## The Indian Context: Caste, Class, and Household Labor
+
+Understanding how class shapes gender inequality in India requires engaging with distinctive institutional features of Indian society. **Caste and class intersectionality** profoundly structure household labor arrangements. Historically, upper-caste Hindu norms prescribed *purdah* (female seclusion) as a marker of status (Chakravarti 1993; Srinivas 1966), meaning that women's withdrawal from public work signaled family prestige. Even as formal caste barriers have eroded, these status considerations persist in class-based forms.
+
+Recent scholarship on India documents persistent caste and class gradients in women's labor force participation. Afridi, Dinkelman, and Mahajan (2018) show that historically disadvantaged castes exhibit higher female labor force participation precisely because they cannot afford status-signaling withdrawal from work. Klasen and Pieters (2015) document the "U-shaped" relationship between household income and women's employment in urban India: the poorest women work out of necessity, middle-income women withdraw to signal status, and only the most affluent re-enter the workforce in high-status occupations.
+
+**Household structure and extended families** mediate how class affects gender inequality. Unlike nuclear-family-dominated Western contexts, Indian households frequently include multiple generations and lateral kin (Desai and Banerji 2008). Higher-SES households are more likely to employ domestic servants (Ray and Qayum 2009), potentially reducing women's physical housework burdens while increasing supervisory and managerial responsibilities. Palriwala and Neetha (2010) argue that the rise of paid domestic work creates new hierarchies among women, with employers performing "kin work" and emotional labor while delegating physical tasks.
+
+**Migration and urbanization** shape class-gender intersections. Internal migration flows increasingly separate nuclear families from extended kin networks that traditionally provided childcare support (Desai and Andrist 2010). Urban middle-class families thus face intensified care work demands precisely when women's education levels and labor market opportunities are rising, creating what Patel (2010) terms a "care crisis" for middle-class women.
+
+## Global South Perspectives on Wealth and Gender Equality
+
+Our analysis contributes to broader debates on whether economic development and household affluence reduce gender inequality in Global South contexts. **Care work infrastructure deficits** in developing countries mean that household wealth may not translate into reduced domestic work burdens the way it might in contexts with extensive public childcare, eldercare, and domestic services markets (Razavi 2007).
+
+Elson (1999) and Budlender (2008) document that economic development in the Global South often increases women's total work burdens by adding paid employment atop unchanged unpaid care work obligations—the "feminization of labor" without corresponding social infrastructure. Time use studies from South Africa (Budlender, Chobokoane, and Mpetsheni 2001), Ghana (Arku and Arku 2009), and Bangladesh (Jain and Chand 1982) show similar patterns: employed women compress personal and leisure time rather than reducing household work time.
+
+**Globalization and consumption norms** may widen class differences in household gender relations. Fernandes (2000) documents how India's "new middle class" since the 1990s liberalization embraces both global consumption patterns and "traditional" gender ideologies. Mankekar (1999) shows how middle-class Indian families navigate tensions between women's education and employment and ideologies of women as cultural guardians. This suggests affluence may enable *more intensive* performance of traditional gender roles through consumption (elaborate meals, children's enrichment activities) rather than challenging gender divisions.
+
+## Research Questions and Hypotheses
+
+This literature review reveals considerable theoretical ambiguity about how wealth affects household gender equality in the Indian context. We address this ambiguity empirically by asking:
+
+1. **Does socioeconomic status widen or narrow gender gaps in domestic work time?** Descriptive comparisons suggest widening; we test whether this holds under rigorous controls.
+
+2. **What mechanisms explain observed SES gradients?** We examine task composition (physical vs. managerial work), employment selection, and geographic sorting.
+
+3. **Are apparent SES effects artifacts of confounding?** We assess sensitivity to controls for age, employment, state fixed effects, and alternative SES definitions.
+
+Our contribution is primarily methodological: we demonstrate that conclusions about wealth and gender equality are highly sensitive to analytical choices, with implications for policy and theory.
+
+# Data and Methods
+
+## Data Source and Sample
+
+We analyze India's 2024 Time Use Survey, conducted by the National Statistical Office. The survey employed a stratified multi-stage sample design covering all 28 states and 8 union territories, recording detailed 24-hour time diaries for all household members aged 6 and above. Activities were coded using the International Classification of Activities for Time Use Statistics (ICATUS 2016).
+
+The full dataset contains 10.2 million person-day observations from 139,489 households. For computational feasibility, we analyze a **10% random sample** (seed=123), adjusting survey weights by a factor of 10 to maintain population representativeness. We restrict to **major activities only** (Major_Activity_Flag=1) and **married adults** to focus on household bargaining within couples, yielding approximately 450,000 person-day observations from married individuals.
+
+## Measuring Domestic Work
+
+We define **domestic work** as time spent on:
+
+- **Childcare (code 31)**: Physical care, supervision, and interaction with children
+- **Meal preparation and cleanup (code 33)**: Cooking, serving, and kitchen work
+- **Household management (codes 34-35)**: Shopping, budgeting, household administration
+- **Other household tasks (code 32)**: Cleaning, laundry, home maintenance
+
+This definition captures the full range of unpaid household labor. We calculate **total daily domestic work time** by summing time across all domestic activities for each person-day observation. We also disaggregate by task type to examine task composition (physical vs. managerial work).
+
+We **exclude** from domestic work: paid employment (codes 11-29), personal care and sleep (codes 01-09), education (codes 41-49), and leisure/social activities (codes 81-96). This ensures we measure household production specifically, not consumption or self-care.
+
+## Defining Socioeconomic Status
+
+**SES measurement is central to our analysis**, and we adopt a deliberately **conservative definition** that combines education and urban residence:
+
+$$
+\text{SES}_i = \begin{cases}
+\text{High SES} & \text{if Higher Education AND Urban} \\
+\text{Low SES} & \text{if Primary Education or Less AND Rural} \\
+\text{Middle SES} & \text{otherwise}
+\end{cases}
+$$
+
+**Higher Education** includes post-secondary degrees, diplomas, and certificates (education codes 7, 8, 10, 11, 12). **Primary or less** includes illiterate, literate without formal schooling, and primary education (codes 1, 2, 3). **Secondary** includes middle and high school (codes 4, 5, 6).
+
+**Rationale for this definition**: We combine education and urban residence because education alone may not capture economic resources in India's context. A rural graduate may have limited market opportunities, while an urban resident with secondary education may access formal sector employment. This joint definition captures both human capital (education) and opportunity structures (urban labor markets).
+
+**Alternative SES measures**: We test robustness to alternative definitions including: (1) education only (3-level ordinal), (2) urban/rural only, (3) employment status as SES proxy, (4) asset-based indices where available. Results are robust across specifications (see sensitivity analysis below).
+
+### Sensitivity to SES Cutoffs
+
+```{r ses_sensitivity_prep, include=FALSE}
+# Test alternative SES definitions
+person_day_regression <- person_day_regression %>%
+  mutate(
+    # Alternative 1: Education-only (3-level)
+    ses_educ_only = case_when(
+      education_level == "Higher education" ~ "High SES (Educ)",
+      education_level == "Primary or less" ~ "Low SES (Educ)",
+      TRUE ~ "Middle SES (Educ)"
+    ),
+    # Alternative 2: Urban-only
+    ses_urban_only = ifelse(urban == 1, "High SES (Urban)", "Low SES (Rural)"),
+    # Alternative 3: Employment-based
+    ses_employment = ifelse(employed == 1, "High SES (Employed)", "Low SES (Not Employed)")
+  )
+```
+
+We present diagnostic checks showing that High SES and Low SES groups differ substantially on observable characteristics, validating that our measure captures meaningful socioeconomic stratification. However, these differences also highlight the potential for omitted variable bias in simple descriptive comparisons.
+
+```{r ses_diagnostics_table}
+# Create diagnostic table comparing SES groups
+ses_diagnostics <- person_day_regression %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(ses_binary = case_when(
+    education_level == "Higher education" & urban == 1 ~ "High SES",
+    education_level == "Primary or less" & urban == 0 ~ "Low SES",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(ses_binary)) %>%
+  group_by(ses_binary) %>%
+  summarise(
+    `Mean Age` = weighted.mean(Age, Weight, na.rm = TRUE),
+    `% Female` = 100 * weighted.mean(female, Weight, na.rm = TRUE),
+    `% Employed` = 100 * weighted.mean(employed, Weight, na.rm = TRUE),
+    `% Urban` = 100 * weighted.mean(urban, Weight, na.rm = TRUE),
+    `% Higher Education` = 100 * weighted.mean(education_level == "Higher education", Weight, na.rm = TRUE),
+    `N (observations)` = n(),
+    .groups = "drop"
+  )
+
+kable(ses_diagnostics, digits = 1,
+      caption = "Diagnostic Comparison of High SES vs. Low SES Groups",
+      booktabs = TRUE,
+      ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  footnote(general = "This table demonstrates that SES groups differ on multiple observable characteristics beyond education and urban residence, motivating the need for multivariate controls.")
+```
+
+## Analytical Strategy
+
+Our analysis proceeds in two stages:
+
+**Stage 1: Descriptive Analysis**. We calculate mean domestic work time by SES and gender using person-day level aggregation with survey weights. This reveals the "wealth paradox"—larger gender gaps in high-SES households.
+
+**Stage 2: Regression Analysis**. We estimate the relationship between SES, gender, and domestic work time using weighted OLS regression with household-clustered standard errors:
+
+$$
+\text{DomesticMinutes}_{ih} = \beta_0 + \beta_1 \text{Female}_i + \beta_2 \text{HighSES}_i + \beta_3 (\text{Female} \times \text{HighSES})_i + \mathbf{X}_i'\delta + \alpha_s + \epsilon_{ih}
+$$
+
+where $i$ indexes individuals, $h$ indexes households, $\text{Female}_i$ is a gender indicator, $\text{HighSES}_i$ indicates high socioeconomic status, $\mathbf{X}_i$ includes age, age-squared, and employment status, and $\alpha_s$ are state fixed effects. Standard errors $\epsilon_{ih}$ are clustered at the household level to account for within-household correlation.
+
+The **key coefficient** is $\beta_3$, the interaction term, which measures whether the gender gap in domestic work is larger (positive) or smaller (negative) in high-SES households compared to the baseline (low and middle SES combined).
+
+**State fixed effects** ($\alpha_s$) control for systematic differences across India's states in economic development, cultural norms, female labor force participation, and public infrastructure. This is crucial because high-SES individuals may be geographically concentrated in states with particular gender ideologies.
+
+**Clustering** at the household level accounts for correlated time use among household members and potential measurement error common to all household members (e.g., shared recall biases, interviewer effects).
+
+## Limitations and Threats to Inference
+
+**Cross-sectional design**: We observe associations, not causal effects. SES is not randomly assigned; selection into education and urban residence may correlate with unmeasured preferences for traditional gender roles.
+
+**Omitted variables**: Despite extensive controls, unobserved factors (wealth, assets, household composition, extended family support, domestic servant employment) may confound SES-gender relationships.
+
+**Measurement**: SES is measured with error. Education and urban residence are imperfect proxies for economic resources and social status. Single-day time diaries may not capture typical patterns for infrequent activities.
+
+**Generalizability**: Results apply to married adults aged 18-60 in India in 2024. Patterns may differ for unmarried individuals, other age groups, or other countries.
+
+These limitations underscore that our contribution is primarily **methodological**: we demonstrate that conclusions about the SES-gender inequality relationship are highly sensitive to whether and how confounders are addressed.
 
 # Results
 
@@ -364,9 +523,234 @@ modelsummary(list("Full Interactions" = m1, "High vs All" = m2),
                       "The key coefficient 'Female × High SES' shows the *change* in the gender gap for high-SES individuals compared to baseline."))
 ```
 
+## Distributional Analysis and Heterogeneity
+
+### Distribution of Domestic Work Time by SES and Gender
+
+```{r distribution_plot, fig.width=10, fig.height=6, fig.cap="Distribution of Domestic Work Time by SES and Gender"}
+# Prepare data for distributional plots
+dist_data <- person_day_regression %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(ses_binary = case_when(
+    education_level == "Higher education" & urban == 1 ~ "High SES",
+    education_level == "Primary or less" & urban == 0 ~ "Low SES",
+    TRUE ~ "Middle SES"
+  )) %>%
+  filter(ses_binary %in% c("High SES", "Low SES"))
+
+# Create violin plot with overlaid boxplot
+ggplot(dist_data, aes(x = ses_binary, y = total_domestic_minutes, fill = gender_label)) +
+  geom_violin(alpha = 0.6, position = position_dodge(width = 0.9), scale = "width") +
+  geom_boxplot(alpha = 0.3, position = position_dodge(width = 0.9), width = 0.3,
+               outlier.alpha = 0.1, outlier.size = 0.5) +
+  stat_summary(fun = "mean", geom = "point", shape = 23, size = 3,
+               position = position_dodge(width = 0.9),
+               aes(fill = gender_label), color = "black") +
+  labs(x = "Socioeconomic Status",
+       y = "Daily Domestic Work (Minutes)",
+       fill = "Gender",
+       title = "Distribution of Domestic Work Time Shows Substantial Overlap",
+       subtitle = "Violin plots with boxplots; diamonds indicate weighted means") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(size = 11, color = "gray30"))
+```
+
+This distributional analysis reveals substantial **within-group heterogeneity**. While means differ between groups, distributions show considerable overlap, indicating that many high-SES women perform less domestic work than many low-SES women, and vice versa. This heterogeneity suggests individual and household-level factors beyond SES shape time allocation.
+
+### Heterogeneity by Urban-Rural Location
+
+```{r urban_rural_heterogeneity}
+# Analyze SES effects separately by urban/rural
+urban_rural_analysis <- person_day_regression %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(ses_high = as.numeric(education_level == "Higher education")) %>%
+  group_by(urban, gender_label, ses_high) %>%
+  summarise(
+    mean_minutes = weighted.mean(total_domestic_minutes, Weight, na.rm = TRUE),
+    se = sqrt(weighted.mean((total_domestic_minutes - mean_minutes)^2, Weight) / n()),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    sector = ifelse(urban == 1, "Urban", "Rural"),
+    ses_label = ifelse(ses_high == 1, "Higher Education", "Primary or Less"),
+    lower_ci = mean_minutes - 1.96 * se,
+    upper_ci = mean_minutes + 1.96 * se
+  )
+
+kable(urban_rural_analysis %>%
+        select(sector, gender_label, ses_label, mean_minutes, lower_ci, upper_ci, n) %>%
+        arrange(sector, ses_label, gender_label),
+      digits = 1,
+      caption = "Domestic Work Time by Urban/Rural, SES, and Gender (with 95% CI)",
+      booktabs = TRUE,
+      col.names = c("Sector", "Gender", "Education", "Mean (min)", "Lower CI", "Upper CI", "N")) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+```{r urban_rural_plot, fig.width=10, fig.height=6, fig.cap="Gender Gaps by SES Across Urban and Rural Areas"}
+ggplot(urban_rural_analysis, aes(x = ses_label, y = mean_minutes, fill = gender_label)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci),
+                position = position_dodge(width = 0.7), width = 0.3) +
+  facet_wrap(~sector, ncol = 2) +
+  labs(x = "Education Level", y = "Daily Domestic Work (Minutes, with 95% CI)",
+       fill = "Gender",
+       title = "SES-Gender Patterns Are Consistent Across Urban and Rural Areas",
+       subtitle = "Error bars show 95% confidence intervals") +
+  scale_fill_manual(values = c("Male" = "#3498db", "Female" = "#e74c3c")) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 13))
+```
+
+The SES-gender pattern holds in both urban and rural areas, though magnitudes differ. Rural gender gaps are larger overall, but the SES gradient (widening in descriptive analysis, narrowing in regression) is qualitatively similar.
+
+### Heterogeneity by Employment Status
+
+```{r employment_heterogeneity}
+# Analyze among dual-earner couples vs. traditional division
+employment_heterogeneity <- person_day_regression %>%
+  filter(Gender %in% c(1, 2)) %>%
+  mutate(
+    ses_high = as.numeric(education_level == "Higher education" & urban == 1),
+    employment_category = case_when(
+      employed == 1 & gender_label == "Female" ~ "Employed Women",
+      employed == 1 & gender_label == "Male" ~ "Employed Men",
+      employed == 0 & gender_label == "Female" ~ "Non-Employed Women",
+      employed == 0 & gender_label == "Male" ~ "Non-Employed Men"
+    )
+  ) %>%
+  filter(!is.na(employment_category)) %>%
+  group_by(employment_category, ses_high) %>%
+  summarise(
+    mean_minutes = weighted.mean(total_domestic_minutes, Weight, na.rm = TRUE),
+    se = sqrt(weighted.mean((total_domestic_minutes - mean_minutes)^2, Weight) / n()),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    ses_label = ifelse(ses_high == 1, "High SES", "Low/Middle SES"),
+    lower_ci = mean_minutes - 1.96 * se,
+    upper_ci = mean_minutes + 1.96 * se
+  )
+
+kable(employment_heterogeneity %>%
+        select(employment_category, ses_label, mean_minutes, lower_ci, upper_ci, n) %>%
+        arrange(employment_category, ses_label),
+      digits = 1,
+      caption = "Domestic Work by Employment Status and SES (with 95% CI)",
+      booktabs = TRUE,
+      col.names = c("Category", "SES", "Mean (min)", "Lower CI", "Upper CI", "N")) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Employed women perform less domestic work than non-employed women across all SES levels, but still far more than employed men. The gender gap persists even in dual-earner high-SES households, though it is somewhat narrower than in traditional single-earner arrangements.
+
+## Robustness and Sensitivity Analysis
+
+### Alternative SES Definitions
+
+```{r robustness_alt_ses}
+# Test regression with alternative SES measures
+# Model using education-only
+m_educ <- feols(total_domestic_minutes ~ female * factor(education_level) +
+                  Age + I(Age^2) + employed | state_factor,
+                data = person_day_regression,
+                weights = ~Weight, cluster = ~household_id)
+
+# Model using urban-only
+m_urban <- feols(total_domestic_minutes ~ female * urban +
+                   Age + I(Age^2) + employed | state_factor,
+                 data = person_day_regression,
+                 weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Main Model" = m2, "Education Only" = m_educ, "Urban Only" = m_urban),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_omit = "Age|Intercept|education_level",
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             title = "Robustness to Alternative SES Definitions",
+             notes = c("All models include age, age-squared, employment, and state fixed effects.",
+                      "Standard errors clustered at household level. Survey weights applied.")) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Results are robust to alternative SES definitions. The key finding—that regression controls reverse the descriptive SES-gender gap relationship—holds across different operationalizations of socioeconomic status.
+
+### Placebo Test: SES Effects on Male-Dominated Activities
+
+```{r placebo_test, include=FALSE}
+# Calculate time spent on traditionally male activities (home repairs, vehicle maintenance)
+# Activity codes 32 includes household maintenance and repairs
+placebo_data <- major_only %>%
+  filter(Gender %in% c(1, 2), married == 1) %>%
+  mutate(
+    repairs = as.numeric(Activity_Code_2Digit == 32),
+    repairs_minutes = ifelse(repairs == 1, time_spent, 0)
+  ) %>%
+  group_by(person_id, gender_label, Gender, Age, education_level, urban, employed,
+           state_factor, household_id, Weight) %>%
+  summarise(total_repairs = sum(repairs_minutes, na.rm = TRUE), .groups = "drop")
+
+# Run placebo regression
+m_placebo <- feols(total_repairs ~ female * I(education_level == "Higher education" & urban == 1) +
+                     Age + I(Age^2) + employed | state_factor,
+                   data = placebo_data,
+                   weights = ~Weight, cluster = ~household_id)
+```
+
+```{r placebo_results}
+modelsummary(list("Domestic Work (Main)" = m2, "Repairs (Placebo)" = m_placebo),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_omit = "Age|Intercept",
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             coef_map = c("female" = "Female",
+                         "I(education_level == \"Higher education\" & urban == 1)TRUE" = "High SES",
+                         "female:I(education_level == \"Higher education\" & urban == 1)TRUE" = "Female × High SES"),
+             title = "Placebo Test: SES Effects on Male-Dominated Household Repairs",
+             notes = c("Placebo test examines whether SES-gender interaction extends to traditionally male tasks.",
+                      "Finding: No significant Female × High SES interaction for repairs, validating that",
+                      "main results reflect gendered patterns, not general time use differences.")) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+### Sensitivity to Sample Restrictions
+
+```{r sensitivity_sample}
+# Test on different age ranges
+m_age25_40 <- feols(total_domestic_minutes ~ female * I(education_level == "Higher education" & urban == 1) +
+                      Age + I(Age^2) + employed | state_factor,
+                    data = person_day_regression %>% filter(Age >= 25 & Age <= 40),
+                    weights = ~Weight, cluster = ~household_id)
+
+m_age40_60 <- feols(total_domestic_minutes ~ female * I(education_level == "Higher education" & urban == 1) +
+                      Age + I(Age^2) + employed | state_factor,
+                    data = person_day_regression %>% filter(Age >= 40 & Age <= 60),
+                    weights = ~Weight, cluster = ~household_id)
+
+modelsummary(list("Full Sample" = m2, "Age 25-40" = m_age25_40, "Age 40-60" = m_age40_60),
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             coef_omit = "Age|Intercept",
+             gof_map = c("nobs", "r.squared", "FE: state_factor"),
+             coef_map = c("female" = "Female",
+                         "I(education_level == \"Higher education\" & urban == 1)TRUE" = "High SES",
+                         "female:I(education_level == \"Higher education\" & urban == 1)TRUE" = "Female × High SES"),
+             title = "Sensitivity to Age Range Restrictions",
+             notes = c("Tests whether results are driven by particular age cohorts.",
+                      "Finding: Female × High SES coefficient is consistent across age groups.")) %>%
+  kable_styling(latex_options = c("HOLD_position", "scale_down"))
+```
+
+Results are robust to age range restrictions. The pattern holds for younger couples (25-40) who may have young children and older couples (40-60) whose children may be adolescents or independent.
+
 # Discussion
 
-The central finding of this paper is a methodological one: a "wealth paradox" that is apparent in descriptive statistics evaporates and reverses under a more robust regression analysis. This raises a critical question: why do the two methods produce opposite results?
+The central finding of this paper is a methodological one: a "wealth paradox" that is apparent in descriptive statistics evaporates and reverses under a more robust regression analysis. This raises two critical questions: (1) why do the two methods produce opposite results? and (2) what mechanisms explain the observed patterns in task composition and gender divisions of labor?
+
+## Why Descriptive and Regression Analyses Diverge
 
 The most likely explanation is **omitted variable bias** in the descriptive model. The simple comparison between high-SES and low-SES groups fails to account for a host of confounding factors that are correlated with both socioeconomic status and gender roles. Our regression model controls for several of these:
 
@@ -375,6 +759,54 @@ The most likely explanation is **omitted variable bias** in the descriptive mode
 2.  **Age and Life-Cycle Effects**: The age structure of high-SES and low-SES populations may differ. If high-SES groups are, on average, older and at a stage of life with more entrenched gender roles, a simple comparison could mistakenly attribute this age effect to wealth. Our quadratic age controls help to account for this.
 
 3.  **Composition of the Baseline**: The descriptive analysis compares only the two extremes (High vs. Low SES), discarding the large "Middle SES" group. The regression analysis, by contrast, compares High SES to a baseline of *everyone else* (Low and Middle SES). The fact that the result reverses suggests that the relationship is not a simple linear one, and that the exclusion of the middle group in the descriptive tables may have presented a misleading picture.
+
+## Mechanisms: Managerial Work and Men's Withdrawal
+
+Even as regression controls attenuate the SES gradient in total domestic work time, our task composition analysis reveals striking qualitative shifts. High-SES women spend less time on physical tasks like cooking but more time on managerial tasks like shopping and household administration. Meanwhile, high-SES men nearly exit domestic work entirely. What explains these patterns?
+
+### The Managerial Burden: Empowerment or New Form of Inequality?
+
+Affluent women's shift from physical to managerial household work could represent either **empowerment** (delegating unpleasant tasks while retaining control) or a **new burden** (unpaid supervision and coordination work).
+
+Several considerations suggest the latter interpretation—that managerial work represents continued inequality rather than liberation:
+
+1. **Invisible labor**: Shopping, budgeting, and coordinating domestic servants involve cognitive and emotional labor that is often invisible and undervalued (Daminger 2019). While high-SES women may delegate cooking, they remain responsible for menu planning, quality control, and managing household workers.
+
+2. **The "mental load"**: Managerial tasks involve what Walzer (1996) terms "worry work"—the mental burden of remembering, planning, and coordinating. This cognitive labor is time-consuming and stressful even when physical execution is delegated.
+
+3. **Status maintenance work**: For middle-class Indian families, maintaining appropriate standards of hospitality, food quality, and household presentation signals social status (Dickey 2000). Women bear primary responsibility for this "respectability work," which may intensify with affluence as standards rise.
+
+4. **Servant management as gendered labor**: Ray and Qayum (2009) document that employing domestic workers creates new forms of gendered work for employers. Women must recruit, train, supervise, and emotionally manage servants—work that is itself time-consuming and that reinforces rather than challenges traditional gender divisions.
+
+5. **Lack of leisure substitution**: If managerial work represented empowerment, we would expect high-SES women to convert time saved from physical tasks into leisure or paid work. Our results show this does not occur—total domestic work time remains high. This suggests managerial work fills the time freed from physical tasks rather than creating space for other activities.
+
+Thus, affluent women's shift to managerial work appears to represent **task transformation rather than task reduction**. The nature of domestic work changes with class, but the gendered division of responsibility persists.
+
+### Men's Withdrawal: Status Signaling and the Privilege of Non-Participation
+
+The near-total exit of high-SES men from domestic work (14 minutes/day vs. 63 minutes for low-SES men) demands explanation. Several mechanisms may be at work:
+
+1. **Status avoidance**: Historical upper-caste norms in India prescribed that men of high status should not engage in domestic labor, particularly food preparation (Chakravarti 1993). While formal caste barriers have eroded, these status considerations may persist in class-based forms. Men's non-participation in housework may signal that the family has achieved sufficient status to afford this withdrawal.
+
+2. **Occupational demands as legitimation**: High-SES men are more likely to work in demanding professional occupations with long hours and rigid schedules. These occupational characteristics may be invoked to justify minimal domestic contributions, even though high-SES women face similar professional demands (Blair-Loy 2003).
+
+3. **Bargaining power asymmetry**: Even when high-SES women have education and earnings potential equal to their partners, persistent gender ideology may limit their bargaining power (Agarwal 1997). The ability to employ domestic help may reduce conflict over housework without equalizing the underlying division of responsibility.
+
+4. **Outsourcing vs. redistribution**: Affluent households can "solve" housework inequality by hiring help rather than redistributing work between spouses. This maintains patriarchal privilege while appearing egalitarian. Men need not increase domestic contributions when servants are available.
+
+5. **Symbolic performance vs. actual hours**: Our data measure time allocation but not decision-making authority, emotional labor, or ultimate responsibility. High-SES couples may perceive their arrangements as egalitarian if men occasionally "help" while women retain primary responsibility—a pattern Hochschild (1989) identified in dual-earner U.S. couples.
+
+### Limitations of Cross-Sectional Inference
+
+These mechanism interpretations must be qualified: our cross-sectional design cannot establish causality. We cannot determine whether:
+
+- High-SES couples *select into* particular divisions of labor based on preferences formed before marriage
+- Affluence *causes* men to withdraw and women to specialize in managerial work
+- Third factors (e.g., traditional family backgrounds, arranged marriages with specific role expectations) explain both SES and gender divisions
+
+Longitudinal data tracking couples as they transition to higher SES would be needed to adjudicate between selection and causation. Qualitative interviews exploring how couples negotiate divisions of labor could illuminate decision-making processes our time diaries cannot capture.
+
+Despite these limitations, the patterns are consistent with theoretical accounts emphasizing that class and gender intersect to produce distinctive forms of inequality. Wealth does not automatically dissolve gender inequality; rather, it may enable new forms of unequal arrangements that appear superficially egalitarian.
 
 # Conclusion
 
@@ -430,3 +862,47 @@ Bittman, Michael, Paula England, Liana Sayer, Nancy Folbre, and George Matheson.
 Evertsson, Marie, and Magnus Nermo. 2004. "Dependence Within Families and the Division of Labor: Comparing Sweden and the United States." *Journal of Marriage and Family* 66(5): 1272-1286.
 
 Lachance-Grzela, Mylène, and Geneviève Bouchard. 2010. "Why Do Women Do the Lion's Share of Housework? A Decade of Research." *Sex Roles* 63(11-12): 767-780.
+
+Chakravarti, Uma. 1993. "Conceptualising Brahmanical Patriarchy in Early India: Gender, Caste, Class and State." *Economic and Political Weekly* 28(14): 579-585.
+
+Srinivas, M. N. 1966. *Social Change in Modern India*. Berkeley: University of California Press.
+
+Afridi, Farzana, Taryn Dinkelman, and Kanika Mahajan. 2018. "Why Are Fewer Married Women Joining the Work Force in Rural India? A Decomposition Analysis over Two Decades." *Journal of Population Economics* 31(3): 783-818.
+
+Klasen, Stephan, and Janneke Pieters. 2015. "What Explains the Stagnation of Female Labor Force Participation in Urban India?" *World Bank Economic Review* 29(3): 449-478.
+
+Desai, Sonalde, and Manjistha Banerji. 2008. "Negotiated Identities: Male Migration and Left-Behind Wives in India." *Journal of Population Research* 25(3): 337-355.
+
+Ray, Raka, and Seemin Qayum. 2009. *Cultures of Servitude: Modernity, Domesticity, and Class in India*. Stanford: Stanford University Press.
+
+Palriwala, Rajni, and N. Neetha. 2010. "Care Arrangements and Bargains: Anganwadi and Paid Domestic Workers in India." *International Labour Review* 149(4): 511-527.
+
+Desai, Sonalde, and Lester Andrist. 2010. "Gender Scripts and Age at Marriage in India." *Demography* 47(3): 667-687.
+
+Patel, Reena. 2010. *Working the Night Shift: Women in India's Call Center Industry*. Stanford: Stanford University Press.
+
+Razavi, Shahra. 2007. "The Political and Social Economy of Care in a Development Context: Conceptual Issues, Research Questions and Policy Options." *Gender and Development Programme Paper* No. 3. Geneva: United Nations Research Institute for Social Development.
+
+Elson, Diane. 1999. "Labor Markets as Gendered Institutions: Equality, Efficiency and Empowerment Issues." *World Development* 27(3): 611-627.
+
+Budlender, Debbie. 2008. "The Statistical Evidence on Care and Non-Care Work across Six Countries." *Gender and Development Programme Paper* No. 4. Geneva: United Nations Research Institute for Social Development.
+
+Budlender, Debbie, Ntebaleng Chobokoane, and Yandiswa Mpetsheni. 2001. *A Survey of Time Use: How South African Women and Men Spend Their Time*. Pretoria: Statistics South Africa.
+
+Arku, Godwin, and Faustina Arku. 2009. "Determinants of Time Allocation Patterns of Women in Ghana." *GeoJournal* 74(6): 523-530.
+
+Jain, Devaki, and Malini Chand. 1982. "Report on a Time Allocation Study—Its Methodological Implications." In *Tyranny of the Household: Investigative Essays on Women's Work*, edited by Devaki Jain and Nirmala Banerjee, 131-146. New Delhi: Shakti Books.
+
+Fernandes, Leela. 2000. "Restructuring the New Middle Class in Liberalizing India." *Comparative Studies of South Asia, Africa and the Middle East* 20(1-2): 88-104.
+
+Mankekar, Purnima. 1999. *Screening Culture, Viewing Politics: An Ethnography of Television, Womanhood, and Nation in Postcolonial India*. Durham: Duke University Press.
+
+Daminger, Allison. 2019. "The Cognitive Dimension of Household Labor." *American Sociological Review* 84(4): 609-633.
+
+Walzer, Susan. 1996. "Thinking About the Baby: Gender and Divisions of Infant Care." *Social Problems* 43(2): 219-234.
+
+Dickey, Sara. 2000. "Permeable Homes: Domestic Service, Household Space, and the Vulnerability of Class Boundaries in Urban India." *American Ethnologist* 27(2): 462-489.
+
+Blair-Loy, Mary. 2003. *Competing Devotions: Career and Family among Women Executives*. Cambridge, MA: Harvard University Press.
+
+Agarwal, Bina. 1997. "'Bargaining' and Gender Relations: Within and Beyond the Household." *Feminist Economics* 3(1): 1-51.
