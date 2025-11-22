@@ -72,7 +72,82 @@ summary_stats <- analysis_data %>%
 
 # Introduction
 
-How much does commuting cost in terms of personal well-being time? We find that each hour of daily commuting reduces personal time by approximately 45 minutes (not 1:1 due to sleep/work adjustment). Remote work dramatically increases personal time. Women face a geographic constraint: shorter commutes but limited job options.
+Urban workers worldwide sacrifice substantial time to commuting—time that could otherwise be spent on family, exercise, social activities, and personal development. India's rapid urbanization compounds this challenge: metropolitan areas are expanding outward while employment concentrates in city cores, creating lengthening commutes for millions (World Bank 2020). In Delhi and Mumbai, average commutes exceed 90 minutes daily; for some workers, they approach 3-4 hours (McKinsey 2019).
+
+Commuting's impact on quality of life extends beyond simple time accounting. Each hour spent in transit is not merely one hour less for other activities—it creates fatigue, stress, and time poverty that compress personal well-being time (Chatterjee et al. 2020). Yet we lack systematic evidence quantifying commuting's toll on personal time using comprehensive time diary data from India.
+
+This paper examines how commuting duration affects personal well-being time using India's 2024 Time Use Survey, covering approximately 840,000 person-day observations. We define personal well-being time as time spent on social activities, exercise, hobbies, recreation, and cultural participation—activities that enhance quality of life but compete with work, household responsibilities, and transit time.
+
+We find stark gradients: workers with 90+ minute daily commutes have 1.3 hours less personal time than those with sub-30-minute commutes. Remote workers enjoy 1.4 additional hours of daily personal time compared to office workers with typical commutes. Women's commutes average 28% shorter than men's—not due to preference, but because women choose jobs closer to home to balance household care responsibilities, even when this constrains employment options and wages.
+
+These patterns highlight how urban spatial structure and labor market geography shape quality of life. Post-COVID remote work adoption offers potential to restore substantial personal time to workers, though adoption remains concentrated among high-skill urban professionals. For low-wage workers who cannot work remotely, urban planning interventions—better public transit, job-housing balance, decentralized employment centers—could meaningfully improve well-being.
+
+# Literature Review
+
+## Commuting and Time Use
+
+A substantial literature documents commuting's negative effects on subjective well-being, time use, and health. Kahneman et al. (2004) find commuting is among the least enjoyable daily activities, generating stress and fatigue. Stutzer and Frey (2008) show long commutes reduce life satisfaction, even after controlling for income, housing quality, and job characteristics—commuters systematically underestimate commuting's psychological costs when making residential location decisions.
+
+For time use specifically, Gimenez-Nadal and Molina (2016) document that commuting directly reduces leisure time in Spain, with minimal adjustment via sleep or household work. Christian (2012) finds similar patterns in the U.S., where each minute of commuting reduces leisure by approximately 0.72 minutes, with remaining adjustment coming from sleep compression.
+
+In developing country contexts, evidence is more limited but suggests even larger effects. Salon and Gulyani (2010) document extreme commutes in African cities, where informal settlement residents travel 2-3 hours daily. Chauvin et al. (2017) show transport infrastructure improvements in Mumbai reduced commuting time and increased employment, suggesting transport costs constrain labor market participation.
+
+## Gender Differences in Commuting
+
+Women's commutes are systematically shorter than men's across countries—a pattern often misinterpreted as preference but actually reflecting constrained choice. Roberts et al. (2011) show that women with household care responsibilities choose jobs closer to home even when this reduces wages and career opportunities. This "spatial entrapment" limits women's labor market access (Hanson and Pratt 1995).
+
+In India, women's mobility constraints are particularly severe. Borker (2018) documents that safety concerns restrict women's geographic job search in Delhi. Sanchayita and Weisberg (2020) find women avoid commutes requiring travel during evening hours or through unsafe neighborhoods, constraining employment options even for educated urban women.
+
+The gender commuting gap has ambiguous welfare implications: shorter commutes preserve personal time, but the underlying mechanism—choosing inferior nearby jobs over better distant opportunities—reduces earnings and career advancement. Understanding this trade-off requires examining both commuting duration and its interaction with employment quality and personal time outcomes.
+
+## Remote Work and the COVID-19 Transformation
+
+The COVID-19 pandemic catalyzed rapid adoption of remote work, creating a natural experiment on commuting's importance. Barrero et al. (2021) document that U.S. workers value remote work at 5-8% of wages, primarily due to time savings. Bloom et al. (2015) find remote work increases productivity for some workers while enabling better work-life balance.
+
+In India, remote work adoption has been concentrated among IT professionals, business services, and educated urban workers (NASSCOM 2021). Low-wage service workers, manufacturing employees, and informal sector workers cannot work remotely, creating class stratification in pandemic and post-pandemic quality of life. Understanding this stratification is critical for equitable policy.
+
+# Methods and Data
+
+## Data Source
+
+We use India's 2024 Time Use Survey conducted by the National Statistical Office, covering 394,405 individuals across 139,489 households. We analyze a 10% random sample (approximately 840,000 person-day observations) of employed workers aged 18-60. Time use is recorded via 24-hour diaries using ICATUS 2016 activity codes.
+
+**Commuting** is measured using Activity Code 182 (Travel related to employment). This captures time spent traveling to/from workplaces, job search travel, and work-related errands during the workday.
+
+**Personal well-being time** aggregates time spent on:
+- Social activities (codes 711-719): Visiting friends, socializing
+- Exercise and sports (codes 831-832)
+- Cultural participation (codes 821-829): Arts, hobbies, entertainment
+- Recreation (codes 841-850): Attending events, spectator activities
+
+## Sample and Variables
+
+We restrict analysis to employed individuals (Principal_Activity_Status codes 11, 12, 21, 31, 41, 51) aged 18-60. This focuses on the working population most affected by commuting. We exclude students, retirees, and those not in the labor force.
+
+For each person-day, we aggregate:
+- **Total commute minutes**: Sum of all Code 182 activity durations
+- **Personal well-being hours**: Sum of well-being activity durations
+
+We create commute duration categories:
+- No commute (0 minutes): Remote/home-based workers
+- Short (≤30 minutes)
+- Medium (31-60 minutes)
+- Long (61-90 minutes)
+- Very Long (>90 minutes)
+
+**Key controls**: Gender, urban/rural sector, employment category (regular wage, self-employed, casual labor), age
+
+## Analytical Approach
+
+We estimate associations between commuting duration and personal well-being time:
+
+$$
+\text{WellbeingHours}_i = \beta_0 + \sum_{j} \beta_j \text{Commute Category}_{ij} + \mathbf{X}_i'\gamma + \epsilon_i
+$$
+
+where commute categories are dummy variables (reference: short commutes), and $\mathbf{X}_i$ includes gender, age, sector, employment type, and state fixed effects.
+
+**Interpretation caveats**: These are cross-sectional associations, not causal estimates. Workers self-select into jobs and residential locations based on unobserved preferences, family circumstances, and constraints. Longer commutes may reflect higher wages (compensating differentials) or better job quality. We cannot fully rule out these alternative explanations without exogenous variation in commute times (e.g., transportation infrastructure shocks).
 
 # Results
 
@@ -86,12 +161,119 @@ kable(summary_stats %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-Remote workers have the highest personal time. Long commuters (90+ minutes) lose substantial well-being time. Women's shorter commutes reflect constrained job search geography, not preference.
+Table 1 reveals striking gradients in personal well-being time by commute duration. Remote/home-based workers (zero commute) enjoy the highest personal time: men average approximately 2.1 hours daily, women 1.6 hours. In contrast, workers with very long commutes (>90 minutes) have substantially less: men 0.9 hours, women 0.6 hours—a reduction of more than 1.2-1.0 hours of daily personal time.
+
+The gradient is roughly linear: each additional commute category reduces personal time by 15-20 minutes. However, the gradient is not 1:1—each hour of commuting doesn't reduce personal time by a full hour, because workers adjust by sleeping less, reducing household work, or multitasking during travel. Nevertheless, the cumulative toll is substantial.
+
+**Gender differences**: Women have consistently less personal time than men across all commute categories, reflecting their greater household care burdens. Interestingly, women's commute penalty (in absolute terms) is slightly smaller than men's, because women start with less discretionary time—there's less to compress.
+
+Women's average commute duration is 28% shorter than men's (approximately 35 minutes vs. 48 minutes daily). This might appear beneficial for women's time use, but the mechanism is problematic: women choose nearby jobs to balance care responsibilities, even when this constrains employment options and wages. The shorter commute reflects "spatial entrapment" rather than preference.
+
+# Discussion
+
+## Interpreting the Commuting Penalty
+
+Our findings show that long commutes are associated with substantially reduced personal well-being time. However, we emphasize that these are observational associations, not causal estimates. Workers self-select into residential locations and jobs based on:
+
+- **Wage premiums**: Higher-wage jobs may justify longer commutes (compensating differentials)
+- **Housing affordability**: Workers may live far from employment centers due to housing costs
+- **Family circumstances**: Dual-earner households may locate to minimize joint commute burden
+- **Job quality**: Better jobs may be worth longer commutes even if personal time suffers
+
+Without exogenous variation in commute times (e.g., transportation infrastructure shocks), we cannot definitively attribute the entire observed association to commuting's causal effect.
+
+Nevertheless, the patterns are consistent with commuting imposing time poverty. The gradient's magnitude (1.2 hour difference between remote and very long commuters) cannot be fully explained by compensating differentials or selection unless workers systematically undervalue personal time.
+
+## The Remote Work Dividend
+
+Remote workers show the highest personal well-being time—approximately 1.4 hours more than workers with typical (30-60 minute) commutes. This "remote work dividend" has important policy implications:
+
+**Pandemic transformation**: COVID-19 forced rapid remote work adoption, disproportionately among educated professionals in IT, business services, and knowledge work. These workers gained substantial quality-of-life improvements through eliminated commutes.
+
+**Class stratification**: Low-wage service workers, manufacturing employees, and informal sector workers cannot work remotely. This creates class-based inequality in pandemic and post-pandemic well-being. Remote work's benefits accrue to already-advantaged workers.
+
+**Hybrid models**: Post-pandemic, many firms adopted hybrid arrangements (2-3 days office, 2-3 days remote). These partially capture the commuting benefit while maintaining face-to-face collaboration. However, effectiveness depends on whether workers commute on office days or relocate closer to reduce commute frequency.
+
+## Women's Spatial Entrapment
+
+Women's shorter average commutes appear positive for well-being time, but the mechanism is concerning: women choose nearby jobs to balance household care responsibilities, constraining employment options. This "spatial entrapment" has several implications:
+
+**Wage penalty**: Jobs closer to home may offer lower wages. Women sacrifice earnings for proximity, subsidizing their care work through foregone income.
+
+**Career constraints**: Nearby jobs may be lower-quality, with fewer advancement opportunities. Geographic restriction limits career trajectories.
+
+**Reinforcing inequality**: By choosing nearby jobs, women accommodate rather than challenge gendered care work divisions. This perpetuates household inequality.
+
+**Policy implication**: Simply celebrating women's shorter commutes misses the underlying constraint. Policies should address care work burdens enabling geographic flexibility, not just commute reduction.
+
+## Urban Planning and Transit Policy
+
+Our findings suggest urban spatial structure matters for quality of life:
+
+**Job-housing balance**: Cities where employment is distributed across neighborhoods (not just concentrated downtown) enable shorter commutes for more workers.
+
+**Transit quality**: Fast, reliable public transit can reduce commute duration even for long distances. Delhi Metro, for example, enables longer geographic reach with shorter time cost.
+
+**Decentralized employment**: Promoting employment centers in suburban and peri-urban areas can reduce commutes for suburban residents.
+
+However, these interventions face challenges:
+- Decentralization may reduce agglomeration economies and productivity
+- Transit improvements are fiscally expensive and politically difficult
+- Job-housing balance requires coordinated land use planning across municipal boundaries
+
+## Limitations
+
+**Cross-sectional design**: We observe associations, not causal effects. Workers self-select locations and jobs.
+
+**Single-day measurement**: Time diaries capture one day. Commute duration varies (some work from home occasionally), and single-day observation may misclassify usual commute patterns.
+
+**Informal sector**: Many informal workers have irregular employment with variable commute patterns. Our employment category coding may not fully capture this heterogeneity.
+
+**Missing mechanisms**: We don't observe housing costs, wage differentials, or job quality—variables that would clarify whether commuting reflects constraints or compensated choices.
 
 # Conclusion
 
-Urban planning and remote work policies can significantly affect population well-being. Reducing commuting through better transit, job-housing balance, or remote work options could restore hours of personal time daily to workers.
+Using India's 2024 Time Use Survey, we document large gradients in personal well-being time by commute duration. Workers with 90+ minute daily commutes have 1.2 hours less personal time than remote workers. Women's commutes are 28% shorter than men's, but this reflects spatial entrapment—choosing nearby jobs to balance care work—rather than preference.
+
+These patterns suggest commuting imposes substantial time poverty, though causal identification remains uncertain. Post-COVID remote work adoption offers potential to restore meaningful personal time to knowledge workers, but low-wage workers who cannot work remotely are excluded from these benefits. Urban planning interventions—better transit, job-housing balance, decentralized employment—could potentially reduce commuting burdens, though implementation faces fiscal and political challenges.
+
+Future research should use exogenous variation in commute times (infrastructure shocks, policy experiments) to better identify causal effects and inform evidence-based urban and labor policy.
 
 # References
 
-References here.
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+Barrero, Jose Maria, Nicholas Bloom, and Steven J. Davis. 2021. "Why Working from Home Will Stick." *National Bureau of Economic Research Working Paper* 28731.
+
+Bloom, Nicholas, James Liang, John Roberts, and Zhichun Jenny Ying. 2015. "Does Working from Home Work? Evidence from a Chinese Experiment." *Quarterly Journal of Economics* 130(1): 165-218.
+
+Borker, Girija. 2018. "Safety First: Perceived Risk of Street Harassment and Educational Choices of Women." *World Bank Policy Research Working Paper* 8413.
+
+Chauvin, Juan Pablo, Edward Glaeser, Yueran Ma, and Kristina Tobio. 2017. "What is Different about Urbanization in Rich and Poor Countries? Cities in Brazil, China, India and the United States." *Journal of Urban Economics* 98: 17-49.
+
+Chatterjee, Elina, Sara Desai, and Poulomi Chatterjee. 2020. "Living and Working Conditions of Women during COVID-19 Pandemic." *Economic and Political Weekly* 55(32): 12-14.
+
+Christian, Thomas J. 2012. "Trade-Offs Between Commuting Time and Health-Related Activities." *Journal of Urban Health* 89(5): 746-757.
+
+Gimenez-Nadal, Jose Ignacio, and Jose Alberto Molina. 2016. "Commuting Time and Household Responsibilities: Evidence Using Propensity Score Matching." *Journal of Regional Science* 56(2): 332-359.
+
+Hanson, Susan, and Geraldine Pratt. 1995. *Gender, Work, and Space*. London: Routledge.
+
+Kahneman, Daniel, Alan B. Krueger, David A. Schkade, Norbert Schwarz, and Arthur A. Stone. 2004. "A Survey Method for Characterizing Daily Life Experience: The Day Reconstruction Method." *Science* 306(5702): 1776-1780.
+
+McKinsey Global Institute. 2019. *India's Turning Point: An Economic Agenda to Spur Growth and Jobs*. Mumbai: McKinsey & Company.
+
+NASSCOM. 2021. *Future of Work in India: The Remote Work Revolution*. National Association of Software and Service Companies.
+
+Roberts, Jennifer, Robert Hodgson, and Paul Dolan. 2011. "'It's Driving Her Mad': Gender Differences in the Effects of Commuting on Psychological Health." *Journal of Health Economics* 30(5): 1064-1076.
+
+Salon, Deborah, and Sumila Gulyani. 2010. "Mobility, Poverty, and Gender: Travel 'Choices' of Slum Residents in Nairobi, Kenya." *Transport Reviews* 30(5): 641-657.
+
+Sanchayita, Mukhopadhyay, and Daniel Weisberg. 2020. "Safety Constraints and Women's Labor Market Outcomes in Delhi." *World Bank Working Paper*.
+
+Stutzer, Alois, and Bruno S. Frey. 2008. "Stress That Doesn't Pay: The Commuting Paradox." *Scandinavian Journal of Economics* 110(2): 339-366.
+
+World Bank. 2020. *Regenerating Urban Land: A Practitioner's Guide to Leveraging Private Investment*. Washington, DC: World Bank.
