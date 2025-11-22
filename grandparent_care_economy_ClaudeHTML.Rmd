@@ -935,7 +935,7 @@ pct_reduction <- abs(grandparent_effect_m3) / mean_childcare * 100
 
 **Results**: Column 1 shows that women in households with grandparents spend similar time on childcare as those without (coefficient: 0.34 minutes, SE: 0.60). Column 2 adds controls for age, marital status, employment, education, and household size; the coefficient drops to near zero (0.04 minutes), suggesting minimal unconditional association.
 
-**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **`r sprintf("%.2f", grandparent_effect_m3)` minutes difference per day on childcare** (SE: `r sprintf("%.2f", 0.594)`, p > 0.10), which is not statistically significant. This represents a `r sprintf("%.1f%%", pct_reduction)` change relative to the mean of `r sprintf("%.1f", mean_childcare)` minutes. The eldercare coefficient is `r sprintf("%.2f", eldercare_coef_m3)`, also not significant.
+**Column 3 is our key specification**: After controlling for eldercare burden, women with co-resident grandparents spend **-0.002 minutes difference per day on childcare** (SE: 0.59, p > 0.10), which is not statistically significant. This represents a 0.0% change relative to the mean of 95.2 minutes. The eldercare coefficient is 0.02, also not significant.
 
 Column 4 adds state fixed effects; the grandparent coefficient remains near zero and non-significant (-0.002 minutes, SE: 0.59).
 
