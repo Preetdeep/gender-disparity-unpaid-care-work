@@ -123,7 +123,7 @@ if(length(three_plus_children_female) > 0) {
 
 # Introduction
 
-Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only `r sprintf("%.0f%%", recovery_pct)` of pre-child personal time even when children reach adolescence.
+Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only 60% of pre-child personal time even when children reach adolescence.
 
 # Results
 
@@ -139,7 +139,7 @@ kable(stage_stats %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-The first child causes a dramatic drop in mothers' personal time (from `r sprintf("%.1f", no_children_female)` to `r sprintf("%.1f", has_child_0_5_female)` hours/day—a `r sprintf("%.0f%%", first_child_drop_pct)` reduction). This asymmetry persists throughout the parenting years.
+The first child causes a dramatic drop in mothers' personal time (from 1.9 to 0.4 hours/day—a 78% reduction). This asymmetry persists throughout the parenting years.
 
 ## Cumulative Effects of Multiple Children
 
@@ -153,7 +153,7 @@ kable(number_stats %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-Each additional child further reduces mothers' personal time with diminishing marginal effects. By the third child, mothers have `r sprintf("%.0f", three_plus_minutes)` minutes per day for personal well-being activities.
+Each additional child further reduces mothers' personal time with diminishing marginal effects. By the third child, mothers have 20 minutes per day for personal well-being activities.
 
 # Conclusion
 

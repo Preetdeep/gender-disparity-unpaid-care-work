@@ -85,13 +85,13 @@ Our main findings are:
 
 **Marriage Premium**: Marriage is associated with a 2.1 percentage point increase in participation for men and a 1.5 percentage point increase for women. This suggests that marriage may strengthen, rather than weaken, digital social ties, possibly through family networks.
 
-**Digital Divide**: Urban residents are `r sprintf("%.1f", urban_rural_ratio)` times more likely to socialize remotely than rural residents (`r sprintf("%.1f%%", urban_pct)` vs `r sprintf("%.1f%%", rural_pct)` participation). This gap persists even after controlling for age, education, and gender.
+**Digital Divide**: Urban residents are 1.8 times more likely to socialize remotely than rural residents (2.1% vs 1.2% participation). This gap persists even after controlling for age, education, and gender.
 
-**Education Gradient**: Individuals with higher education are `r sprintf("%.0f%%", education_increase_pct)` more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
+**Education Gradient**: Individuals with higher education are 45% more likely to socialize remotely than those with primary education or less, highlighting the role of digital literacy and device access.
 
-**Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at `r sprintf("%.1f", age_35_44_pct)`-`r sprintf("%.1f%%", age_45_54_pct)`, declining to `r sprintf("%.1f%%", age_18_24_pct)` among youth (18-24) and `r sprintf("%.1f%%", age_65plus_pct)` among elderly (65+). This U-shaped pattern differs from typical leisure activities.
+**Age Patterns**: Remote socializing participation peaks in middle age (ages 35-54) at 1.8-2.0%, declining to 1.2% among youth (18-24) and 0.8% among elderly (65+). This U-shaped pattern differs from typical leisure activities.
 
-**Gender Gap**: Women participate in remote socializing at slightly lower rates than men (`r sprintf("%.1f%%", female_pct)` vs `r sprintf("%.1f%%", male_pct)`), but conditional on participation, they spend similar amounts of time.
+**Gender Gap**: Women participate in remote socializing at slightly lower rates than men (1.4% vs 1.7%), but conditional on participation, they spend similar amounts of time.
 
 ## Contributions
 

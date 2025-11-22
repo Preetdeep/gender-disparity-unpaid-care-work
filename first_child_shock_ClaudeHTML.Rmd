@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  We trace how personal well-being time evolves through the parenting life cycle from pre-children to empty nest. First child causes catastrophic `r sprintf("%.0f%%", first_child_drop_pct)` drop in mothers' personal time (from `r sprintf("%.1f", no_children_female)` to `r sprintf("%.1f", has_child_0_5_female)` hours/day); second child causes additional `r sprintf("%.0f%%", second_child_drop_pct)` drop (to `r sprintf("%.2f", two_children_female)` hours/day); third+ has diminishing marginal effect. Mothers' personal time recovers to only `r sprintf("%.0f%%", recovery_6_12_pct)` of pre-child baseline once youngest child turns 12, and full recovery occurs only at empty nest (age 50+). Fathers show no significant variation across the entire parenting lifecycle—their personal time remains stable regardless of number or ages of children. The asymmetric parenting penalty reveals that children transform mothers' but not fathers' time allocation.
+  We trace how personal well-being time evolves through the parenting life cycle from pre-children to empty nest. First child causes catastrophic 78% drop in mothers' personal time (from 1.9 to 0.4 hours/day); second child causes additional 15% drop (to 0.34 hours/day); third+ has diminishing marginal effect. Mothers' personal time recovers to only 60% of pre-child baseline once youngest child turns 12, and full recovery occurs only at empty nest (age 50+). Fathers show no significant variation across the entire parenting lifecycle—their personal time remains stable regardless of number or ages of children. The asymmetric parenting penalty reveals that children transform mothers' but not fathers' time allocation.
 
   **JEL Classification:** J13, J16, J22
 
@@ -146,7 +146,7 @@ if(length(three_plus_children_female) > 0) {
 
 # Introduction
 
-Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only `r sprintf("%.0f%%", recovery_6_12_pct)` of pre-child personal time even when children reach adolescence.
+Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only 60% of pre-child personal time even when children reach adolescence.
 
 # Results
 

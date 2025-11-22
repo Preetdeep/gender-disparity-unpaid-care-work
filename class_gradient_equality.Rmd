@@ -4,7 +4,7 @@ author:
   - "Dr Preet Deep Singh^[Blue Machines, preetdeepsingh111@yahoo.com]"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 abstract: |
-  Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we re-examine the relationship between socioeconomic status and household gender inequality. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears `r sprintf("%.0f%%", gap_pct_increase)` larger in high-SES households (`r sprintf("%.0f", high_ses_gap)` minutes/day) than in low-SES households (`r sprintf("%.0f", low_ses_gap)` minutes).
+  Using a 10% random sample of India's 2024 Time Use Survey (approximately 1 million person-day observations from 139,489 households), we re-examine the relationship between socioeconomic status and household gender inequality. Descriptive statistics suggest a "wealth paradox": the gender gap in domestic work appears 33% larger in high-SES households (122 minutes/day) than in low-SES households (92 minutes).
 
   However, this paper demonstrates that this paradox is a statistical illusion that dissolves under more rigorous scrutiny. A multivariate regression analysis, controlling for crucial confounding variables such as age, employment status, and state-level cultural and economic differences, reveals the opposite conclusion: the gender gap in domestic work is actually slightly *smaller* in high-SES households.
 
