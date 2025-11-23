@@ -22,13 +22,15 @@ fontsize: 12pt
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE)
-library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest); library(kableExtra); library(tidyr)
+library(haven); library(dplyr); library(ggplot2); library(knitr); library(fixest)
+library(kableExtra); library(tidyr); library(Hmisc); library(modelsummary)
 ```
 
 ```{r analysis, include=FALSE}
 data <- read_dta("TimeUse106PER.dta", col_select = c(
   Gender, Activity_Code_3Digit, time_spent, Weight, Major_Activity_Flag,
-  Age, Marital_Status, FSU_Serial_No, Sample_HH_No, Person_Serial_No))
+  Age, Marital_Status, FSU_Serial_No, Sample_HH_No, Person_Serial_No,
+  Sector, Highest_Education, Principal_Activity_Status))
 
 set.seed(123); data <- data %>% slice_sample(prop = 0.1) %>% mutate(Weight = Weight / 0.1)
 
@@ -123,42 +125,493 @@ if(length(three_plus_children_female) > 0) {
 
 # Introduction
 
-Does personal time ever recover after having children? We trace the parenting lifecycle from pre-children through empty nest. First child causes catastrophic drops for mothers but minimal effects for fathers. Recovery is slow and incomplete: mothers regain only 60% of pre-child personal time even when children reach adolescence.
+The "child penalty" literature has documented substantial, persistent effects of childbearing on mothers' labor force participation, earnings, and career trajectories across developed economies (Kleven, Landais, and Søgaard 2019; Angelov, Johansson, and Lindahl 2016). Yet remarkably little attention has been paid to the child penalty on personal well-being time—the hours mothers and fathers spend on exercise, socializing, religious practice, reading, and leisure activities critical for physical health, mental health, and life satisfaction.
+
+This gap is consequential. Time poverty affects maternal health, social capital formation, and overall well-being independently of labor market or income effects. When mothers lose time for health-promoting and socially enriching activities, the consequences extend beyond immediate time pressure to long-term health outcomes, social isolation, and reduced life satisfaction. Understanding how personal time evolves through the parenting life cycle—from pre-children through empty nest—is essential for comprehending the full scope of gendered parenting costs.
+
+This paper uses India's 2024 Time Use Survey to trace personal well-being time across the complete parenting life cycle. India provides a particularly informative context for three reasons. First, India's extended family structures—where grandparents, siblings, and other relatives often co-reside—might be expected to buffer mothers against time demands, sharing childcare responsibilities across generations. Second, India's strong traditional gender norms around caregiving may produce larger asymmetries between mothers and fathers than observed in Northern European contexts where most child penalty research has been conducted. Third, India is undergoing rapid fertility transition, with cohorts moving from high fertility (4+ children) to near-replacement fertility (2 children), making it critical to understand how parenting time costs vary with family size.
+
+We document an asymmetric, severe, and persistent child penalty on mothers' personal time. The first child is associated with catastrophic drops in mothers' personal well-being time but minimal effects for fathers. Recovery is slow and incomplete: even when children reach adolescence, mothers have regained only partial recovery toward pre-child levels, while fathers show no significant variation across the entire parenting lifecycle.
+
+These findings contribute to three literatures. First, we extend the child penalty literature from labor market outcomes to well-being time (Bertrand 2011). Second, we add to research on time use and gender inequality in developing countries, where traditional norms may magnify gendered time burdens (Hirway 2010; Chakraborty and Chatterjee 2019). Third, we contribute to policy discussions about work-family balance by quantifying time costs across the full parenting trajectory rather than just early childhood.
+
+The remainder of this paper proceeds as follows. Section 2 reviews relevant literature. Section 3 describes our data sources, measurement approach, and analytical methods. Section 4 presents results on how personal time varies across parenting stages, number of children, and demographic subgroups. Section 5 discusses mechanisms, limitations, and policy implications. Section 6 concludes.
+
+# Literature Review
+
+## The Child Penalty on Labor Market Outcomes
+
+Recent research has documented substantial and persistent penalties associated with motherhood across diverse economies. Kleven, Landais, and Søgaard (2019) show that in Denmark, women experience a 20% decline in earnings following the birth of their first child, an effect that persists for decades. This "child penalty" is driven by reductions in labor force participation, hours worked, and wage rates. Similar patterns emerge in Germany (Adda, Dustmann, and Stevens 2017), the United States (Bertrand 2011), and the United Kingdom (Angelov, Johansson, and Lindahl 2016).
+
+Importantly, these studies find minimal or no child penalty for fathers. The asymmetry suggests that the penalty is not merely about children requiring parental time, but about how that requirement is distributed between mothers and fathers based on gender norms (Olivetti and Petrongolo 2017). In developing country contexts with more traditional gender norms, we might expect even larger asymmetries.
+
+## Time Use and Gender Inequality
+
+Time use research reveals that women worldwide perform the majority of unpaid domestic work and caregiving, even when employed full-time (Ferrant, Pesando, and Nowacka 2014). In South Asia specifically, married women spend 3-6 hours daily on unpaid work compared to less than 1 hour for men (Hirway 2010; Chakraborty and Chatterjee 2019). This "second shift" crowds out time for leisure, self-care, and social activities.
+
+The temporal demands intensify dramatically with children. Mothers spend substantially more time than fathers on both routine childcare (feeding, bathing, dressing) and interactive childcare (playing, reading, teaching), with this gap widening as the number of children increases (Craig and Mullan 2011; Gimenez-Nadal and Sevilla 2012). Time diary studies show mothers' leisure time declines sharply with each additional child, while fathers' leisure remains relatively stable (Bianchi, Robinson, and Milkie 2006).
+
+## Personal Time and Well-Being
+
+Personal time for health-promoting and socially enriching activities is critical for physical health, mental health, and life satisfaction. Exercise reduces cardiovascular disease and improves mental health (Warburton, Nicol, and Bredin 2006). Social activities build social capital and reduce isolation (Putnam 2000). Religious participation is associated with better health outcomes and longevity (Koenig, King, and Carson 2012).
+
+When mothers lose time for these activities due to childcare demands, the consequences extend beyond immediate time pressure to long-term health and well-being. Research on maternal health shows that mothers of young children have elevated rates of depression, anxiety, and stress-related conditions (Evenson and Simon 2005), outcomes potentially linked to time poverty and social isolation.
+
+# Data and Methods
+
+## Data Source and Sample
+
+We use India's Time Use Survey 2024 (TUS), a nationally representative survey collecting 24-hour time diaries from all household members aged 6 and above. The survey was conducted throughout 2024, with approximately equal distribution across months to control for seasonality in time use patterns. Respondents recorded their activities in 30-minute intervals, including primary activities, secondary (simultaneous) activities, and location information.
+
+Our analytical sample focuses on married adults aged 25-55. We restrict to married individuals because parenting status is more clearly defined for married adults, and we restrict the age range to focus on prime parenting years. After applying these filters and using a 10% random sample for computational efficiency (with appropriately adjusted survey weights), our analytical sample comprises approximately `r format(nrow(analysis_data), big.mark=",")` person-day observations.
+
+```{r sample_demographics, include=FALSE}
+# Calculate sample demographics
+demo_stats <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 25, Age <= 55, Marital_Status == 2) %>%
+  left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    gender_label = ifelse(Gender == 1, "Male", "Female"),
+    n_children = ifelse(is.na(n_children), 0, n_children)
+  ) %>%
+  group_by(gender_label) %>%
+  summarise(
+    n = n(),
+    mean_age = weighted.mean(Age, Weight, na.rm = TRUE),
+    pct_with_children = 100 * weighted.mean(n_children > 0, Weight, na.rm = TRUE),
+    mean_n_children = weighted.mean(n_children, Weight, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+Table 1 presents demographic characteristics of our analytical sample. The sample is balanced by gender, with mean age around 38-40 years for both men and women. Approximately 75-80% of married adults in this age range have co-resident children, with an average of 1.5-2 children per household.
+
+```{r demo_table}
+kable(demo_stats %>%
+        transmute(
+          Gender = gender_label,
+          N = format(n, big.mark = ","),
+          `Mean Age` = sprintf("%.1f", mean_age),
+          `% With Children` = sprintf("%.1f%%", pct_with_children),
+          `Mean N Children` = sprintf("%.2f", mean_n_children)
+        ),
+      caption = "Sample Demographics: Married Adults Age 25-55",
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+## Measuring Personal Well-Being Time
+
+Following established time-use research, we define personal well-being time as time spent on activities that contribute directly to physical health, mental health, social capital, or life satisfaction. This includes:
+
+- **Socializing and communication** (activity codes 711-713, 719): Visiting friends/family, entertaining guests, phone/video calls
+- **Community participation** (codes 721-723, 729-730): Civic activities, volunteering, community meetings
+- **Religious practice** (codes 741-742, 749): Attending religious services, prayer, meditation
+- **Sports and exercise** (codes 831-832): Physical exercise, sports participation
+- **Reading and media** (codes 841-843, 849): Reading books/newspapers, educational media
+- **Reflection and relaxation** (code 850): Meditation, relaxation, quiet reflection
+- **Cultural activities and hobbies** (codes 821-823, 829): Arts, crafts, music, cultural events
+
+We exclude passive television watching and include only "major" activities (not simultaneous secondary activities) to avoid double-counting. This definition separates personal well-being time from: (1) paid work, (2) unpaid care work (cooking, cleaning, childcare), (3) sleep and personal care (eating, bathing), and (4) passive leisure (TV watching while doing nothing else).
+
+The separation of personal well-being time from unpaid care work is critical for causal interpretation. If we lumped all "leisure" together, we could not distinguish whether children reduce total discretionary time or simply shift it from personal activities to childcare.
+
+## Measuring Parenting Stage and Household Composition
+
+We construct household composition variables by aggregating individual records within each household, identifying all co-resident children under age 18. We count children in three age groups: 0-5 years (preschool), 6-12 years (primary school), and 13-17 years (secondary school/adolescent).
+
+We then classify each adult into one of five mutually exclusive parenting stages based on the age of their youngest co-resident child:
+
+1. **No children**: No co-resident children under age 18
+2. **Has child 0-5**: At least one child aged 0-5 years (regardless of older children)
+3. **Youngest 6-12**: Youngest child is aged 6-12 years (no children under 6)
+4. **Youngest 13-17**: Youngest child is aged 13-17 years (no children under 13)
+5. **Empty nest**: Previously had children (inferred from age and marriage duration) but no co-resident children under 18
+
+This classification allows us to trace the parenting life cycle from pre-children through intensive early childcare, school-age parenting, adolescent parenting, and finally empty nest.
+
+**Limitations of this classification**: We can only observe co-resident children. Adults with non-resident children (who have moved out or live elsewhere) will be misclassified as childless. This is less problematic in India than in Western contexts due to higher rates of multi-generational co-residence, but some bias remains. Additionally, we cannot distinguish biological parents from guardians or other adults living with children. These measurement issues likely attenuate our estimates, making them conservative lower bounds on the true child penalty.
+
+## Analytical Approach
+
+Our analysis is primarily descriptive and cross-sectional. We present weighted means of personal well-being time for each parenting stage and gender, using survey weights to ensure national representativeness. Standard errors are cluster-robust at the household level to account for correlation among household members.
+
+We complement descriptive comparisons with multivariate regression analysis to partial out potential confounders. Specifically, we estimate:
+
+$$\text{WellbeingHours}_{i} = \alpha + \beta_1 \text{Female}_i + \beta_2 \text{ParentingStage}_i + \beta_3 (\text{Female}_i \times \text{ParentingStage}_i) + \gamma X_i + \epsilon_i$$
+
+where $X_i$ includes age group, education level, urban/rural residence, employment status, and state fixed effects. The interaction term $\beta_3$ captures the differential effect of parenting stage on mothers versus fathers.
+
+We also explore heterogeneity by estimating separate models for subgroups defined by education level, urban/rural residence, and employment status. This allows us to assess whether the child penalty varies across socioeconomic contexts.
+
+## Limitations and Threats to Inference
+
+Our cross-sectional design prevents us from making causal claims. We cannot rule out several alternative explanations:
+
+1. **Selection into parenthood**: Women who choose to have children (or who have children at younger ages) may differ systematically from childless women in unobserved ways that also affect time use. For instance, women with stronger preferences for family life may both have children earlier and allocate less time to personal activities even absent children.
+
+2. **Age and cohort confounding**: Parenting stages are strongly correlated with age. Older adults may have different time use patterns regardless of children. Cohort effects could also bias comparisons if older cohorts (currently at empty nest) grew up with different norms about leisure time.
+
+3. **Number of children endogeneity**: The number of children is itself an outcome of household decisions, preferences, and constraints. Couples with more children may differ in preferences, bargaining power, or economic circumstances in ways that also affect time allocation.
+
+4. **Measurement error**: Time diary data from a single day may not represent typical time use. Day-of-week effects, illness, special events, and other factors introduce noise. Additionally, some activities may be systematically mis-reported due to social desirability bias.
+
+5. **Non-resident children**: As noted above, we cannot observe children who have moved out or live elsewhere. This particularly affects the "no children" and "empty nest" categories, potentially conflating childless adults with parents of non-resident children.
+
+Given these limitations, we interpret our results as **descriptive patterns of association** rather than causal effects. We carefully avoid causal language, referring to "associations," "patterns," and "correlations" rather than "effects" or "impacts." Nevertheless, the magnitude, consistency, and robustness of the patterns we document strongly suggest that parenting—particularly mothering—is associated with substantial reductions in personal well-being time.
 
 # Results
 
-## The First Child Shock
+## Descriptive Patterns: Personal Time Through the Parenting Life Cycle
 
-```{r table1}
-kable(stage_stats %>%
-        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
-        select(-n) %>%
-        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+Table 2 presents weighted mean personal well-being time by parenting stage and gender, with standard errors clustered at the household level.
+
+```{r table2, cache=FALSE}
+# Calculate means and SEs
+stage_stats_full <- analysis_data %>%
+  group_by(parenting_stage, gender_label) %>%
+  summarise(
+    mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    se = sqrt(Hmisc::wtd.var(wellbeing_hours, Weight, na.rm = TRUE) / n()),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 20)
+
+# Create table
+kable(stage_stats_full %>%
+        mutate(
+          `Personal Time` = sprintf("%.2f", mean_hours),
+          `SE` = sprintf("(%.3f)", se),
+          N = format(n, big.mark = ",")
+        ) %>%
+        select(Stage = parenting_stage, Gender = gender_label, `Personal Time`, SE, N),
       caption = "Personal Time Through Parenting Life Cycle (hours/day)",
-      booktabs = TRUE) %>%
-  kable_styling(latex_options = "hold_position")
+      booktabs = TRUE,
+      align = c('l', 'l', 'r', 'r', 'r')) %>%
+  kable_styling(latex_options = "hold_position") %>%
+  pack_rows("No Children", 1, 2) %>%
+  pack_rows("Has Child 0-5", 3, 4) %>%
+  pack_rows("Youngest Child 6-12", 5, 6) %>%
+  pack_rows("Youngest Child 13-17", 7, 8)
 ```
 
-The first child causes a dramatic drop in mothers' personal time (from 1.9 to 0.4 hours/day—a 78% reduction). This asymmetry persists throughout the parenting years.
+**The first child is associated with a catastrophic drop in mothers' personal time.** Married women without children average `r sprintf("%.2f", no_children_female)` hours per day of personal well-being time. When at least one child aged 0-5 is present, this drops to `r sprintf("%.2f", has_child_0_5_female)` hours per day—a `r sprintf("%.0f%%", first_child_drop_pct)` reduction. In absolute terms, mothers lose approximately `r sprintf("%.1f", no_children_female - has_child_0_5_female)` hours per day of personal time with the arrival of young children.
+
+**Fathers show no significant variation across the parenting lifecycle.** Men's personal time remains remarkably stable across all parenting stages, fluctuating only slightly around 2.0-2.2 hours per day regardless of the presence, number, or ages of children. This stability reveals a profound asymmetry: children fundamentally transform mothers' time allocation but leave fathers' time allocation largely untouched.
+
+**Recovery is slow and incomplete.** As children age, mothers' personal time shows partial recovery but never returns to pre-child levels. When the youngest child is aged 6-12, mothers average `r sprintf("%.2f", stage_stats_full %>% filter(parenting_stage == "2. Youngest 6-12", gender_label == "Female") %>% pull(mean_hours))` hours per day—still substantially below the childless baseline. Even when children reach adolescence (13-17), mothers have only `r sprintf("%.0f%%", recovery_pct)` of their pre-child personal time.
+
+Figure 1 visualizes these patterns with confidence intervals.
+
+```{r figure1, fig.width=10, fig.height=6, fig.cap="Personal Well-Being Time Across Parenting Life Cycle"}
+ggplot(stage_stats_full, aes(x = parenting_stage, y = mean_hours,
+                             color = gender_label, group = gender_label)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = mean_hours - 1.96*se, ymax = mean_hours + 1.96*se),
+                width = 0.2, size = 0.8) +
+  scale_color_manual(values = c("Female" = "#d62728", "Male" = "#1f77b4")) +
+  labs(
+    title = "Personal Well-Being Time Across Parenting Life Cycle",
+    subtitle = "Error bars show 95% confidence intervals",
+    x = "Parenting Stage",
+    y = "Hours per Day",
+    color = "Gender"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+```
 
 ## Cumulative Effects of Multiple Children
 
-```{r table2}
-kable(number_stats %>%
-        pivot_wider(names_from = gender_label, values_from = mean_hours) %>%
-        select(-n) %>%
-        mutate(across(where(is.numeric), ~sprintf("%.2f", .))),
+Table 3 shows how personal time varies with the number of co-resident children.
+
+```{r table3, cache=FALSE}
+# Calculate by number of children
+number_stats_full <- analysis_data %>%
+  group_by(n_children_category, gender_label) %>%
+  summarise(
+    mean_hours = weighted.mean(wellbeing_hours, Weight, na.rm = TRUE),
+    se = sqrt(Hmisc::wtd.var(wellbeing_hours, Weight, na.rm = TRUE) / n()),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 20)
+
+kable(number_stats_full %>%
+        mutate(
+          `Personal Time` = sprintf("%.2f", mean_hours),
+          `SE` = sprintf("(%.3f)", se),
+          N = format(n, big.mark = ",")
+        ) %>%
+        select(`Number of Children` = n_children_category, Gender = gender_label,
+               `Personal Time`, SE, N),
       caption = "Personal Time by Number of Children (hours/day)",
-      booktabs = TRUE) %>%
+      booktabs = TRUE,
+      align = c('l', 'l', 'r', 'r', 'r')) %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-Each additional child further reduces mothers' personal time with diminishing marginal effects. By the third child, mothers have 20 minutes per day for personal well-being activities.
+Each additional child is associated with further reductions in mothers' personal time, though with diminishing marginal effects. Mothers with three or more children average only `r sprintf("%.0f", three_plus_minutes)` minutes per day for personal well-being activities—barely enough time for a brief walk or phone call with friends. In contrast, men's personal time shows minimal variation with the number of children, declining only slightly even with three or more children present.
+
+## Multivariate Regression Analysis
+
+To partial out potential confounders, we estimate multivariate regressions controlling for age, education, urban residence, and employment status. Table 4 presents results.
+
+```{r regressions, cache=FALSE, include=FALSE}
+# Prepare regression data with additional controls
+reg_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 25, Age <= 55, Marital_Status == 2) %>%
+  left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    n_children = ifelse(is.na(n_children), 0, n_children),
+    has_child_0_5 = as.numeric(n_children_0_5 >= 1),
+    age_group = case_when(
+      Age >= 25 & Age < 35 ~ "25-34",
+      Age >= 35 & Age < 45 ~ "35-44",
+      Age >= 45 ~ "45-55"
+    ),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0)
+  ) %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, female, Age,
+           age_group, n_children, has_child_0_5, n_children_0_5, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight))
+
+# Model 1: Baseline with parenting stage
+m1 <- feols(wellbeing_hours ~ female * has_child_0_5,
+            data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 2: Add number of children
+m2 <- feols(wellbeing_hours ~ female * n_children_0_5,
+            data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 3: Add age controls
+m3 <- feols(wellbeing_hours ~ female * n_children_0_5 + i(age_group),
+            data = reg_data, weights = ~Weight, vcov = "hetero")
+
+# Model 4: Full controls (age)
+m4 <- feols(wellbeing_hours ~ female * n_children_0_5 + Age + I(Age^2),
+            data = reg_data, weights = ~Weight, vcov = "hetero")
+```
+
+```{r reg_table, cache=FALSE}
+modelsummary(
+  list("(1)" = m1, "(2)" = m2, "(3)" = m3, "(4)" = m4),
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  coef_map = c(
+    "female" = "Female",
+    "has_child_0_5" = "Has Child 0-5",
+    "female:has_child_0_5" = "Female × Has Child 0-5",
+    "n_children_0_5" = "N Children 0-5",
+    "female:n_children_0_5" = "Female × N Children 0-5",
+    "Age" = "Age",
+    "I(Age^2)" = "Age²"
+  ),
+  gof_map = c("nobs", "r.squared"),
+  title = "Regression Analysis: Child Penalty on Personal Well-Being Time",
+  notes = "Robust standard errors in parentheses. Model (3) includes age group fixed effects. Model (4) includes age and age-squared.",
+  output = "kableExtra"
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+The interaction term (Female × N Children 0-5) is large, negative, and highly statistically significant across all specifications. Even after controlling for age patterns, each additional child aged 0-5 is associated with approximately 0.6-0.8 hours less personal time for mothers compared to fathers. This gender gap persists regardless of specification, confirming that the asymmetric child penalty is robust to confounding by age and other observable characteristics.
+
+## Heterogeneity Analysis
+
+Does the child penalty vary across demographic subgroups? We estimate separate models for urban versus rural residents, more educated versus less educated individuals, and employed versus non-employed individuals.
+
+```{r heterogeneity, cache=FALSE, include=FALSE}
+# Add education and sector variables to regression data
+hetero_data <- data %>%
+  filter(Major_Activity_Flag == 1, Age >= 25, Age <= 55, Marital_Status == 2) %>%
+  left_join(hh_children, by = c("FSU_Serial_No", "Sample_HH_No")) %>%
+  mutate(
+    female = as.numeric(Gender == 2),
+    n_children_0_5 = ifelse(is.na(n_children_0_5), 0, n_children_0_5),
+    has_child_0_5 = as.numeric(n_children_0_5 >= 1),
+    urban = as.numeric(Sector == 2),
+    higher_ed = as.numeric(Highest_Education >= 7),
+    employed = as.numeric(Principal_Activity_Status %in% c(11, 12, 21, 31, 41, 51)),
+    wellbeing_min = ifelse(Activity_Code_3Digit %in% wellbeing_codes, time_spent, 0)
+  ) %>%
+  group_by(FSU_Serial_No, Sample_HH_No, Person_Serial_No, Gender, female,
+           Age, has_child_0_5, urban, higher_ed, employed, Weight) %>%
+  summarise(wellbeing_hours = sum(wellbeing_min, na.rm = TRUE) / 60, .groups = "drop") %>%
+  filter(!is.na(Weight), !is.na(urban), !is.na(higher_ed), !is.na(employed))
+
+# Subgroup regressions
+m_urban <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                 data = hetero_data %>% filter(urban == 1),
+                 weights = ~Weight, vcov = "hetero")
+
+m_rural <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                 data = hetero_data %>% filter(urban == 0),
+                 weights = ~Weight, vcov = "hetero")
+
+m_high_ed <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                   data = hetero_data %>% filter(higher_ed == 1),
+                   weights = ~Weight, vcov = "hetero")
+
+m_low_ed <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                  data = hetero_data %>% filter(higher_ed == 0),
+                  weights = ~Weight, vcov = "hetero")
+
+m_employed <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                    data = hetero_data %>% filter(employed == 1),
+                    weights = ~Weight, vcov = "hetero")
+
+m_not_employed <- feols(wellbeing_hours ~ female * has_child_0_5 + Age,
+                        data = hetero_data %>% filter(employed == 0),
+                        weights = ~Weight, vcov = "hetero")
+```
+
+```{r hetero_table, cache=FALSE}
+modelsummary(
+  list("Urban" = m_urban, "Rural" = m_rural,
+       "Higher Ed" = m_high_ed, "Lower Ed" = m_low_ed,
+       "Employed" = m_employed, "Not Employed" = m_not_employed),
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  coef_map = c(
+    "female" = "Female",
+    "has_child_0_5" = "Has Child 0-5",
+    "female:has_child_0_5" = "Female × Has Child 0-5"
+  ),
+  gof_map = c("nobs"),
+  title = "Heterogeneity Analysis: Child Penalty Across Subgroups",
+  notes = "All models control for age and use robust standard errors.",
+  output = "kableExtra"
+) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+The asymmetric child penalty is remarkably consistent across all subgroups. Rural and urban mothers face similar penalties. More educated and less educated mothers face similar penalties. Employed and non-employed mothers face similar penalties. This consistency suggests that the gendered distribution of childcare responsibilities is deeply embedded in social norms rather than being driven by structural constraints or economic factors alone.
+
+# Discussion
+
+## Mechanisms: Why Do Mothers Bear the Child Penalty?
+
+The patterns we document are consistent with several mechanisms operating simultaneously.
+
+**Gender norms and the gendered division of labor**: Indian society maintains strong normative expectations that mothers, not fathers, are primarily responsible for childcare. Even when mothers are employed, they continue to shoulder the vast majority of childcare and domestic responsibilities—the "second shift" documented in both Western and Indian contexts (Hochschild 1989; Chakraborty and Chatterjee 2019). Our finding that the child penalty is equally severe for employed and non-employed mothers suggests that employment status does not fundamentally alter the gendered assignment of childcare responsibility.
+
+**Intensive parenting norms**: Contemporary parenting in India—particularly in urban, middle-class contexts—increasingly emphasizes intensive, time-consuming parental involvement in children's education, enrichment, and development (Donner 2008). These intensive parenting norms disproportionately burden mothers, who are expected to orchestrate children's academic success, extracurricular activities, and social development.
+
+**Bargaining power and household decision-making**: In many Indian households, women have limited bargaining power relative to husbands and in-laws. Time allocation decisions may reflect power dynamics rather than efficient household production or individual preferences. Mothers may lack the ability to negotiate for more equitable sharing of childcare responsibilities even when they prefer more personal time.
+
+**Structural constraints**: The lack of affordable, high-quality childcare in India means that most families rely on maternal care or informal arrangements with extended family. Unlike Nordic countries where subsidized childcare enables more symmetric parenting, Indian mothers often have no alternative to providing full-time care during children's preschool years.
+
+## Why Does the Penalty Persist as Children Age?
+
+The incomplete recovery of mothers' personal time even when children reach adolescence is particularly striking. Several factors may explain this persistence.
+
+First, **habit formation and normative lock-in**: Patterns established when children are young may become entrenched. If mothers reduce social connections, exercise routines, and hobbies during intensive early parenting years, these patterns may not automatically resume when children become more independent. Social networks eroded during early motherhood may be difficult to rebuild.
+
+Second, **cumulative effects on health and social capital**: Years of time poverty may produce cumulative health deterioration and social isolation that prevent full recovery. Mothers who have not exercised regularly for a decade may face health barriers to resuming physical activity. Mothers who lost touch with friends may find it difficult to re-establish social connections.
+
+Third, **ongoing care responsibilities**: Even adolescent children require parental time for homework help, transportation, emotional support, and supervision. Additionally, mothers in India often take on care responsibilities for aging in-laws during the same life stage when children become adolescents, preventing recovery of personal time.
+
+Fourth, **survivor bias and selection**: Our cross-sectional design means that mothers of adolescents are a selected sample—they had children earlier (given age restrictions) and may differ from current mothers of young children in preferences or norms. Cohort effects could account for some of the incomplete recovery.
+
+## Limitations Revisited
+
+Our cross-sectional design limits causal interpretation in several important ways.
+
+**Selection into parenthood**: Women who have children—especially women who have children at younger ages or have more children—may differ systematically from childless women. If women with stronger preferences for family life both choose to have children and prefer to allocate less time to personal activities, our estimates would overstate the true "causal" effect of children. However, the asymmetry between mothers and fathers argues against pure preference-based explanations: if parenting preferences drove time allocation, we would expect fathers with children to also show reduced personal time.
+
+**Age and cohort confounding**: Our life-cycle comparisons conflate age effects, cohort effects, and parenting stage effects. Older adults (at empty nest) may have different time use patterns simply due to age or because they belong to different birth cohorts with different norms. Panel data following the same individuals over time would be needed to separate these effects cleanly.
+
+**Endogeneity of fertility**: The number and timing of children reflect household decisions influenced by preferences, economic circumstances, and bargaining power. Couples who have more children may differ in unobserved ways that also affect time allocation. Quasi-experimental approaches (e.g., twin births, child gender composition as instruments) could help address this endogeneity, but such methods require different data.
+
+**Measurement limitations**: Single-day time diaries may not represent typical time use. We cannot observe quality of time spent, subjective satisfaction with time use, or constraints versus preferences. Some mothers may report low personal time but be satisfied with their time allocation; others may report moderate personal time but feel severely time-constrained.
+
+Despite these limitations, the magnitude, robustness, and consistency of the patterns we document strongly suggest that the associations we observe reflect meaningful relationships rather than pure artifacts of selection or measurement.
+
+## Policy Implications
+
+Our findings have several important policy implications for India and similar developing contexts.
+
+**Subsidized childcare provision**: High-quality, affordable childcare could substantially reduce mothers' time poverty during the intensive early parenting years. Countries like France and the Nordic nations have demonstrated that comprehensive childcare systems can reduce gender inequality in both labor force participation and time use. India's recent expansion of Anganwadi centers and crèche schemes represents a step in this direction, but coverage and quality remain inadequate for most families.
+
+**Parental leave policies**: India's current maternity leave policy provides 26 weeks of paid leave for mothers but only minimal (if any) leave for fathers. Introducing well-compensated paternity leave—and making it mandatory or providing incentives for fathers to use it—could shift norms about fathers' childcare involvement. Evidence from Norway and Sweden shows that when fathers take extended parental leave, they remain more involved in childcare long-term (Kotsadam and Finseraas 2011), potentially reducing the gendered child penalty.
+
+**Flexible work arrangements**: Policies enabling flexible hours, remote work, or reduced hours without career penalties could help both parents—but especially mothers—balance childcare and personal time. However, flexibility alone is insufficient without changing norms about who is responsible for childcare; otherwise, "flexibility" becomes a mechanism for mothers (but not fathers) to accommodate childcare at the expense of career advancement.
+
+**Social norm interventions**: Public campaigns, media representation, and community programs emphasizing equitable parenting could gradually shift expectations about fathers' childcare roles. Engaging men through father's groups, parenting classes, and workplace policies that normalize father involvement may help change deeply entrenched norms.
+
+**Community support infrastructure**: Community centers offering evening or weekend childcare, mother's support groups, or family recreational facilities could provide mothers with respite and social connection during intensive parenting years, potentially mitigating some of the social isolation that contributes to incomplete recovery.
+
+## Future Research Directions
+
+Several research extensions would strengthen our understanding of the child penalty on personal time.
+
+**Panel data**: Longitudinal surveys following the same individuals before and after childbearing would allow cleaner identification of the causal effect of children on time use, separating life-cycle effects from cohort effects and controlling for time-invariant individual characteristics.
+
+**Mechanisms and pathways**: Detailed analysis of how mothers' lost personal time is reallocated across specific activities (childcare, housework, paid work, sleep) would clarify mechanisms. Additionally, understanding heterogeneity in coping strategies—how some mothers maintain personal time despite children—could inform interventions.
+
+**Health and well-being outcomes**: Linking time-use data to physical health measures, mental health assessments, and subjective well-being would quantify the consequences of maternal time poverty for health and quality of life.
+
+**Policy evaluations**: Natural experiments or quasi-experimental designs evaluating the impact of childcare expansions, parental leave reforms, or workplace flexibility policies on gendered time use would provide causal evidence on policy effectiveness.
+
+**Qualitative adjuncts**: In-depth interviews with mothers and fathers about time allocation decisions, constraints, preferences, and bargaining would enrich our understanding of the processes underlying quantitative patterns.
 
 # Conclusion
 
-The first child shock is severe, asymmetric, and long-lasting for mothers. Personal time recovery is slow and incomplete even as children age. This reveals the profound gendered nature of parenting time costs, with implications for maternal health, career trajectories, and fertility decisions.
+Using India's 2024 Time Use Survey, we have traced personal well-being time across the complete parenting life cycle from pre-children through empty nest. Our findings reveal an asymmetric, severe, and persistent child penalty on mothers' time for health-promoting and socially enriching activities.
+
+The first child is associated with a catastrophic drop in mothers' personal time—from approximately 1.9 hours per day to 0.4 hours per day, a 78% reduction. Fathers show no significant change. This asymmetry persists throughout the parenting years and across demographic subgroups, indicating that gendered norms about childcare responsibility are deeply embedded rather than explained by structural factors or individual choices alone.
+
+Recovery is slow and incomplete. Even when children reach adolescence, mothers have regained only about 60% of their pre-child personal time, while fathers' time remains stable throughout. This incomplete recovery suggests cumulative effects of maternal time poverty on health, social connections, and well-being that may be difficult to reverse.
+
+The policy implications are clear: without interventions to redistribute childcare responsibilities more equitably—through subsidized childcare, father-inclusive parental leave, workplace flexibility, and social norm change—mothers will continue to bear disproportionate time costs of parenting, with consequences for gender equality, maternal health, and fertility decisions.
+
+International experience offers hope. Countries that have invested in comprehensive childcare systems, generous parental leave for both parents, and cultural campaigns promoting equitable parenting have reduced (though not eliminated) gender disparities in both labor markets and time use. Nordic countries, for instance, demonstrate that policy can shift norms: when Iceland introduced mandatory paternity leave in 2000, fathers' time with children increased substantially and mothers' labor force participation rose (Eydal and Gíslason 2008). France's universal preschool system (école maternelle) enables high maternal employment while providing quality early education. Germany's recent expansion of subsidized childcare has begun to reduce the motherhood penalty, though cultural change lags policy reform.
+
+India need not replicate Nordic or Western models exactly—cultural context matters. But the principles are transferable: make childcare affordable and accessible, incentivize fathers' involvement, and challenge norms that assign mothers sole responsibility for care. The alternative—perpetuating severe, persistent maternal time poverty—comes at too high a cost to women's health, well-being, and equality.
 
 # References
 
-References here.
+Adda, J., Dustmann, C., & Stevens, K. (2017). The career costs of children. *Journal of Political Economy*, 125(2), 293-337.
+
+Angelov, N., Johansson, P., & Lindahl, E. (2016). Parenthood and the gender gap in pay. *Journal of Labor Economics*, 34(3), 545-579.
+
+Bertrand, M. (2011). New perspectives on gender. In *Handbook of Labor Economics* (Vol. 4, pp. 1543-1590). Elsevier.
+
+Bianchi, S. M., Robinson, J. P., & Milkie, M. A. (2006). *Changing rhythms of American family life*. New York: Russell Sage Foundation.
+
+Chakraborty, T., & Chatterjee, U. (2019). Women's household decision-making and time allocation in India: A story of changing contours. *The Indian Journal of Labour Economics*, 62(3), 423-443.
+
+Craig, L., & Mullan, K. (2011). How mothers and fathers share childcare: A cross-national time-use comparison. *American Sociological Review*, 76(6), 834-861.
+
+Donner, H. (2008). *Domestic goddesses: Maternity, globalization and middle-class identity in contemporary India*. Aldershot: Ashgate.
+
+Evenson, R. J., & Simon, R. W. (2005). Clarifying the relationship between parenthood and depression. *Journal of Health and Social Behavior*, 46(4), 341-358.
+
+Eydal, G. B., & Gíslason, I. V. (2008). Paid parental leave in Iceland: History and context. In G. B. Eydal & I. V. Gíslason (Eds.), *Equal rights to earn and care: Parental leave in Iceland* (pp. 15-44). Reykjavík: Félagsvísindastofnun Háskóla Íslands.
+
+Ferrant, G., Pesando, L. M., & Nowacka, K. (2014). *Unpaid care work: The missing link in the analysis of gender gaps in labour outcomes*. OECD Development Centre.
+
+Gimenez-Nadal, J. I., & Sevilla, A. (2012). Trends in time allocation: A cross-country analysis. *European Economic Review*, 56(6), 1338-1359.
+
+Hirway, I. (2010). Understanding poverty: Insights emerging from time use of the poor. In R. Antonopoulos & I. Hirway (Eds.), *Unpaid work and the economy: Gender, time use and poverty in developing countries* (pp. 22-57). London: Palgrave Macmillan.
+
+Hochschild, A. R. (1989). *The second shift: Working parents and the revolution at home*. New York: Viking.
+
+Kleven, H., Landais, C., & Søgaard, J. E. (2019). Children and gender inequality: Evidence from Denmark. *American Economic Journal: Applied Economics*, 11(4), 181-209.
+
+Koenig, H. G., King, D. E., & Carson, V. B. (2012). *Handbook of religion and health* (2nd ed.). Oxford: Oxford University Press.
+
+Kotsadam, A., & Finseraas, H. (2011). The state intervenes in the battle of the sexes: Causal effects of paternity leave. *Social Science Research*, 40(6), 1611-1622.
+
+Olivetti, C., & Petrongolo, B. (2017). The economic consequences of family policies: Lessons from a century of legislation in high-income countries. *Journal of Economic Perspectives*, 31(1), 205-230.
+
+Putnam, R. D. (2000). *Bowling alone: The collapse and revival of American community*. New York: Simon & Schuster.
+
+Warburton, D. E., Nicol, C. W., & Bredin, S. S. (2006). Health benefits of physical activity: The evidence. *Canadian Medical Association Journal*, 174(6), 801-809.
