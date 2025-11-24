@@ -558,66 +558,6 @@ Before presenting substantive results, we validate that our 10% random sample ac
 
 **Table A1** (see diagnostics output) compares population and subsample statistics. All differences are < 0.5%, confirming representativeness. This validates our use of the subsample for computational efficiency while maintaining statistical rigor.
 
-### Power Analysis and Minimum Detectable Effects
-
-Given our null finding, we must establish whether our sample has sufficient power to detect meaningful effects. We calculate the minimum detectable effect (MDE) size given our sample characteristics.
-
-```{r power_analysis, include=TRUE}
-# Power analysis for null finding
-library(pwr)
-
-# Sample characteristics
-n_treatment <- sum(main_sample$has_grandparent == TRUE, na.rm = TRUE)
-n_control <- sum(main_sample$has_grandparent == FALSE, na.rm = TRUE)
-sd_outcome <- sd(main_sample$childcare_minutes, na.rm = TRUE)
-mean_outcome <- mean(main_sample$childcare_minutes, na.rm = TRUE)
-
-cat("=== POWER ANALYSIS ===\n\n")
-cat(sprintf("Sample size (grandparent HH): %s\n", format(n_treatment, big.mark = ",")))
-cat(sprintf("Sample size (no grandparent): %s\n", format(n_control, big.mark = ",")))
-cat(sprintf("Outcome SD: %.2f minutes\n", sd_outcome))
-cat(sprintf("Outcome mean: %.2f minutes\n", mean_outcome))
-
-# Calculate minimum detectable effect at 80% power, alpha = 0.05
-# For two-sample t-test
-h_treatment <- n_treatment / (n_treatment + n_control)
-effective_n <- n_treatment * n_control / (n_treatment + n_control)
-
-# Cohen's d for 80% power, alpha = 0.05, two-tailed
-power_result <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
-                             power = 0.80, sig.level = 0.05)
-cohens_d_mde <- power_result$d
-mde_minutes <- cohens_d_mde * sd_outcome
-mde_pct <- (mde_minutes / mean_outcome) * 100
-
-cat(sprintf("\nMinimum Detectable Effect (80%% power, α=0.05):\n"))
-cat(sprintf("  Cohen's d: %.3f\n", cohens_d_mde))
-cat(sprintf("  Minutes: %.2f\n", mde_minutes))
-cat(sprintf("  Percent of mean: %.1f%%\n", mde_pct))
-
-# Power for detecting small effect (d = 0.2)
-power_small <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
-                            d = 0.2, sig.level = 0.05)$power
-mde_small <- 0.2 * sd_outcome
-
-cat(sprintf("\nPower to detect small effect (Cohen's d = 0.2, %.1f min):\n", mde_small))
-cat(sprintf("  Power: %.1f%%\n", power_small * 100))
-
-# Power for detecting medium effect (d = 0.5)
-power_medium <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
-                             d = 0.5, sig.level = 0.05)$power
-mde_medium <- 0.5 * sd_outcome
-
-cat(sprintf("\nPower to detect medium effect (Cohen's d = 0.5, %.1f min):\n", mde_medium))
-cat(sprintf("  Power: %.1f%%\n\n", power_medium * 100))
-
-cat("Interpretation: Our sample is well-powered to detect effects ≥ %.1f minutes\n", mde_minutes)
-cat("(%.1f%% of mean childcare time). Effects smaller than this threshold\n", mde_pct)
-cat("may exist but would be too small to detect reliably with our sample.\n")
-```
-
-**Interpretation**: Our power analysis shows we can detect effects of `r sprintf("%.1f", mde_minutes)` minutes or larger with 80% power. This represents `r sprintf("%.1f%%", mde_pct)` of mean childcare time. Our null finding is therefore not due to insufficient power—we would detect meaningful effects if they existed.
-
 ## Descriptive Statistics
 
 Table 1 presents summary statistics comparing urban households with and without co-resident grandparents.
@@ -1026,6 +966,66 @@ both_effect <- coef(m8)["grandparent_typeBoth"]
 **Results**: Grandparent gender shows minimal effects on mothers' childcare time. Women in households with **only a grandmother** spend 0.12 minutes differently on childcare (SE: 0.64, p > 0.10). With **only a grandfather**, -1.85 minutes (SE: 2.03, p > 0.10). Households with **both grandparents** show -0.22 minutes (SE: 2.00, p > 0.10). None of these effects are statistically significant.
 
 **Interpretation**: The data do not support differential childcare support by grandparent gender. All effects are near zero and highly uncertain, with large standard errors particularly for grandfather-only households (likely due to small sample size).
+
+## Power Analysis and Minimum Detectable Effects
+
+Given our null finding, we must establish whether our sample has sufficient power to detect meaningful effects. We calculate the minimum detectable effect (MDE) size given our sample characteristics.
+
+```{r power_analysis, include=TRUE}
+# Power analysis for null finding
+library(pwr)
+
+# Sample characteristics
+n_treatment <- sum(main_sample$has_grandparent == TRUE, na.rm = TRUE)
+n_control <- sum(main_sample$has_grandparent == FALSE, na.rm = TRUE)
+sd_outcome <- sd(main_sample$childcare_minutes, na.rm = TRUE)
+mean_outcome <- mean(main_sample$childcare_minutes, na.rm = TRUE)
+
+cat("=== POWER ANALYSIS ===\n\n")
+cat(sprintf("Sample size (grandparent HH): %s\n", format(n_treatment, big.mark = ",")))
+cat(sprintf("Sample size (no grandparent): %s\n", format(n_control, big.mark = ",")))
+cat(sprintf("Outcome SD: %.2f minutes\n", sd_outcome))
+cat(sprintf("Outcome mean: %.2f minutes\n", mean_outcome))
+
+# Calculate minimum detectable effect at 80% power, alpha = 0.05
+# For two-sample t-test
+h_treatment <- n_treatment / (n_treatment + n_control)
+effective_n <- n_treatment * n_control / (n_treatment + n_control)
+
+# Cohen's d for 80% power, alpha = 0.05, two-tailed
+power_result <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
+                             power = 0.80, sig.level = 0.05)
+cohens_d_mde <- power_result$d
+mde_minutes <- cohens_d_mde * sd_outcome
+mde_pct <- (mde_minutes / mean_outcome) * 100
+
+cat(sprintf("\nMinimum Detectable Effect (80%% power, α=0.05):\n"))
+cat(sprintf("  Cohen's d: %.3f\n", cohens_d_mde))
+cat(sprintf("  Minutes: %.2f\n", mde_minutes))
+cat(sprintf("  Percent of mean: %.1f%%\n", mde_pct))
+
+# Power for detecting small effect (d = 0.2)
+power_small <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
+                            d = 0.2, sig.level = 0.05)$power
+mde_small <- 0.2 * sd_outcome
+
+cat(sprintf("\nPower to detect small effect (Cohen's d = 0.2, %.1f min):\n", mde_small))
+cat(sprintf("  Power: %.1f%%\n", power_small * 100))
+
+# Power for detecting medium effect (d = 0.5)
+power_medium <- pwr.t2n.test(n1 = n_treatment, n2 = n_control,
+                             d = 0.5, sig.level = 0.05)$power
+mde_medium <- 0.5 * sd_outcome
+
+cat(sprintf("\nPower to detect medium effect (Cohen's d = 0.5, %.1f min):\n", mde_medium))
+cat(sprintf("  Power: %.1f%%\n\n", power_medium * 100))
+
+cat("Interpretation: Our sample is well-powered to detect effects ≥ %.1f minutes\n", mde_minutes)
+cat("(%.1f%% of mean childcare time). Effects smaller than this threshold\n", mde_pct)
+cat("may exist but would be too small to detect reliably with our sample.\n")
+```
+
+**Interpretation**: Our power analysis shows we can detect effects of `r sprintf("%.1f", mde_minutes)` minutes or larger with 80% power. This represents `r sprintf("%.1f%%", mde_pct)` of mean childcare time. Our null finding is therefore not due to insufficient power—we would detect meaningful effects if they existed.
 
 ## Rural-Urban Comparison
 
