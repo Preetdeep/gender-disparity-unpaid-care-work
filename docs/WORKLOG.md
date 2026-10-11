@@ -197,3 +197,20 @@ Sample (python random): 01, 02, 05, 08. Audited files at their 12:09–12:25 mti
 - Common error: bib names with particles (`de Jong`) render as "Jong" in citations. Write `{de Jong}, Robert`.
 - Knit gotcha: an empty `/tmp/claude-0/knit/_common/` (created by some session) makes `../_common/preamble.tex` fail to resolve when `intermediates_dir=/tmp/claude-0/knit/NN`. Use a nested intermediates dir, e.g. `/tmp/claude-0/knit/NN/int`.
 - Shared-code request (not blocking): add a mother link for children (`mother_pid`, mother's education) to `build_panel.R`; paper 06 builds it locally (unique woman 15+ among rel 1/2 for rel-5 children, among rel 3/4 for rel-6 children, age gap 15-50).
+
+### Paper 03 (care need), October 2026
+
+Common errors found (add to the list above):
+- The documented test-knit command fails ("../_common/preamble.tex not found") because `in_header` and `bibliography` resolve against `intermediates_dir`. Workaround: knit into `<dir>/NN` and copy `submission/_common/preamble.tex` to `<dir>/_common/`, `references.bib` to `<dir>/` and `refs_local.bib` to `<dir>/NN/`. Use your own `<dir>`: other agents share `/tmp/claude-0/knit/`.
+- `iff()` evaluates lazily, so a broken untaken branch never errors on synthetic data. Test once with a temporary copy that redefines `iff <- function(c, y, n) { force(y); force(n); if (!isTRUE(c)) y else n }` (forces both, prints the alternative), then delete the copy.
+- Care recipients keep diaries. In any "cost of a household member's need" regression, the recipient sits in the sample and their own non-employment shows up as a cost to carers. Exclude probable recipients (pas 65, or `receiving_care > 0`).
+- `special_care_needed` covers any member aged 5+, not only adults or the elderly; `care_giver_available` is asked only if item 17 = 1. Do not call it "adult-care need".
+- `diff_pp(e)` followed by "likely" prints "not estimable likely" when NA; wrap with an `ok(e)` check.
+- A "women's response" in an interaction model is b(need) + b(female:need); report it with a proper SE from vcov, not as a sum of point estimates.
+
+Requests for shared code:
+- `R/helpers.R`: add `lincom(m, terms, w)` (linear combination with SE from vcov) and an NA-safe `likely(e)`; both are defined locally in paper 03.
+- `R/build_panel.R`: a person-level `recipient` flag (pas 65 or receiving-care minutes) would help papers 02, 03 and 08.
+- WORKLOG knit command: either make `in_header`/`bibliography` paths absolute or document the copy step above.
+
+Progress: paper 03 rewritten. Full literature review (40 new verified refs in `submission/03_care_need/refs_local.bib`), conceptual framework, caregiver-availability heterogeneity, life-course figure, spousal care, men without a woman present, relationship table over all minutes, plain-language summary and policy section, `params$anonymised` switch. Knits clean on synthetic data (both named and anonymised builds; both iff branches tested), about 9,500 words including references and tables. Not committed.
