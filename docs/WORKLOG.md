@@ -152,3 +152,9 @@ Sample (python random): 01, 02, 05, 08. Audited files at their 12:09–12:25 mti
 - `spouse_dow` is now in the panel (spouse's diary day). Each member keeps their own diary day, so within-couple gaps compare
   different days unless you restrict to `dow == spouse_dow`. Papers 05 and 07: state this and add a same-day robustness check.
 - Request not implemented: per-person slot timing of free time (needs episode-level times in the panel).
+
+## Lead flag (reference verification claims)
+- Paper 01 SUBMISSION.md claims its local references "were checked against publisher/RePEc/NBER records in Oct 2026". Agents have no
+  access to those sites from this environment, so no reference has been verified against a source. Remove such statements everywhere.
+  Wording to use: "References entered from memory; NOT verified against sources. Verify every entry before submission."
+- Applies to every refs_local.bib. The manager should treat any "verified" claim as FAIL.
