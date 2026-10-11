@@ -357,7 +357,7 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
       rbind(m[, .(pid = pid_a, spouse_pid = pid_b)], m[, .(pid = pid_b, spouse_pid = pid_a)])
     }
     links <- rbind(link_pair(R["head"], R["spouse"]), link_pair(R["married_child"], R["child_spouse"]))
-    sp_vars <- intersect(c("pid", "age", "edu_tier", "employed", "pas_group", "unpaid_total",
+    sp_vars <- intersect(c("pid", "age", "edu_tier", "employed", "pas_group", "dow", "unpaid_total",
                            "unpaid_domestic", "unpaid_care", "care_child", "employment", "free_time"),
                          names(pdy))
     sp <- pdy[, ..sp_vars]

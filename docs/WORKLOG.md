@@ -125,3 +125,30 @@ Sample (python random): 01, 02, 05, 08. Audited files at their 12:09–12:25 mti
   to the 2019 report (9,945 FSUs, 138,799 households, 447,250 persons 6+) to catch the wrong file.
 - 2019-round layout (docs/nso_reference) has no "care giver available" item and no informant serial number. Do not rely on those columns
   existing; the 2024 xlsx lists them. Code must degrade gracefully when a column is absent.
+
+### Paper 07 (weekend care division), 2026-10-11
+- Progress: lit review expanded (released time/recessions, working-time reforms, paternity leave, COVID, timing/synchronisation, India) with 34 verified-only entries in `07/refs_local.bib`; design adds per-variable and joint balance tests, placebo groups (casual, self-employed, students, men not in paid work), Saturday instrument + overid, difference-in-reduced-forms IV, Conley-type sensitivity, heterogeneity (under-6, school-age child, urban, wife employed), couple outcomes, robustness (FSU FE, proxy, unweighted). Knits clean on synthetic data, ~7,500 words of prose.
+- Common error: an IV whose notes say "Saturday included" but whose formula omits it. Exogenous controls must appear in the IV formula itself (`y ~ saturday + X | FE | endo ~ inst`).
+- Common error: `proxy_report` used as a control in day-of-week designs. The interview day is the day after the diary day, so proxy reporting is an outcome of the diary day (bad control). Test it, do not control for it in the main specification.
+- Common error: `data.table(est_mean(d, y, by = ...), group = g)` creates two columns named `group` (est_mean already returns one). Rename first.
+- Common error: `diff_pp()`/`diff_txt()` after "changes by" ("changes by 3 pp lower"). Use "is X higher/lower" or "is X more/less likely".
+- Common error: summing task shares where some tasks are NA (no variation) gives NA in text; use na.rm (a task nobody does contributes 0).
+- Request for shared code: per-person slot timing of free time (from `time_from`) saved alongside the panel, so spouses' exact joint free time (overlap) can be computed; paper 07 currently uses min(husband, wife) free time as an upper bound.
+- Request for shared code: add the spouse's diary day (`spouse_dow`, from `dow`) to `sp_vars` in build_panel.R; paper 07 merges it locally.
+
+### Paper 04 (multitasking/secondary care) - progress and new errors
+- New common errors:
+  - `data.table(key = ...)`: `key` is a data.table argument (sets a key), not a column name. Use `var`/`lab`.
+  - `diff_pp()`/`diff_txt()` return "not estimable" mid-sentence ("Women are not estimable likely ..."). When an estimate can be NA, use a signed form with no direction word (e.g. a local `pp_se()`/`est_se()`) or wrap in `iff(!is.na(e$est), ...)`.
+  - The `iff(is_pos(e), A, B)` "no difference" branch also fires when `e` is NA. Use a wrapper that returns "" (or an NA sentence) when the estimate is not estimable.
+  - `coef_of(m, "x")` in `y ~ female * x` gives the effect of x for men only (female = 0), not the average. Report the main effect from a model without the interaction, plus the interaction separately.
+  - "Share-based measures do not depend on the minor-duration convention" is false when the share's numerator is minor minutes. Only counts, indicators, and major-minute measures are duration-free.
+  - A citation inside an `iff()` string must be `@key`, not plain "Author (Year)".
+  - `$\\lambda$` written from Python/escaped text ends up as `\\lambda` in LaTeX (a line break). Check math after scripted edits.
+- Progress: lit review rewritten (6 strands, 33 new refs in refs_local.bib); added duration-convention sensitivity (recorded / half / 10-min floor / net of overlap), child-under-6 and employment heterogeneity (subgroup table + interactions), household-FE gaps, secondary childcare by main activity, inclusive SDG 5.4.1, proxy analysis rewritten (no-interaction main effect, self-report-only gaps), wage-free replacement-cost uplift (no wages imputed). Knits clean on synthetic data (23 pp).
+- Shared-code request (not blocking): `build_panel.R` could also save the number of major episodes in multi-activity slots, and minor-record counts by pair (already in `slot_pairs$episodes`), so that pair-based shares can be duration-free. Paper 04 works around this with indicators.
+
+## Lead: shared-code change (spouse diary day)
+- `spouse_dow` is now in the panel (spouse's diary day). Each member keeps their own diary day, so within-couple gaps compare
+  different days unless you restrict to `dow == spouse_dow`. Papers 05 and 07: state this and add a same-day robustness check.
+- Request not implemented: per-person slot timing of free time (needs episode-level times in the panel).
