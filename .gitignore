@@ -39,3 +39,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Derived data and knit by-products
+*.rds
+*.fls
+*.fdb_latexmk
+submission/**/*_files/
+submission/**/*.html
