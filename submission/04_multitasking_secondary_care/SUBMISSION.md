@@ -5,7 +5,7 @@
 
 ## Contribution in one line
 
-This is the first India-wide measure of secondary activity, secondary childcare and leisure shared with care. It shows how much single-activity accounting understates women's work, which matters for SDG 5.4.1 and for valuations of unpaid work.
+National measures of secondary activity, secondary childcare and free time shared with care for India, with the inclusive childcare measure bounded under four duration conventions for minor records, heterogeneity by a child under 6 and by employment, and a wage-free replacement-cost uplift. It shows how much single-activity accounting changes the measured level of, and gender gap in, unpaid care, which matters for SDG 5.4.1 and for valuations of unpaid work.
 
 ## Before submitting
 
@@ -15,7 +15,12 @@ This is the first India-wide measure of secondary activity, secondary childcare 
 - [ ] Report how the release assigns duration to minor records (from NSO documentation) and state it in Section 3.
 - [ ] Check `share_minor_rows_matched_to_major` in `validation.txt`; it should be close to 100%.
 - [ ] If `Multiple_Activity_Flag` / `Simultaneous_Activity_Flag` have different names in the release, add them to `TUS_COLS`.
-- [ ] Verify every cited reference against the source (`submission/references.bib`).
+- [ ] Verify every cited reference against the source (`submission/references.bib` and `refs_local.bib`).
+- [ ] Once the duration convention is known, say which row of the conventions table (Table `conv`) is the headline and move the others to robustness.
+- [ ] Confirm whether `Weight` is a population multiplier before keeping the aggregate-hours sentence in Section 5 (it is stated conditionally).
+- [ ] Check `share_hh_negative_under6_residual` in `validation.txt`; the child-under-6 heterogeneity depends on it.
+- [ ] Read every `iff()`/`say3()` branch on real data; the synthetic file has no male secondary childcare and no care during free time, so several estimates are "not estimable" there.
+- [ ] Word count: about 8,000 words of text plus tables; check the journal's limit.
 - [ ] Check the journal's current length limit, reference style and anonymisation rules.
 
 ## Cover letter (draft)
