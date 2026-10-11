@@ -11,7 +11,7 @@ output:
       in_header: ../_common/preamble.tex
 fontsize: 11pt
 geometry: margin=1in
-bibliography: ../references.bib
+bibliography: [../references.bib, refs_local.bib]
 link-citations: true
 ---
 
@@ -22,7 +22,7 @@ TUS_ROOT <- normalizePath("../..")
 source(file.path(TUS_ROOT, "R", "setup.R"))
 pd <- load_panel()
 V  <- panel_validation(pd)
-require_cols(pd, c("rel", "hh_n_under6", "n_older_gen"), "Paper 02")
+require_cols(pd, c("rel", "hh_n_under6", "n_older_gen", "n_older_gen_women", "married", "employed"), "Paper 02")
 ```
 
 ```{r watermark, results="asis"}
@@ -31,79 +31,276 @@ if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
 
 ```{r sample}
 R <- CODE$relation
-# Candidate mothers: married women 18-49 whose position in the roster lets us
-# identify the generation above them (head/spouse, or married child/child's spouse).
-pd[, n_mw_18_49 := sum(female == 1 & married == 1 & age >= 18 & age <= 49), by = hh_id]
-Mo <- pd[female == 1 & married == 1 & age >= 18 & age <= 49 & !is.na(n_older_gen)]
+HEADLVL <- unname(R[c("head", "spouse")])
+JUNIOR  <- unname(R[c("married_child", "child_spouse")])
+PARENT  <- unname(R["parent_or_inlaw"])
+
+# ---- Household-level counts (added to pd BEFORE any subsetting) ----------------
+hhx <- pd[, .(
+  n_junior_mw  = sum(female == 1 & married == 1 & rel %in% JUNIOR & age >= 15 & age <= 49),
+  n_head_mw    = sum(female == 1 & married == 1 & rel %in% HEADLVL & age >= 18 & age <= 49),
+  n_mw_18_49   = sum(female == 1 & married == 1 & age >= 18 & age <= 49),
+  n_adult_women = sum(female == 1 & age >= 15),
+  hh_cc_all    = sum(care_child[age >= 15])
+), by = hh_id]
+pd[hhx, on = "hh_id", names(hhx)[-1] := mget(paste0("i.", names(hhx)[-1]))]
+
+# ---- Candidate mothers ----------------------------------------------------------
+# Married women 18-49 whose roster position identifies the generation above them.
+elig0 <- pd[female == 1 & married == 1 & age >= 18 & age <= 49 & rel %in% c(HEADLVL, JUNIOR)]
+elig0[, junior := as.integer(rel %in% JUNIOR)]
+# A head-level woman who lives with a married child's couple of childbearing age is,
+# in a household with a child under six, most likely that child's grandmother rather
+# than its mother. She is excluded from the mother sample and enters the
+# older-generation sample below.
+n_u6_pool   <- elig0[!is.na(hh_n_under6) & hh_n_under6 > 0, .N]
+n_u6_dropgm <- elig0[!is.na(hh_n_under6) & hh_n_under6 > 0 & junior == 0 & n_junior_mw > 0, .N]
+elig <- elig0[!(junior == 0 & n_junior_mw > 0)]
+
+# ---- Link each mother to the older generation's own diaries -----------------------
+older <- pd[, .(hh_id, o_pid = pid, o_rel = rel, o_female = female, o_age = age,
+                o_cc = care_child, o_cc_act = care_child_active, o_cc_pas = care_child_passive,
+                o_dom = unpaid_domestic, o_emp = employment, o_ft = free_time,
+                o_employed = employed)]
+lk <- rbind(
+  merge(elig[junior == 0, .(pid, hh_id)], older[o_rel == PARENT], by = "hh_id", allow.cartesian = TRUE),
+  merge(elig[junior == 1, .(pid, hh_id)], older[o_rel %in% HEADLVL & o_age >= 40], by = "hh_id",
+        allow.cartesian = TRUE))
+n_self_links <- lk[o_pid == pid, .N]          # must be 0: no mother is her own grandmother
+lk <- lk[o_pid != pid]
+og <- lk[, .(
+  gm_n = sum(o_female == 1), gf_n = sum(o_female == 0),
+  gm_care_child = sum(o_cc * (o_female == 1)), gm_cc_act = sum(o_cc_act * (o_female == 1)),
+  gm_cc_pas = sum(o_cc_pas * (o_female == 1)), gm_domestic = sum(o_dom * (o_female == 1)),
+  gm_employment = sum(o_emp * (o_female == 1)), gm_free_time = sum(o_ft * (o_female == 1)),
+  gm_employed = as.integer(any(o_female == 1 & o_employed %in% 1)),
+  gm_age_min = if (any(o_female == 1)) min(o_age[o_female == 1]) else NA_real_,
+  gf_care_child = sum(o_cc * (o_female == 0))
+), by = pid]
+
+Mo <- merge(elig, og, by = "pid", all.x = TRUE)
+zero <- c("gm_n", "gf_n", "gm_care_child", "gm_cc_act", "gm_cc_pas", "gm_domestic",
+          "gm_employment", "gm_free_time", "gm_employed", "gf_care_child")
+for (v in zero) Mo[is.na(get(v)), (v) := 0]
+# Agreement with the shared panel's count of older-generation women (should be 100%).
+share_link_consistent <- Mo[, mean(gm_n == n_older_gen_women, na.rm = TRUE)]
+
 Mo[, `:=`(
-  gp_any   = as.integer(n_older_gen > 0),
-  gm_any   = as.integer(n_older_gen_women > 0),
-  gf_only  = as.integer(n_older_gen > 0 & n_older_gen_women == 0),
-  dil      = as.integer(rel %in% R[c("married_child", "child_spouse")]),   # lives in the older generation's household
-  young    = as.integer(hh_n_under6 > 0),
+  gm_any   = as.integer(gm_n > 0),
+  gf_any   = as.integer(gf_n > 0),
+  gp_any   = as.integer(gm_n + gf_n > 0),
+  husband  = as.integer(!is.na(spouse_pid)),
+  spouse_emp = fifelse(is.na(spouse_employed), 0L, as.integer(spouse_employed)),
+  father_cc = fifelse(is.na(spouse_care_child), 0, spouse_care_child),
+  special  = as.integer(special_care %in% CODE$yes_no["yes"]),
+  kids_6_17 = fcoalesce(as.integer(own_kids_6_17), 0L),
+  kids_unknown = as.integer(is.na(own_kids_6_17)),
   sole     = as.integer(n_mw_18_49 == 1),
-  kids_6_17 = fcoalesce(own_kids_6_17, 0L)
+  any_cc   = as.integer(care_child > 0),
+  edu_hi   = as.integer(edu_tier %in% names(CODE$edu_tier)[3:4])
 )]
-Mo <- Mo[!is.na(young)]
-MY <- Mo[young == 1]            # mothers in households with a child under six
+Mo[, spouse_edu_f := factor(fifelse(husband == 0, "No linked husband",
+                                    fifelse(is.na(spouse_edu_tier), "Unknown", as.character(spouse_edu_tier))))]
+Mo[, `:=`(
+  gm_only = as.integer(gm_any == 1 & gf_any == 0),
+  gf_only = as.integer(gm_any == 0 & gf_any == 1),
+  gp_both = as.integer(gm_any == 1 & gf_any == 1),
+  gm_young = as.integer(gm_any == 1 & gm_age_min < 60),
+  gm_old   = as.integer(gm_any == 1 & gm_age_min >= 60),
+  gm_work  = as.integer(gm_any == 1 & gm_employed == 1),
+  gm_nowork = as.integer(gm_any == 1 & gm_employed == 0),
+  n_other_women = pmax(n_adult_women - 1 - gm_n, 0),
+  hh_care_mo_gm = care_child + gm_care_child,
+  others_cc = pmax(hh_cc_all - care_child - father_cc - gm_care_child - gf_care_child, 0),
+  gp_lab = factor(ifelse(gm_any == 1, "Grandmother present", "No grandmother"),
+                  levels = c("No grandmother", "Grandmother present"))
+)]
 
-# Older-generation women's own time (the grandmothers), linked to each mother.
-older <- pd[female == 1 & age >= 40, .(hh_id, rel, care_child, unpaid_domestic, employment, employed, age)]
-gm_time <- function(mo) {
-  g1 <- merge(mo[dil == 0, .(pid, hh_id)], older[rel == R["parent_or_inlaw"]], by = "hh_id")
-  g2 <- merge(mo[dil == 1, .(pid, hh_id)], older[rel %in% R[c("head", "spouse")]], by = "hh_id")
-  rbind(g1, g2)[, .(gm_care_child = sum(care_child), gm_domestic = sum(unpaid_domestic),
-                    gm_employed = max(employed, na.rm = TRUE), gm_age = max(age)), by = pid]
+MY <- Mo[!is.na(hh_n_under6) & hh_n_under6 > 0]                     # analysis sample
+MP <- Mo[!is.na(hh_n_under6) & hh_n_under6 == 0 & !is.na(youngest_own_kid) &
+           youngest_own_kid >= 6 & youngest_own_kid <= 14]           # placebo sample
+MY[, multi_u6 := as.integer(hh_n_under6 >= 2)]
+
+# ---- Specification ----------------------------------------------------------------
+CV <- c("i(age_band)", "i(edu_tier)", "urban", "i(mpce_quintile)", "kids_6_17", "kids_unknown",
+        "hh_n_under6", "hh_n_6_14", "i(spouse_edu_f)", "spouse_emp", "i(social_group_f)",
+        "i(religion_f)", "special", "proxy_report")
+f <- function(y, x = "gm_any", d = MY, extra = NULL)
+  reg(as.formula(paste(y, "~", x, "+", ctrl(d, c(CV, extra)), fe(d))), d)
+
+# Difference between two coefficients of one model, with SE.
+dcoef <- function(m, a, b) {
+  if (is.null(m) || !all(c(a, b) %in% names(coef(m)))) return(list(est = NA, se = NA, p = NA))
+  v <- vcov(m); d <- unname(coef(m)[a] - coef(m)[b])
+  s <- sqrt(v[a, a] + v[b, b] - 2 * v[a, b]); list(est = d, se = s, p = 2 * pnorm(-abs(d / s)))
 }
-G <- gm_time(MY)
-MY <- merge(MY, G, by = "pid", all.x = TRUE)
-MY[gm_any == 0, `:=`(gm_care_child = 0, gm_domestic = 0)]
-MY[, `:=`(hh_care_mo_gm = care_child + gm_care_child,
-          care_child_active = care_child_active, care_child_passive = care_child_passive)]
-
-controls <- ctrl(MY, c("i(age_band)", "i(edu_tier)", "urban", "i(mpce_quintile)", "kids_6_17",
-                       "hh_n_under6", "hh_n_6_14", "i(spouse_edu_tier)", "spouse_employed",
-                       "i(social_group_f)", "i(religion_f)", "special_care", "proxy_report"))
-FE <- fe(MY)
-f <- function(y, x = "gm_any", d = MY) reg(as.formula(paste(y, "~", x, "+", controls, FE)), d)
+cell <- function(k, d = 2) paste0(.fmt(k$est, d), stars(k$p))
+# Difference of estimates from two separate regressions; SE ignores their covariance
+# (conservative when the covariance is positive, as within households and FSUs).
+ddiff <- function(a, b) {
+  if (is.na(a$est) || is.na(b$est)) return(list(est = NA, se = NA, p = NA))
+  d <- a$est - b$est; s <- sqrt(a$se^2 + b$se^2); list(est = d, se = s, p = 2 * pnorm(-abs(d / s)))
+}
+cse  <- function(k, d = 2) if (is.null(k$est) || is.na(k$est)) "--" else
+  paste0(.fmt(k$est, d), stars(k$p), " (", .fmt(k$se, d), ")")
 
 outs <- c("care_child", "care_child_active", "care_child_passive", "sec_care_child",
-          "unpaid_domestic", "care_dep_adult", "employment", "free_time", "sleep")
-out_lab <- c(care_child = "Childcare (primary)", care_child_active = "  Active childcare",
-             care_child_passive = "  Passive childcare (minding)", sec_care_child = "Childcare as secondary activity",
-             unpaid_domestic = "Unpaid domestic work", care_dep_adult = "Care of dependent adults",
-             employment = "Employment (incl. travel)", free_time = "Free time", sleep = "Sleep")
-m_gm  <- setNames(lapply(outs, f), outs)
+          "unpaid_domestic", "dom_food", "care_dep_adult", "employment", "free_time", "sleep")
+out_lab <- c(care_child = "Childcare (primary)", care_child_active = "\\quad Active childcare",
+             care_child_passive = "\\quad Passive childcare (minding)",
+             sec_care_child = "Childcare as secondary activity", unpaid_domestic = "Unpaid domestic work",
+             dom_food = "\\quad of which food and meals", care_dep_adult = "Care of dependent adults",
+             employment = "Employment (incl. travel)", free_time = "Free time", sleep = "Sleep",
+             employed = "Employed (usual status, share)")
+m_gm <- setNames(lapply(c(outs, "employed"), f), c(outs, "employed"))
 e <- function(y, t = "gm_any", ml = m_gm) coef_of(ml[[y]], t)
 
-k_cc   <- e("care_child"); k_act <- e("care_child_active"); k_pas <- e("care_child_passive")
-k_dom  <- e("unpaid_domestic"); k_emp <- e("employment"); k_ft <- e("free_time"); k_adult <- e("care_dep_adult")
-k_lfp  <- coef_of(f("employed"), "gm_any")
-k_hh   <- coef_of(f("hh_care_mo_gm"), "gm_any")
+k_cc <- e("care_child"); k_act <- e("care_child_active"); k_pas <- e("care_child_passive")
+k_sec <- e("sec_care_child"); k_dom <- e("unpaid_domestic"); k_food <- e("dom_food")
+k_adult <- e("care_dep_adult"); k_emp <- e("employment"); k_ft <- e("free_time")
+k_sleep <- e("sleep"); k_lfp <- e("employed")
+k_all <- coef_of(f("hh_cc_all"), "gm_any")
+k_fa  <- coef_of(f("father_cc", d = MY[husband == 1]), "gm_any")
 
-# Grandmothers' own childcare (descriptive, among mothers with a grandmother present)
-gm_cc  <- est_mean(MY[gm_any == 1], "gm_care_child")
+# ---- Descriptives -----------------------------------------------------------------
+n_my <- nrow(MY); n_mp <- nrow(MP)
+share_gm  <- wmean(MY$gm_any, MY$weight)
+share_gf  <- wmean(MY$gf_any, MY$weight)
+share_gfo <- wmean(MY$gf_only, MY$weight)
+share_jun <- wmean(MY$junior, MY$weight)
+share_dil <- if (nrow(MY[junior == 1])) wmean(MY[junior == 1]$rel == R["child_spouse"], MY[junior == 1]$weight) else NA
+share_jun_gm <- if (nrow(MY[gm_any == 1])) wmean(MY[gm_any == 1]$junior, MY[gm_any == 1]$weight) else NA
+share_hus <- wmean(MY$husband, MY$weight)
+share_sole <- wmean(MY$sole, MY$weight)
+n_jun_nogm <- MY[junior == 1 & gm_any == 0, .N]; n_jun_gm <- MY[junior == 1 & gm_any == 1, .N]
+n_head_nogm <- MY[junior == 0 & gm_any == 0, .N]; n_head_gm <- MY[junior == 0 & gm_any == 1, .N]
 mo_cc0 <- est_mean(MY[gm_any == 0], "care_child"); mo_cc1 <- est_mean(MY[gm_any == 1], "care_child")
-share_gp <- wmean(MY$gm_any, MY$weight)
-share_dil <- wmean(MY$dil, MY$weight)
+gm_cc  <- est_mean(MY[gm_any == 1], "gm_care_child")
+gm_dom <- est_mean(MY[gm_any == 1], "gm_domestic")
+gm_empm <- est_mean(MY[gm_any == 1], "gm_employment")
+gm_age_med <- if (nrow(MY[gm_any == 1])) median(MY[gm_any == 1]$gm_age_min) else NA
+share_gm_young <- if (nrow(MY[gm_any == 1])) wmean(MY[gm_any == 1]$gm_young, MY[gm_any == 1]$weight) else NA
+share_gm_work <- if (nrow(MY[gm_any == 1])) wmean(MY[gm_any == 1]$gm_work, MY[gm_any == 1]$weight) else NA
+gm_share_cc <- with(MY[gm_any == 1], sum(weight * gm_care_child) / sum(weight * (gm_care_child + care_child)))
 
-# Heterogeneity
-het <- function(d) coef_of(f("care_child", "gm_any", d), "gm_any")
-h_dil1 <- het(MY[dil == 1]); h_dil0 <- het(MY[dil == 0])
-h_urb  <- het(MY[urban == 1]); h_rur <- het(MY[urban == 0])
-h_emp  <- coef_of(f("care_child", "gm_any * employed"), "gm_any:employed")
-gm_free <- MY[gm_any == 1 & !is.na(gm_employed)]
-h_gmwork <- coef_of(f("care_child", "gm_any", MY[gm_any == 0 | (gm_any == 1 & gm_employed == 0)]), "gm_any")
+# ---- Heterogeneity ------------------------------------------------------------------
+MIN_CELL <- 30   # minimum mothers with and without a grandmother for a split to be reported
+het <- function(d, y = "care_child") {
+  ok <- d[gm_any == 1, .N] >= MIN_CELL && d[gm_any == 0, .N] >= MIN_CELL
+  if (!ok) return(list(est = NA, se = NA, p = NA, n = nrow(d), ok = FALSE))
+  c(coef_of(f(y, d = d), "gm_any"), n = nrow(d), ok = TRUE)
+}
+splits <- list(head = MY[junior == 0], jun = MY[junior == 1], urb = MY[urban == 1], rur = MY[urban == 0],
+               elo = MY[edu_hi == 0], ehi = MY[edu_hi == 1], one = MY[multi_u6 == 0], two = MY[multi_u6 == 1])
+H     <- lapply(splits, het)
+H_emp <- lapply(splits, het, y = "employment")
+jun_estimable <- isTRUE(H$jun$ok) && !is.na(H$jun$est)
 
-# Verdicts
+# Who is the grandparent: age (health proxy), employment, sex
+m_age  <- lapply(c(cc = "care_child", emp = "employment"), function(y) f(y, "gm_young + gm_old"))
+m_work <- lapply(c(cc = "care_child", emp = "employment"), function(y) f(y, "gm_nowork + gm_work"))
+m_sex  <- lapply(c(cc = "care_child", emp = "employment"), function(y) f(y, "gm_only + gf_only + gp_both"))
+A <- list(
+  young = lapply(m_age, coef_of, "gm_young"), old = lapply(m_age, coef_of, "gm_old"),
+  dage = lapply(m_age, dcoef, "gm_young", "gm_old"),
+  nowork = lapply(m_work, coef_of, "gm_nowork"), work = lapply(m_work, coef_of, "gm_work"),
+  dwork = lapply(m_work, dcoef, "gm_nowork", "gm_work"),
+  gmo = lapply(m_sex, coef_of, "gm_only"), gfo = lapply(m_sex, coef_of, "gf_only"),
+  both = lapply(m_sex, coef_of, "gp_both"), dsex = lapply(m_sex, dcoef, "gm_only", "gf_only"))
+
+# ---- Placebo: youngest own child aged 6-14, no child under six ------------------------
+pl_outs <- c("care_child", "care_child_active", "care_child_passive", "unpaid_domestic", "employment")
+PL <- lapply(setNames(pl_outs, pl_outs), function(y) list(
+  u6 = coef_of(m_gm[[y]], "gm_any"),
+  pl = coef_of(f(y, d = MP), "gm_any"),
+  dd = NULL))
+for (y in pl_outs) PL[[y]]$dd <- ddiff(PL[[y]]$u6, PL[[y]]$pl)
+k_pl <- PL$care_child$pl; k_dd <- PL$care_child$dd; k_pl_emp <- PL$employment$pl
+
+# ---- The older generation's own trade-offs ---------------------------------------------
+# Members aged 45-80 in the generation above a married woman of childbearing age:
+# head/spouse living with a married child's couple, or parent/in-law of the head living
+# with a head-level couple. Treatment: a child under six in the household.
+OG <- pd[age >= 45 & age <= 80 & !is.na(hh_n_under6) &
+           ((rel %in% HEADLVL & n_junior_mw > 0) | (rel == PARENT & n_head_mw > 0))]
+OG[, `:=`(young_gc = as.integer(hh_n_under6 > 0),
+          special = as.integer(special_care %in% CODE$yes_no["yes"]))]
+CVo <- c("i(age_band)", "i(edu_tier)", "urban", "i(mpce_quintile)", "married", "hh_n_6_14",
+         "i(social_group_f)", "i(religion_f)", "special", "proxy_report")
+fo <- function(y, d, x = "young_gc") reg(as.formula(paste(y, "~", x, "+", ctrl(d, CVo), fe(d))), d)
+og_outs <- c("care_child", "care_child_active", "care_child_passive", "unpaid_domestic",
+             "employment", "employed", "free_time", "sleep")
+OGW <- OG[female == 1]; OGM <- OG[female == 0]
+T_gm <- lapply(setNames(og_outs, og_outs), function(y) coef_of(fo(y, OGW), "young_gc"))
+T_gf <- lapply(setNames(og_outs, og_outs), function(y) coef_of(fo(y, OGM), "young_gc"))
+T_dd <- lapply(setNames(og_outs, og_outs), function(y) ddiff(T_gm[[y]], T_gf[[y]]))
+n_ogw <- nrow(OGW); n_ogm <- nrow(OGM)
+t_cc <- T_gm$care_child; t_emp <- T_gm$employment; t_ft <- T_gm$free_time; t_dom <- T_gm$unpaid_domestic
+t_lfp <- T_gm$employed; t_sleep <- T_gm$sleep; tf_cc <- T_gf$care_child; td_cc <- T_dd$care_child
+tf_emp <- T_gf$employment
+
+# ---- Robustness -------------------------------------------------------------------------
+m1 <- m_gm$care_child
+ob <- NA_real_; obe <- NA_real_
+if (!is.null(m1)) {
+  m0 <- reg(care_child ~ gm_any, MY[obs(m1)])
+  ob <- tryCatch(oster_beta(m0, m1, "gm_any"), error = function(e) NA_real_)
+}
+if (!is.null(m_gm$employment)) {
+  m0e <- reg(employment ~ gm_any, MY[obs(m_gm$employment)])
+  obe <- tryCatch(oster_beta(m0e, m_gm$employment, "gm_any"), error = function(e) NA_real_)
+}
+unw <- tryCatch(coef_of(feols(as.formula(paste("care_child ~ gm_any +", ctrl(MY, CV), fe(MY))),
+                              MY, cluster = ~fsu), "gm_any"), error = function(e) list(est = NA, se = NA, p = NA))
+RB <- list(
+  "Baseline" = k_cc,
+  "Only married woman aged 18--49 in the household" = coef_of(f("care_child", d = MY[sole == 1]), "gm_any"),
+  "Head-level mothers only (head or spouse of head)" = coef_of(f("care_child", d = MY[junior == 0]), "gm_any"),
+  "Mothers with a linked husband only" = coef_of(f("care_child", d = MY[husband == 1]), "gm_any"),
+  "Self-reported diaries only" = coef_of(f("care_child", d = MY[proxy_report == 0]), "gm_any"),
+  "Controlling for other women aged 15+" = coef_of(f("care_child", extra = "n_other_women"), "gm_any"),
+  "Controlling for household size" = coef_of(f("care_child", extra = "hh_size"), "gm_any"),
+  "Controlling for mother's generation (junior)" = coef_of(f("care_child", extra = "junior"), "gm_any"),
+  "Unweighted" = unw,
+  "Any grandparent instead of grandmother" = coef_of(f("care_child", "gp_any"), "gp_any"))
+k_any_cc <- coef_of(f("any_cc"), "gm_any")
+rb_est <- vapply(RB, function(k) as.numeric(k$est), numeric(1))
+rb_sign_stable <- all(!is.na(rb_est)) && (all(rb_est < 0) || all(rb_est > 0))
+rb_range <- range(rb_est, na.rm = TRUE)
+
+# ---- Verdicts (drive every results-dependent sentence) ----------------------------------
 sub_child <- is_neg(k_cc)
+cc_up     <- is_pos(k_cc)
 emp_up    <- is_pos(k_emp)
-hh_more   <- is_pos(k_hh)
+emp_down  <- is_neg(k_emp)
+lfp_up    <- is_pos(k_lfp)
+dom_up    <- is_pos(k_dom)
+dom_down  <- is_neg(k_dom)
+ft_up     <- is_pos(k_ft)
+hh_more   <- is_pos(k_all)
+hh_less   <- is_neg(k_all)
+pas_only  <- is_neg(k_pas) && !is_neg(k_act)
+act_too   <- is_neg(k_act)
+pl_null   <- !is_sig(k_pl)
+# Significant changes in grandmothers' other activities with a young grandchild
+og_names <- c(unpaid_domestic = "domestic work", employment = "paid work", free_time = "free time", sleep = "sleep")
+og_neg <- unname(og_names[vapply(names(og_names), function(y) is_neg(T_gm[[y]]), logical(1))])
+og_pos <- unname(og_names[vapply(names(og_names), function(y) is_pos(T_gm[[y]]), logical(1))])
+and_list <- function(x) if (length(x) <= 1) paste(x, collapse = "") else paste(paste(x[-length(x)], collapse = ", "), "and", x[length(x)])
+gm_cost_cc  <- is_pos(t_cc)
+gm_cost_emp <- is_neg(t_emp) || is_neg(t_lfp)
+gm_cost_ft  <- is_neg(t_ft)
+gf_cc_up    <- is_pos(tf_cc)
+gf_less     <- is_pos(td_cc)
+age_grad    <- is_sig(A$dage$cc)
+work_grad   <- is_sig(A$dwork$cc)
+sex_grad    <- is_sig(A$dsex$cc)
+oster_same_sign <- !is.na(ob) && !is.na(k_cc$est) && sign(ob) == sign(k_cc$est)
 ```
 
 \begin{abstract}
-Co-resident grandparents are widely assumed to substitute for mothers in childcare. In India, where most three-generation households are patrilocal and formal childcare is scarce, that assumption shapes how policy treats the care economy. I test it with the Time Use Survey 2024, which records a full-day diary for every household member aged six and above, so I observe the minutes of mothers \emph{and} of the grandmothers who live with them. Among `r fn(nrow(MY))` married mothers aged 18 to 49 in households with a child under six, `r pctx(share_gp, 0)` live with a grandmother (the mother's mother-in-law or own mother) identified from the household roster. Conditional on mother's and husband's characteristics, consumption, household composition, caste, religion, and state and day fixed effects, a co-resident grandmother is associated with `r f1(abs(k_cc$est))` `r more_less(k_cc$est, "more", "fewer")` minutes of mothers' daily childcare (SE `r f1(k_cc$se)`) and `r f1(abs(k_emp$est))` `r more_less(k_emp$est, "more", "fewer")` minutes of paid work (SE `r f1(k_emp$se)`). Grandmothers themselves average `r f0(gm_cc$est)` minutes of childcare a day. `r iff(hh_more, "Total childcare by mother and grandmother is higher in three-generation households, so grandmothers add to care more than they replace mothers.", iff(sub_child, "Grandmothers' care partly replaces mothers' care.", "Grandmothers' care adds to, rather than replaces, mothers' care; it does not translate into more paid work for mothers."))` I discuss what these patterns imply for policies that rely on family care.
-\keywords{grandparents, childcare, three-generation households, time use, women's employment, India}
+Co-resident grandmothers are widely assumed to substitute for mothers in childcare. India, where most three-generation households are patrilocal and formal care for children under six is limited, is a demanding test of that assumption. The Time Use Survey 2024 records a 24-hour diary for every household member aged six and above, so I observe on the same day the time of mothers \emph{and} of the grandmothers who live with them. I identify the generation above each married woman from roster relationship codes, including the common patrilocal case in which the mother is the head's daughter-in-law, and I keep out of the mother sample women whose co-resident young child is most likely a grandchild. Among `r fn(n_my)` married mothers aged 18 to 49 in households with a child under six, `r pctx(share_gm, 0)` live with a grandmother. Conditional on the mother's and husband's characteristics, consumption, household composition, caste, religion, and state and day fixed effects, a co-resident grandmother is associated with `r diff_txt(k_cc)` primary childcare by the mother a day and `r diff_txt(k_emp)` paid work. Grandmothers themselves average `r f0(gm_cc$est)` minutes of childcare a day, and in the older generation a young grandchild is associated with `r diff_txt(t_cc)` childcare for grandmothers and `r diff_txt(tf_cc)` for grandfathers. `r iff(sub_child, "Grandmothers' presence is associated with less childcare by mothers", "Grandmothers' presence is not associated with significantly less childcare by mothers")``r iff(hh_more, ", and children in three-generation households receive more childcare from adult members in total", "")`. `r iff(emp_up || lfp_up, "Their presence is associated with more paid work by mothers.", "Their presence is not associated with significantly more paid work by mothers.")` The results bear on how far family care can stand in for formal childcare.
+\keywords{grandparents, childcare, three-generation households, patrilocality, time use, women's employment, India}
 \jel{J13, J16, J22, D13}
 \end{abstract}
 
@@ -111,145 +308,309 @@ Co-resident grandparents are widely assumed to substitute for mothers in childca
 
 # Introduction
 
-The family is India's childcare system. Formal childcare beyond the public *anganwadi* centres is limited, and women's labour force participation has long been low by international standards [@fletcher2017women; @klasen2015stagnation]. Policy and popular discussion alike assume that co-resident grandparents, above all grandmothers, absorb a large share of childcare and so free mothers to work or rest. Evidence from Europe, the United States, China and Japan supports a link between grandparent availability and maternal employment [@compton2014family; @posadas2013grandparents; @arpino2014grandparental; @maurerfazio2011childcare; @sasaki2002causal]. In India the picture is less clear. Joint-family living is associated with *lower* female employment in rural India [@dhanaraj2019family], and patrilocal residence places young wives under the authority of their in-laws [@jayachandran2015roots].
+The family is India's main childcare institution. Public provision for children under six runs mainly through the *anganwadi* centres of the Integrated Child Development Services, which focus on supplementary nutrition, health and pre-school education rather than full-day care, and women's labour force participation has long been low by international standards and slow to rise with education and income [@fletcher2017women; @klasen2015stagnation; @chatterjee2018indian]. In this setting a common presumption, in policy discussion and in the family itself, is that co-resident grandparents, above all grandmothers, absorb a large share of the care of young children and so free mothers to work, rest or invest in other children. The presumption has empirical support elsewhere. In the United States, Europe, China and Japan, the availability of grandparents is associated with, and in several quasi-experimental designs causes, higher maternal employment [@compton2014family; @posadas2013grandparents; @arpino2014grandparental; @bratti2018grandparental; @maurerfazio2011childcare; @sasaki2002causal; @ogawa1996family].
 
-Two mechanisms run in opposite directions. Grandmothers may provide care and so lower mothers' childcare time, the *substitution* channel. But co-residence may also bring additional domestic and care demands (cooking for more people, care of frail elders) and stricter norms about the daughter-in-law's role, a *constraint* channel. Which dominates is an empirical question that most existing studies cannot answer directly: they observe whether a grandparent lives nearby and whether the mother works, but not what either of them does with their time.
+There are reasons to doubt that the same holds in India. Residence after marriage is predominantly patrilocal, so the co-resident grandmother is typically the mother-in-law, and the anthropological and economic literature describes the young daughter-in-law as the junior member of a hierarchy in which her mobility, work outside the home and access to services are shaped by her husband's parents [@dyson1983kinship; @kandiyoti1988bargaining; @jayachandran2015roots; @anukriti2020curse]. Women in joint households in rural India are less likely to be employed than women in nuclear households [@dhanaraj2019family]. A three-generation household is also a larger household, with more meals to cook and sometimes a frail elder to look after. Co-residence can therefore *add* to a mother's work at the same time as it brings a potential substitute for her childcare.
 
-This paper answers it with diaries for both generations. India's Time Use Survey 2024 [@nso2025tus] records 24-hour diaries for every household member aged six and above. The household roster's relationship codes identify, for each married woman, the generation above her. For a woman who is the head or the head's spouse, that generation is the head's parents or parents-in-law. For a daughter-in-law, it is the head and the head's spouse, the most common patrilocal arrangement. Legacy analyses that coded grandparents only as "parent of head" missed the latter case entirely. I can therefore measure the mother's childcare, domestic work, paid work and leisure, the grandmother's own childcare, and their sum.
+These two forces, which I call the *substitution* channel and the *constraint* channel, have opposite implications for the mother's time. Which dominates is an empirical question that most existing studies cannot answer directly. Surveys of labour supply record whether a grandparent lives nearby and whether the mother works, but not what either of them does with the day. Surveys of grandparents record whether they "look after grandchildren", but not the mother's time on the same day. As a result, the literature has mostly inferred the substitution of care from its labour-market consequences.
 
-`r iff(sub_child, paste0("Co-resident grandmothers are associated with ", diff_txt(k_cc, "more", "less"), " time in mothers' daily primary childcare."), paste0("Co-resident grandmothers are not associated with substantially less childcare by mothers: the estimate is ", est_se(k_cc), "."))` The association with mothers' paid work is `r est_se(k_emp)`, and with mothers' free time `r est_se(k_ft)`. Grandmothers living with a young child spend `r f0(gm_cc$est)` minutes a day on childcare themselves, and the total childcare provided by mother and grandmother together is `r diff_txt(k_hh)` in three-generation households. The results speak to whether family care can stand in for formal childcare in India's policy mix, and to the broader literature on the child penalty in women's work [@kleven2019denmark; @kleven2019countries; @cortes2023children].
+This paper measures the substitution directly. India's Time Use Survey 2024 [@nso2025tus] records a 24-hour diary, coded to the international ICATUS 2016 classification [@un2016icatus], for every member aged six and above in each sampled household. Diaries of mothers and of the grandparents who live with them are thus kept for the same day. The household roster's relationship codes let me identify, for each married woman, the generation above her. For a woman who is the head or the head's spouse, that generation consists of the head's parents or parents-in-law. For a woman who is a married child of the head or a married child's spouse, it consists of the head and the head's spouse, which is the typical patrilocal arrangement of a daughter-in-law living in her husband's parents' household. An identification that treats only "parent of head" as a grandparent misses this second case entirely. A further correction matters as much: in a household where a son and his wife live with his parents and a child under six is present, the head's wife is usually that child's grandmother, not its mother. I exclude such women from the mother sample (`r fn(n_u6_dropgm)` of the `r fn(n_u6_pool)` married women aged 18 to 49 in households with a child under six) and study them instead as grandmothers.
 
-# Related literature
+The analysis has four parts. First, I compare the time use of mothers of children under six with and without a co-resident grandmother, conditional on a rich set of characteristics of the mother, her husband and the household, and on state and diary-day fixed effects. The outcomes cover the whole day: primary childcare split into active care and passive supervision, childcare as a secondary activity, domestic work, care of dependent adults, employment, free time and sleep. Second, I add the grandmother's own childcare to the mother's to ask whether three-generation households provide the same care more cheaply or more care in total. Third, I turn to the older generation itself and estimate how the presence of a young grandchild is associated with grandmothers' and grandfathers' childcare, domestic work, paid work and free time; this shows the cost of the substitution to the person who provides it. Fourth, I ask which grandparents matter (younger or older grandmothers, working or not, grandmothers or grandfathers), how the association varies across settings, and whether it vanishes where it should, among mothers whose youngest child is of school age.
 
-## Grandparents and maternal labour supply
+`r iff(sub_child, paste0("The main finding is that a co-resident grandmother is associated with ", diff_txt(k_cc), " primary childcare by the mother a day."), iff(cc_up, paste0("The main finding is that a co-resident grandmother is associated with ", diff_txt(k_cc), " primary childcare by the mother a day, not less."), paste0("The main finding is that a co-resident grandmother is not associated with a statistically distinguishable change in the mother's primary childcare: the estimate is ", est_se(k_cc), ".")))` The association with the mother's paid work, including travel, is `r est_se(k_emp)`, with her domestic work `r est_se(k_dom)`, and with her free time `r est_se(k_ft)`. Grandmothers who live with a child under six report `r est_se(gm_cc)` of childcare a day, `r pct(gm_share_cc, 0)` of the combined childcare of mother and grandmother. Summed over all household members aged 15 and above, primary childcare is `r diff_txt(k_all, "higher", "lower")` in households with a grandmother, conditional on the number of children. `r iff(hh_more && !sub_child, "Grandmothers' care therefore adds to what children receive rather than replacing what mothers provide.", iff(hh_more && sub_child, "Grandmothers' care therefore partly replaces mothers' care and partly adds to it.", iff(sub_child && !hh_more, "Grandmothers' care therefore mainly reallocates childcare between the two women.", "")))` On the older generation's side, a child under six in the household is associated with `r diff_txt(t_cc)` childcare for grandmothers and `r diff_txt(t_emp)` paid work, against `r diff_txt(tf_cc)` childcare for grandfathers.
 
-A substantial literature finds that grandparent-provided childcare raises mothers' labour supply. In the United States, @compton2014family show that living close to mothers or mothers-in-law raises married women's employment, and they attribute the effect to childcare. In Europe, @posadas2013grandparents and @arpino2014grandparental find positive effects of grandparental care on maternal employment, the latter using instrumental variables to address the joint determination of grandparental help and maternal work. @dimova2011downward show that time transfers from grandparents raise maternal labour supply across European countries. @aparicio2015grandmothers link grandmothers' own labour force participation to their daughters' fertility, suggesting that grandmothers' time is a binding input. @garcia2017strings caution that grandparent-provided care comes "with strings attached", constraining mothers' job choices. For Asia, @maurerfazio2011childcare find that co-residence with parents or in-laws raised married women's participation in urban China. @sasaki2002causal finds a similar effect for Japanese married women after addressing the endogeneity of living arrangements.
+The paper contributes to three literatures. For the economics of grandparental childcare, it replaces inferences from employment with direct, same-day time measures for both generations, and it does so in a patrilocal, low-income setting where the constraint channel is plausibly strongest. For the study of family structure and women's work in South Asia, it shows how a household's kinship structure maps into the minutes of each member's day, separating the care that a co-resident mother-in-law provides from the work her presence entails. For the literature on child penalties [@kleven2019denmark; @kleven2019countries; @angelov2016parenthood; @cortes2023children], it provides evidence on one margin, informal family care, along which the penalty could in principle be cushioned, and on how far that cushion extends in a setting without formal alternatives. Methodologically, the paper documents relationship-based rules for assigning young children and grandparents in household rosters that do not record parent identifiers, rules that apply to many household surveys in South Asia.
 
-## Family structure and women's work in India
+The estimates are conditional associations, not causal effects. Living arrangements are chosen jointly with fertility, work and care, and the survey is a single cross-section. I address selection in four ways that do not rely on an instrument: by comparing arrangements that are selected for different reasons, by asking whether the associations follow the gradients that a substitution story predicts (in grandmother's age, employment and sex), by a placebo on mothers of school-age children, and by coefficient-stability bounds [@oster2019unobservable]. None of these is decisive alone; together they constrain the interpretation.
 
-India differs from these settings in ways that may reverse the sign. Residence after marriage is overwhelmingly patrilocal, so a co-resident grandmother is usually the mother-in-law. Norms of seclusion and the daughter-in-law's subordinate position in the joint family may restrict mobility and work outside the home [@jayachandran2015roots; @jayachandran2021social]. @dhanaraj2019family find that rural women in nuclear households are more likely to be employed than women in joint households. @afridi2018married decompose the decline in rural married women's employment and highlight the role of household characteristics and rising incomes. These studies observe employment, not time. The question of whether grandmothers do childcare that mothers would otherwise do cannot be answered without diaries for both.
+The rest of the paper is organised as follows. Section \ref{lit} reviews the literature. Section \ref{framework} sets out a simple framework that organises the two channels and the predictions I test. Section \ref{data} describes the data and the identification of mothers, young children and grandparents. Section \ref{strategy} presents the empirical strategy, Section \ref{results} the results and Section \ref{robustness} robustness checks. Section \ref{discussion} discusses interpretation, policy and limitations, and Section \ref{conclusion} concludes.
 
-## Time-use evidence on childcare
+# Related literature {#lit}
 
-Time-diary research documents that childcare is the most gendered of all household tasks and that mothers' childcare time has risen even as housework fell in rich countries [@sayer2004parents; @bianchi2006changing; @craig2011share]. @guryan2008parental show a strong positive education gradient in parental time with children. Distinguishing active from passive ("minding") care and primary from secondary care matters for measuring the true burden [@folbre2005measure; @kalenkoski2008quality; @craig2007contemporary]. I use all three distinctions.
+## Grandparental childcare and maternal labour supply
 
-# Data and measurement
+A large literature finds that grandparents' availability raises mothers' labour supply. In the United States, @compton2014family show that married women who live close to their mothers or mothers-in-law have higher labour force participation, and they attribute the effect to the availability of childcare; @posadas2013grandparents find, with data from the National Longitudinal Survey of Youth, that grandparent-provided childcare raises mothers' labour force participation. In Europe, @dimova2011downward show with data from the Survey of Health, Ageing and Retirement in Europe that downward time transfers, mainly grandchild care, raise maternal labour supply; @arpino2014grandparental find a positive effect of grandparental support on mothers' participation in Italy using an instrumental-variable approach; and @aassve2012grandparenting compare the relationship across European countries with the Generations and Gender Survey. @bratti2018grandparental exploit Italian pension reforms that raised retirement ages, and so reduced grandmothers' availability, and find that the reforms lowered the participation of their daughters. Earlier, @delboca2002effect had shown that the availability of childcare and of part-time jobs shapes Italian women's joint decisions about participation and fertility. @aparicio2015grandmothers find that grandmothers' own labour force participation is associated with lower fertility among their daughters, consistent with grandmothers' time being a binding input into the care of young children. @garcia2017strings argue that grandparent-provided care, though cheap, comes with constraints on mothers' labour market choices.
 
-## Sample
+The evidence from Asia is closer to the Indian setting because co-residence, not proximity, is the usual arrangement. @ogawa1996family find that co-residence with parents raised Japanese married women's full-time employment, and @sasaki2002causal confirms a positive effect of co-residence with parents or parents-in-law on Japanese married women's participation after treating living arrangements as endogenous. In urban China, @maurerfazio2011childcare show that co-residence with parents or parents-in-law was associated with higher participation of married women between 1982 and 2000, while young children lowered it, and @shen2016coresidence study co-residence with elderly parents and the labour supply of women in China, where co-resident parents can be sources of care as well as recipients of it. Descriptive studies document how widespread grandparental care is in Europe [@hank2009grandparents], China and Korea [@chen2011intergenerational; @ko2014grandparents]. @igel2011grandchild show that the welfare state shapes the form of that care: grandparental childcare is more common but less intensive where public childcare is more developed.
 
-I use every activity record of the Time Use Survey 2024: `r fn(V$n_rows)` records for `r fn(V$n_persons)` diarists in `r fn(V$n_households)` households. Minutes are summed over major activities to the person-day. The analysis sample is married women aged 18 to 49 whose relationship to the head is head, spouse of head, married child, or spouse of a married child, and who live in a household with at least one child under six (`r fn(nrow(MY))` women). Children under six do not keep diaries. I count them as household size minus the number of diarists (method: `r V$under6_method`), which relies on every member aged six or above keeping a diary. The share of households where this residual is negative is `r pct(V$share_hh_negative_under6_residual, 2)`.
+Two features of this literature motivate the present paper. First, almost all of it measures the *consequence* of grandparental care (maternal employment) rather than the care itself. Second, it comes overwhelmingly from settings in which co-residence or proximity is not tied to a strong patrilocal hierarchy. Where the grandmother is the mother-in-law and the household's head, her presence may bring authority over the daughter-in-law's time as well as help with it.
 
-## Identifying the generation above the mother
+## The older generation's time and intergenerational transfers
 
-For a mother who is the head or spouse of head, co-resident members of the older generation are those coded "father/mother/father-in-law/mother-in-law" (relationship code 7). For a mother who is a married child or spouse of a married child (code 3 or 4), the older generation is the head and spouse of head (codes 1 and 2) aged 40 or above. `r pct(share_dil, 0)` of mothers in the sample are in the second group. I define a co-resident grandmother as at least one woman in the older generation, and link each mother to those women's own diaries.
+Grandparental childcare is a transfer of time between generations. Economic models of intergenerational transfers distinguish altruistic from exchange motives [@cox1987motives; @altonji1997parental], and @konrad2002geography show how adult children's location choices respond strategically to the expectation of caring for parents. @cardia2003intergenerational show in a quantitative model that grandparents' time transfers are an important input into childcare and matter for how mothers' labour supply responds to childcare subsidies. @albertini2007intergenerational document that European regimes differ in the frequency and intensity of time and money transfers across generations. Time transfers have an opportunity cost for the giver. @rupert2018grandchildren find that the arrival of grandchildren lowers grandmothers' labour supply in the United States, and @lumsdaine2015retirement find that a new grandchild raises the probability that women retire. The evolutionary literature on the "grandmother hypothesis" and on kin effects on child survival makes the same point from a different angle: grandmothers' investment in grandchildren is a central and costly part of human life histories [@hawkes1998grandmothering; @sear2008keeps]. Diaries for the older generation let me measure this cost directly, alongside the benefit to the mother.
+
+## Family structure, patrilocality and women's work in India
+
+India differs from the settings above in ways that could reverse the sign of the association between co-residence and mothers' work. @dyson1983kinship argued that the kinship system of northern India, with village exogamy and patrilocal residence, limits women's autonomy relative to the south; @rahman2004determinants revisit the thesis with newer data, and @jejeebhoy2001women show that women's autonomy in India and Pakistan varies more with region than with religion. @kandiyoti1988bargaining describes the "patriarchal bargain" in which young brides accept subordination in their husband's household in exchange for later authority as mothers-in-law. Economic studies document the consequences. @anukriti2020curse show that co-resident mothers-in-law restrict daughters-in-law's mobility and social networks in rural Uttar Pradesh, which lowers their use of family planning, and @debnath2015impact relates co-residence with in-laws to lower female autonomy. Status concerns can lead households to withdraw women from work outside the home [@eswaran2013status], and social norms more broadly are a barrier to women's employment [@jayachandran2021social; @field2021account]. @dhanaraj2019family find that women in nuclear households in rural India are more likely to work than women in joint households, and @afridi2018married decompose the decline in rural married women's participation over two decades and highlight the role of changes in household characteristics such as education and income. Explanations for low and stagnant participation also emphasise the structure of economic growth and labour demand [@klasen2015stagnation; @lahoti2016economic; @chatterjee2018indian].
+
+These studies observe employment, autonomy or decision-making, not time. Whether grandmothers do childcare that mothers would otherwise do, and what the mother does with any time released, cannot be answered without diaries for both women on the same day.
+
+## Childcare, child penalties and policy
+
+The child penalty literature shows that the arrival of children accounts for a large and persistent share of the gender gap in earnings in high-income countries [@kleven2019denmark; @kleven2019countries; @angelov2016parenthood; @cortes2023children], and @goldin2014grand argues that the remaining gap reflects the cost of temporal flexibility. Formal childcare is the standard policy response. Universal childcare raised maternal employment in Quebec [@baker2008universal; @lefebvre2008childcare], and public kindergarten raised it in the United States [@gelbach2002public]. In Norway, by contrast, the expansion of subsidised childcare mainly crowded out informal arrangements and had little effect on maternal employment [@havnes2011money], a reminder that the effect of formal care depends on what it replaces. In a low-income setting, @clark2019impact find that subsidised daycare raised poor mothers' employment in Nairobi. Where formal care is scarce, the question is how much of the work that formal care would do is already done by family members, and at what cost to whom. The answer bears both on the size of the child penalty in India and on what an expansion of full-day childcare could achieve.
+
+## Measuring childcare in time diaries
+
+Time-diary research shows that childcare is the most gendered of household tasks and that its measurement is sensitive to definitions [@sayer2004parents; @bianchi2006changing; @craig2011share; @hook2006care]. @guryan2008parental document a strong education gradient in parents' time with children, and @kalenkoski2005parental and @connelly2009spousal model parental childcare as a household allocation. Primary childcare understates the time parents are responsible for children, because much supervision is recorded as a secondary activity or not recorded at all [@folbre2005measure; @folbre2006measuring; @kalenkoski2008quality; @craig2007contemporary]. I report active and passive primary care separately and childcare recorded as a secondary activity, because a grandmother may take over supervision while the mother keeps the care that requires her, or the reverse.
+
+# A framework: substitution and constraint {#framework}
+
+To organise the empirical analysis, consider a household in which a mother of a young child allocates her day among childcare $c_m$, domestic work $h_m$, paid work $e_m$ and leisure $l_m$, with $c_m + h_m + e_m + l_m = T$. The child requires care $C = g(c_m, \theta c_o)$, where $c_o$ is the childcare of an older-generation member and $\theta$ captures how far her care can stand in for the mother's. Care tasks differ in $\theta$: supervision is easily shared, while breastfeeding, feeding and some medical or educational care are less so. The household's domestic workload is $H = H_0 + \kappa N$, increasing in the number of members $N$, and it is divided between the mother and other adults. Paid work earns a return $w(1-\tau)$, where $\tau$ is a wedge, from norms or from the authority of senior members, that lowers the value the household places on the mother's work outside the home.
+
+A co-resident grandmother changes three things. She can supply $c_o$, which lowers the care the mother must provide (the *substitution* channel); the size of this effect rises with $\theta$ and with the grandmother's capacity, which declines with age and poor health and falls when she works herself. She raises $N$ and hence $H$, and she may need care herself (a *workload* channel). And in a patrilocal household she may raise $\tau$ for a daughter-in-law (a *norms* channel). I group the last two as the constraint channel. The framework yields the following predictions, each of which I take to the data.
+
+1. If substitution is present, mothers' childcare is lower with a grandmother, and more so for passive care (high $\theta$) than for active care.
+2. Whether released time reaches paid work depends on $\tau$ and on the workload channel. If the constraint channel is strong, released childcare time shows up in domestic work or leisure, not employment.
+3. The grandmother's own time should show the other side: more childcare and, if her time is scarce, less paid work, domestic work or leisure when a young grandchild is present.
+4. Substitution should be larger with grandmothers who are younger (a proxy for health and stamina) and not employed. Under prevailing gender norms it should be smaller with grandfathers than with grandmothers.
+5. Substitution of childcare should be concentrated where the youngest child is under six. Among mothers whose youngest child is of school age, the grandmother association with childcare should be smaller. The constraint channel does not depend on the child's age, so associations with domestic work should persist.
+
+The framework is deliberately simple. It does not model the choice of living arrangement, which is the main threat to interpretation and which I discuss in Section \ref{strategy}.
+
+# Data and measurement {#data}
+
+## The Time Use Survey 2024
+
+The Time Use Survey (TUS) 2024 was conducted by the National Statistics Office between January and December 2024 [@nso2025tus]. It covers a nationally representative sample of households in rural and urban India, drawn in a stratified multi-stage design with First Stage Units (villages and urban blocks) as primary sampling units. Every member aged six and above reports a 24-hour diary for the day before the interview, from 4 a.m. to 4 a.m., in time slots that can contain several activities. Each activity is coded to ICATUS 2016 and flagged as major or minor (secondary). I use every activity record: `r fn(V$n_rows)` records for `r fn(V$n_persons)` diarists in `r fn(V$n_households)` households and `r fn(V$n_fsu)` First Stage Units. Minutes of major activities are summed to the person-day, so each diary sums to 1,440 minutes (`r pct(V$share_diaries_1440)` of diaries do so exactly). All estimates use the survey multipliers, and standard errors are clustered on the First Stage Unit [@abadie2023cluster]. Appendix Table \ref{tab:validation} reports the construction checks.
+
+## Identifying mothers and children under six
+
+Children under six do not keep diaries, and the roster does not record the identifier of each child's mother. I recover the number of under-six members as household size minus the number of diarists (method: `r V$under6_method`), which relies on every member aged six or above keeping a diary. The share of households in which this residual is negative, an indicator of a violation, is `r pct(V$share_hh_negative_under6_residual, 2)`.
+
+The candidate mothers are married women aged 18 to 49 whose relationship to the head is head, spouse of head (head level), married child, or spouse of a married child (junior level). Women with other relationships (for example a brother's wife, coded "other relative") are excluded because the roster does not identify the generation above them. Assigning a young child to a mother requires a rule. In a household in which a married child of the head lives with a spouse, a child under six is far more likely to be the junior couple's child, that is, the head's grandchild, than a late-born child of the head. I therefore exclude from the mother sample head-level women who live with a junior-level married woman aged 15 to 49. This removes `r fn(n_u6_dropgm)` women. Without this step, the head's wife in a patrilocal household would be counted as a "mother without a co-resident grandmother", although she is the grandmother; the comparison would then contrast grandmothers with mothers. The remaining ambiguity concerns households with more than one junior couple, where the young child could belong to either; a robustness check restricts the sample to households with a single married woman of childbearing age (`r pct(share_sole, 0)` of the weighted sample).
+
+The analysis sample consists of the `r fn(n_my)` remaining women in households with at least one child under six. Of these, `r pct(share_jun, 0)` are at junior level, and among junior-level mothers `r pct(share_dil, 0)` are daughters-in-law of the head (the remainder are married daughters living in their parents' household). The husband is linked to `r pct(share_hus, 0)` of mothers through the roster. Husbands who live elsewhere, a common situation in states with high male out-migration, are not linked; I keep these mothers in the sample with an explicit indicator rather than dropping them, as an analysis that required husband controls would do implicitly.
+
+## Identifying grandparents
+
+For a head-level mother, the generation above her consists of members coded "father, mother, father-in-law or mother-in-law of head" (relationship code 7). If the mother is the head's wife, a woman in this group is usually her mother-in-law; if the mother is herself the head, it is her own mother or her husband's mother. For a junior-level mother, the generation above consists of the head and the head's spouse aged 40 or above: her parents-in-law if she is the head's daughter-in-law, her own parents if she is the head's daughter. A co-resident grandmother is at least one woman in this generation, and a co-resident grandfather at least one man. Because I build the link by matching each mother to the specific members of the generation above her, the grandmother is never the mother herself (`r fn(n_self_links)` self-links), and the count of linked grandmothers agrees with the panel's count of older-generation women for `r pct(share_link_consistent)` of mothers. Each mother is then linked to her grandmothers' and grandfathers' own diaries.
+
+By this definition, `r pct(share_gm, 0)` of mothers of children under six live with a grandmother and `r pct(share_gf, 0)` with a grandfather; `r pct(share_gfo, 1)` live with a grandfather but no grandmother. Among mothers with a co-resident grandmother, `r pct(share_jun_gm, 0)` are at junior level, so most three-generation households in the sample are of the patrilocal type in which the young family lives in the older generation's household. The median age of the youngest co-resident grandmother is `r f0(gm_age_med)` years, `r pct(share_gm_young, 0)` of grandmothers are under 60, and `r pct(share_gm_work, 0)` report employment as their usual principal activity status.
 
 ## Time outcomes
 
-Childcare is ICATUS 411--419 plus accompanying own children (442), split into active care (411--415: physical care, medical care, teaching, talking and reading, playing) and passive care (416: minding children). I also measure childcare recorded as a *secondary* (minor) activity in a slot whose major activity is something else, unpaid domestic services (division 3), care of dependent adults (421--429, 443), employment including travel (division 1), free time (divisions 7 and 8), and sleep (911--919). Appendix Table \ref{tab:validation} reports panel checks.
+Childcare is ICATUS 411--419 plus accompanying own children (442). Active care (411--415) covers physical care, medical care, teaching, talking and reading, and playing; passive care (416) is minding children. I also measure childcare recorded as a secondary (minor) activity, unpaid domestic services (division 3) and within it food and meals (311--319), the largest domestic task and the one most directly increased by household size, care of dependent adults (421--429, 443), employment including related travel (division 1), free time (divisions 7 and 8) and sleep (911--919). Employment status is the usual principal activity status. Every category is defined once, on the three-digit code, and the categories that make up the day partition the ICATUS codes exactly.
 
 ```{r tab-desc}
-MY[, gp_lab := factor(ifelse(gm_any == 1, "Grandmother present", "No grandmother"),
-                      levels = c("No grandmother", "Grandmother present"))]
-dt <- means_table(MY, c(outs, "employed"), "gp_lab",
-                  c(out_lab[outs], "Employed (usual status, share)"))
+dt <- means_table(MY, c(outs, "employed"), "gp_lab", unname(out_lab[c(outs, "employed")]))
 tab(dt, caption = paste0("Mothers of children under six: minutes per day by grandmother co-residence", syn_note()),
-    label = "desc", align = c("l", "r", "r"),
-    notes = "Married women 18--49 in households with a child under six. Survey-weighted means; FSU-clustered standard errors in parentheses.")
+    label = "desc", align = c("l", "r", "r"), escape = FALSE,
+    notes = "Married women aged 18--49 at head or junior level in households with a child under six, excluding head-level women who live with a junior married woman of childbearing age. Survey-weighted means; FSU-clustered standard errors in parentheses. Employed is a share.")
 ```
 
-# Empirical strategy
+Table \ref{tab:desc} compares the raw time use of mothers with and without a co-resident grandmother. Mothers without a grandmother report `r est_se(mo_cc0)` of primary childcare a day and mothers with one `r est_se(mo_cc1)`. The raw comparison mixes the presence of the grandmother with everything that differs between joint and nuclear households, including region, caste, consumption, the mother's age and the number of children, which motivates the regression approach.
 
-For mother $i$ in household $h$,
+# Empirical strategy {#strategy}
+
+For mother $i$ in household $h$, state $s$ and diary day $d$, I estimate
 
 $$ y_{ih} = \beta\, GM_{h} + X_{ih}'\gamma + \mu_s + \tau_d + \varepsilon_{ih}, $$
 
-where $GM_h$ indicates a co-resident grandmother and $X_{ih}$ includes the mother's age band and education, the husband's education and employment, per-capita consumption quintile, urban residence, numbers of children under six and aged 6 to 14, number of the mother's own children aged 6 to 17, caste group, religion, whether any member needs special care, and whether the diary was proxy-reported. State and diary-day fixed effects absorb regional norms and weekly cycles. Standard errors are clustered on the FSU.
+where $y_{ih}$ is a time outcome in minutes per day (or employment status) and $GM_h$ indicates a co-resident grandmother. $X_{ih}$ includes the mother's age band and education, the husband's education and usual employment (with a separate category for mothers without a linked husband), the household's per-capita consumption quintile, urban residence, the number of children under six and aged 6 to 14, the number of the mother's own children aged 6 to 17 (with an indicator where these cannot be attributed), caste group, religion, whether any member needs special care, and whether the diary was reported by a proxy. State fixed effects absorb regional kinship systems and labour markets, and day-of-week fixed effects absorb the weekly cycle. Regressions are weighted by the survey multipliers [@solon2015weighting] and standard errors are clustered on the First Stage Unit.
 
-Living arrangements are chosen. Households with grandmothers differ in wealth, caste, region and norms, and young mothers in patrilocal joint families may differ from those in nuclear families in ways the controls do not capture. I therefore read $\beta$ as a conditional association. I assess its sensitivity in three ways: by comparing mothers who live in their in-laws' household with those whose parents or in-laws live in theirs, two arrangements selected for different reasons; by restricting to grandmothers who are not employed, for whom availability is less in doubt; and with the coefficient-stability bound of @oster2019unobservable.
+I deliberately do not control for household size in the main specification. A grandmother's presence raises household size mechanically, and the workload that comes with a larger household is part of the constraint channel the paper aims to measure. A robustness check adds household size and the number of other adult women.
 
-# Results
+The main threat to interpretation is selection into co-residence. Three-generation households differ from nuclear ones in wealth, caste, region and norms, and young mothers in patrilocal joint households may differ in unobserved preferences, in their bargaining position and in the age and health of their children. Co-residence can also respond to care needs: a grandmother may move in because a grandchild is born or because she herself needs care. I therefore read $\beta$ as a conditional association and assess how sensitive it is in four ways.
 
-```{r fig-time, fig.cap = paste0("Childcare minutes per day: mothers and co-resident grandmothers", syn_note()), fig.height = 3.2}
-fg <- rbind(
-  data.table(who = "Mother", grp = "No grandmother", m = mo_cc0$est, se = mo_cc0$se),
-  data.table(who = "Mother", grp = "Grandmother present", m = mo_cc1$est, se = mo_cc1$se),
-  data.table(who = "Grandmother", grp = "Grandmother present", m = gm_cc$est, se = gm_cc$se))
-fg[, grp := factor(grp, levels = c("No grandmother", "Grandmother present"))]
-ggplot(fg, aes(grp, m, fill = who)) +
-  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
-  scale_fill_manual(values = c(Mother = "#C2512F", Grandmother = "#E39B6B"), name = NULL) +
-  labs(x = NULL, y = "Childcare minutes per day",
-       caption = "Mothers aged 18-49 in households with a child under six. Survey-weighted means. Grandmother bar stacks grandmothers' own childcare.")
-```
+First, I compare arrangements selected for different reasons. Junior-level mothers live in the household of the older generation, the default patrilocal arrangement; head-level mothers whose parents or in-laws live with them have taken the older generation in, which is more often driven by the grandparents' need for support. Similar estimates across arrangements would make a single selection story less plausible. As a matter of data, almost every junior-level mother lives with a grandmother (only `r fn(n_jun_nogm)` do not, compared with `r fn(n_jun_gm)` who do), because a widowed father-in-law heading the household is rare. Where the cells are too small (fewer than `r MIN_CELL` mothers on either side) I do not report the junior-level estimate, and identification within that group must come from the head-level comparison.
+
+Second, I test the gradients that the substitution channel predicts but selection on fixed household traits does not obviously predict: larger associations with younger grandmothers, with grandmothers who are not employed, and with grandmothers rather than grandfathers. Third, I estimate the same specification for mothers whose youngest child is aged 6 to 14 and who have no child under six in the household. Substitution of childcare should be weaker for these mothers; selection on persistent household traits would generate similar associations in both groups. Fourth, I report the bias-adjusted coefficient of @oster2019unobservable, which uses the movement of $\beta$ and of $R^2$ when controls are added to bound the role of unobservables under the assumption of proportional selection [see also @altonji2005selection].
+
+The older generation's trade-offs are estimated on a separate sample: members aged 45 to 80 in the generation above a married woman of childbearing age (the head and spouse in households with a junior couple, and parents or in-laws of the head in households with a head-level couple). For these `r fn(n_ogw)` women and `r fn(n_ogm)` men, I regress the same time outcomes on an indicator for a child under six in the household, with controls for age band, education, marital status, urban residence, consumption quintile, children aged 6 to 14, caste, religion, special care needs and proxy reporting, and state and day fixed effects. The comparison is between older-generation members whose grandchildren are young and those whose grandchildren are older or not yet born, which depends on the timing of the junior couple's fertility rather than on the older generation's decision to co-reside.
+
+# Results {#results}
 
 ## Mothers' time
 
 ```{r tab-main}
 rows <- c(outs, "employed")
-mods <- c(m_gm, list(employed = f("employed")))
-rt <- data.frame(Outcome = c(out_lab[outs], "Employed (usual status)"),
-                 Mean = sapply(rows, function(y) f1(wmean(MY[gm_any == 0][[y]], MY[gm_any == 0]$weight))),
-                 Coefficient = sapply(rows, function(y) { k <- coef_of(mods[[y]], "gm_any"); paste0(f2(k$est), stars(k$p)) }),
-                 SE = sapply(rows, function(y) f2(coef_of(mods[[y]], "gm_any")$se)),
-                 N = sapply(rows, function(y) if (is.null(mods[[y]])) "--" else fn(nobs(mods[[y]]))),
+rt <- data.frame(Outcome = unname(out_lab[rows]),
+                 Mean = sapply(rows, function(y) if (y == "employed") f2(wmean(MY[gm_any == 0][[y]], MY[gm_any == 0]$weight)) else f1(wmean(MY[gm_any == 0][[y]], MY[gm_any == 0]$weight))),
+                 Coefficient = sapply(rows, function(y) cell(coef_of(m_gm[[y]], "gm_any"))),
+                 SE = sapply(rows, function(y) f2(coef_of(m_gm[[y]], "gm_any")$se)),
+                 N = sapply(rows, function(y) if (is.null(m_gm[[y]])) "--" else fn(nobs(m_gm[[y]]))),
                  check.names = FALSE)
 tab(rt, caption = paste0("Co-resident grandmother and mothers' time use", syn_note()), label = "main",
-    align = c("l", "r", "r", "r", "r"),
-    notes = "Each row is a separate regression on the grandmother indicator and the full control set, with state and day-of-week fixed effects. Mean: outcome mean for mothers without a co-resident grandmother. Employment status is a 0/1 outcome. FSU-clustered standard errors. * p<0.10, ** p<0.05, *** p<0.01.")
+    align = c("l", "r", "r", "r", "r"), escape = FALSE,
+    notes = "Each row is a separate regression of the outcome (minutes per day, or a 0/1 indicator for usual employment) on an indicator for a co-resident grandmother and the full control set, with state and day-of-week fixed effects. Mean: outcome mean for mothers without a co-resident grandmother. Survey-weighted; FSU-clustered standard errors. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
-Table \ref{tab:main} reports the main estimates. A co-resident grandmother is associated with `r diff_txt(k_cc)` time in the mother's primary childcare. The split by type shows whether grandmothers take over active care (`r est_se(k_act)`) or passive minding (`r est_se(k_pas)`). `r iff(is_neg(k_pas) && !is_neg(k_act), "The reduction is concentrated in passive minding, the form of care most easily shared, while mothers retain active care.", iff(is_neg(k_act), "Grandmothers take over part of the active care, not only minding.", "Neither component falls significantly."))`
+Table \ref{tab:main} reports the main estimates. A co-resident grandmother is associated with `r diff_txt(k_cc)` primary childcare by the mother a day, `r sig_phrase(k_cc$p)`. Relative to the mean of mothers without a grandmother, `r f1(wmean(MY[gm_any == 0]$care_child, MY[gm_any == 0]$weight))` minutes, this is `r pct(abs(k_cc$est) / wmean(MY[gm_any == 0]$care_child, MY[gm_any == 0]$weight), 0)` of the baseline. The split by type of care shows `r est_se(k_act)` for active care and `r est_se(k_pas)` for passive minding. `r iff(pas_only, "The difference is concentrated in passive minding, the form of care most easily shared, while mothers retain active care, as the first prediction of the framework implies.", iff(act_too, "Grandmothers' presence is associated with less active care by mothers as well, not only less minding, so the substitution extends to tasks that require more of the carer.", "Neither component differs significantly with a grandmother's presence."))` Childcare recorded as a secondary activity changes by `r est_se(k_sec)`. `r iff(is_pos(k_sec) && sub_child, "Part of the reduction in primary care thus reappears as care done alongside other activities: the mother remains responsible for the child while doing something else.", "")`
 
-The remaining rows show where the mother's time goes. Unpaid domestic work changes by `r est_se(k_dom)`, care of dependent adults by `r est_se(k_adult)`, employment by `r est_se(k_emp)`, and free time by `r est_se(k_ft)`. The probability that the mother's usual status is employed changes by `r f1(100 * k_lfp$est)` percentage points (SE `r f1(100 * k_lfp$se)`). `r iff(emp_up, "Released childcare time partly reaches paid work.", "Released childcare time, if any, does not reach paid work, consistent with the constraint channel in patrilocal households.")`
+The remaining rows show where the mother's day goes. Unpaid domestic work differs by `r est_se(k_dom)`, of which food and meals by `r est_se(k_food)`. `r iff(dom_up, "Mothers in three-generation households do more domestic work, consistent with the workload part of the constraint channel.", iff(dom_down, "Mothers in three-generation households do less domestic work, so grandmothers share housework as well as childcare.", "Domestic work does not differ significantly, so the larger household does not translate into a measurably larger domestic load for the mother."))` Care of dependent adults differs by `r est_se(k_adult)`. Employment including travel differs by `r est_se(k_emp)`, and the probability that the mother's usual status is employed is `r diff_pp(k_lfp)`. `r iff(emp_up || lfp_up, "Some of any time released reaches paid work.", iff(emp_down, "Mothers with a co-resident grandmother do less paid work, a pattern consistent with the constraint channel in patrilocal households, although these data do not isolate that channel.", "Neither the minutes of paid work nor the employment rate differ significantly, so any time grandmothers free up does not reach the labour market."))` Free time differs by `r est_se(k_ft)` and sleep by `r est_se(k_sleep)`.
 
-## Grandmothers' own time and total care
+`r iff(sub_child && !emp_up && !lfp_up, "Taken together, the pattern is consistent with the second prediction when the constraint channel is strong: grandmothers' presence is associated with less childcare by mothers but not with more employment. The data do not identify the constraint itself.", iff(!sub_child && !emp_up && !lfp_up, "Taken together, the evidence for the substitution channel in mothers' own time is weak, and there is no evidence that co-residence with a grandmother is associated with more paid work by mothers.", iff(emp_up || lfp_up, "Taken together, the results suggest that co-resident grandmothers relax the time constraint of mothers enough to raise their paid work.", "")))`
 
-Grandmothers living with a child under six spend `r est_se(gm_cc)` a day on childcare. Combining both generations, total childcare by mother and grandmother is `r diff_txt(k_hh)` in three-generation households than mothers' childcare alone in households without a grandmother. `r iff(hh_more, "Grandmothers therefore add to the total care children receive more than they replace mothers' care: three-generation households provide more care, not the same care more cheaply.", "Grandmothers' care is largely a substitute: total care is similar, and its burden is shared.")`
+## Who provides childcare in three-generation households
+
+```{r tab-who}
+who_y <- c("care_child", "father_cc", "gm_care_child", "gf_care_child", "others_cc", "hh_cc_all")
+who_l <- c("Mother", "Husband (if linked)", "Grandmother(s)", "Grandfather(s)",
+           "Other members aged 15+", "All members aged 15+")
+wt <- means_table(MY, who_y, "gp_lab", who_l)
+tab(wt, caption = paste0("Childcare minutes per day by provider, households with a child under six", syn_note()),
+    label = "who", align = c("l", "r", "r"),
+    notes = "Unit: mothers in the analysis sample. Minutes of primary childcare of each household member, survey-weighted means with FSU-clustered standard errors. Other members include husbands who are not linked through the roster. All members is the household total and includes care given to other children in the household.")
+```
+
+```{r fig-providers, fig.cap = paste0("Primary childcare minutes per day by provider, with and without a co-resident grandmother. Values and standard errors in Table \\ref{tab:who}.", syn_note()), fig.height = 3.4}
+fg <- rbindlist(lapply(seq_along(who_y[1:5]), function(j) {
+  r <- est_mean(MY, who_y[j], "gp_lab"); data.table(who = who_l[j], grp = r$group, m = r$est)
+}))
+fg[, who := factor(who, levels = who_l[1:5])]
+fg[, grp := factor(grp, levels = c("No grandmother", "Grandmother present"))]
+ggplot(fg, aes(grp, m, fill = who)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.55, colour = "white", linewidth = 0.6) +
+  scale_fill_manual(values = c("#C2512F", "#1F6FB8", "#E8955E", "#5FA3E0", "grey70"), name = NULL) +
+  coord_flip() +
+  labs(x = NULL, y = "Primary childcare minutes per day",
+       caption = "Mothers aged 18-49 in households with a child under six. Survey-weighted means.") +
+  guides(fill = guide_legend(nrow = 2))
+```
+
+Table \ref{tab:who} and Figure \ref{fig:fig-providers} decompose the childcare provided by household members. In households with a grandmother, grandmothers provide `r est_se(gm_cc)` of childcare a day. They also report `r est_se(gm_dom)` of domestic work and `r est_se(gm_empm)` of employment, which shows what else their day contains. The sum of the mother's and the grandmother's childcare cannot be compared with the mother's alone, because adding a non-negative term mechanically raises the total. The informative comparison is of all adult members' childcare across household types, which conditions on the number of children of each age. Summed over all members aged 15 and above, childcare is `r diff_txt(k_all, "higher", "lower")` in households with a grandmother. `r iff(hh_more, "Children in three-generation households thus receive more adult childcare time, not the same care more cheaply. Part of the difference may reflect two adults recording care of the same child at the same time, and part the care of several grandchildren at once; the diary does not identify the recipient.", iff(hh_less, "Children in three-generation households receive less adult childcare time in total, which would be the case if co-residence brings competing demands on the adults.", "Total adult childcare is not significantly different across household types."))` Husbands' childcare, for those linked, differs by `r est_se(k_fa)` with a grandmother's presence. `r iff(is_neg(k_fa), "Grandmothers thus also substitute for fathers' modest contributions.", "")`
+
+## The older generation's trade-offs
+
+```{r tab-og}
+og_lab <- c(care_child = "Childcare (primary)", care_child_active = "\\quad Active childcare",
+            care_child_passive = "\\quad Passive childcare (minding)", unpaid_domestic = "Unpaid domestic work",
+            employment = "Employment (incl. travel)", employed = "Employed (usual status, share)",
+            free_time = "Free time", sleep = "Sleep")
+ot <- data.frame(Outcome = unname(og_lab[og_outs]),
+                 `Mean, women` = sapply(og_outs, function(y) (if (y == "employed") f2 else f1)(wmean(OGW[young_gc == 0][[y]], OGW[young_gc == 0]$weight))),
+                 Grandmothers = sapply(og_outs, function(y) cse(T_gm[[y]])),
+                 Grandfathers = sapply(og_outs, function(y) cse(T_gf[[y]])),
+                 Difference = sapply(og_outs, function(y) cse(T_dd[[y]])),
+                 check.names = FALSE)
+tab(ot, caption = paste0("The older generation: time use and a child under six in the household", syn_note()),
+    label = "og", align = c("l", "r", "r", "r", "r"), escape = FALSE,
+    notes = paste0("Members aged 45--80 in the generation above a married woman of childbearing age (", fn(n_ogw), " women, ", fn(n_ogm), " men). Coefficient (SE) on an indicator for a child under six in the household, separately for women and men; Difference: women minus men, with a standard error that ignores the covariance of the two estimates (conservative, since grandmothers and grandfathers often share a household). Mean: women without a child under six. Controls: age band, education, marital status, urban, consumption quintile, children 6--14, caste, religion, special care need, proxy report; state and day fixed effects. FSU-clustered standard errors. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+```{r fig-og, fig.cap = paste0("Older generation: minutes per day associated with a child under six in the household. Estimates in Table \\ref{tab:og}.", syn_note()), fig.height = 3.2}
+og_m <- c("care_child", "unpaid_domestic", "employment", "free_time", "sleep")
+fo_d <- rbindlist(lapply(og_m, function(y) rbind(
+  data.table(out = og_lab[[y]], who = "Grandmothers", est = T_gm[[y]]$est, se = T_gm[[y]]$se),
+  data.table(out = og_lab[[y]], who = "Grandfathers", est = T_gf[[y]]$est, se = T_gf[[y]]$se))))
+fo_d[, out := factor(out, levels = rev(unname(og_lab[og_m])))]
+fo_d[, who := factor(who, levels = c("Grandmothers", "Grandfathers"))]
+ggplot(fo_d, aes(est, out, colour = who)) +
+  geom_vline(xintercept = 0, colour = "grey60", linewidth = 0.4) +
+  geom_errorbarh(aes(xmin = est - 1.96 * se, xmax = est + 1.96 * se), height = 0,
+                 position = position_dodge(width = 0.5), linewidth = 0.6, na.rm = TRUE) +
+  geom_point(position = position_dodge(width = 0.5), size = 2.4, na.rm = TRUE) +
+  scale_colour_manual(values = c(Grandmothers = "#C2512F", Grandfathers = "#1F6FB8"), name = NULL) +
+  labs(x = "Coefficient on child under six in household (minutes per day, 95% CI)", y = NULL,
+       caption = "Members aged 45-80 in the generation above a married woman of childbearing age.")
+```
+
+Table \ref{tab:og} and Figure \ref{fig:fig-og} turn to the providers of care. Among older-generation women, a child under six in the household is associated with `r diff_txt(t_cc)` primary childcare a day, against a mean of `r f1(wmean(OGW[young_gc == 0]$care_child, OGW[young_gc == 0]$weight))` minutes for women without a young grandchild. `r iff(gm_cost_cc, "On the care side the third prediction of the framework holds: grandmothers report more childcare when a young grandchild is present.", "Grandmothers do not report significantly more childcare when a young grandchild is present, which casts doubt on the substitution channel itself.")` The associations with grandmothers' domestic work (`r est_se(t_dom)`), paid work (`r est_se(t_emp)`), employment status (`r diff_pp(t_lfp)`), free time (`r est_se(t_ft)`) and sleep (`r est_se(t_sleep)`) indicate where that time comes from. `r iff(length(og_neg) > 0, paste0("Grandmothers with a young grandchild report significantly less ", and_list(og_neg), ", so the care they provide has a cost in their own time."), "None of these components is significantly lower, so the diaries do not reveal a single activity from which the extra childcare is drawn.")` `r iff(length(og_pos) > 0, paste0("They report significantly more ", and_list(og_pos), "."), "")` `r iff(is_neg(t_emp) || is_neg(t_lfp), "Part of the cost therefore falls on their own earnings, as in the evidence for the United States [@rupert2018grandchildren].", "")`
+
+For older-generation men, the corresponding childcare association is `r est_se(tf_cc)`, and the women-minus-men difference is `r est_se(td_cc)`. `r iff(gf_less, "The care response of the older generation falls overwhelmingly on grandmothers, mirroring the gender division of care in the middle generation.", iff(is_sig(td_cc), "Grandfathers' childcare responds more than grandmothers' on this measure.", "The care response of grandfathers is not significantly different from that of grandmothers."))` Paid work of older men differs by `r est_se(tf_emp)`.
+
+## Which grandparents matter
+
+```{r tab-who-gp}
+gr <- data.frame(
+  Comparison = c("Grandmother under 60", "Grandmother 60 or older", "\\quad Difference (under 60 minus 60+)",
+                 "Grandmother not employed", "Grandmother employed", "\\quad Difference (not employed minus employed)",
+                 "Grandmother only", "Grandfather only", "Both grandparents",
+                 "\\quad Difference (grandmother only minus grandfather only)"),
+  Childcare = c(cse(A$young$cc), cse(A$old$cc), cse(A$dage$cc), cse(A$nowork$cc), cse(A$work$cc), cse(A$dwork$cc),
+                cse(A$gmo$cc), cse(A$gfo$cc), cse(A$both$cc), cse(A$dsex$cc)),
+  Employment = c(cse(A$young$emp), cse(A$old$emp), cse(A$dage$emp), cse(A$nowork$emp), cse(A$work$emp), cse(A$dwork$emp),
+                 cse(A$gmo$emp), cse(A$gfo$emp), cse(A$both$emp), cse(A$dsex$emp)),
+  check.names = FALSE)
+tab(gr, caption = paste0("Mothers' childcare and employment minutes by type of co-resident grandparent", syn_note()),
+    label = "gptype", align = c("l", "r", "r"), escape = FALSE,
+    notes = "Each block is one regression per outcome with mutually exclusive indicators; the omitted group is mothers with no co-resident grandmother (first two blocks) or no co-resident grandparent (third block). Age is that of the youngest co-resident grandmother; employment is usual principal activity status. Controls as in the main specification. Coefficient (SE); FSU-clustered. * p<0.10, ** p<0.05, *** p<0.01.")
+```
+
+Table \ref{tab:gptype} examines the fourth prediction. Grandmother age is a proxy for health and stamina, which the survey does not measure directly for the older generation. Relative to mothers without a grandmother, the coefficient on mothers' childcare is `r est_se(A$young$cc)` for a grandmother under 60 and `r est_se(A$old$cc)` for a grandmother aged 60 or older; the difference is `r est_se(A$dage$cc)`. `r iff(age_grad && isTRUE(A$dage$cc$est < 0), "Younger grandmothers are associated with a larger reduction in mothers' childcare, as the capacity part of the substitution channel predicts.", iff(age_grad, "Older grandmothers are associated with a larger reduction, which does not fit a simple capacity story and may reflect that older grandmothers are less likely to work.", "The association does not differ significantly by grandmother age."))`
+
+An employed grandmother has less time to give. The coefficient is `r est_se(A$nowork$cc)` for a grandmother who is not employed and `r est_se(A$work$cc)` for one who is, a difference of `r est_se(A$dwork$cc)`. `r iff(work_grad && isTRUE(A$dwork$cc$est < 0), "Substitution is concentrated among grandmothers who are not in paid work.", iff(work_grad, "Contrary to the capacity prediction, the association is stronger with employed grandmothers.", "The difference by grandmother's employment is not statistically significant."))` Grandmothers' own employment is itself a choice, made jointly with the care they provide, so this comparison is descriptive.
+
+The last block separates grandmothers from grandfathers. The coefficient on mothers' childcare is `r est_se(A$gmo$cc)` for a grandmother without a grandfather, `r est_se(A$gfo$cc)` for a grandfather without a grandmother, and `r est_se(A$both$cc)` for both together. `r iff(sex_grad && isTRUE(A$dsex$cc$est < 0), "The association is significantly stronger for grandmothers than for grandfathers, so the substitution follows the gender of the carer and not the mere presence of an older generation.", iff(sex_grad, "The association is significantly stronger for grandfathers, which runs against the gendered-norm prediction.", "The difference between grandmothers and grandfathers is not statistically significant; households with only a grandfather are few, so this comparison is imprecise."))` `r iff(age_grad || work_grad || sex_grad, "A pure selection story, in which three-generation households differ from nuclear ones in some fixed trait, would not predict that the characteristics of the older generation matter in this way.", "Because none of these gradients is significant, they do not help to distinguish substitution from selection.")`
 
 ## Heterogeneity
 
 ```{r tab-het}
-ht <- data.frame(
-  Subsample = c("Mother lives in in-laws' household (daughter-in-law)", "Grandparents live in mother's household",
-                "Urban", "Rural", "Grandmother not employed (vs no grandmother)",
-                "Interaction: grandmother x mother employed"),
-  Coefficient = sapply(list(h_dil1, h_dil0, h_urb, h_rur, h_gmwork, h_emp), function(k) paste0(f2(k$est), stars(k$p))),
-  SE = sapply(list(h_dil1, h_dil0, h_urb, h_rur, h_gmwork, h_emp), function(k) f2(k$se)))
-tab(ht, caption = paste0("Heterogeneity: grandmother co-residence and mothers' primary childcare minutes", syn_note()),
-    label = "het", align = c("l", "r", "r"),
-    notes = "Specification as in Table \\ref{tab:main}, outcome = mother's primary childcare minutes.")
+hl <- c(head = "Head-level mother (grandparents live in her household)",
+        jun = "Junior-level mother (lives in the older generation's household)",
+        urb = "Urban", rur = "Rural", elo = "Mother below secondary education",
+        ehi = "Mother secondary education or above", one = "One child under six", two = "Two or more children under six")
+hcell <- function(k) if (!isTRUE(k$ok)) "not estimable" else cse(k)
+ht <- data.frame(Subsample = unname(hl[names(splits)]),
+                 Childcare = sapply(names(splits), function(s) hcell(H[[s]])),
+                 Employment = sapply(names(splits), function(s) hcell(H_emp[[s]])),
+                 N = sapply(names(splits), function(s) fn(nrow(splits[[s]]))), check.names = FALSE)
+tab(ht, caption = paste0("Heterogeneity: grandmother co-residence and mothers' childcare and employment minutes", syn_note()),
+    label = "het", align = c("l", "r", "r", "r"),
+    notes = paste0("Main specification, estimated separately by subsample. Coefficient (SE) on the grandmother indicator. Not estimable: fewer than ", MIN_CELL, " mothers with or without a co-resident grandmother in the subsample. * p<0.10, ** p<0.05, *** p<0.01."))
 ```
 
-Table \ref{tab:het} compares mothers who are daughters-in-law in their in-laws' household (`r est_se(h_dil1)`) with mothers whose parents or in-laws have moved into their household (`r est_se(h_dil0)`). The two arrangements are selected for different reasons. The first is the patrilocal norm; the second is often driven by grandparents' need for care. Similar estimates across them would make selection on a single unobserved factor a less plausible explanation.
+Table \ref{tab:het} reports the estimates by subsample. For head-level mothers, whose parents or in-laws live in their household, the childcare association is `r if (isTRUE(H$head$ok)) est_se(H$head) else "not estimable"`. `r iff(jun_estimable, paste0("For junior-level mothers, who live in their in-laws' or parents' household, it is ", est_se(H$jun), ", estimated from only ", fn(n_jun_nogm), " junior-level mothers without a grandmother."), paste0("For junior-level mothers, who live in the older generation's household, the estimate is not reported: only ", fn(n_jun_nogm), " of the ", fn(n_jun_nogm + n_jun_gm), " junior-level mothers live without a co-resident grandmother, too few to separate her presence from the arrangement itself. The comparison of arrangements therefore rests on the head-level group and on the robustness check that controls for generation."))` The two arrangements are selected for different reasons, the first more often by the grandparents' need for support and the second by the patrilocal norm. `r iff(jun_estimable && is_sig(H$head) && is_sig(H$jun) && sign(H$head$est) == sign(H$jun$est), "Estimates of the same sign in both make selection on a single unobserved factor a less plausible explanation.", "")`
 
-# Robustness
+Across urban and rural households the childcare associations are `r if (isTRUE(H$urb$ok)) est_se(H$urb) else "not estimable"` and `r if (isTRUE(H$rur$ok)) est_se(H$rur) else "not estimable"`. By the mother's education they are `r if (isTRUE(H$elo$ok)) est_se(H$elo) else "not estimable"` below secondary and `r if (isTRUE(H$ehi$ok)) est_se(H$ehi) else "not estimable"` at secondary or above. More educated mothers have better labour-market options, so if grandmothers' help reaches paid work anywhere it should be among them; the corresponding employment associations are `r if (isTRUE(H_emp$elo$ok)) est_se(H_emp$elo) else "not estimable"` and `r if (isTRUE(H_emp$ehi$ok)) est_se(H_emp$ehi) else "not estimable"`. With one child under six the childcare association is `r if (isTRUE(H$one$ok)) est_se(H$one) else "not estimable"`, and with two or more `r if (isTRUE(H$two$ok)) est_se(H$two) else "not estimable"`.
+
+## A placebo: mothers of school-age children
+
+```{r tab-placebo}
+plab <- c(care_child = "Childcare (primary)", care_child_active = "\\quad Active childcare",
+          care_child_passive = "\\quad Passive childcare (minding)", unpaid_domestic = "Unpaid domestic work",
+          employment = "Employment (incl. travel)")
+pt <- data.frame(Outcome = unname(plab[pl_outs]),
+                 `Child under six` = sapply(pl_outs, function(y) cse(PL[[y]]$u6)),
+                 `Youngest child 6--14` = sapply(pl_outs, function(y) cse(PL[[y]]$pl)),
+                 Difference = sapply(pl_outs, function(y) cse(PL[[y]]$dd)), check.names = FALSE)
+tab(pt, caption = paste0("Placebo: grandmother co-residence for mothers whose youngest child is aged 6 to 14", syn_note()),
+    label = "placebo", align = c("l", "r", "r", "r"), escape = FALSE,
+    notes = paste0("Coefficient (SE) on the grandmother indicator. Column 1: analysis sample (", fn(n_my), " mothers). Column 2: mothers defined in the same way with no child under six in the household and an identified youngest own child aged 6 to 14 (", fn(n_mp), " mothers). Difference: column 1 minus column 2, with a standard error that ignores the covariance of the two estimates. Controls as in the main specification. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+If grandmothers substitute for the care of young children, the association with mothers' childcare should be weaker where the youngest child is of school age and needs less supervision. If instead the main estimate reflects fixed differences between joint and nuclear households, it should be similar for both groups of mothers. Table \ref{tab:placebo} reports the comparison for `r fn(n_mp)` mothers whose youngest identified own child is aged 6 to 14 and who have no child under six in the household. The childcare association is `r est_se(k_pl)` in this group, against `r est_se(k_cc)` in the analysis sample, and the difference between the two is `r est_se(k_dd)`. `r iff(sub_child && pl_null && is_neg(k_dd), "The association with childcare is confined to mothers of young children, as substitution implies and fixed-trait selection does not.", iff(sub_child && !is_neg(k_dd), "The association is not significantly weaker for mothers of school-age children, which leaves room for selection on household traits to explain part of the main estimate.", iff(!sub_child, "Since the main childcare estimate is itself not significantly negative, the placebo mainly confirms the absence of a substitution pattern that is specific to young children.", "")))` The association with domestic work, which the constraint channel predicts should not depend on the child's age, is `r est_se(PL$unpaid_domestic$pl)` in the placebo group and `r est_se(PL$unpaid_domestic$u6)` in the analysis sample.
+
+# Robustness {#robustness}
 
 ```{r robust}
-m0 <- feols(care_child ~ gm_any, MY, weights = ~weight)
-m1 <- feols(as.formula(paste("care_child ~ gm_any +", controls, FE)), MY, weights = ~weight)
-ob <- oster_beta(m0, m1, "gm_any")
-k_sole <- coef_of(f("care_child", "gm_any", MY[sole == 1]), "gm_any")
-k_self <- if ("proxy_report" %in% names(MY)) coef_of(f("care_child", "gm_any", MY[proxy_report == 0]), "gm_any") else list(est = NA, se = NA, p = NA)
-k_any  <- coef_of(f("care_child", "gp_any"), "gp_any")
-k_gfo  <- coef_of(f("care_child", "gm_any + gf_only"), "gf_only")
-rb <- data.frame(Check = c("Baseline", "Only married woman aged 18--49 in household", "Self-reported diaries only",
-                           "Any grandparent (not only grandmother)", "Grandfather only (vs none)",
-                           "Oster bias-adjusted (delta = 1, Rmax = 1.3 R)"),
-                 Estimate = c(paste0(f2(k_cc$est), stars(k_cc$p)), paste0(f2(k_sole$est), stars(k_sole$p)),
-                              paste0(f2(k_self$est), stars(k_self$p)), paste0(f2(k_any$est), stars(k_any$p)),
-                              paste0(f2(k_gfo$est), stars(k_gfo$p)), f2(ob)),
-                 SE = c(f2(k_cc$se), f2(k_sole$se), f2(k_self$se), f2(k_any$se), f2(k_gfo$se), ""))
+rb <- data.frame(Check = c(names(RB), "Extensive margin: any primary childcare (share)",
+                           "Oster bias-adjusted, childcare (delta = 1, Rmax = 1.3 R)",
+                           "Oster bias-adjusted, employment (delta = 1, Rmax = 1.3 R)"),
+                 Estimate = c(vapply(RB, cell, character(1)), cell(k_any_cc, 3), f2(ob), f2(obe)),
+                 SE = c(vapply(RB, function(k) f2(k$se), character(1)), .fmt(k_any_cc$se, 3), "", ""),
+                 check.names = FALSE)
 tab(rb, caption = paste0("Robustness: mothers' primary childcare minutes", syn_note()), label = "robust",
-    align = c("l", "r", "r"))
+    align = c("l", "r", "r"),
+    notes = "Coefficient on the grandmother indicator (or any grandparent) in the main specification, unless stated. The extensive-margin row is a linear probability model. The Oster rows use the short regression without controls or fixed effects on the same sample. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
-Table \ref{tab:robust} reports four checks. The first restricts to households with a single married woman of childbearing age, where the under-six child is unambiguously hers. The second drops proxy-reported diaries. The third and fourth broaden the treatment to any grandparent, or isolate a co-resident grandfather without a grandmother. The last applies Oster's bound, which gives a bias-adjusted estimate of `r f2(ob)`.
+Table \ref{tab:robust} collects robustness checks for the childcare estimate. Restricting to households with a single married woman aged 18 to 49, where the child under six is most likely hers, gives `r est_se(RB[[2]])`. Restricting to head-level mothers, for whom the comparison is between nuclear and extended households of the same type, gives `r est_se(RB[[3]])`. Requiring a linked husband gives `r est_se(RB[[4]])`, and dropping proxy-reported diaries gives `r est_se(RB[[5]])`. Adding the number of other adult women, who may also provide care, gives `r est_se(RB[[6]])`; adding household size gives `r est_se(RB[[7]])`; and adding an indicator for the mother's generation gives `r est_se(RB[[8]])`. The unweighted estimate is `r est_se(RB[[9]])`, and broadening the treatment to any grandparent gives `r est_se(RB[[10]])`. On the extensive margin, a grandmother is associated with a `r diff_pp(k_any_cc)` probability that the mother reports any primary childcare. `r iff(rb_sign_stable, paste0("All estimates have the same sign, ranging from ", f1(rb_range[1]), " to ", f1(rb_range[2]), " minutes."), paste0("The estimates range from ", f1(rb_range[1]), " to ", f1(rb_range[2]), " minutes and do not all share a sign, so the main childcare estimate should be read as fragile."))`
 
-# Discussion and conclusion
+The bias-adjusted coefficient of @oster2019unobservable, which assumes that unobservables are as important as observables and that the maximum attainable $R^2$ is 1.3 times that of the full model, is `r f2(ob)` for childcare and `r f2(obe)` for employment. `r iff(oster_same_sign && sub_child, "The childcare estimate keeps its sign under this adjustment.", iff(sub_child, "Under this adjustment the childcare estimate changes sign, so a moderate degree of selection on unobservables could account for it.", ""))`
 
-The diaries of both generations give a direct view of how three-generation households divide childcare. `r iff(sub_child, "Grandmothers do take over some of mothers' childcare, mainly in the forms that are easiest to share.", "Grandmothers do not measurably reduce mothers' own childcare.")` `r iff(emp_up, "Some of the time released reaches paid work.", "Little or none of it reaches paid work.")` `r iff(hh_more, "And because grandmothers' care adds to mothers' rather than replacing it, three-generation households raise the total care children receive.", "")` `r iff(!emp_up, 'For policy, the results caution against treating co-resident grandparents as a substitute for formal childcare in India: whatever care grandmothers provide, the constraint channel of patrilocal households (additional domestic demands and norms about daughters-in-law) is strong enough that it does not show up as more paid work for mothers.', 'For policy, the results suggest that grandparental care does relax mothers\' time constraints enough to raise paid work, which makes the scarcity of formal childcare most binding for mothers without a co-resident grandmother.')`
+# Discussion {#discussion}
 
-The limitations are those of a single cross-section. Living arrangements are chosen, and the comparisons across arrangement types and the coefficient-stability bounds narrow but do not eliminate the scope for selection. One diary day per person measures the day, not the routine [@frazis2012think]. Children under six are counted as a residual from household size. Finally, the survey does not link childcare episodes to the specific child cared for. Future rounds that record the recipient of care would allow sharper tests.
+## Interpretation
+
+The diaries of both generations give a direct view of how three-generation households in India divide the care of young children. `r iff(sub_child, "Co-resident grandmothers take over some of mothers' childcare.", "Co-resident grandmothers do not measurably reduce mothers' own childcare.")` `r iff(gm_cost_cc, "Grandmothers report more childcare themselves when a young grandchild is present.", "")` `r iff(hh_more, "Children in three-generation households receive more adult childcare time in total.", "")` `r iff(!emp_up && !lfp_up, "Little or none of any time released reaches mothers' paid work.", "Some of the time released reaches mothers' paid work.")`
+
+Three readings are consistent with this pattern, and the evidence allows a partial ranking. The first is that grandmothers' care is a complement to mothers' care rather than a substitute: the young child receives attention from two adults, and the mother's time with the child is protected by norms of what a mother should do. The second is the constraint channel: a larger household and a senior woman's authority raise the mother's domestic load and the wedge on work outside the home, so whatever childcare time is released is absorbed. The third is selection: mothers who choose, or are placed in, three-generation households differ in ways that also shape their time. The tests of Sections \ref{results} and \ref{robustness} speak to the third reading. Associations that vary with the sex, age and employment of the older generation, that are concentrated among mothers of young children, and that survive coefficient-stability bounds are harder to attribute to fixed household traits; associations that do not are easier to.
+
+The comparison with the literature is instructive. Studies in the United States, Europe, Japan and China find that grandparents raise maternal employment [@compton2014family; @dimova2011downward; @bratti2018grandparental; @sasaki2002causal; @maurerfazio2011childcare]. `r iff(!emp_up && !lfp_up, paste0("This paper finds no such association in India, although grandmothers provide ", pct(gm_share_cc, 0), " of the combined childcare of the two women. The contrast is consistent with the view that the binding constraint on young Indian mothers' employment is not, or not only, the availability of childcare, and with the evidence that household structure and norms restrict married women's work in India [@dhanaraj2019family; @anukriti2020curse; @jayachandran2021social]."), "This paper finds a positive association in India as well, which suggests that childcare availability is a binding constraint on young mothers' employment even in patrilocal households.")` The Norwegian finding that formal childcare mainly crowded out informal care [@havnes2011money] provides a useful parallel: when one form of care replaces another, the effect on mothers' work depends on what else constrains it.
+
+## Policy
+
+India's main public childcare instrument, the *anganwadi*, was designed around child nutrition and pre-school education rather than full-day care for working mothers. An implicit assumption in policy debate is that the extended family fills the gap. The results speak to that assumption in two ways. `r iff(!emp_up && !lfp_up, "First, a co-resident grandmother is not associated with more paid work by mothers, so family care does not substitute for formal childcare in its labour-market effect, even where it is available. Expanding formal childcare may matter for mothers in extended households as well as in nuclear ones, although its effect will depend on whether the constraints of the extended household also bind on the use of formal care.", "First, a co-resident grandmother is associated with more paid work by mothers, which suggests that the scarcity of formal childcare is most binding for the mothers in nuclear households who lack this support.")` `r iff(gm_cost_cc, "Second, family care is not free: it is provided by older women whose own time responds to the presence of a young grandchild. As India's population ages [@unfpa2023ageing; @iips2020lasi], the supply of grandmother care will compete with the older generation's own work and care needs, and its implicit cost belongs in any assessment of public childcare.", "Second, the care that grandmothers provide does not respond strongly to the presence of a young grandchild in these data, which limits how far policy can count on it.")`
+
+## Limitations
+
+The limitations are those of a single cross-section of diaries. Living arrangements are chosen, and the comparisons across arrangement types, the gradients by grandparent type, the placebo and the coefficient-stability bounds narrow but do not eliminate the scope for selection. Candidate instruments used elsewhere, such as the survival of grandparents or the husband's birth order, are not available in the survey. One diary day per person measures a day, not a routine [@frazis2012think], which adds noise to individual outcomes but does not bias population means. Children under six are counted as a residual from household size and are assigned to a mother by a generational rule; I show that the main estimate is robust to restricting to households where the assignment is unambiguous, but misassignment in households with several junior couples cannot be ruled out. The roster code for parents of the head does not distinguish the head's own parents from the spouse's parents, so for head-level mothers I cannot separate the maternal from the paternal grandmother. Grandmother age proxies for health only imperfectly. Finally, the survey does not record which child a care episode is for. In households with several young children, or with children of more than one couple, the grandmother's recorded care may serve children other than the mother's. Future rounds that record the recipient of care, and household surveys that follow the same families over the birth of a grandchild, would allow sharper tests.
+
+# Conclusion {#conclusion}
+
+Diaries for every member of the household allow a direct test of an assumption that runs through discussion of the care economy in India: that co-resident grandmothers lighten the load of mothers of young children. Identifying the generation above each mother correctly matters for the test, because in patrilocal households the young mother lives in her parents-in-law's household and, without care, the head's wife would be counted as a mother rather than as the grandmother she is. `r iff(sub_child && !emp_up && !lfp_up, "With that identification, co-resident grandmothers are associated with less childcare by mothers, but not with more paid work.", iff(sub_child && (emp_up || lfp_up), "With that identification, co-resident grandmothers are associated with less childcare by mothers and with more paid work.", iff(!sub_child && !emp_up && !lfp_up, "With that identification, co-resident grandmothers are not associated with less childcare by mothers or with more paid work by them.", "With that identification, co-resident grandmothers are associated with more paid work by mothers but not with less childcare.")))` `r iff(gm_cost_cc, paste0("Grandmothers themselves provide ", pct(gm_share_cc, 0), " of the combined childcare of the two women, and their own childcare is higher when a young grandchild is present."), "")` Family care in India is therefore best understood not as a free substitute for formal childcare, but as a transfer of time between women of two generations whose terms are set by the structure of the household.
 
 \newpage
 
@@ -266,4 +627,19 @@ The limitations are those of a single cross-section. Living arrangements are cho
 ```{r tab-validation}
 tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
     align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```
+
+```{r tab-sample}
+sm <- data.frame(
+  Step = c("Married women 18--49 at head or junior level, child under six in household",
+           "Excluded: head-level women living with a junior married woman aged 15--49",
+           "Analysis sample (mothers of children under six)",
+           "\\quad with a co-resident grandmother", "\\quad junior-level mothers without a grandmother",
+           "\\quad head-level mothers without a grandmother",
+           "Placebo sample (youngest own child 6--14, no child under six)",
+           "Older generation: women aged 45--80", "Older generation: men aged 45--80"),
+  N = c(fn(n_u6_pool), fn(n_u6_dropgm), fn(n_my), fn(n_head_gm + n_jun_gm), fn(n_jun_nogm), fn(n_head_nogm),
+        fn(n_mp), fn(n_ogw), fn(n_ogm)), check.names = FALSE)
+tab(sm, caption = paste0("Sample construction", syn_note()), label = "samplecons", align = c("l", "r"), escape = FALSE,
+    notes = "Unweighted counts of person-day diaries. Head level: head or spouse of head. Junior level: married child of head or spouse of a married child.")
 ```
