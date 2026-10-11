@@ -215,3 +215,20 @@ Requests for shared code:
 
 Progress: paper 03 rewritten. Full literature review (40 new verified refs in `submission/03_care_need/refs_local.bib`), conceptual framework, caregiver-availability heterogeneity, life-course figure, spousal care, men without a woman present, relationship table over all minutes, plain-language summary and policy section, `params$anonymised` switch. Knits clean on synthetic data (both named and anonymised builds; both iff branches tested), about 9,500 words including references and tables. Not committed.
 - Correction to paper 03 entry: refs_local.bib holds 39 entries, not 40.
+
+### Paper 05 (marriage time reallocation), October 2026
+
+Common errors found:
+- `lapply(L, f, X = d)` where `f` has an argument named `X`: lapply's own `X` captures it ("object 'L' of mode 'function' was not found"). Never name a helper argument `X`/`FUN`.
+- `fcase(as.integer(a) > as.integer(b), ..., default = "Husband more educated")`: NA comparisons fall to `default`, silently classifying missing education as a category. Put an explicit `is.na(a) | is.na(b), NA_character_` first.
+- Share computed as `-sum(x[cond])` prints "-0%" when nothing matches; use `sum(-x[cond])`.
+- An empty `/tmp/claude-0/knit/_common` (created by another agent) shadows `../_common/preamble.tex` for every knit whose intermediates dir is `/tmp/claude-0/knit/NN`. Knit into your own tree (paper 05 uses `/tmp/claude-0/knit05/out`).
+- `all(sapply(list_of_estimates, is_pos))` is FALSE when one robustness row is not estimable (e.g. `type_day` missing); drop NA rows before testing.
+- Hard-coded "Table 2" inside kable notes (footnote text is escaped, so `\ref` cannot be used there): write "the baseline decomposition" instead.
+- Baseline controls for marriage comparisons should not include household size, members 60+ or consumption: they change at marriage (patrilocal move). Paper 05 puts them in an "extended" robustness row.
+
+Requests for shared code:
+- `submission/references.bib`: brace-protect `{January--December}` in `nso2025tus` (APA CSL lower-cases it to "january-december").
+- `R/build_panel.R`: add `dow` (and `rel`) to `sp_vars` so `spouse_dow` exists; paper 05 matches it locally via `pd$dow[match(spouse_pid, pd$pid)]`.
+
+Progress: paper 05 rewritten for JMF (APA 7 via local `apa.csl`, structured abstract, `params$blind` default TRUE, JEL removed). New: Background (housework theory, time budget, sleep/health behaviour, India), Hypotheses H1-H4, Method section; selection checks (ages 20-26, DFL reweighting with balance table and ESS, Oster bias-adjusted beta and breakdown delta, age-band gradient figure); patrilocal heterogeneity (daughter-in-law rel 4 vs head couples with/without parent generation, plus direct DIL-vs-nuclear test); within-couple gaps by employment, relative education, residence and spousal age gap (figure + adjusted slope); robustness table (10 rows). 48 verified refs in `refs_local.bib`. Knits clean on synthetic data (blinded and unblinded; both iff branches forced), 23 pages, about 9,800 words incl. tables and references. Not committed.
