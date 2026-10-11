@@ -14,7 +14,7 @@ Structured abstract (Objective, Background, Method, Results, Conclusion; about 2
 ## Files
 
 - `manuscript.Rmd`: the paper. `params: blind: true` (default) prints "Manuscript blinded for review" as author. Render the title page / unblinded copy with `rmarkdown::render(..., params = list(blind = FALSE))`.
-- `refs_local.bib`: 48 references added for this paper; each checked against a bibliographic record (publisher, RePEc, PubMed or university repository) in October 2026.
+- `refs_local.bib`: 48 references added for this paper, entered from memory and web-search summaries. NOT verified against the published sources: verify every entry before submission.
 - `apa.csl`: APA 7th edition CSL (citation-style-language/styles, `apa.csl`), referenced in the YAML (`csl: apa.csl`).
 
 ## Before submitting

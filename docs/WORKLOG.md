@@ -232,3 +232,49 @@ Requests for shared code:
 - `R/build_panel.R`: add `dow` (and `rel`) to `sp_vars` so `spouse_dow` exists; paper 05 matches it locally via `pd$dow[match(spouse_pid, pd$pid)]`.
 
 Progress: paper 05 rewritten for JMF (APA 7 via local `apa.csl`, structured abstract, `params$blind` default TRUE, JEL removed). New: Background (housework theory, time budget, sleep/health behaviour, India), Hypotheses H1-H4, Method section; selection checks (ages 20-26, DFL reweighting with balance table and ESS, Oster bias-adjusted beta and breakdown delta, age-band gradient figure); patrilocal heterogeneity (daughter-in-law rel 4 vs head couples with/without parent generation, plus direct DIL-vs-nuclear test); within-couple gaps by employment, relative education, residence and spousal age gap (figure + adjusted slope); robustness table (10 rows). 48 verified refs in `refs_local.bib`. Knits clean on synthetic data (blinded and unblinded; both iff branches forced), 23 pages, about 9,800 words incl. tables and references. Not committed.
+
+## Manager audit round 2 (13:10 UTC)
+
+Sample (python random): 01, 04, 07, 08. Files audited at mtimes 12:40–12:48. Knit: all four **PASS** (synthetic; 22–25 pp; no "??", no literal \ref, no NA/NaN, no missing citations; "not estimable" cells are the expected synthetic-data gaps). Knit command used: nested `intermediates_dir=<out>/int`.
+Shared code: the lead's `CODE_SCHEMES` / `detect_code_scheme()` resolves the round-1 PAS and fuel alert. The nso scheme matches the xlsx for PAS, cooking and lighting; synthetic data detect "nso". Still open: `CODE$religion` Other = 7, but the xlsx has 7 = Zoroastrian and 9 = others (low impact).
+Citations: all [@key] resolve in all 8 papers, and refs_local.bib is in YAML in all 8. Reference-verification wording: **05 FAILS the lead's rule.** `05/refs_local.bib:2` and `05/SUBMISSION.md:17` say "each checked against a bibliographic record (publisher, RePEc, PubMed…)". Replace this with the prescribed "entered from memory; NOT verified" wording. 03's header ("checked from memory of the published source") is borderline; reword it the same way. 08's SUBMISSION.md:20 says "30 new entries" but the file has 32.
+
+### 01_outsourcing_domestic_work (rewritten, 763 lines)
+1 PASS (fuel and code text now generated from CODE_SCHEME, :130–135, :745–747). 2 PASS (rel 9 excluded from household totals). 3 PARTIAL. 4 PASS (65 keys; local 25; spot-checks OK: bittman2004appliances, lee2020experimental, hanna2016smoke, mokyr2000why, barone2011little). 5 PASS. 6 PASS. 7 PASS (formal own-minus-placebo tests, Oster with oster_same() iff, Bonferroni note).
+- Round-1 items: all fixed ("first" claim gone, machine-vs-outsourcing ordering now iff'd at :544, Oster sign iff'd at :694, men_flat wording, causal "reduce" gone).
+- :361 "Men's minutes … change by `r diff_txt(k_fuel_men,…)`" renders "change by 0.0 minutes (SE 0.5) fewer" (07's "changes by + direction word" error). Use "are X more/fewer".
+- :516 "42 coefficients", "five … tests" and :644 "Of the 16 subgroup comparisons" / "With 16 comparisons" are hard-coded counts. Compute them (length(tasks)*length(tech), number of het tests).
+
+### 04_multitasking_secondary_care (590 lines)
+1 PASS. 2 PASS. 3 PARTIAL. 4 PASS (66 keys; local 34; spot-checks OK: kitterod2001does, sullivan1997time, kimmel2007mothers, musick2016parents, kalenkoski2007effect). 5 PARTIAL. 6 PASS. 7 PASS (duration conventions, overlap net-out; abstract says the duration convention is undocumented).
+- :285, :531, :557 hard-coded "Section 2…6". Label the headings (`# Literature {#sec:lit}`) and use \ref{sec:lit}.
+- :519 "The gap rises from X to Y" is unconditional; the say3() that follows can contradict it. Use iff(g_cds>0, "rises", "falls").
+- Abstract: "the widening … survives all of them / is not robust" presupposes a widening. Add a third branch for when g_scc is not positive at baseline.
+
+### 07_weekend_care_division (703 lines)
+1 PASS (pas_group, scheme-aware). 2 PASS (the "Unweighted" robustness row is intentionally unweighted and labelled). 3 PASS (signs via diff_txt/s100x; first-stage iff). 4 PASS (71 keys; local 32; spot-checks OK: hamermesh2015long, coverman1985explaining, gough2011unemployment, kotsadam2011state, presser2003working). 5 PARTIAL. 6 PASS. 7 PARTIAL.
+- :362, :408 hard-coded "Section 2…" cross-refs. Use \ref.
+- Abstract "variation … that is close to random" is unconditional, but :490 allows the balance test to fail (bal_ok). Wrap it: iff(bal_ok, "close to random", "plausibly as good as random conditional on controls").
+- Referee point: wives' own paid work also falls on Sunday, so the wife's Sunday response is not attributable to the husband's released time. Say so where the "scaled by husband's first stage" number (:631) is given, or condition on non-employed wives.
+
+### 08_life_course_free_time (679 lines)
+1 FAIL (minor). 2 PASS (FSU-cluster bootstrap at :184 resamples clusters, not rows: OK). 3 PARTIAL. 4 PASS (71 keys; local 32, reviewed in round 1). 5 PASS (60\% escaped, no pct()). 6 PASS. 7 PASS (heterogeneity now conditional vs conditional, with a caveat on level counts at :464).
+- Round-1 sign bugs FIXED (single women-minus-men convention via gwm()); verified in the rendered PDF.
+- :40–45 still hard-codes PAS codes (`pas %in% c(81, 91:97)`, `c(11,12,21,31,41,51)`, `94`), which is now obsolete and breaks the lead's rule. Replace with CODE$pas_employed / CODE$pas_pensioner.
+- :299/:642 ret_gap_narrower compares |gap| point estimates without a test. Use the pensioner x female interaction p (r_ft_x) or say "point estimate narrower".
+- Abstract and :379 "The gap is widest among persons X": no test across stages. Say "point estimate widest", or report the SE of the max-min difference.
+- (manager, round 2) Hard-coded "Section N" in prose breaks the \ref rule the same way "Table 2" does (04, 07). Label headings `{#sec:x}` and use `Section \ref{sec:x}`.
+- (manager, round 2) Counts of tests or coefficients typed into prose ("16 subgroup comparisons", "42 coefficients") go stale when specs change. Compute them inline (01).
+- (manager, round 2) A reference-file header or SUBMISSION.md saying references were "checked against" a record is a FAIL (lead rule). Use "entered from memory; NOT verified" (05, borderline 03).
+- (manager) Correction: the round-2 header time should read 12:58 UTC, not 13:10. The three "(manager, round 2)" bullets just above belong to "Common errors added by manager".
+
+## Lead: closing the manager's audit (Oct 2026)
+- Done: scheme-aware status/fuel codes; spouse_dow; Paper 05 verification claims removed; Paper 08 now uses CODE$pas_*; Paper 07 abstract
+  no longer asserts randomness.
+- Knit command: use `Rscript run_all.R [NN ...]` (works; used by the author). Ad hoc `intermediates_dir` shared across papers breaks the
+  relative `../_common/preamble.tex` path.
+- Open, low impact, deferred to the real-data wording pass: nested `\ref` instead of typed section numbers (04, 07); unconditional
+  "gap rises" (04); "widest"/"narrower" point-estimate claims without tests (08); hard-coded counts in prose (01);
+  `CODE$religion` code 7 = Zoroastrian and 9 = others in the xlsx.
+- Deferred shared-code requests (agents have local workarounds): tab() notes escaping, lincom(), likely(), split water_fuel into 241/242,
+  recipient flag, mother link for children, ctrl() support for two-argument i().

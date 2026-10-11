@@ -30,19 +30,8 @@ if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
 ```
 
 ```{r codes-local}
-# Usual principal activity status. docs/DataDictionaryTimeUseSurvey.xlsx uses the
-# standard NSS scheme (11, 12, 21, 31, 41, 51 = working; 81 = seeking work;
-# 91-97 = not in the labour force; 94 = rentiers, pensioners, remittance
-# recipients). R/codes.R follows docs/variables_dictionary.txt (51 = unemployed,
-# 61-66 not in the labour force, 64 = pensioners). The two disagree on code 51.
-# Detect the scheme from the values present and define status locally
-# (logged in docs/WORKLOG.md as a shared-code request).
-nss_scheme <- any(pd$pas %in% c(81, 91:97))
-PAS <- if (nss_scheme) {
-  list(employed = c(11, 12, 21, 31, 41, 51), pensioner = 94)
-} else {
-  list(employed = CODE$pas_employed, pensioner = CODE$pas_pensioner)
-}
+# Usual principal activity status: CODE$pas_* follow the scheme detected from the data (R/codes.R).
+PAS <- list(employed = CODE$pas_employed, pensioner = CODE$pas_pensioner)   # scheme-aware (R/codes.R)
 ```
 
 ```{r sample}
