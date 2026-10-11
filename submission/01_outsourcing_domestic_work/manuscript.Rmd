@@ -1,0 +1,353 @@
+---
+title: "Machines, Maids, and Money: Does Outsourcing Household Production Reduce Women's Domestic Work in India?"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: ../references.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+require_cols(pd, c("cooking", "washing", "sweeping", "mpce", "rel"), "Paper 01")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+A <- pd[age >= 15 & age <= 64 & sex %in% c("Men", "Women")]
+A[, `:=`(
+  clean_fuel  = as.integer(cooking %in% CODE$cooking_clean),
+  wash_mech   = as.integer(washing == CODE$washing["mechanical"]),
+  wash_out    = as.integer(washing == CODE$washing["outsourced"]),
+  sweep_mech  = as.integer(sweeping == CODE$sweeping["mechanical"]),
+  sweep_out   = as.integer(sweeping == CODE$sweeping["outsourced"]),
+  live_in_help = as.integer(hh_n_servant > 0),
+  mgmt_shop   = dom_management + dom_shopping,
+  other_women = hh_n_women_15plus - female,
+  sex = droplevels(sex)
+)]
+A <- A[!is.na(mpce_quintile)]
+W <- A[sex == "Women"]; M <- A[sex == "Men"]
+
+tech   <- c("clean_fuel", "wash_mech", "wash_out", "sweep_mech", "sweep_out", "live_in_help")
+tech_lab <- c(clean_fuel = "Clean cooking fuel (LPG, biogas, electricity)",
+              wash_mech = "Laundry: machine", wash_out = "Laundry: outsourced",
+              sweep_mech = "Sweeping: mechanical", sweep_out = "Sweeping: outsourced",
+              live_in_help = "Live-in domestic worker")
+controls <- ctrl(A, c("i(age_band)", "i(edu_tier)", "married", "urban", "hh_size",
+                      "hh_n_under6", "hh_n_6_14", "hh_n_60plus", "other_women", "proxy_report"))
+FE <- fe(A)
+rhs <- paste(c(tech, "i(mpce_quintile, ref = 'Q1')"), collapse = " + ")
+fml <- function(y) as.formula(paste(y, "~", rhs, "+", controls, FE))
+
+tasks <- c("dom_food", "dom_cleaning", "dom_textiles", "water_fuel", "mgmt_shop",
+           "care_child", "unpaid_total")
+task_lab <- c(dom_food = "Food and meals", dom_cleaning = "Cleaning dwelling",
+              dom_textiles = "Laundry and textiles", water_fuel = "Water and fuel collection",
+              mgmt_shop = "Management and shopping", care_child = "Childcare",
+              unpaid_total = "All unpaid domestic and care work")
+mW <- lapply(tasks, function(y) reg(fml(y), W))
+mM <- lapply(tasks, function(y) reg(fml(y), M))
+names(mW) <- names(mM) <- tasks
+cW <- function(y, t) coef_of(mW[[y]], t)
+cM <- function(y, t) coef_of(mM[[y]], t)
+
+# Prevalence of each technology (household-weighted).
+H <- unique(A[, c("hh_id", "weight", "hh_size", tech, "mpce_quintile", "urban"), with = FALSE], by = "hh_id")
+prev <- sapply(tech, function(t) wmean(H[[t]], H$weight * H$hh_size))
+
+# Descriptives
+mW_unpaid <- est_mean(W, "unpaid_total"); mM_unpaid <- est_mean(M, "unpaid_total")
+subst <- c("dom_food", "dom_cleaning", "dom_textiles", "water_fuel")
+share_subst <- wmean(rowSums(W[, ..subst]), W$weight) / wmean(W$unpaid_domestic + W$water_fuel, W$weight)
+
+# Consumption gradient in women's domestic work, raw and adjusted
+gq_raw <- feols(unpaid_domestic ~ i(mpce_quintile, ref = "Q1"), W, weights = ~weight, cluster = ~fsu)
+gq_adj <- mW[["unpaid_total"]]
+q5_raw <- coef_of(gq_raw, "mpce_quintile::Q5")
+q5_dom <- coef_of(reg(fml("unpaid_domestic"), W), "mpce_quintile::Q5")
+
+# Reallocation: coefficients on the full partition of the day sum to zero.
+part <- PARTITION
+mR <- lapply(part, function(y) reg(fml(y), W))
+names(mR) <- part
+realloc <- function(t) setNames(sapply(part, function(y) if (is.null(mR[[y]])) 0 else cf(mR[[y]], t)), part)
+
+# Placebo logic: each technology should move its own task most.
+k_fuel_food  <- cW("dom_food", "clean_fuel");    k_fuel_wash <- cW("dom_textiles", "clean_fuel")
+k_fuel_water <- cW("water_fuel", "clean_fuel")
+k_wash_tex   <- cW("dom_textiles", "wash_out");  k_wash_food <- cW("dom_food", "wash_out")
+k_mach_tex   <- cW("dom_textiles", "wash_mech")
+k_sweep_cln  <- cW("dom_cleaning", "sweep_out")
+k_help_all   <- cW("unpaid_total", "live_in_help")
+k_help_mgmt  <- cW("mgmt_shop", "live_in_help")
+k_fuel_men   <- cM("dom_food", "clean_fuel")
+k_wash_men   <- cM("dom_textiles", "wash_out")
+k_q5_all     <- cW("unpaid_total", "mpce_quintile::Q5")
+k_q5_men     <- cM("unpaid_total", "mpce_quintile::Q5")
+
+# Verdicts used to choose between alternative interpretive sentences.
+own_off <- function(own, off) is_neg(own) && abs(own$est) > 2 * abs(off$est)
+spec_fuel <- own_off(k_fuel_food, k_fuel_wash)
+spec_wash <- own_off(k_wash_tex, k_wash_food)
+spec_any  <- spec_fuel || spec_wash
+spec_both <- spec_fuel && spec_wash
+men_flat  <- !is_pos(k_fuel_men) && !is_pos(k_wash_men)
+```
+
+\begin{abstract}
+Household technologies and paid domestic help are often presented as the route by which rising incomes free women's time in developing economies. I test this claim with a nationally representative survey that records, for every household, how laundry and sweeping are done and which fuel is used for cooking, alongside a full-day diary for each member: the Time Use Survey 2024 (`r fn(V$n_persons)` diaries in `r fn(V$n_households)` households). Women aged 15 to 64 spend `r f0(mW_unpaid$est)` minutes a day in unpaid domestic and care work, against `r f0(mM_unpaid$est)` minutes for men, and `r pctx(share_subst, 0)` of women's domestic minutes (including water and fuel collection) go to the four tasks that fuel, machines and hired help can replace: cooking, cleaning, laundry, and fetching water and fuel. I exploit the task specificity of each technology. Clean fuel should shorten cooking but not laundry; outsourced laundry should shorten laundry but not cooking. Conditional on consumption, household composition, and state and day-of-week fixed effects, clean cooking fuel is associated with `r f1(abs(k_fuel_food$est))` `r more_less(k_fuel_food$est, "more", "fewer")` minutes of women's food work and `r f1(abs(k_fuel_water$est))` `r more_less(k_fuel_water$est, "more", "fewer")` minutes of water and fuel collection, and outsourced laundry with `r f1(abs(k_wash_tex$est))` `r more_less(k_wash_tex$est, "more", "fewer")` minutes of laundry. `r iff(spec_both, "Both associations are concentrated on the matching task, which is hard to reconcile with pure selection on affluence.", iff(spec_any, "Only one of the two associations is concentrated on its matching task, so the evidence for substitution is partial.", "Neither association is concentrated on its matching task, which points to selection rather than substitution."))` `r iff(men_flat, "Men's time in the same tasks does not rise when tasks become easier.", "Men's time in some of these tasks rises with technology.")` After adjustment, women in the richest consumption quintile do `r f0(abs(k_q5_all$est))` `r more_less(k_q5_all$est, 'more', 'fewer')` minutes of unpaid work than women in the poorest, and a 1,440-minute accounting shows which activities absorb any released time.
+\keywords{unpaid work, household technology, domestic workers, clean cooking fuel, time use, gender, India}
+\jel{D13, J16, J22, O12, O33}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+Women in India do most of the country's unpaid work. Employment has fallen even as female education has risen [@klasen2015stagnation; @afridi2018married; @chatterjee2018indian], and the low level and slow movement of female labour force participation is one of the most studied puzzles in development economics [@fletcher2017women; @jayachandran2021social]. One prominent explanation is time: cooking on solid fuel, fetching water and firewood, washing clothes by hand and sweeping by hand are labour-intensive. Releasing that time, through technology or through the market for domestic services, is widely expected to let women work for pay, rest, or invest in themselves. The expectation underpins large public programmes. The Pradhan Mantri Ujjwala Yojana has subsidised liquefied petroleum gas (LPG) connections for tens of millions of poor households since 2016 [@kar2019ujjwala; @gould2018lpg].
+
+The historical record warns against assuming that technology saves women's time. In her history of American housework, @cowan1983more argued that appliances raised standards and moved tasks from servants and men onto housewives, so that "more work for mother" was the result. Macroeconomic accounts reach the opposite conclusion: @greenwood2005engines attribute much of the rise in US married women's labour supply to the falling price of durables, and micro evidence supports appliance effects on participation [@coenpirani2010appliances]. Rural electrification raised female employment in South Africa [@dinkelman2011electrification]. Cheaper market substitutes for home production, in the form of low-skilled immigrant labour, raised the hours of highly educated women in the United States [@cortes2011immigration]. Whether such substitution happens, and for whom, depends on norms about who does which task [@akerlof2000identity; @bertrand2015identity] and on the bargaining position of household members [@lundberg1996bargaining].
+
+This paper brings new measurement to this question. India's Time Use Survey 2024 [@nso2025tus] asks every household how its laundry and its floor sweeping were *mainly* done over the previous 30 days: mechanically by household members, manually by household members, or by outsourcing. It also records the household's primary cooking fuel, its consumption expenditure, and whether a domestic worker lives in the household. These measures are linked to a full 24-hour diary for every member aged six and above, coded to the International Classification of Activities for Time-Use Statistics [ICATUS 2016, @un2016icatus]. I can therefore observe, for the same household, both the technology and the minutes each member spends on the specific task the technology affects.
+
+The design exploits this task specificity. A household that sends out its laundry should spend less time on laundry; there is no mechanical reason for it to spend less time cooking. A household that cooks on LPG should spend less time preparing meals and collecting firewood, but not less time washing clothes. Unobserved affluence, preferences for cleanliness, or norms that shift *all* domestic work would move every task together. A technology that moves its own task and leaves the others alone is harder to explain by selection. I estimate the full matrix of technology-by-task associations for women and for men, conditioning flexibly on consumption, household composition, education, age, location, and state and diary-day fixed effects.
+
+Three findings emerge. First, the four substitutable tasks account for `r pct(share_subst, 0)` of women's unpaid domestic minutes, counting water and fuel collection as domestic work, so the scope for technology to matter is large. Second, clean fuel is linked to `r diff_txt(k_fuel_food)` time in food work (`r sig_phrase(k_fuel_food$p)`) and `r diff_txt(k_fuel_wash)` time in laundry, and outsourced laundry is linked to `r diff_txt(k_wash_tex)` time in laundry (`r sig_phrase(k_wash_tex$p)`) and `r diff_txt(k_wash_food)` time cooking. `r iff(spec_both, "Both technologies therefore move their own task and leave the other alone, the signature of substitution rather than selection.", iff(spec_any, "One technology moves its own task more than the placebo task; the other does not, so the evidence for substitution is mixed.", "Neither technology moves its own task more than the placebo task, so the associations are better explained by selection than by substitution."))` Third, men's minutes in the same tasks change by `r diff_txt(k_fuel_men, "more", "fewer")` (clean fuel, food work) and `r diff_txt(k_wash_men, "more", "fewer")` (outsourced laundry, textiles). `r iff(men_flat, "Technology does not move tasks to men.", "Some tasks move partly to men when they become easier.")` A complete 1,440-minute reallocation shows which activities absorb any released time.
+
+The paper contributes to three literatures. It adds direct, task-level evidence from a large developing economy to the debate on household technology and women's time [@cowan1983more; @greenwood2005engines; @coenpirani2010appliances]. It contributes to work on domestic service in India, which has been mostly ethnographic [@ray2009cultures], by quantifying how much outsourcing changes women's own minutes. And it informs the evaluation of clean cooking programmes, whose time-saving benefits have so far been estimated from adoption and use data rather than diaries [@gould2018lpg; @kar2019ujjwala].
+
+# Related literature
+
+## Household technology and the allocation of time
+
+Becker's model of household production treats the household as combining time and market goods into commodities [@becker1965theory]. A fall in the price of a market substitute for time (an appliance, a fuel, a service) lowers the shadow price of the commodity and, if time and goods are substitutes in production, releases time. Whether that time goes to paid work, leisure, or more of the same commodity at higher quality depends on elasticities that theory does not pin down. @cowan1983more documented the "quality" margin: as laundry and cooking became easier, households washed more often and cooked more elaborately. @greenwood2005engines emphasise the participation margin. Empirically, @coenpirani2010appliances find that appliance ownership raised married women's labour force participation in the US in the 1960s and 1970s. @dinkelman2011electrification finds that electrification in rural KwaZulu-Natal raised women's employment, plausibly by freeing time from fuel collection and cooking. Long-run trends in rich countries show housework time falling sharply for women while men's rose only modestly [@bianchi2000anyone; @gershuny2000changing; @aguiar2007measuring; @ramey2009century].
+
+## Market substitutes and domestic service
+
+Hiring help is the other route to substitution. @cortes2011immigration show that low-skilled immigration lowered the price of household services in US cities and raised the labour supply of women at the top of the wage distribution. In India, paid domestic work is widespread among the urban middle class and is embedded in hierarchies of caste and class. @ray2009cultures describe "cultures of servitude" in which employing help is a marker of status and in which supervising servants is itself women's work. If managing help is assigned to women, outsourcing may convert physical domestic work into management and coordination rather than eliminate it, a possibility emphasised in the "second shift" tradition [@hochschild1989second].
+
+## Gender norms and bargaining
+
+Even when technology lowers the time cost of a task, who performs the residual work is governed by norms and bargaining. Bargaining models predict that women's outside options shape the division of labour [@lundberg1993separate; @lundberg1996bargaining; @chiappori1992collective]. Identity models predict that tasks coded as feminine stay with women regardless of relative wages [@akerlof2000identity]. Evidence that wives who out-earn their husbands do more housework [@bertrand2015identity; @brines1994economic; @bittman2003gender] suggests that money alone does not re-gender tasks. In India, restrictive norms about women's mobility and work outside the home are a first-order constraint [@jayachandran2015roots; @jayachandran2021social; @field2021account]. These perspectives predict that technology shortens women's tasks while leaving men's time unchanged, which is a testable implication of the task-matrix design.
+
+## Time use in India
+
+Before 2019, Indian time-use evidence came from the 1998--99 pilot survey in six states [@hirway2011understanding; @antonopoulos2010unpaid]. The 2019 national survey [@nso2020tus] established the scale of the gender gap in unpaid work at the national level, and the 2024 round [@nso2025tus] repeats it with richer household modules, including the laundry, sweeping, cooking-fuel and special-care questions used here. To my knowledge this is the first study to link those household technology questions to task-level diaries.
+
+# Data
+
+## The Time Use Survey 2024
+
+The National Statistics Office conducted the Time Use Survey between January and December 2024 across all states and union territories using a stratified two-stage design. First Stage Units (FSUs: villages in rural areas, urban blocks in towns) are sampled first, then households within FSUs. Each member aged six or above reports, personally or through a household informant, the activities performed in each 30-minute slot of the 24 hours from 4:00 a.m. on the day before the interview. Up to several activities can be recorded per slot, and the respondent identifies one as the major activity. Activities are coded to ICATUS 2016 three-digit categories.
+
+I use every activity record in the release. The file contains `r fn(V$n_rows)` activity records for `r fn(V$n_persons)` diarists in `r fn(V$n_households)` households and `r fn(V$n_fsu)` FSUs. I aggregate major activities to the person-day, so each diary sums to exactly 1,440 minutes; `r pct(V$share_diaries_1440)` of diaries satisfy this identity. Appendix Table \ref{tab:validation} reports the checks. All estimates use the survey multiplier as a weight, and all standard errors are clustered at the FSU, the primary sampling unit [@solon2015weighting; @abadie2023cluster].
+
+The analysis sample is the `r fn(nrow(W))` women and `r fn(nrow(M))` men aged 15 to 64 with non-missing consumption.
+
+## Measuring technology and outsourcing
+
+The household questionnaire records:
+
+* **Cooking fuel.** The primary source of energy for cooking. I classify LPG, biogas (gobar gas) and electricity as clean fuel and firewood, crop residue, dung cake and coal as solid fuel. `r pct(prev["clean_fuel"], 0)` of persons live in clean-fuel households.
+* **Laundry and sweeping.** Whether washing clothes and sweeping floors were, as the major source in the past 30 days, done mechanically by household members, manually by household members, or by outsourcing (a hired worker, launderer, or service). Laundry is mechanical for `r pct(prev["wash_mech"], 1)` and outsourced for `r pct(prev["wash_out"], 1)` of persons; sweeping is mechanical for `r pct(prev["sweep_mech"], 1)` and outsourced for `r pct(prev["sweep_out"], 1)`.
+* **Live-in domestic worker.** A household member whose relationship to the head is "servant, employee, or other non-relative" (`r pct(prev["live_in_help"], 2)` of persons). Non-resident workers are not household members. Their presence is captured only through the outsourcing questions.
+* **Consumption.** Usual monthly household consumer expenditure (purchases plus imputed home-grown consumption and in-kind receipts, with annual clothing and durables expenditure converted to a monthly basis), divided by household size. I use all-India quintiles of per-capita consumption.
+
+## Measuring time in tasks
+
+From the ICATUS codes I construct minutes per day in food and meals management (codes 311--319), cleaning and upkeep of the dwelling (321--329), care of textiles and footwear (341--349), fetching water and gathering fuel for own use (241--242), household management and shopping (351--359 and 371--372), childcare (411--419 and 442), and the total of unpaid domestic and care services (divisions 3 and 4, the SDG 5.4.1 concept). Appendix Table \ref{tab:codes} lists the mapping. Because each diary sums to 1,440 minutes, I also allocate the whole day to nine exhaustive ICATUS divisions to study reallocation.
+
+```{r tab-desc}
+desc_vars <- c("unpaid_total", "unpaid_domestic", "dom_food", "dom_cleaning", "dom_textiles",
+               "water_fuel", "mgmt_shop", "care_child", "employment", "free_time", "sleep")
+desc_lab  <- c("Unpaid domestic and care work", "  Unpaid domestic services", "    Food and meals",
+               "    Cleaning dwelling", "    Laundry and textiles", "    Water and fuel collection",
+               "    Management and shopping", "  Childcare", "Employment (incl. travel)",
+               "Free time (social and leisure)", "Sleep")
+dt <- means_table(A, desc_vars, "sex", desc_lab)
+tab(dt, caption = paste0("Minutes per day by sex, ages 15--64", syn_note()), label = "desc",
+    align = c("l", "r", "r"),
+    notes = "Survey-weighted means; standard errors clustered by FSU in parentheses. Person-day diaries; major activities; each diary sums to 1,440 minutes.")
+```
+
+Table \ref{tab:desc} shows the gap. Women spend `r f0(mW_unpaid$est)` minutes a day on unpaid domestic and care work and men `r f0(mM_unpaid$est)`, a ratio of `r f1(mW_unpaid$est / mM_unpaid$est)` to one. Food work alone takes women `r f0(est_mean(W, "dom_food")$est)` minutes.
+
+```{r fig-quint, fig.cap = paste0("Women's unpaid domestic minutes by task and per-capita consumption quintile", syn_note()), fig.height = 3.6}
+fq <- W[, lapply(.SD, function(z) wmean(z, weight)),
+        by = mpce_quintile, .SDcols = c("dom_food", "dom_cleaning", "dom_textiles", "water_fuel", "mgmt_shop")]
+fq <- melt(fq, id.vars = "mpce_quintile")
+fq[, variable := factor(task_lab[as.character(variable)], levels = task_lab[c("dom_food", "dom_cleaning", "dom_textiles", "water_fuel", "mgmt_shop")])]
+ggplot(fq, aes(mpce_quintile, value, fill = variable)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("#7A3B2E", "#C2512F", "#E39B6B", "#8C8C8C", "#2C6E9B"), name = NULL) +
+  labs(x = "Per-capita consumption quintile (Q1 = poorest)", y = "Minutes per day",
+       caption = "Women aged 15-64. Survey-weighted means.") +
+  guides(fill = guide_legend(nrow = 2))
+```
+
+# Empirical strategy
+
+For person $i$ in household $h$, state $s$, interviewed about day-of-week $d$, I estimate for each task $k$:
+
+$$ y^{k}_{ih} = \sum_{j} \beta^{k}_{j}\, T^{j}_{h} + \sum_{q=2}^{5} \gamma^{k}_{q}\, Q^{q}_{h} + X_{ih}'\delta^{k} + \mu_s + \tau_d + \varepsilon_{ih}, $$
+
+where $T^{j}_{h}$ are the six technology indicators, $Q^{q}_{h}$ are consumption quintile dummies, $X_{ih}$ includes age bands, education tier, marital status, urban residence, household size, the numbers of members under six, aged 6 to 14 and aged 60 or above, the number of other women aged 15 or above (who may share tasks), and an indicator for proxy-reported diaries. $\mu_s$ and $\tau_d$ are state and diary-day fixed effects. I estimate the model separately for women and men.
+
+The coefficients $\beta^{k}_{j}$ are conditional associations, not causal effects. Households that adopt LPG or hire help differ in ways not fully captured by consumption and composition. The design addresses this in two ways. First, task specificity: under the null that technology adoption merely proxies for unobserved affluence or tastes, $\beta^{k}_{j}$ should be similar across tasks $k$ for a given $j$. Under the substitution hypothesis it should be concentrated on the task the technology affects. Second, for the headline coefficients I report the bias-adjusted estimate of @oster2019unobservable, which asks how large selection on unobservables would have to be, relative to selection on observables, to explain the estimate away [@altonji2005selection].
+
+# Results
+
+## The task matrix
+
+```{r tab-matrix}
+cell <- function(m, t) { e <- coef_of(m, t); paste0(f1(e$est), stars(e$p), "\n(", f1(e$se), ")") }
+short_tech <- c(clean_fuel = "Clean fuel", wash_mech = "Laundry: machine", wash_out = "Laundry: outsourced",
+                sweep_mech = "Sweeping: mechanical", sweep_out = "Sweeping: outsourced", live_in_help = "Live-in help")
+mat <- function(ml) {
+  out <- t(sapply(tasks, function(y) sapply(tech, function(t) cell(ml[[y]], t))))
+  out <- data.frame(Task = task_lab[tasks], out, check.names = FALSE)
+  names(out)[-1] <- short_tech[tech]
+  out
+}
+mw <- mat(mW)
+mw[-1] <- lapply(mw[-1], function(z) kableExtra::linebreak(z, align = "c"))
+tab(mw, caption = paste0("Technology and women's minutes by task (ages 15--64)", syn_note()),
+    label = "matrix", align = c("l", rep("c", length(tech))), escape = FALSE,
+    notes = "Each row is one regression of minutes per day on all six technology indicators (columns), consumption quintiles, demographic and household controls, and state and day-of-week fixed effects. Weighted; FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+```
+
+Table \ref{tab:matrix} reports the full matrix for women. Read down a column to see whether a technology's association is concentrated on its own task.
+
+*Clean cooking fuel.* Women in clean-fuel households spend `r diff_txt(k_fuel_food)` time on food and meals and `r diff_txt(k_fuel_water)` time fetching water and fuel than otherwise similar women in solid-fuel households. The coefficient on laundry, the placebo task for fuel, is `r est_se(k_fuel_wash)`. `r iff(spec_fuel, "The fuel association is concentrated where a cleaner, faster stove and the end of firewood gathering should act.", "The fuel association is not concentrated on food work relative to the placebo task, so it cannot be read as time saved by the stove.")`
+
+*Laundry.* Outsourced laundry is associated with `r diff_txt(k_wash_tex)` time on textiles, against `r est_se(k_wash_food)` on food, the placebo task. Machine washing is associated with `r est_se(k_mach_tex)` on textiles. Washing machines in India are often semi-automatic and still require filling, loading, drying and folding, so a machine effect smaller than the outsourcing effect is expected.
+
+*Sweeping.* Outsourced sweeping is associated with `r est_se(k_sweep_cln)` on cleaning time.
+
+*Live-in help.* A resident domestic worker is associated with `r est_se(k_help_all)` on women's total unpaid work and `r est_se(k_help_mgmt)` on management and shopping. The second coefficient tests the "management burden" hypothesis that supervising help replaces doing the work [@ray2009cultures]. Live-in workers are rare, so these estimates are less precise than the others.
+
+## Men
+
+```{r tab-men}
+mm <- mat(mM)
+mm[-1] <- lapply(mm[-1], function(z) kableExtra::linebreak(z, align = "c"))
+tab(mm, caption = paste0("Technology and men's minutes by task (ages 15--64)", syn_note()),
+    label = "men", align = c("l", rep("c", length(tech))), escape = FALSE,
+    notes = "Specification as in Table \\ref{tab:matrix}, estimated on men.")
+```
+
+Table \ref{tab:men} repeats the exercise for men. Men's baseline minutes in these tasks are small, so the scope for technology to reduce them is small. The more informative question is whether technology *increases* men's participation, as would happen if easier tasks became less gender-coded. The coefficients are `r est_se(k_fuel_men)` (clean fuel, food work) and `r est_se(k_wash_men)` (outsourced laundry, textiles). `r iff(men_flat, "Easier tasks do not migrate to men, consistent with identity-based accounts of the division of labour [@akerlof2000identity; @bertrand2015identity].", "Some easier tasks do migrate to men, which bargaining models predict once the time cost of a task falls [@lundberg1996bargaining].")`
+
+## The consumption gradient
+
+The raw gap in women's unpaid domestic minutes between the richest and poorest consumption quintiles is `r est_se(q5_raw)`. Conditioning on technology, composition, and location changes it to `r est_se(q5_dom)`. Figure 1 shows how the composition of women's domestic work changes across the consumption distribution, task by task. Whether richer households are "more equal" therefore has to be answered task by task. Men's unpaid minutes in the top quintile differ from the bottom by `r est_se(k_q5_men)`.
+
+## Where does released time go?
+
+```{r tab-realloc}
+rl <- data.frame(
+  Activity = c("Employment (incl. travel)", "Own-use production of goods", "Unpaid domestic services",
+               "Unpaid caregiving", "Volunteering", "Learning", "Socialising, community, religion",
+               "Culture, leisure, media, sport", "Self-care and sleep", "Sum"),
+  `Clean fuel` = c(f1(realloc("clean_fuel")), f1(sum(realloc("clean_fuel")))),
+  `Laundry outsourced` = c(f1(realloc("wash_out")), f1(sum(realloc("wash_out")))),
+  `Sweeping outsourced` = c(f1(realloc("sweep_out")), f1(sum(realloc("sweep_out")))),
+  `Live-in help` = c(f1(realloc("live_in_help")), f1(sum(realloc("live_in_help")))),
+  check.names = FALSE)
+tab(rl, caption = paste0("Reallocation of women's 1,440 minutes associated with each technology", syn_note()),
+    label = "realloc", align = c("l", "r", "r", "r", "r"),
+    notes = "Coefficients from regressions of minutes in each exhaustive ICATUS division on the technology indicators and controls of Table \\ref{tab:matrix}. Because the divisions partition the day and all regressions share the same sample, weights and regressors, each column sums to zero.")
+```
+
+Table \ref{tab:realloc} exploits the time budget identity. For each technology, the coefficients across the nine ICATUS divisions sum to zero, so the table shows exactly which activities absorb minutes released from domestic work. For clean fuel, the change in domestic services (`r f1(realloc("clean_fuel")["unpaid_domestic"])` minutes) is matched by changes in employment (`r f1(realloc("clean_fuel")["employment"])`), leisure (`r f1(realloc("clean_fuel")["leisure_all"])`), social time (`r f1(realloc("clean_fuel")["social_all"])`) and self-care (`r f1(realloc("clean_fuel")["selfcare_all"])`). These numbers bear directly on the claim that clean cooking programmes raise women's paid work.
+
+# Robustness
+
+```{r robust}
+rob <- function(d, y, t) coef_of(reg(fml(y), d), t)
+R <- list(
+  "Baseline" = list(k_fuel_food, k_wash_tex),
+  "Rural only" = list(rob(W[urban == 0], "dom_food", "clean_fuel"), rob(W[urban == 0], "dom_textiles", "wash_out")),
+  "Urban only" = list(rob(W[urban == 1], "dom_food", "clean_fuel"), rob(W[urban == 1], "dom_textiles", "wash_out")),
+  "Self-reported diaries" = if ("proxy_report" %in% names(W)) list(rob(W[proxy_report == 0], "dom_food", "clean_fuel"),
+                                                                   rob(W[proxy_report == 0], "dom_textiles", "wash_out")) else list(list(est = NA, se = NA, p = NA), list(est = NA, se = NA, p = NA)),
+  "Married women 25-54" = list(rob(W[married == 1 & age >= 25 & age <= 54], "dom_food", "clean_fuel"),
+                               rob(W[married == 1 & age >= 25 & age <= 54], "dom_textiles", "wash_out"))
+)
+m0f <- feols(dom_food ~ clean_fuel, W, weights = ~weight)
+m1f <- feols(fml("dom_food"), W, weights = ~weight)
+m0w <- feols(dom_textiles ~ wash_out, W, weights = ~weight)
+m1w <- feols(fml("dom_textiles"), W, weights = ~weight)
+ob_f <- oster_beta(m0f, m1f, "clean_fuel"); ob_w <- oster_beta(m0w, m1w, "wash_out")
+rt <- data.frame(Sample = names(R),
+                 `Clean fuel on food work` = sapply(R, function(r) paste0(f1(r[[1]]$est), stars(r[[1]]$p), " (", f1(r[[1]]$se), ")")),
+                 `Outsourced laundry on laundry` = sapply(R, function(r) paste0(f1(r[[2]]$est), stars(r[[2]]$p), " (", f1(r[[2]]$se), ")")),
+                 check.names = FALSE)
+rt <- rbind(rt, data.frame(Sample = "Oster bias-adjusted (delta = 1, Rmax = 1.3 R)",
+                           `Clean fuel on food work` = f1(ob_f), `Outsourced laundry on laundry` = f1(ob_w), check.names = FALSE))
+tab(rt, caption = paste0("Robustness of headline coefficients (women)", syn_note()), label = "robust",
+    align = c("l", "r", "r"),
+    notes = "Specification as in Table \\ref{tab:matrix}. Bias-adjusted coefficients follow Oster (2019), comparing the regression without controls to the full specification.")
+```
+
+Table \ref{tab:robust} reports the two headline coefficients in rural and urban subsamples, in self-reported diaries only (proxy reporting may under-record women's multitasked or fragmented work), and among married women of prime age. The bias-adjusted estimates are `r f1(ob_f)` minutes for clean fuel and `r f1(ob_w)` minutes for outsourced laundry. A bias-adjusted estimate with the same sign as the baseline means that selection on unobservables as strong as selection on observables would not overturn the result.
+
+# Discussion
+
+`r iff(spec_any, "The evidence supports a qualified version of the substitution hypothesis. Where a technology affects a specific task, women's time in that task is lower, and the association is concentrated on the matching task.", "The evidence does not support the substitution hypothesis in its simple form. Technology indicators are not associated with lower time in the specific task they should replace, relative to placebo tasks.")` `r iff(men_flat, "It does not support the stronger claim that technology or money re-genders domestic work: men's minutes in the same tasks do not rise, and the residual burden stays with women across the consumption distribution.", "There is some evidence that easier tasks are partly taken up by men, which would make technology a lever on the division of labour as well as on its total.")`
+
+Four limitations matter. First, adoption is not randomly assigned. Task specificity and coefficient-stability bounds narrow, but do not close, the gap to causal interpretation; programme rollouts such as Ujjwala, linked to district-level adoption, are a natural next step. Second, a single diary day measures a day, not a habit [@frazis2012think]. Day-of-week fixed effects absorb weekly cycles but not day-to-day variation, which inflates residual variance without biasing means. Third, the survey's outsourcing questions refer to the *major* source over 30 days, so households that outsource some laundry are coded by their main mode. Fourth, `r if ('proxy_report' %in% names(W)) pct(wmean(W$proxy_report, W$weight), 0) else 'an unknown share'` of women's diaries are reported by another household member, and proxy reports may miss fragmented or secondary work. Results restricted to self-reports are in Table \ref{tab:robust}.
+
+For policy, the results caution against counting time savings from clean fuel or appliances as an automatic gain in women's labour supply. The reallocation accounting in Table \ref{tab:realloc} shows directly how much of any saving reaches employment.
+
+# Conclusion
+
+India's 2024 time-use diaries, linked to household questions on cooking fuel, laundry and sweeping, show where machines, maids and money shorten women's work and where they do not. `r iff(spec_any, "Technologies reduce the specific tasks they replace.", "Technologies are not associated with lower time in the specific tasks they replace once household circumstances are held constant.")` `r iff(men_flat, "They leave the gender division of the remaining work intact.", "They shift a small part of the remaining work to men.")` Releasing women's time is necessary for gender equality in work, but it is not sufficient: what women do with released time, shown in the reallocation accounting, is governed by the same norms that assigned them the work in the first place.
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"),
+    notes = "All activity records are used; no row sampling. Minutes are from major activities only.")
+```
+
+```{r tab-codes}
+cd <- data.frame(
+  Category = c("Food and meals", "Cleaning dwelling", "Laundry and textiles", "Water and fuel collection",
+               "Household management", "Shopping", "Childcare", "Unpaid domestic services",
+               "Unpaid caregiving", "Employment (incl. travel)", "Free time"),
+  `ICATUS 2016 codes` = c("311--319", "321--329", "341--349", "241--242", "351--359", "371--372",
+                          "411--419, 442", "Division 3 (311--390)", "Division 4 (411--490)",
+                          "Division 1 (110--182)", "Divisions 7 and 8"),
+  check.names = FALSE)
+tab(cd, caption = "Activity definitions", label = "codes", align = c("l", "l"),
+    notes = "Codes from the TUS 2024 data dictionary. Definitions are implemented once in R/codes.R and shared by all papers.")
+```

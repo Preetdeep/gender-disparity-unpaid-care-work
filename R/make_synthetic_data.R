@@ -103,6 +103,13 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
       if (r$u6) put(415, sample(0:2, 1), 20, 44)
     }
     put(842, sample(2:6, 1) + 2 * sun, 30, 46); put(711, sample(1:3, 1), 20, 46)
+    if (!kid && runif(1) < .05) put(sample(c(513, 521), 1), sample(1:3, 1), 8, 40)
+    if (!kid && runif(1) < .05) put(630, sample(1:3, 1), 8, 40)
+    if (!kid && !f && runif(1) < .1) put(sample(c(241, 242), 1), sample(1:2, 1), 4, 30)
+    if (!kid && runif(1) < .3) put(212, sample(1:3, 1), 4, 30)
+    if (!kid && runif(1) < .1) put(sample(c(351, 352), 1), 1, 20, 44)
+    if (!kid && runif(1) < .05) put(912, 1, 20, 40)
+    if (!kid && runif(1) < .04) put(431, 1, 4, 44)
     if (runif(1) < .08) put(832, 1, 3, 10)
     if (runif(1) < .3) put(741, 1, 3, 10)
     put(850, sample(0:2, 1), 20, 40)

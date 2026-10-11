@@ -1,0 +1,207 @@
+---
+title: "Who Cares When Care Is Needed? Childcare, Dependent-Adult Care, and Gender in Indian Households"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: ../references.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+require_cols(pd, c("special_care", "hh_n_under6", "rel"), "Paper 03")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+pd[, `:=`(
+  need_adult = as.integer(special_care == CODE$yes_no["yes"]),
+  need_child = as.integer(hh_n_under6 > 0),
+  carer_avail = if ("caregiver" %in% names(pd)) as.integer(caregiver == CODE$yes_no["yes"]) else NA_integer_,
+  any_child = as.integer(care_child > 0), any_adult = as.integer(care_dep_adult > 0)
+)]
+A <- pd[age >= 15 & sex %in% c("Men", "Women") & !is.na(need_adult) & !is.na(need_child)]
+A[, sex := droplevels(sex)]
+
+# Household-level female share of each care type, in households with the need.
+hshare <- function(d, y) {
+  h <- d[, .(f = sum(get(y) * female), t = sum(get(y)), w = weight[1]), by = hh_id][t > 0]
+  wmean(h$f / h$t, h$w)
+}
+sh_child <- hshare(A[need_child == 1], "care_child")
+sh_adult <- hshare(A[need_adult == 1], "care_dep_adult")
+pr_need_adult <- wmean(unique(A, by = "hh_id")$need_adult, unique(A, by = "hh_id")$weight)
+pr_need_child <- wmean(unique(A, by = "hh_id")$need_child, unique(A, by = "hh_id")$weight)
+
+# Gender gaps conditional on need (participation and minutes)
+gap <- function(d, y) est_gap(d, y, "sex", "Men", "Women")
+g_cc_m <- gap(A[need_child == 1], "care_child"); g_ac_m <- gap(A[need_adult == 1], "care_dep_adult")
+g_cc_p <- gap(A[need_child == 1], "any_child");  g_ac_p <- gap(A[need_adult == 1], "any_adult")
+mcc <- est_mean(A[need_child == 1], "care_child", "sex")
+mac <- est_mean(A[need_adult == 1], "care_dep_adult", "sex")
+pac <- est_mean(A[need_adult == 1], "any_adult", "sex")
+
+# Regressions with need interactions
+controls <- ctrl(A, c("i(age_band)", "i(edu_tier)", "married", "urban", "i(mpce_quintile)",
+                      "hh_size", "hh_n_60plus", "proxy_report"))
+FE <- fe(A)
+mreg <- function(y, d = A) reg(as.formula(paste(y, "~ female * need_adult + female * need_child +",
+                                                  controls, FE)), d)
+r_ac <- mreg("care_dep_adult"); r_cc <- mreg("care_child"); r_emp <- mreg("employment")
+r_ft <- mreg("free_time"); r_sl <- mreg("sleep")
+k <- function(m, t) coef_of(m, t)
+ac_fn <- k(r_ac, "female:need_adult"); ac_n <- k(r_ac, "need_adult")
+cc_fn <- k(r_cc, "female:need_child"); cc_n <- k(r_cc, "need_child")
+emp_fn <- k(r_emp, "female:need_adult"); emp_f_n <- k(r_emp, "need_adult")
+
+# Women's cost of adult-care need, by caregiver availability
+Wn <- A[female == 1 & age <= 64]
+ce <- function(y, d) coef_of(reg(as.formula(paste(y, "~ need_adult +", ctrl(d, c("i(age_band)", "i(edu_tier)", "married", "urban", "i(mpce_quintile)", "hh_size", "hh_n_under6")), fe(d))), d), "need_adult")
+c_emp <- ce("employment", Wn); c_ft <- ce("free_time", Wn); c_sl <- ce("sleep", Wn); c_ac <- ce("care_dep_adult", Wn)
+
+# Who provides adult care: relationship to head among women carers
+carers <- A[need_adult == 1 & care_dep_adult > 0]
+rel_lab <- c("1" = "Head", "2" = "Spouse of head", "3" = "Married child", "4" = "Child's spouse (daughter-/son-in-law)",
+             "5" = "Unmarried child", "6" = "Grandchild", "7" = "Parent / parent-in-law", "8" = "Other relative", "9" = "Non-relative")
+who <- carers[, .(mins = sum(care_dep_adult * weight)), by = .(sex, rel)][, share := mins / sum(mins)][order(-share)]
+
+# Sandwich: women 35-54 facing both needs
+Wm <- A[female == 1 & age >= 35 & age <= 54]
+Wm[, both := as.integer(need_adult == 1 & need_child == 1)]
+sw_tot <- coef_of(reg(as.formula(paste("unpaid_care ~ both + need_adult + need_child +", ctrl(Wm, c("i(edu_tier)", "married", "urban", "i(mpce_quintile)", "hh_size")), fe(Wm))), Wm), "both")
+
+more_gendered_adult <- isTRUE(sh_adult > sh_child)
+dil_top <- 4 %in% head(who[sex == "Women"]$rel, 2)
+```
+
+\begin{abstract}
+India is ageing quickly, and the care of frail, sick and disabled adults is shifting onto households at the same time as childcare remains overwhelmingly women's work. Existing time-use evidence compares men's and women's care over the whole population, which mixes the gender division of care with differences in who lives with someone who needs care. I use India's Time Use Survey 2024, which asks every household whether a member needs special care and whether a caregiver is available, and records a full diary for every member aged six and above. I compare childcare in households with a child under six with care of dependent adults in households with a member needing special care. In households with each need, women provide `r pctx(sh_child, 0)` of household childcare minutes and `r pctx(sh_adult, 0)` of dependent-adult care minutes. `r iff(more_gendered_adult, "Adult care is even more feminised than childcare.", "Adult care is less feminised than childcare.")` Conditional on household characteristics, the need for adult care raises women's care time by `r f1(ac_n$est + ac_fn$est)` minutes a day against `r f1(ac_n$est)` for men, and is associated with `r f1(abs(c_emp$est))` `r more_less(c_emp$est, "more", "fewer")` minutes of women's paid work. `r iff(dil_top, 'Daughters-in-law are among the main carers. ', '')`Policies for long-term care in India are, in practice, policies about women's time.
+\keywords{care work, eldercare, childcare, long-term care, ageing, gender, time use, India}
+\jel{J14, J16, J22, I18, D13}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+Care for people who cannot fully care for themselves is the core of the unpaid economy [@folbre2006measuring; @addati2018care]. In most of the world the largest component is childcare, and the time-use literature has studied it intensively [@sayer2004parents; @craig2011share]. Care of sick, frail and disabled adults has received much less attention, especially outside rich countries, even though its demand is rising fastest. India's population aged 60 and above is projected to grow far faster than the population as a whole, and most older Indians live with their children [@iips2020lasi; @unfpa2023ageing]. Formal long-term care is minimal, so the burden falls on households.
+
+This paper asks a simple question that existing evidence cannot answer: *when a household needs care, who provides it?* Population-wide comparisons of care time by sex [@hirway2011understanding; @nso2020tus] confound two things: the gender division of care within households that need it, and differences in who lives in such households. A man who does no childcare because he lives without children and a man who does none while his wife cares for their infant both contribute zero to the average.
+
+India's Time Use Survey 2024 [@nso2025tus] solves it. Its household schedule asks whether any member aged five or above needs special care and whether a caregiver is available among household members, and it lists every member, so households with a child under six can be identified. Linking these questions to every member's diary, I measure the gender division of each type of care *in the households that need it*, and the cost of that care in women's paid work, leisure and sleep.
+
+I find that in households with a child under six, women provide `r pct(sh_child, 0)` of childcare minutes. In households with a member who needs special care, they provide `r pct(sh_adult, 0)` of dependent-adult care minutes. Women in need households are `r pp(g_ac_p$est)` more likely than men in the same kind of household to record any adult care on the diary day. Conditional on demographics, consumption, state and day, a household need for adult care raises women's adult-care time by `r f1(ac_n$est + ac_fn$est)` minutes a day and men's by `r f1(ac_n$est)`. For women of working age it is associated with `r diff_txt(c_emp)` time in employment. Among women carers, the largest shares of adult-care minutes are provided by `r tolower(rel_lab[as.character(who[sex == "Women"][1]$rel)])` and `r tolower(rel_lab[as.character(who[sex == "Women"][2]$rel)])`.
+
+The paper contributes to feminist economics of care by separating need from division [@folbre2006measuring; @addati2018care], to the economics of informal caregiving, which is mostly about rich countries [@lilly2007labor; @heitmueller2007chicken; @vanhoutven2013informal], and to the literature on gender and household structure in India [@dhanaraj2019family; @jayachandran2015roots].
+
+# Literature
+
+## Measuring care
+
+Feminist economists have long argued that care is distinct from other unpaid work: it involves responsibility for a person, not only tasks, and it is poorly captured by activity counts [@folbre2006measuring; @folbre2005measure]. ICATUS 2016 recognises this by placing caregiving in its own division, with separate groups for children, dependent adults and non-dependent adults [@un2016icatus]. Global compilations of time-use surveys show women performing about three-quarters of unpaid care work [@charmes2019unpaid; @addati2018care], but they rarely condition on the presence of a care recipient.
+
+## Informal care for adults
+
+A large literature studies the labour-market cost of caring for an adult, mainly in Europe and North America. @lilly2007labor review the evidence and find modest average participation effects concentrated among intensive carers. @heitmueller2007chicken shows that ignoring the endogeneity of caring overstates its employment effect, and @vanhoutven2013informal find effects on work and wages for women carers in the United States. Evidence for South Asia, where extended-family co-residence makes care of parents-in-law part of a daughter-in-law's expected role, is scarce.
+
+## Gender and care in India
+
+India's time-use surveys show women spending several times as much time as men on unpaid care [@hirway2011understanding; @nso2020tus]. The joint-family structure concentrates care obligations on younger married women, who typically move into their husband's parents' household [@jayachandran2015roots]. Women's employment in India is low and has been falling for married women [@afridi2018married; @klasen2015stagnation], and care obligations are one candidate explanation alongside norms and the structure of labour demand [@fletcher2017women; @jayachandran2021social].
+
+# Data
+
+I use all `r fn(V$n_rows)` activity records of the Time Use Survey 2024 (`r fn(V$n_persons)` diaries, `r fn(V$n_households)` households), aggregated to person-days from major activities. The sample is all men and women aged 15 and above in households with non-missing answers to the special-care question (`r fn(nrow(A))` persons). Childcare is ICATUS 411--419 plus accompanying children (442); care of dependent adults is 421--429 plus accompanying dependent adults (443). Care of non-dependent adult household members (431--439) is excluded from both. Childcare need is defined as a member under six. Under-six members do not keep diaries and are counted as household size minus diarists. Adult-care need is the household's answer to "Is there any member who needs special care?". `r pct(pr_need_child, 0)` of households have a child under six and `r pct(pr_need_adult, 0)` have a member needing special care.
+
+```{r tab-desc}
+d1 <- rbind(
+  data.frame(Need = "Child under six", Outcome = "Childcare minutes", Men = f1(mcc$est[mcc$group == "Men"]), Women = f1(mcc$est[mcc$group == "Women"])),
+  data.frame(Need = "Member needs special care", Outcome = "Dependent-adult care minutes", Men = f1(mac$est[mac$group == "Men"]), Women = f1(mac$est[mac$group == "Women"])),
+  data.frame(Need = "Member needs special care", Outcome = "Any dependent-adult care (share)", Men = pct(pac$est[pac$group == "Men"]), Women = pct(pac$est[pac$group == "Women"])),
+  data.frame(Need = "Child under six", Outcome = "Women's share of household care minutes", Men = "", Women = pct(sh_child)),
+  data.frame(Need = "Member needs special care", Outcome = "Women's share of household care minutes", Men = "", Women = pct(sh_adult)))
+tab(d1, caption = paste0("Care provided in households that need it, ages 15+", syn_note()), label = "desc",
+    align = c("l", "l", "r", "r"),
+    notes = "Survey-weighted. Women's share: household-level ratio of women's to all members' care minutes, averaged over households with positive care of that type.")
+```
+
+# Results
+
+## The division of care conditional on need
+
+Table \ref{tab:desc} gives the core comparison. In households with a child under six, women average `r f0(mcc$est[mcc$group == "Women"])` minutes of childcare a day and men `r f0(mcc$est[mcc$group == "Men"])`. In households with a member who needs special care, women average `r f1(mac$est[mac$group == "Women"])` minutes of dependent-adult care and men `r f1(mac$est[mac$group == "Men"])`. Measured as the female share of household care minutes, `r iff(more_gendered_adult, "adult care is more feminised than childcare", "adult care is less feminised than childcare")` (`r pct(sh_adult, 0)` against `r pct(sh_child, 0)`).
+
+```{r tab-reg, results="asis"}
+reg_table(Filter(Negate(is.null), list("Adult care" = r_ac, "Childcare" = r_cc, "Employment" = r_emp, "Free time" = r_ft, "Sleep" = r_sl)),
+          title = paste0("Care need, gender, and time use (minutes per day)", syn_note()), label = "tab:reg",
+          keep = c("%^female$", "%need_adult", "%need_child"),
+          dict = c(female = "Woman", need_adult = "Member needs special care", need_child = "Child under six",
+                   "female:need_adult" = "Woman x special-care need", "female:need_child" = "Woman x child under six"),
+          notes = "Persons 15+. Controls: age band, education, marital status, urban, consumption quintile, household size, members 60+, proxy report; state and day-of-week fixed effects. Survey-weighted; FSU-clustered SEs.")
+```
+
+Table \ref{tab:reg} estimates the gendered response to need. In column 1, a household need for special care raises men's dependent-adult care by `r est_se(ac_n)` and women's by an additional `r est_se(ac_fn)`. In column 2, a child under six raises men's childcare by `r est_se(cc_n)` and women's by an additional `r est_se(cc_fn)`. Columns 3 to 5 show the reallocation. The need for adult care is associated with `r diff_txt(emp_f_n)` employment for men and an additional `r est_se(emp_fn)` for women.
+
+## The cost to women
+
+Among women aged 15 to 64, a household member needing special care is associated with `r diff_txt(c_ac)` dependent-adult care, `r diff_txt(c_emp)` employment, `r diff_txt(c_ft)` free time and `r diff_txt(c_sl)` sleep. These are averages over households with very different levels of need. The survey does not record the severity of need, so intensive caregivers, as in @lilly2007labor, bear costs well above the mean.
+
+## Who provides adult care
+
+```{r tab-who}
+wt <- who[sex == "Women"][1:min(6, .N)]
+tab(data.frame(`Relationship to head` = rel_lab[as.character(wt$rel)], `Share of women's adult-care minutes` = pct(wt$share / sum(who[sex == "Women"]$share)), check.names = FALSE),
+    caption = paste0("Women providing dependent-adult care, by relationship to household head", syn_note()),
+    label = "who", align = c("l", "r"),
+    notes = "Households with a member needing special care; women with positive dependent-adult care minutes. Weighted by survey multiplier.")
+```
+
+Table \ref{tab:who} shows which women provide adult care. The roster codes identify the carer's position: the spouse of the head is often the carer of a frail husband or of her parents-in-law, and a daughter-in-law (code 4) cares for her husband's parents. Patrilocal residence, which @jayachandran2015roots describes as central to women's constrained position, makes the daughter-in-law the expected carer of her husband's parents.
+
+## The sandwich generation
+
+Women aged 35 to 54 in households with both a child under six and a member needing care do `r diff_txt(sw_tot)` unpaid caregiving than predicted by the two needs separately. A positive coefficient means the two needs compound; a negative one means they compete for a fixed amount of time.
+
+# Discussion
+
+Two features of care in Indian households stand out when need is held constant. First, the gender division of care is extreme for both types, and `r iff(more_gendered_adult, "more so for adults than for children", "somewhat less so for adults than for children")`. Second, the need for adult care has costs in women's paid work and leisure that are invisible in population averages, because only a minority of households need such care on any given day.
+
+Ageing will raise that minority. With limited formal long-term care [@unfpa2023ageing], India's response to ageing is, by default, a demand on women's time, and specifically on daughters-in-law. Long-term care policy, carer allowances and day-care services for older people should be evaluated partly by their effect on women's time.
+
+The limitations are the cross-sectional design and the coarse need measure. Households where someone needs care differ in other ways, and need is reported as yes or no without severity or type. The "caregiver available" question, asked only when need is reported, partly addresses this. A single diary day understates the share of people who ever provide care and overstates its intensity among those who report it [@frazis2012think].
+
+# Conclusion
+
+Conditioning on need changes how care in India looks. In households that need care, women provide `r pct(sh_child, 0)` of childcare minutes and `r pct(sh_adult, 0)` of dependent-adult care minutes. As the population ages, the second form of care will grow, and without policy change most of it will be provided by women.
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```

@@ -42,6 +42,7 @@ est_gap <- function(d, y, by, a, b, cluster = "fsu", weight = "weight") {
 
 # Extract one coefficient from a fixest model.
 coef_of <- function(m, term) {
+  if (is.null(m)) return(list(est = NA, se = NA, p = NA))
   ct <- coeftable(m)
   if (!term %in% rownames(ct)) return(list(est = NA, se = NA, p = NA))
   list(est = unname(ct[term, 1]), se = unname(ct[term, 2]), p = unname(ct[term, 4]))
@@ -61,13 +62,17 @@ decompose_participation <- function(d, y, by, weight = "weight") {
 }
 
 # ---- Formatting --------------------------------------------------------------
-f0  <- function(x) formatC(x, format = "f", digits = 0, big.mark = ",")
-f1  <- function(x) formatC(x, format = "f", digits = 1, big.mark = ",")
-f2  <- function(x) formatC(x, format = "f", digits = 2, big.mark = ",")
-pct <- function(x, d = 1) paste0(formatC(100 * x, format = "f", digits = d), "%")
-pp  <- function(x, d = 1) paste0(formatC(100 * x, format = "f", digits = d), " percentage points")
-fn  <- function(n) formatC(n, format = "d", big.mark = ",")
-hrs <- function(m) f1(m / 60)
+.fmt <- function(x, d, suffix = "") {
+  x <- suppressWarnings(as.numeric(x))
+  ifelse(is.na(x), "--", paste0(formatC(x, format = "f", digits = d, big.mark = ","), suffix))
+}
+f0  <- function(x) .fmt(x, 0)
+f1  <- function(x) .fmt(x, 1)
+f2  <- function(x) .fmt(x, 2)
+pct <- function(x, d = 1) .fmt(100 * as.numeric(x), d, "%")
+pp  <- function(x, d = 1) .fmt(100 * as.numeric(x), d, " percentage points")
+fn  <- function(n) .fmt(n, 0)
+hrs <- function(m) f1(as.numeric(m) / 60)
 
 stars <- function(p) ifelse(is.na(p), "", ifelse(p < .01, "***", ifelse(p < .05, "**", ifelse(p < .1, "*", ""))))
 
@@ -81,17 +86,18 @@ sig_phrase <- function(p) {
 
 # "12.3 minutes (SE 1.1)" style.
 est_se <- function(e, digits = 1, unit = "minutes") {
-  fmt <- function(x) formatC(x, format = "f", digits = digits, big.mark = ",")
+  if (is.null(e$est) || is.na(e$est)) return("not estimable")
+  fmt <- function(x) .fmt(x, digits)
   paste0(fmt(e$est), if (nzchar(unit)) paste0(" ", unit) else "", " (SE ", fmt(e$se), ")")
 }
 
 # Direction word for a signed estimate.
-more_less <- function(x, more = "more", less = "less") ifelse(x >= 0, more, less)
+more_less <- function(x, more = "more", less = "less") ifelse(is.na(x), "[n/a]", ifelse(x >= 0, more, less))
 higher_lower <- function(x) more_less(x, "higher", "lower")
 
 # 95% confidence interval text.
 ci95 <- function(e, digits = 1) {
-  fmt <- function(x) formatC(x, format = "f", digits = digits)
+  fmt <- function(x) .fmt(x, digits)
   paste0("[", fmt(e$est - 1.96 * e$se), ", ", fmt(e$est + 1.96 * e$se), "]")
 }
 
@@ -108,7 +114,8 @@ means_table <- function(d, ys, by, labels = ys, digits = 1) {
 }
 
 tab <- function(df, caption, label = NULL, align = NULL, notes = NULL, ...) {
-  k <- knitr::kable(df, format = "latex", booktabs = TRUE, caption = caption,
+  df <- as.data.frame(df); rownames(df) <- NULL
+  k <- knitr::kable(df, format = "latex", booktabs = TRUE, caption = caption, row.names = FALSE,
                     label = label, align = align, linesep = "", ...)
   k <- kableExtra::kable_styling(k, latex_options = c("hold_position", "scale_down"),
                                  font_size = 9)
@@ -118,11 +125,23 @@ tab <- function(df, caption, label = NULL, align = NULL, notes = NULL, ...) {
 }
 
 # fixest regression table in LaTeX (AER style).
-reg_table <- function(models, title, label, dict = NULL, keep = NULL, notes = NULL, ...) {
-  etable(models, tex = TRUE, title = title, label = label, dict = dict, keep = keep,
-         style.tex = style.tex("aer"), fitstat = ~ n + r2, digits = 3,
-         notes = notes, se.below = TRUE, depvar = TRUE, float = TRUE,
-         placement = "!htbp", adjustbox = "max width = \\textwidth", ...)
+reg_table <- function(models, title, label, dict = NULL, keep = NULL, notes = NULL) {
+  hdr <- names(models); models <- unname(models)
+  args <- list(models, tex = TRUE, title = title, label = label,
+               style.tex = style.tex("aer"), fitstat = ~ n + r2, digits = 3,
+               se.below = TRUE, depvar = FALSE, float = TRUE, placement = "!htbp",
+               fontsize = "small")
+  if (!is.null(hdr)) args$headers <- list(hdr)
+  if (!is.null(dict)) args$dict <- dict
+  if (!is.null(keep)) args$keep <- keep
+  out <- unlist(strsplit(paste(do.call(etable, args), collapse = "\n"), "\n"))
+  if (!is.null(notes)) {
+    i <- max(grep("\\\\end\\{table\\}", out))
+    out <- append(out, paste0("\\par\\smallskip{\\footnotesize\\raggedright \\textit{Notes:} ", notes,
+                              " * p<0.10, ** p<0.05, *** p<0.01.\\par}"), after = i - 1)
+  }
+  cat(out, sep = "\n")
+  invisible(out)
 }
 
 # Synthetic-data stamp for captions.
@@ -150,3 +169,64 @@ CTRL <- list(
   hh     = "hh_size + hh_n_60plus + hh_n_6_14",
   fe     = "state + dow"
 )
+
+# ---- Specification helpers -----------------------------------------------------
+# Keep only controls that exist and vary in d; returns a formula RHS string.
+ctrl <- function(d, vars) {
+  base <- function(v) sub("^i\\((.*)\\)$", "\\1", v)
+  ok <- vapply(vars, function(v) {
+    b <- base(v)
+    b %in% names(d) && sum(!is.na(d[[b]])) > 0 && data.table::uniqueN(na.omit(d[[b]])) > 1
+  }, logical(1))
+  if (!any(ok)) "1" else paste(vars[ok], collapse = " + ")
+}
+fe <- function(d, vars = c("state", "dow")) {
+  ok <- vars[vars %in% names(d) & vapply(vars, function(v) v %in% names(d) &&
+                                            data.table::uniqueN(na.omit(d[[v]])) > 1, logical(1))]
+  if (length(ok)) paste("|", paste(ok, collapse = " + ")) else ""
+}
+
+# Stop with a clear message if a paper's essential variables are missing.
+require_cols <- function(d, cols, paper) {
+  miss <- cols[!cols %in% names(d) | vapply(cols, function(v) !v %in% names(d) || all(is.na(d[[v]])), logical(1))]
+  if (length(miss)) stop(paper, " needs variables not found in the panel: ",
+                         paste(miss, collapse = ", "),
+                         ". Map them in TUS_COLS (R/build_panel.R).", call. = FALSE)
+  invisible(TRUE)
+}
+
+# Oster (2019) bias-adjusted coefficient under delta = 1 and R_max = mult * R_tilde
+# (mult = 1.3 is Oster's recommended default). m0: short regression, m1: long.
+oster_beta <- function(m0, m1, term, mult = 1.3) {
+  b0 <- coef(m0)[term]; b1 <- coef(m1)[term]
+  r0 <- fixest::r2(m0, "r2"); r1 <- fixest::r2(m1, "r2")
+  rmax <- min(1, mult * r1)
+  unname(b1 - (b0 - b1) * (rmax - r1) / (r1 - r0))
+}
+
+# Colours used consistently across papers (colour-blind safe, print safe).
+SEX_COLS <- c(Men = "#2C6E9B", Women = "#C2512F")
+
+# feols that returns NULL (with a message) when a model cannot be estimated,
+# e.g. a constant outcome in a small subsample. coef_of(NULL, .) gives NA.
+reg <- function(fml, data, ...) {
+  tryCatch(feols(fml, data, weights = ~weight, cluster = ~fsu, ...),
+           error = function(e) { message("reg(): ", conditionMessage(e)); NULL })
+}
+cf <- function(m, term) if (is.null(m) || !term %in% names(coef(m))) NA_real_ else unname(coef(m)[term])
+
+# Percent for use inside raw LaTeX blocks (abstract), where % must be escaped.
+pctx <- function(x, d = 1) gsub("%", "\\\\%", pct(x, d))
+
+# "1.3 minutes (SE 1.1) less" -- magnitude with direction word, for prose.
+diff_txt <- function(e, more = "more", less = "less", digits = 1, unit = "minutes") {
+  if (is.na(e$est)) return("[not estimable]")
+  paste0(.fmt(abs(e$est), digits), if (nzchar(unit)) paste0(" ", unit) else "",
+         " (SE ", .fmt(e$se, digits), ") ", more_less(e$est, more, less))
+}
+# Is an estimate negative and significant at 5%?
+is_neg <- function(e) isTRUE(!is.na(e$est) && e$est < 0 && e$p < 0.05)
+is_pos <- function(e) isTRUE(!is.na(e$est) && e$est > 0 && e$p < 0.05)
+is_sig <- function(e) isTRUE(!is.na(e$p) && e$p < 0.05)
+# Pick text by condition (keeps results-dependent prose honest).
+iff <- function(cond, yes, no) if (isTRUE(cond)) yes else no
