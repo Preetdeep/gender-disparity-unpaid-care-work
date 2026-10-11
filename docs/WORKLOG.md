@@ -214,3 +214,4 @@ Requests for shared code:
 - WORKLOG knit command: either make `in_header`/`bibliography` paths absolute or document the copy step above.
 
 Progress: paper 03 rewritten. Full literature review (40 new verified refs in `submission/03_care_need/refs_local.bib`), conceptual framework, caregiver-availability heterogeneity, life-course figure, spousal care, men without a woman present, relationship table over all minutes, plain-language summary and policy section, `params$anonymised` switch. Knits clean on synthetic data (both named and anonymised builds; both iff branches tested), about 9,500 words including references and tables. Not committed.
+- Correction to paper 03 entry: refs_local.bib holds 39 entries, not 40.

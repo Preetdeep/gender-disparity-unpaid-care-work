@@ -37,7 +37,8 @@ if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
 # number followed by a direction word.
 mins <- function(e, more = "more", less = "fewer", d = 0) {
   if (is.null(e$est) || is.na(e$est)) return("[not estimable]")
-  paste0(.fmt(abs(e$est), d), " minutes ", more_less(e$est, more, less))
+  v <- .fmt(abs(e$est), d)
+  paste0(v, if (v == "1") " minute " else " minutes ", more_less(e$est, more, less))
 }
 cell <- function(e, d = 1) {
   if (is.null(e$est) || is.na(e$est)) return("--")
