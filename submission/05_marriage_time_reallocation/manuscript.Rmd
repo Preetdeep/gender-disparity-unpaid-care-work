@@ -1,0 +1,227 @@
+---
+title: "Where Do the Minutes Come From? Marriage and the Reallocation of Women's and Men's Days in India"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: ../references.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+require_cols(pd, c("marital", "rel"), "Paper 05")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+A <- pd[age >= 20 & age <= 39 & sex %in% c("Men", "Women") & marital %in% c(1, 2)]
+A[, `:=`(sex = droplevels(sex), age_f = factor(age), unpaid = unpaid_domestic + unpaid_care)]
+W <- A[female == 1]; M <- A[female == 0]
+part <- PARTITION
+part_lab <- c(employment = "Employment (incl. travel)", ownuse_goods = "Own-use production of goods",
+              unpaid_domestic = "Unpaid domestic services", unpaid_care = "Unpaid caregiving",
+              volunteer = "Volunteering", learning = "Learning", social_all = "Socialising, community, religion",
+              leisure_all = "Culture, leisure, media, sport", selfcare_all = "Self-care incl. sleep")
+extra <- c("sleep", "socialising", "exercise_sport", "religious", "mass_media")
+extra_lab <- c(sleep = "  of which: sleep", socialising = "  of which: socialising", exercise_sport = "  of which: exercise and sport",
+               religious = "  of which: religious practice", mass_media = "  of which: mass media")
+
+controls <- ctrl(A, c("i(edu_tier)", "urban", "i(mpce_quintile)", "hh_size", "hh_n_60plus", "i(social_group_f)",
+                      "i(religion_f)", "proxy_report"))
+FE <- fe(A, c("state", "dow", "age_f"))
+fm <- function(y, d) reg(as.formula(paste(y, "~ married +", controls, FE)), d)
+mW <- setNames(lapply(c(part, extra), fm, d = W), c(part, extra))
+mM <- setNames(lapply(c(part, extra), fm, d = M), c(part, extra))
+bW <- sapply(c(part, extra), function(y) cf(mW[[y]], "married"))
+bM <- sapply(c(part, extra), function(y) cf(mM[[y]], "married"))
+seW <- sapply(c(part, extra), function(y) coef_of(mW[[y]], "married")$se)
+seM <- sapply(c(part, extra), function(y) coef_of(mM[[y]], "married")$se)
+kW <- function(y) coef_of(mW[[y]], "married"); kM <- function(y) coef_of(mM[[y]], "married")
+
+# Unpaid work total and the gendered marriage gap (difference-in-differences)
+dd <- reg(as.formula(paste("unpaid ~ married * female +", controls, FE)), A)
+k_dd <- coef_of(dd, "married:female")
+k_uw <- coef_of(fm("unpaid", W), "married"); k_um <- coef_of(fm("unpaid", M), "married")
+
+# Sources of women's extra unpaid minutes: other categories, ranked
+src <- bW[setdiff(part, c("unpaid_domestic", "unpaid_care"))]
+src_sorted <- sort(src)
+top_src <- names(src_sorted)[1]
+
+# Within-couple gaps (linked spouses), by wife's employment and relative education
+C <- pd[female == 1 & married == 1 & !is.na(spouse_pid) & age >= 20 & age <= 59]
+C[, `:=`(gap_unpaid = unpaid_total - spouse_unpaid_total, gap_paid = spouse_employment - employment,
+         gap_free = spouse_free_time - free_time)]
+cg <- est_mean(C, "gap_unpaid"); cgp <- est_mean(C, "gap_paid"); cgf <- est_mean(C, "gap_free")
+C[, wife_works := factor(ifelse(employed == 1, "Wife employed", "Wife not employed"))]
+cg_emp <- est_mean(C, "gap_unpaid", "wife_works")
+if ("edu_tier" %in% names(C) && "spouse_edu_tier" %in% names(C)) {
+  C[, rel_edu := factor(fcase(as.integer(edu_tier) > as.integer(spouse_edu_tier), "Wife more educated",
+                              as.integer(edu_tier) == as.integer(spouse_edu_tier), "Same education",
+                              default = "Husband more educated"),
+                        levels = c("Husband more educated", "Same education", "Wife more educated"))]
+  cg_edu <- est_mean(C, "gap_unpaid", "rel_edu")
+} else cg_edu <- NULL
+
+# Widowhood at older ages (replaces the legacy "widowhood dividend" paper)
+O <- pd[age >= 50 & age <= 79 & sex %in% c("Men", "Women") & marital %in% c(2, 3)]
+O[, `:=`(widowed = as.integer(marital == 3), age_f = factor(age))]
+FEo <- fe(O, c("state", "dow", "age_f"))
+co <- ctrl(O, c("i(edu_tier)", "urban", "i(mpce_quintile)", "hh_size", "proxy_report"))
+fo <- function(y, d) coef_of(reg(as.formula(paste(y, "~ widowed +", co, FEo)), d), "widowed")
+wid <- data.frame(Outcome = c("Unpaid domestic and care", "Employment", "Free time", "Sleep", "Socialising", "Exercise and sport", "Religious practice"),
+                  var = c("unpaid_total", "employment", "free_time", "sleep", "socialising", "exercise_sport", "religious"))
+wid$Women <- sapply(wid$var, function(y) { k <- fo(y, O[female == 1]); paste0(f1(k$est), stars(k$p), " (", f1(k$se), ")") })
+wid$Men   <- sapply(wid$var, function(y) { k <- fo(y, O[female == 0]); paste0(f1(k$est), stars(k$p), " (", f1(k$se), ")") })
+
+share_married_w <- wmean(W$married, W$weight); share_married_m <- wmean(M$married, M$weight)
+women_pen <- is_pos(k_dd)
+```
+
+\begin{abstract}
+Marriage is nearly universal in India, and it is widely understood to raise women's domestic workload. Less is known about where the extra minutes come from. Because a day has exactly 1,440 minutes, any rise in unpaid work must be matched by falls elsewhere: paid work, education, leisure, social life, or sleep. Using India's Time Use Survey 2024 (`r fn(V$n_persons)` diaries), I compare married and never-married women and men aged 20 to 39, holding single-year age, education, consumption, caste, religion, state and diary day constant. Married women do `r f0(abs(k_uw$est))` `r more_less(k_uw$est, "more", "fewer")` minutes of unpaid domestic and care work a day than never-married women; for men the difference is `r f0(k_um$est)` minutes, a gendered marriage gap of `r f0(k_dd$est)` minutes (SE `r f1(k_dd$se)`). The largest offsetting category for women is `r tolower(part_lab[top_src])` (`r f0(src_sorted[1])` minutes). Within married couples, wives do `r f0(cg$est)` more minutes of unpaid work than their husbands; when the wife is employed the gap is `r f0(cg_emp$est[cg_emp$group == 'Wife employed'])` minutes. A full time-budget accounting replaces piecemeal "penalty" estimates for sleep, friendship and exercise with one consistent decomposition.
+\keywords{marriage, time use, unpaid work, sleep, leisure, gender, India}
+\jel{J12, J16, J22, D13}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+Marriage reorganises time. In time-diary studies from rich countries, married women do more housework than single women, while married men do the same or less than single men [@south1994housework; @gupta1999transitions; @bianchi2000anyone]. Explanations range from specialisation within the household [@becker1985human; @becker1991treatise] and bargaining over the division of labour [@lundberg1993separate; @lundberg1996bargaining] to the performance of gender identity [@akerlof2000identity; @brines1994economic]. In India, where marriage is close to universal for women, residence after marriage is typically with the husband's family, and age at marriage is shaped by gender norms [@desai2010gender], marriage is a pivotal transition in women's lives and a likely contributor to the low employment of married women [@afridi2018married; @klasen2015stagnation].
+
+Most studies of marriage and time use focus on one outcome at a time. Separate literatures document a marriage "penalty" in women's sleep [@burgard2013sleep], in health behaviours [@umberson1992gender], and in housework. But a day is a fixed budget. A rise in unpaid work must be financed by falls in paid work, learning, leisure, social time or sleep, and studying one outcome at a time cannot tell which. This paper studies them together. I decompose the married--never-married difference in each of nine exhaustive ICATUS divisions, plus sleep, socialising, exercise and religious practice, so the components add up to zero by construction.
+
+I find that married women aged 20 to 39 do `r diff_txt(k_uw)` unpaid domestic and care work per day than never-married women of the same age, education, consumption, caste, religion and state. The corresponding difference for men is `r est_se(k_um)`, so the marriage gap is gendered by `r est_se(k_dd)`. For women, the largest offsetting categories are `r tolower(part_lab[names(src_sorted)[1]])` (`r f0(src_sorted[1])` minutes) and `r tolower(part_lab[names(src_sorted)[2]])` (`r f0(src_sorted[2])` minutes). Married women sleep `r diff_txt(kW("sleep"))` and socialise `r diff_txt(kW("socialising"))` than never-married women. Among linked spouses, wives' unpaid work exceeds husbands' by `r est_se(cg)` a day, and the gap is `r f0(cg_emp$est[cg_emp$group == "Wife employed"])` minutes even when the wife is employed.
+
+# Related literature
+
+*Marriage and housework.* @south1994housework show that married women in the United States spend more time on housework than women in any other living arrangement, while married men spend less than several other groups. @gupta1999transitions uses panel data to show that men's housework falls when they marry. Trend studies document convergence between husbands and wives without equality [@bianchi2000anyone; @sayer2005gender; @kan2011gender]. @bertrand2015identity find that wives who out-earn their husbands do more housework, in line with gender-identity theory [@akerlof2000identity] and the "doing gender" interpretation of @brines1994economic and @bittman2003gender.
+
+*The time budget.* Because time is a fixed budget, gains in one activity are losses in another [@becker1965theory; @juster1991allocation]. @aguiar2007measuring and @gimenez2012trends use complete time budgets to study the trade-offs between market work, home production and leisure. @burda2013total show that total work (paid plus unpaid) is roughly equal between men and women in rich countries but not in poorer ones. @biddle1990sleep treat sleep as an economic choice that responds to the value of time, and @burgard2013sleep find that women's sleep is more often interrupted by care obligations.
+
+*India.* @hirway2011understanding document women's double burden in Indian time-use data. Explanations for low married-women's employment emphasise norms, household income and the structure of labour demand [@afridi2018married; @klasen2015stagnation; @jayachandran2021social]. Marriage timing and the spousal age gap reflect gender scripts [@desai2010gender], and labour-market opportunity can shift them [@jensen2012labor].
+
+# Data and design
+
+I use every activity record of the Time Use Survey 2024: `r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries and `r fn(V$n_households)` households. Major activities are aggregated to person-days, and `r pct(V$share_diaries_1440)` of diaries sum to 1,440 minutes. The main sample is never-married and currently married women and men aged 20 to 39 (`r fn(nrow(W))` women, `r fn(nrow(M))` men). In this age range `r pct(share_married_w, 0)` of women and `r pct(share_married_m, 0)` of men are married.
+
+For each activity category $k$ and separately by sex,
+
+$$ y^{k}_{i} = \beta^{k}\, Married_i + X_i'\gamma^{k} + \alpha_{age(i)} + \mu_{s(i)} + \tau_{d(i)} + \varepsilon_i, $$
+
+with single-year-of-age, state and diary-day fixed effects and controls for education, urban residence, consumption quintile, household size, members aged 60 or above, caste group, religion and proxy reporting. Because the nine divisions partition the day and every regression uses the same sample, weights and regressors, $\sum_k \beta^k = 0$ exactly. The coefficients decompose the married--never-married difference into its sources.
+
+$\beta^k$ is not a causal effect of marriage. Never-married women aged 25 to 39 are a selected and shrinking group in India. Single-year age fixed effects remove life-cycle differences, and the education, consumption and location controls remove the most obvious sources of selection. Never-married women are still likely to be more attached to the labour market and more educated within cells. If selection makes them more career-oriented, the employment row overstates and the unpaid-work row understates any true effect of marriage on time. I address this by showing results within age bands and by turning to within-couple comparisons, which do not depend on the never-married comparison group.
+
+# Results
+
+## Decomposing the married--never-married difference
+
+```{r tab-decomp}
+dtab <- data.frame(Activity = c(part_lab[part], "Sum of divisions", extra_lab[extra]),
+                   Women = c(paste0(f1(bW[part]), " (", f1(seW[part]), ")"), f1(sum(bW[part], na.rm = TRUE)),
+                             paste0(f1(bW[extra]), " (", f1(seW[extra]), ")")),
+                   Men = c(paste0(f1(bM[part]), " (", f1(seM[part]), ")"), f1(sum(bM[part], na.rm = TRUE)),
+                           paste0(f1(bM[extra]), " (", f1(seM[extra]), ")")))
+tab(dtab, caption = paste0("Married minus never-married, minutes per day, ages 20--39", syn_note()), label = "decomp",
+    align = c("l", "r", "r"),
+    notes = "Coefficients on currently married from separate regressions by sex; single-year age, state and day-of-week fixed effects and the controls listed in the text. FSU-clustered standard errors in parentheses. The nine divisions partition the day, so their coefficients sum to zero.")
+```
+
+```{r fig-decomp, fig.cap = paste0("Where married women's and men's minutes come from (married minus never-married)", syn_note()), fig.height = 3.6}
+fd <- data.table(cat = factor(part_lab[part], levels = rev(part_lab[part])),
+                 Women = bW[part], Men = bM[part])
+fd <- melt(fd, id.vars = "cat", variable.name = "sex", value.name = "b")
+ggplot(fd, aes(b, cat, fill = sex)) + geom_col(position = position_dodge(0.75), width = 0.7) +
+  geom_vline(xintercept = 0, linewidth = 0.3) + scale_fill_manual(values = SEX_COLS, name = NULL) +
+  labs(x = "Minutes per day", y = NULL, caption = "Ages 20-39. Each sex's bars sum to zero.")
+```
+
+Table \ref{tab:decomp} and Figure \ref{fig:fig-decomp} report the decomposition. Marriage is associated with `r diff_txt(kW("unpaid_domestic"))` unpaid domestic work and `r diff_txt(kW("unpaid_care"))` caregiving for women, against `r est_se(kM("unpaid_domestic"))` and `r est_se(kM("unpaid_care"))` for men. Women's extra unpaid minutes are financed mainly by `r tolower(part_lab[names(src_sorted)[1]])` (`r f1(src_sorted[1])`), `r tolower(part_lab[names(src_sorted)[2]])` (`r f1(src_sorted[2])`) and `r tolower(part_lab[names(src_sorted)[3]])` (`r f1(src_sorted[3])`). The sub-rows show the much-discussed "penalties" in their place within the time budget: sleep `r est_se(kW("sleep"))`, socialising `r est_se(kW("socialising"))`, exercise and sport `r est_se(kW("exercise_sport"))`.
+
+## The gendered marriage gap
+
+The difference-in-differences coefficient, married $\times$ woman in a pooled regression of unpaid domestic and care minutes, is `r est_se(k_dd)` (`r sig_phrase(k_dd$p)`). `r iff(women_pen, "Marriage raises women's unpaid work far more than men's.", "The marriage gap in unpaid work is not clearly gendered once selection on observables is addressed.")`
+
+## Within married couples
+
+```{r tab-couple}
+ct <- data.frame(Comparison = c("All linked couples", paste("  ", cg_emp$group),
+                                if (!is.null(cg_edu)) paste("  ", cg_edu$group) else character(0)),
+                 `Wife minus husband, unpaid minutes` = c(paste0(f1(cg$est), " (", f1(cg$se), ")"),
+                                                         paste0(f1(cg_emp$est), " (", f1(cg_emp$se), ")"),
+                                                         if (!is.null(cg_edu)) paste0(f1(cg_edu$est), " (", f1(cg_edu$se), ")") else character(0)),
+                 N = c(fn(cg$n), fn(cg_emp$n), if (!is.null(cg_edu)) fn(cg_edu$n) else character(0)),
+                 check.names = FALSE)
+tab(ct, caption = paste0("Within-couple gaps in unpaid domestic and care work, wives aged 20--59", syn_note()), label = "couple",
+    align = c("l", "r", "r"),
+    notes = "Spouses linked through the household roster (head and spouse; married child and child's spouse where unique). Weighted by the wife's multiplier; FSU-clustered SEs.")
+```
+
+Within-couple comparisons hold the household constant. Table \ref{tab:couple} shows that wives do `r est_se(cg)` more unpaid work than their husbands, husbands do `r est_se(cgp)` more paid work, and husbands have `r est_se(cgf)` more free time. The unpaid gap is `r f0(cg_emp$est[cg_emp$group == "Wife employed"])` minutes when the wife is employed and `r f0(cg_emp$est[cg_emp$group == "Wife not employed"])` minutes when she is not. `r if (!is.null(cg_edu)) paste0("When the wife is more educated than her husband the gap is ", f0(cg_edu$est[cg_edu$group == "Wife more educated"]), " minutes, against ", f0(cg_edu$est[cg_edu$group == "Husband more educated"]), " when the husband is more educated.") else ""` `r iff(isTRUE(cg_emp$est[cg_emp$group == 'Wife employed'] > 0.5 * cg$est), 'Large gaps persist in couples where the wife\'s market position is stronger, which is consistent with identity-based accounts [@bertrand2015identity; @akerlof2000identity] more than with pure specialisation.', 'The gap shrinks substantially when the wife works, which is consistent with specialisation and bargaining accounts [@becker1985human; @lundberg1996bargaining].')`
+
+## Widowhood at older ages
+
+```{r tab-widow}
+tab(wid[, c("Outcome", "Women", "Men")], caption = paste0("Widowed minus married, minutes per day, ages 50--79", syn_note()), label = "widow",
+    align = c("l", "r", "r"),
+    notes = "Single-year age, state and day-of-week fixed effects; controls for education, urban, consumption quintile, household size, proxy report. FSU-clustered SEs in parentheses.")
+```
+
+Table \ref{tab:widow} applies the same accounting to the end of marriage. The comparison is again selective, since widowhood is associated with age, health and poverty, but it shows which activities differ when a spouse is no longer present.
+
+# Robustness
+
+```{r robust}
+sub <- function(lo, hi) {
+  Wd <- W[age >= lo & age <= hi]; Md <- M[age >= lo & age <= hi]
+  c(coef_of(fm("unpaid", Wd), "married")$est, coef_of(fm("unpaid", Md), "married")$est)
+}
+r1 <- sub(20, 29); r2 <- sub(30, 39)
+k_self <- if ("proxy_report" %in% names(W)) coef_of(fm("unpaid", W[proxy_report == 0]), "married") else list(est = NA, se = NA)
+k_urb <- coef_of(fm("unpaid", W[urban == 1]), "married"); k_rur <- coef_of(fm("unpaid", W[urban == 0]), "married")
+rb <- data.frame(Sample = c("Ages 20--39 (baseline)", "Ages 20--29", "Ages 30--39", "Self-reported diaries", "Urban", "Rural"),
+                 Women = f1(c(k_uw$est, r1[1], r2[1], k_self$est, k_urb$est, k_rur$est)),
+                 Men = f1(c(k_um$est, r1[2], r2[2], NA, NA, NA)))
+tab(rb, caption = paste0("Married minus never-married unpaid minutes: robustness", syn_note()), label = "robust", align = c("l", "r", "r"))
+```
+
+Table \ref{tab:robust} shows the unpaid-work coefficient within narrower age bands, among self-reported diaries, and by sector. The 20 to 29 band, where never-married women are least selected, is the most informative comparison.
+
+# Discussion and conclusion
+
+`r iff(women_pen, 'Marriage reallocates Indian women\'s days on a large scale, and', 'Whatever the size of the marriage gap,')` because the time budget is fixed, every additional minute of unpaid work has a source. Studying sleep, social life, exercise and paid work as separate "penalties" misses this accounting and invites inconsistent findings. This paper replaces those separate estimates with one decomposition. The main limitation is the cross-sectional comparison group. Married and never-married women differ in ways that age, education and location do not fully capture, and the survey does not record when a marriage began. Within-couple comparisons and the youngest age band are the most robust evidence. Panel or retrospective data on marriage timing would allow an event-study design in the style of @kleven2019denmark.
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```

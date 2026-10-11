@@ -33,8 +33,10 @@ est_gap <- function(d, y, by, a, b, cluster = "fsu", weight = "weight") {
   d <- as.data.frame(d)
   d <- d[!is.na(d[[y]]) & d[[by]] %in% c(a, b), , drop = FALSE]
   d$.t <- as.integer(d[[by]] == b)
-  m <- feols(as.formula(paste(y, "~ .t")), data = d, weights = d[[weight]],
-             cluster = d[[cluster]])
+  m <- tryCatch(feols(as.formula(paste(y, "~ .t")), data = d, weights = d[[weight]],
+                      cluster = d[[cluster]]), error = function(e) NULL)
+  if (is.null(m) || !".t" %in% rownames(coeftable(m)))
+    return(list(est = NA, se = NA, p = NA, base = NA, n = nrow(d)))
   ct <- coeftable(m)[".t", ]
   list(est = unname(ct[1]), se = unname(ct[2]), p = unname(ct[4]),
        base = unname(coef(m)[1]), n = nrow(d))
@@ -63,7 +65,7 @@ decompose_participation <- function(d, y, by, weight = "weight") {
 
 # ---- Formatting --------------------------------------------------------------
 .fmt <- function(x, d, suffix = "") {
-  x <- suppressWarnings(as.numeric(x))
+  x <- suppressWarnings(as.numeric(x)); x[!is.finite(x)] <- NA
   ifelse(is.na(x), "--", paste0(formatC(x, format = "f", digits = d, big.mark = ","), suffix))
 }
 f0  <- function(x) .fmt(x, 0)
@@ -107,8 +109,7 @@ means_table <- function(d, ys, by, labels = ys, digits = 1) {
   out <- lapply(seq_along(ys), function(i) {
     r <- est_mean(d, ys[i], by)
     data.frame(Outcome = labels[i], group = r$group,
-               cell = paste0(formatC(r$est, format = "f", digits = digits),
-                             " (", formatC(r$se, format = "f", digits = digits), ")"))
+               cell = paste0(.fmt(r$est, digits), " (", .fmt(r$se, digits), ")"))
   })
   tidyr::pivot_wider(dplyr::bind_rows(out), names_from = group, values_from = cell)
 }
@@ -230,3 +231,10 @@ is_pos <- function(e) isTRUE(!is.na(e$est) && e$est > 0 && e$p < 0.05)
 is_sig <- function(e) isTRUE(!is.na(e$p) && e$p < 0.05)
 # Pick text by condition (keeps results-dependent prose honest).
 iff <- function(cond, yes, no) if (isTRUE(cond)) yes else no
+
+# Difference in a share, in percentage points with SE and direction word.
+diff_pp <- function(e, more = "higher", less = "lower", digits = 1) {
+  if (is.null(e$est) || is.na(e$est)) return("not estimable")
+  paste0(.fmt(100 * abs(e$est), digits), " percentage points (SE ", .fmt(100 * e$se, digits), ") ",
+         more_less(e$est, more, less))
+}

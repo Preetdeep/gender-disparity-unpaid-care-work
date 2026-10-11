@@ -256,20 +256,25 @@ csl: econometrica.csl  # or journal-of-political-economy.csl
 
 ### Consistency Rules
 ```r
-# Good
-data_full <- read_dta("TUS106PER.dta")
-data_sample <- data_full %>% sample_frac(0.1)
-data_care <- data_sample %>% filter(Activity_Code == 31)
+# Good: use the shared pipeline. Never sample activity rows, never hard-code codes.
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+person_day <- load_panel()                          # full data, one row per diary
+women <- person_day[female == 1 & age >= 15]
+mean_female_childcare <- wmean(women$care_child, women$weight)   # ICATUS 411-419, 442 (R/codes.R)
 
-mean_female_childcare <- weighted.mean(data_care$time[data_care$Gender == 2],
-                                        data_care$Weight)
-
-# Bad
-df <- read_dta("TUS106PER.dta")
-d2 <- df %>% sample_frac(0.1)
-temp <- d2 %>% filter(Activity_Code == 31)
-mfc <- weighted.mean(temp$time[temp$Gender == 2], temp$Weight)
+# Bad (these exact patterns invalidated the legacy papers; see docs/AUDIT.md)
+d2 <- df %>% sample_frac(0.1)                       # destroys person-day totals
+temp <- d2 %>% filter(Activity_Code_2Digit == 31)   # 31 is food preparation, not childcare
 ```
+
+### Data rules (non-negotiable)
+- All activity categories come from `R/codes.R`; check any new code against `docs/DataDictionaryTimeUseSurvey.xlsx`.
+- The unit of analysis is the person-day built by `R/build_panel.R`. Means over activity rows are not participation rates.
+- Major/minor flag: 1 = major, 2 = minor.
+- Weight every estimate; cluster standard errors on `fsu`.
+- Every number in the text is computed inline; every results-dependent sentence uses `iff()`.
+- Test-knit on synthetic data (`TUS_SYNTHETIC=1 Rscript run_all.R`) before the real run.
 
 ### Table and Figure Naming
 ```r

@@ -1,0 +1,178 @@
+---
+title: "What Men Do with a Day Off: Sundays, Paid Work, and the Gendered Division of Unpaid Work in India"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: ../references.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+require_cols(pd, c("dow", "pas_group"), "Paper 07")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+A <- pd[age >= 20 & age <= 59 & sex %in% c("Men", "Women")]
+A[, `:=`(sex = droplevels(sex), regular = as.integer(pas_group == "Regular wage/salaried"),
+         unpaid = unpaid_domestic + unpaid_care)]
+FEs <- fe(A, "state")
+cA <- ctrl(A, c("i(age_band)", "i(edu_tier)", "married", "urban", "i(mpce_quintile)", "hh_size", "hh_n_under6", "proxy_report"))
+
+# Balance: does the diary day predict pre-determined characteristics?
+bal_vars <- intersect(c("age", "female", "married", "urban", "hh_size", "employed"), names(A))
+bal <- rbindlist(lapply(bal_vars, function(v) {
+  m <- reg(as.formula(paste(v, "~ sunday", FEs)), A)
+  k <- coef_of(m, "sunday"); data.table(var = v, est = k$est, se = k$se, p = k$p)
+}))
+
+# Sunday effects by sex and employment type
+sun <- function(y, d) coef_of(reg(as.formula(paste(y, "~ sunday + saturday +", cA, FEs)), d), "sunday")
+grp <- list("Men, regular salaried" = A[female == 0 & regular == 1], "Men, other" = A[female == 0 & regular == 0],
+            "Women, regular salaried" = A[female == 1 & regular == 1], "Women, other" = A[female == 1 & regular == 0])
+ys <- c("employment", "unpaid", "free_time", "sleep")
+ylab <- c(employment = "Employment", unpaid = "Unpaid domestic and care", free_time = "Free time", sleep = "Sleep")
+S <- rbindlist(lapply(names(grp), function(g) rbindlist(lapply(ys, function(y) {
+  k <- sun(y, grp[[g]]); data.table(group = g, y = y, est = k$est, se = k$se, p = k$p)
+}))))
+pick <- function(g_, y_) { r <- S[group == g_ & y == y_]; list(est = r$est, se = r$se, p = r$p) }
+k_emp_mr <- pick("Men, regular salaried", "employment"); k_unp_mr <- pick("Men, regular salaried", "unpaid")
+k_ft_mr <- pick("Men, regular salaried", "free_time")
+
+# IV: how much of a freed paid-work minute goes to unpaid work? (regular salaried men)
+MR <- grp[["Men, regular salaried"]]
+iv_unp <- reg(as.formula(paste("unpaid ~", cA, FEs, "| employment ~ sunday")), MR)
+iv_ft  <- reg(as.formula(paste("free_time ~", cA, FEs, "| employment ~ sunday")), MR)
+iv_sl  <- reg(as.formula(paste("sleep ~", cA, FEs, "| employment ~ sunday")), MR)
+k_iv_unp <- coef_of(iv_unp, "fit_employment"); k_iv_ft <- coef_of(iv_ft, "fit_employment"); k_iv_sl <- coef_of(iv_sl, "fit_employment")
+fstat <- tryCatch(unname(fitstat(iv_unp, "ivwald1")[[1]]$stat), error = function(e) NA)
+
+# Wives of regular salaried husbands: response to the husband's day off
+Wv <- pd[female == 1 & married == 1 & age >= 20 & age <= 59 & !is.na(spouse_pid) & spouse_pas_group == "Regular wage/salaried"]
+Wv[, unpaid := unpaid_domestic + unpaid_care]
+cW <- ctrl(Wv, c("i(age_band)", "i(edu_tier)", "urban", "i(mpce_quintile)", "hh_size", "hh_n_under6", "employed", "proxy_report"))
+fw <- function(y) coef_of(reg(as.formula(paste(y, "~ sunday + saturday +", cW, fe(Wv, "state"))), Wv), "sunday")
+k_w_unp <- fw("unpaid"); k_w_ft <- fw("free_time"); k_w_emp <- fw("employment")
+# Couple gap on Sundays
+Wv[, gap := unpaid - spouse_unpaid_total]
+k_gap <- fw("gap")
+gap_wk <- wmean(Wv[sunday == 0]$gap, Wv[sunday == 0]$weight)
+
+unp_share <- -k_iv_unp$est
+sig_unp <- is_sig(k_iv_unp) && isTRUE(unp_share > 0)
+pass <- isTRUE(unp_share > 0.25)   # a substantial share of released time goes to unpaid work
+strong_fs <- isTRUE(fstat > 10)
+sun_first <- is_neg(k_emp_mr)
+```
+
+\begin{abstract}
+When men work fewer paid hours, do they do more unpaid work, or do they rest? Cross-sectional comparisons confound hours with selection into jobs. I exploit a source of within-person-type variation that is close to random: India's Time Use Survey 2024 records each person's diary for the day before the interview, so the diary day varies across otherwise similar households. For regular salaried men, whose weekly day off is usually fixed by their employer, a Sunday diary reduces paid work by `r f0(abs(k_emp_mr$est))` minutes (SE `r f1(k_emp_mr$se)`). Using Sunday as an instrument for paid work, each minute of paid work forgone raises these men's unpaid domestic and care work by `r f2(-k_iv_unp$est)` minutes, their free time by `r f2(-k_iv_ft$est)` minutes and their sleep by `r f2(-k_iv_sl$est)` minutes. Their wives' unpaid work on the husband's Sunday changes by `r f0(k_w_unp$est)` minutes, and the within-couple gap in unpaid work changes by `r f0(k_gap$est)` minutes from a weekday level of `r f0(gap_wk)`. `r iff(pass, "A substantial part of the time men are released from paid work flows into unpaid work,", "Men's time released from paid work flows mostly into leisure and rest,")` which places a bound on what shorter working hours alone can do for the gender division of unpaid work.
+\keywords{weekend, working time, unpaid work, gender, time use, instrumental variables, India}
+\jel{J22, J16, D13}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+A long-standing argument holds that men do little unpaid work because they work long paid hours. If so, reducing men's working time, through shorter weeks, paternity leave or flexible schedules, should raise their participation in domestic work and care. The cross-sectional evidence is hard to interpret because men who work fewer hours differ from those who work more. Studies of total work find that men's and women's combined paid and unpaid hours are similar in rich countries [@burda2013total; @gimenez2012trends], but they do not tell us what men do with an hour of paid work removed.
+
+Weekends provide a natural experiment. For workers with a fixed weekly schedule, the day off is determined by the calendar, not by the worker's preferences on that day. Time-use research has studied weekend synchronisation of spouses' leisure [@hamermesh2002timing; @jenkins2005nobody; @hallberg2003synchronous] and who misses out on family time when they work weekends [@craig2014weekend]. India's Time Use Survey 2024 [@nso2025tus] has a feature that makes the weekend comparison especially clean: each person's diary covers the day before the interview, and interviews are spread over the week, so whether a household's diary falls on a Sunday is close to random given location.
+
+I use this to estimate how much of a paid-work minute released on Sunday goes into unpaid work, leisure and sleep for regular salaried men, the group whose day off is fixed by the calendar. I then ask how their wives' time responds to the husband's day off. `r iff(strong_fs, 'The first stage is strong:', 'The first stage is weak, so the IV estimates should be read with caution:')` a Sunday diary is associated with `r diff_txt(k_emp_mr, "more", "less")` paid work for these men. Instrumenting paid work with Sunday, a minute less of paid work is associated with `r f2(-k_iv_unp$est)` more minutes of unpaid work (SE `r f2(k_iv_unp$se)`), `r f2(-k_iv_ft$est)` more minutes of free time and `r f2(-k_iv_sl$est)` more minutes of sleep. Wives' unpaid work on their husband's Sunday changes by `r est_se(k_w_unp)`.
+
+# Related literature
+
+*Total work and gender.* @burda2013total document "iso-work": in rich countries men and women do similar total work, with men specialising in paid work. In poorer countries women's total work exceeds men's. @gimenez2012trends describe cross-country trends in time allocation. @sayer2005gender documents the persistence of women's greater unpaid work in the United States despite convergence.
+
+*Timing and synchronisation.* @hamermesh2002timing shows that spouses coordinate the timing of work and leisure and that time "windfalls" are used jointly. @jenkins2005nobody and @hallberg2003synchronous model the value of synchronised leisure. @craig2014weekend show that weekend work reduces time with family and friends, and that the costs differ by gender.
+
+*Men's unpaid work.* Cross-national evidence finds men's unpaid work rising slowly and responding to institutional context [@hook2006care; @gershuny2003time; @kan2011gender]. In India, men's participation in domestic work is among the lowest recorded [@hirway2011understanding; @nso2020tus]. During the COVID-19 lockdown, when men's paid work fell sharply and unexpectedly, @deshpande2020covid finds a modest rise in men's domestic work.
+
+# Data and design
+
+The analysis uses every activity record of the Time Use Survey 2024 (`r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries), aggregated to person-days. Day of week refers to the diary day (Monday = 1 to Sunday = 7). The sample is persons aged 20 to 59. Regular wage or salaried employment is identified from usual principal activity status (code 21).
+
+**Identification.** The day of the diary is determined by the interview date. If interview dates are unrelated to households' characteristics conditional on state, the diary day is as good as randomly assigned. Table \ref{tab:balance} tests this by regressing pre-determined characteristics on a Sunday indicator with state fixed effects.
+
+```{r tab-balance}
+bl <- c(age = "Age", female = "Female", married = "Married", urban = "Urban", hh_size = "Household size", employed = "Employed (usual status)")
+tab(data.frame(Characteristic = bl[bal$var], `Sunday minus other days` = paste0(f2(bal$est), stars(bal$p)), SE = f2(bal$se), check.names = FALSE),
+    caption = paste0("Balance of pre-determined characteristics by diary day", syn_note()), label = "balance", align = c("l", "r", "r"),
+    notes = "Persons 20--59. State fixed effects; FSU-clustered SEs. Small, insignificant differences support quasi-random assignment of the diary day.")
+```
+
+**Instrumental variables.** For regular salaried men I estimate
+
+$$ y_i = \theta\, PaidWork_i + X_i'\gamma + \mu_s + u_i, \qquad PaidWork_i = \pi\, Sunday_i + \rho\, Saturday_i + X_i'\delta + \mu_s + v_i, $$
+
+where $y_i$ is unpaid work, free time or sleep. Because minutes in all activities sum to 1,440, $-\theta$ is the share of a forgone paid-work minute allocated to activity $y$. The exclusion restriction requires that Sunday affects unpaid work only through paid work. This is a strong assumption, since Sundays may differ in other ways (children are home from school, markets operate differently), so I also report the reduced form for women in the same households.
+
+# Results
+
+```{r fig-sun, fig.cap = paste0("Sunday minus weekday minutes, by sex and employment type", syn_note()), fig.height = 3.8}
+S[, ylab := factor(ylab[y], levels = ylab)]
+ggplot(S, aes(est, ylab, colour = group)) +
+  geom_vline(xintercept = 0, linewidth = 0.3) +
+  geom_pointrange(aes(xmin = est - 1.96 * se, xmax = est + 1.96 * se), position = position_dodge(0.6)) +
+  scale_colour_manual(values = c("#2C6E9B", "#9DC3E0", "#C2512F", "#E39B6B"), name = NULL) +
+  labs(x = "Minutes per day", y = NULL, caption = "Persons 20-59. Controls and state fixed effects; Saturday estimated separately. 95% CIs.") +
+  guides(colour = guide_legend(nrow = 2))
+```
+
+Figure \ref{fig:fig-sun} shows the Sunday contrast for four groups. For regular salaried men, paid work falls by `r est_se(list(est = -k_emp_mr$est, se = k_emp_mr$se))` on Sunday. Their unpaid work changes by `r est_se(k_unp_mr)` and their free time by `r est_se(k_ft_mr)`.
+
+```{r tab-iv}
+iv <- data.frame(Outcome = c("Unpaid domestic and care", "Free time", "Sleep"),
+                 `Minutes per forgone paid-work minute` = c(f2(-k_iv_unp$est), f2(-k_iv_ft$est), f2(-k_iv_sl$est)),
+                 SE = c(f2(k_iv_unp$se), f2(k_iv_ft$se), f2(k_iv_sl$se)), check.names = FALSE)
+tab(iv, caption = paste0("IV estimates: allocation of paid-work time forgone on Sunday, regular salaried men 20--59", syn_note()),
+    label = "iv", align = c("l", "r", "r"),
+    notes = paste0("Paid work instrumented by a Sunday diary (Saturday and controls included). Reported coefficient is minus the 2SLS slope. First-stage F = ", f1(fstat), ". FSU-clustered SEs."))
+```
+
+Table \ref{tab:iv} reports the IV estimates. Of each paid-work minute forgone on Sunday, `r f2(-k_iv_unp$est)` goes to unpaid domestic and care work, `r f2(-k_iv_ft$est)` to free time and `r f2(-k_iv_sl$est)` to sleep (first-stage F = `r f1(fstat)`). The unpaid share is `r iff(sig_unp, "positive and statistically significant", "not statistically distinguishable from zero")`, and it is `r iff(isTRUE(unp_share < -k_iv_ft$est - k_iv_sl$est), "smaller than the combined share going to free time and sleep", "larger than the combined share going to free time and sleep")`.
+
+## Wives' response
+
+For wives of regular salaried men, the husband's Sunday is associated with `r diff_txt(k_w_unp)` unpaid work, `r diff_txt(k_w_ft)` free time and `r diff_txt(k_w_emp)` paid work. The wife-minus-husband gap in unpaid work changes by `r est_se(k_gap)` from a weekday mean of `r f0(gap_wk)` minutes.
+
+# Discussion and conclusion
+
+Weekends reveal how men use time released from paid work. `r iff(pass, "A substantial fraction goes into unpaid work, so shorter hours would shift some unpaid work to men.", "Only a small fraction goes into unpaid work, so shorter working hours alone would do little to change the gender division of unpaid work.")` Policies aimed at men's unpaid work, such as paternity leave tied to care responsibilities, school schedules or norm-change campaigns, cannot rely on time availability alone.
+
+The design has limits. The exclusion restriction is strong because Sundays differ from weekdays in more than paid work. The estimates apply to regular salaried men, a minority of Indian workers. A single diary per person means the comparison is across people, not within a person's week [@frazis2012think].
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```

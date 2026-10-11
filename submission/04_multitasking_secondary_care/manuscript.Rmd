@@ -1,0 +1,218 @@
+---
+title: "The Care Hidden in the Margins: Secondary Activities, Multitasking, and the Gender Gap in Unpaid Work in India"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: ../references.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+P  <- load_pairs()
+require_cols(pd, c("sec_total", "sec_care_child", "sec_eating"), "Paper 04")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+A <- pd[age >= 15 & sex %in% c("Men", "Women")]
+A[, sex := droplevels(sex)]
+A[, `:=`(
+  any_sec = as.integer(sec_total > 0),
+  childcare_incl_sec = care_child + sec_care_child,
+  eat_minor_share = fifelse(eating + sec_eating > 0, sec_eating / (eating + sec_eating), NA_real_),
+  care_dom_sec = sec_unpaid_care + sec_unpaid_domestic
+)]
+has_multi <- "min_multiple_slots" %in% names(A)
+if (has_multi) A[, multi_share := min_multiple_slots / 1440]
+
+# Pairs: minor activity in the slot of a major activity
+if (!is.null(P)) {
+  P <- merge(P, A[, .(pid, sex, weight, female)], by = "pid")
+  # Free time "contaminated" by care or domestic work as a secondary activity
+  ft <- P[major_cat %in% c("social_all", "leisure_all") &
+          minor_cat %in% c("care_child", "care_dep_adult", "care_nondep_adult", "care_other", "unpaid_domestic"),
+          .(ft_with_care = sum(minutes)), by = pid]
+  A[ft, on = "pid", ft_with_care := i.ft_with_care]
+  A[is.na(ft_with_care), ft_with_care := 0]
+  A[, ft_care_share := fifelse(free_time > 0, pmin(1, ft_with_care / free_time), NA_real_)]
+  # Eating while working: eating as minor during employment, domestic work or care
+  ew <- P[minor_cat == "eating" & major_cat %in% c("employment", "ownuse_goods", "unpaid_domestic", "care_child", "care_dep_adult"),
+          .(eat_while_work = sum(minutes)), by = pid]
+  A[ew, on = "pid", eat_while_work := i.eat_while_work]
+  A[is.na(eat_while_work), eat_while_work := 0]
+  A[, any_eat_while_work := as.integer(eat_while_work > 0)]
+  # Composition: what women and men do while doing what
+  comp <- P[, .(m = sum(minutes * weight)), by = .(sex, major_cat, minor_cat)]
+  comp[, share := m / sum(m), by = sex]
+}
+
+g <- function(y, d = A) est_gap(d, y, "sex", "Men", "Women")
+mm <- function(y, d = A) est_mean(d, y, "sex")
+g_sec  <- g("sec_total"); g_any <- g("any_sec"); g_scc <- g("sec_care_child")
+g_cc   <- g("care_child"); g_cci <- g("childcare_incl_sec")
+g_multi <- if (has_multi) g("min_multiple_slots") else list(est = NA, se = NA, p = NA)
+g_eat  <- g("eat_minor_share")
+g_ft   <- if (!is.null(P)) g("ft_care_share") else list(est = NA, se = NA, p = NA)
+g_ew   <- if (!is.null(P)) g("any_eat_while_work") else list(est = NA, se = NA, p = NA)
+m_sec <- mm("sec_total"); m_scc <- mm("sec_care_child"); m_cc <- mm("care_child")
+sec_share_w <- with(A[sex == "Women"], wmean(sec_care_child, weight) / wmean(childcare_incl_sec, weight))
+sec_share_m <- with(A[sex == "Men"], wmean(sec_care_child, weight) / wmean(childcare_incl_sec, weight))
+ratio_primary <- m_cc$est[m_cc$group == "Women"] / m_cc$est[m_cc$group == "Men"]
+mci <- mm("childcare_incl_sec")
+ratio_incl <- mci$est[mci$group == "Women"] / mci$est[mci$group == "Men"]
+
+controls <- ctrl(A, c("i(age_band)", "i(edu_tier)", "married", "urban", "i(mpce_quintile)", "hh_size",
+                      "hh_n_under6", "hh_n_6_14", "hh_n_60plus", "employed", "proxy_report"))
+FE <- fe(A)
+rg <- function(y, d = A) reg(as.formula(paste(y, "~ female +", controls, FE)), d)
+r_list <- list("Secondary minutes" = rg("sec_total"), "Secondary childcare" = rg("sec_care_child"),
+               "Childcare incl. secondary" = rg("childcare_incl_sec"),
+               "Eating as secondary (share)" = rg("eat_minor_share"))
+if (has_multi) r_list[["Minutes in multitask slots"]] <- rg("min_multiple_slots")
+if (!is.null(P)) r_list[["Free time with care (share)"]] <- rg("ft_care_share")
+k_sec <- coef_of(r_list[[1]], "female"); k_scc <- coef_of(r_list[[2]], "female")
+
+# Proxy reporting: does it suppress recorded secondary activity?
+k_proxy <- if ("proxy_report" %in% names(A)) coef_of(reg(as.formula(paste("sec_total ~ female * proxy_report +", ctrl(A, c("i(age_band)", "i(edu_tier)", "married", "urban")), FE)), A), "proxy_report") else list(est = NA, se = NA, p = NA)
+
+women_more_sec <- is_pos(g_sec)
+ratio_rises <- isTRUE(ratio_incl > ratio_primary)
+```
+
+\begin{abstract}
+Standard measures of unpaid work count only the main activity in each time slot. If women care for children while cooking, eat while working, and mind children during their leisure, those measures understate women's work and overstate their free time. India's Time Use Survey 2024 records every activity performed in each half-hour slot and flags which one was the main activity. Using all `r fn(V$n_rows)` activity records for `r fn(V$n_persons)` diarists, I measure the time spent in secondary activities and the gender gaps in them. Women aged 15 and above record `r f0(m_sec$est[m_sec$group == "Women"])` minutes of secondary activity a day against `r f0(m_sec$est[m_sec$group == "Men"])` for men. Secondary childcare accounts for `r pctx(sec_share_w, 0)` of women's total childcare once it is counted. Including it moves the women-to-men childcare ratio from `r f1(ratio_primary)` to `r f1(ratio_incl)`. `r iff(women_more_sec, "The gender gap in unpaid work is therefore larger than primary-activity measures show.", "Primary-activity measures do not materially understate the gender gap.")` I also show how often women's free time is shared with care or domestic work, and how often their meals are eaten while working. Both are dimensions of time quality that headline statistics, including SDG indicator 5.4.1, ignore.
+\keywords{multitasking, secondary activities, childcare, time poverty, leisure quality, time use, India}
+\jel{D13, J16, J22, I31}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+Most time-use statistics, including the official indicator for Sustainable Development Goal 5.4.1, count only one activity per time slot. This convention has a known bias. Care for young children is often done alongside other tasks: a mother cooks while watching a toddler, or feeds a child while eating herself. When only the main activity is counted, that care disappears [@folbre2005measure; @craig2007contemporary]. The bias is gendered if women do more of their work in this overlapping way, as feminist economists have long argued [@floro1995women; @floro2003overlapping], and if women's leisure is more often interrupted or shared with care [@bittman2000rush; @mattingly2003free].
+
+The evidence on gender gaps in multitasking is mostly from rich countries and is mixed. @offer2011multitasking find that mothers in US dual-earner families multitask more than fathers and find it more stressful. @floro2003overlapping document overlapping activities in Australia and show that they are concentrated among women with young children. @kalenkoski2008quality show that secondary childcare is a large share of parents' total childcare in Australia. For developing countries, where women's work combines domestic, care and productive tasks within the home, systematic evidence is rare.
+
+India's Time Use Survey 2024 [@nso2025tus] lets me fill this gap. It records, for every half-hour slot, all activities lasting ten minutes or more, a flag for whether the slot contained multiple activities and whether they were simultaneous, and which activity the respondent considers the main one. I use every activity record to build person-level measures of secondary activity, secondary childcare, eating as a secondary activity, and free time shared with care or domestic work.
+
+`r iff(women_more_sec, paste0("Women record ", diff_txt(g_sec), " secondary activity per day than men."), paste0("The gender gap in secondary activity minutes is ", est_se(g_sec), "."))` Women's secondary childcare is `r f0(m_scc$est[m_scc$group == "Women"])` minutes a day, `r pct(sec_share_w, 0)` of their total childcare once secondary care is counted, against `r pct(sec_share_m, 0)` for men. `r iff(ratio_rises, "Counting secondary care widens the gender gap in childcare", "Counting secondary care does not widen the gender gap in childcare")`: the women-to-men ratio moves from `r f1(ratio_primary)` to `r f1(ratio_incl)`.
+
+The contribution is twofold. Substantively, the paper documents how much women's work is hidden by single-activity accounting in a large developing country. Methodologically, it shows how much measured gender gaps depend on the treatment of secondary activities, which matters for the SDG indicator and for valuations of unpaid work [@folbre2006measuring; @charmes2019unpaid].
+
+# Related literature
+
+*Time intensity and overlapping activities.* @floro1995women introduced work intensity, the performance of overlapping tasks, as a dimension of women's well-being missed by hours-based measures. @floro2003overlapping showed with Australian data that overlapping activities are common, gendered and concentrated among parents of young children. @offer2011multitasking link mothers' multitasking to negative emotions and stress.
+
+*Measuring childcare.* Because much childcare is passive or secondary, estimates of parental time vary severalfold with the definition [@folbre2005measure]. @kalenkoski2008quality and @craig2007contemporary show that secondary childcare is large and gendered. @craig2011share compare mothers' and fathers' shares across countries and find that fathers' share is higher for interactive care than for routine and secondary care.
+
+*Quality of leisure.* @bittman2000rush and @mattingly2003free show that women's free time is more fragmented and more often combined with childcare than men's, so equal leisure minutes do not mean equal leisure. @sevilla2012leisure document leisure inequality by education in the United States. In time-poverty analysis [@vickery1977time; @bardasi2010working], interrupted leisure adds to the burden of long working hours.
+
+*India.* Time-use evidence for India has focused on primary activities [@hirway2011understanding; @nso2020tus]. The 2024 survey codes the major/minor flag as 1 for major and 2 for minor activities, so secondary activities can be studied directly.
+
+# Data and measurement
+
+The survey divides the diary day into 48 half-hour slots starting at 4:00 a.m. For each slot it records each activity lasting ten minutes or more and asks whether more than one activity was performed and, if so, whether simultaneously. One activity per slot is designated the major activity. Of the `r fn(V$n_rows)` activity records, `r pct(V$share_rows_minor)` are minor. Major activities sum to 1,440 minutes for `r pct(V$share_diaries_1440)` of diaries.
+
+I construct four measures. **Secondary minutes** are the time recorded against minor activities, in total and by ICATUS category. **Minutes in multi-activity slots** are the major-activity minutes in slots that the respondent flagged as containing more than one activity. **Eating as a secondary activity** is the share of a person's eating time (921--922) recorded as minor. **Free time shared with care** is the share of major free-time minutes (divisions 7 and 8) during which a care or domestic activity was recorded as minor. I identify it by matching each minor record to the major episode whose interval contains it (match rate: `r if (is.null(V$share_minor_rows_matched_to_major)) "not available" else pct(V$share_minor_rows_matched_to_major)`).
+
+The release does not document how duration is assigned to minor records. Results in minutes should therefore be read with the episode-based and share-based measures, which do not depend on that convention.
+
+```{r tab-desc}
+vars <- c("sec_total", "sec_care_child", "care_child", "childcare_incl_sec", "care_dom_sec", "eat_minor_share")
+labs <- c("Secondary activity minutes", "Secondary childcare minutes", "Primary childcare minutes",
+          "Childcare including secondary", "Secondary care and domestic minutes", "Eating recorded as secondary (share)")
+if (has_multi) { vars <- c(vars, "min_multiple_slots"); labs <- c(labs, "Minutes in multi-activity slots") }
+if (!is.null(P)) { vars <- c(vars, "ft_care_share", "any_eat_while_work"); labs <- c(labs, "Free time shared with care (share)", "Any eating while working (share)") }
+tab(means_table(A, vars, "sex", labs, digits = 2), caption = paste0("Secondary activities by sex, ages 15+", syn_note()), label = "desc",
+    align = c("l", "r", "r"), notes = "Survey-weighted means; FSU-clustered standard errors in parentheses.")
+```
+
+# Results
+
+## How much activity is secondary, and who does it
+
+Table \ref{tab:desc} reports the measures by sex. The raw gender gap in secondary minutes is `r est_se(g_sec)`, and women are `r diff_pp(g_any, "more", "less")` likely than men to record any secondary activity. In secondary childcare the gap is `r est_se(g_scc)`.
+
+```{r tab-reg, results="asis"}
+reg_table(Filter(Negate(is.null), r_list), title = paste0("Gender gaps in secondary activity, conditional on characteristics", syn_note()),
+          label = "tab:reg", keep = "%^female$", dict = c(female = "Woman"),
+          notes = "Persons 15+. Controls: age band, education, marital status, urban, consumption quintile, household size and composition, employment status, proxy report; state and day-of-week fixed effects. Survey-weighted; FSU-clustered SEs.")
+```
+
+Table \ref{tab:reg} shows that the gaps survive conditioning on age, education, marital status, household composition, employment, consumption, state and day: the conditional gap in secondary minutes is `r est_se(k_sec)` and in secondary childcare `r est_se(k_scc)`.
+
+## What secondary activity changes in the gender gap
+
+```{r fig-cc, fig.cap = paste0("Childcare minutes by sex: primary only and including secondary childcare", syn_note()), fig.height = 3}
+fc <- rbind(data.table(sex = m_cc$group, what = "Primary only", m = m_cc$est),
+            data.table(sex = mci$group, what = "Including secondary", m = mci$est))
+fc[, what := factor(what, levels = c("Primary only", "Including secondary"))]
+ggplot(fc, aes(what, m, fill = sex)) + geom_col(position = position_dodge(0.7), width = 0.65) +
+  scale_fill_manual(values = SEX_COLS, name = NULL) +
+  labs(x = NULL, y = "Minutes per day", caption = "Persons 15+. Survey-weighted means.")
+```
+
+Figure \ref{fig:fig-cc} contrasts childcare measured from primary activities only with childcare including secondary care. Among women, secondary care is `r pct(sec_share_w, 0)` of total childcare; among men, `r pct(sec_share_m, 0)`. The women-to-men ratio is `r f1(ratio_primary)` on the primary measure and `r f1(ratio_incl)` on the inclusive measure.
+
+## Leisure quality and meals
+
+```{r tab-comp}
+if (!is.null(P)) {
+  cl <- c(employment = "Employment", ownuse_goods = "Own-use goods", unpaid_domestic = "Domestic work",
+          care_child = "Childcare", care_dep_adult = "Adult care", care_nondep_adult = "Care, non-dependent adult",
+          care_other = "Care, other", volunteer = "Volunteering", learning = "Learning", social_all = "Socialising",
+          leisure_all = "Leisure and media", sleep = "Sleep", eating = "Eating", hygiene = "Hygiene",
+          receiving_care = "Receiving care", selfcare_other = "Self-care, other", other = "Other")
+  top <- comp[order(-share)][, head(.SD, 6), by = sex]
+  top[, `:=`(Major = cl[major_cat], Minor = cl[minor_cat], Share = pct(share))]
+  tab(top[, .(Sex = as.character(sex), `Major (main) activity` = Major, `Secondary activity` = Minor, `Share of secondary minutes` = Share)],
+      caption = paste0("Most common combinations of main and secondary activity", syn_note()), label = "comp",
+      align = c("l", "l", "l", "r"), notes = "Persons 15+. Share of each sex's weighted secondary minutes.")
+}
+```
+
+`r if (!is.null(P)) paste0("Table \\ref{tab:comp} lists the most common combinations of main and secondary activity for each sex. The share of free time shared with care or domestic work is ", diff_pp(g_ft), " for women than for men, and the probability of eating while working, doing domestic work or caring is ", diff_pp(g_ew), ".") else "Slot-level pairing is unavailable in this release."` The share of eating time recorded as a secondary activity is `r diff_pp(g_eat)` for women than for men.
+
+## Reporting
+
+Proxy-reported diaries record `r diff_txt(k_proxy)` secondary activity than self-reported diaries, conditional on demographics. If informants under-report others' secondary activities, the estimates here are lower bounds wherever women's diaries are more often proxy-reported.
+
+# Discussion and conclusion
+
+`r iff(women_more_sec, "Single-activity accounting misses a substantial part of what Indian women do.", "Single-activity accounting misses less of women's work than feared.")` `r iff(ratio_rises, "Counting secondary childcare widens the measured gender gap in childcare.", "Counting secondary childcare does not widen the measured gap in childcare.")` `r iff(is_pos(g_ft), "Women's free time is more often shared with care or domestic work than men's.", "Women's free time is not measurably more often shared with care than men's.")` `r iff(is_pos(g_ew), "Their meals are more often taken while working.", "")` These are the dimensions of time quality that @floro1995women and @bittman2000rush argued are missing from hours-based measures.
+
+For measurement, the results support reporting SDG indicator 5.4.1 alongside an inclusive measure that counts secondary care, as the survey already permits. For valuation, imputing a wage to primary activities alone understates the value of women's unpaid work. The main limitations are the undocumented duration convention for minor records, which the share-based measures sidestep, and the single diary day.
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```

@@ -257,7 +257,7 @@ Table \ref{tab:men} repeats the exercise for men. Men's baseline minutes in thes
 
 ## The consumption gradient
 
-The raw gap in women's unpaid domestic minutes between the richest and poorest consumption quintiles is `r est_se(q5_raw)`. Conditioning on technology, composition, and location changes it to `r est_se(q5_dom)`. Figure 1 shows how the composition of women's domestic work changes across the consumption distribution, task by task. Whether richer households are "more equal" therefore has to be answered task by task. Men's unpaid minutes in the top quintile differ from the bottom by `r est_se(k_q5_men)`.
+The raw gap in women's unpaid domestic minutes between the richest and poorest consumption quintiles is `r est_se(q5_raw)`. Conditioning on technology, composition, and location changes it to `r est_se(q5_dom)`. Figure \ref{fig:fig-quint} shows how the composition of women's domestic work changes across the consumption distribution, task by task. Whether richer households are "more equal" therefore has to be answered task by task. Men's unpaid minutes in the top quintile differ from the bottom by `r est_se(k_q5_men)`.
 
 ## Where does released time go?
 

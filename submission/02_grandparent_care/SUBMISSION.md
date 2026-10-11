@@ -12,6 +12,7 @@ Diaries for both generations in the same household separate the substitution and
 - [ ] Real-data run: `TUS_DTA=/path/TimeUse106PER.dta Rscript run_all.R 02`.
 - [ ] Check `validation.txt`: `under6_method` must be the household-size residual, and `share_hh_negative_under6_residual` should be about 0. If not, the household-size column is mis-mapped.
 - [ ] Check the share of mothers identified as daughters-in-law (`dil`). Patrilocality implies a large share.
+- [ ] The daughter-in-law heterogeneity row compares daughters-in-law with and without a co-resident mother-in-law. Most have one, so expect a wide confidence interval. If it is not estimable, drop the row and say so.
 - [ ] Choose the title from the sign of the headline result. The current title is a question.
 - [ ] Optional strengthening: an instrument for co-residence (for example, whether the husband is the eldest son, if the roster allows it), or grandparent mortality by state-age.
 - [ ] Verify the references. Remove the author block if the journal requires anonymity.
