@@ -349,11 +349,11 @@ ag_dir <- iff(is_pos(k_ag), "larger", iff(is_neg(k_ag), "smaller", "unrelated"))
 ```
 
 \begin{abstract}
-\textbf{Objective:} This study asks where the additional unpaid work that marriage brings to Indian women comes from within the fixed 24-hour day, and how the reallocation differs by co-residence with parents-in-law and by spouses' relative resources and ages.
+\textbf{Objective:} This study asks where, within the fixed day, the additional unpaid work that marriage brings to Indian women comes from, and how this differs by co-residence with parents-in-law and spouses' relative resources and ages.
 
-\textbf{Background:} Studies of marriage and time use usually examine one outcome at a time, such as housework, sleep, social life or exercise. Because a day has 1,440 minutes, gains and losses across activities must sum to zero.
+\textbf{Background:} Studies of marriage and time use usually examine one outcome at a time, yet a day has 1,440 minutes, so gains and losses across activities must sum to zero.
 
-\textbf{Method:} Using all `r fn(V$n_persons)` diaries of India's Time Use Survey 2024, I compare `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine exhaustive activity divisions, net of single-year age, education, caste, religion, state and diary day. I address selection into marriage by restricting to ages 20 to 26, reweighting the never-married to the married covariate distribution, and computing bias-adjusted estimates. `r fn(nrow(C))` linked couples provide within-household comparisons.
+\textbf{Method:} Using all `r fn(V$n_persons)` diaries of India's Time Use Survey 2024, I compare `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine exhaustive activity divisions, net of single-year age, education, caste, religion, state and diary day. Selection into marriage is addressed by restricting to ages 20 to 26, reweighting and bias adjustment. `r fn(nrow(C))` linked couples provide within-household comparisons.
 
 \textbf{Results:} Married women reported `r mins(k_uw)` of unpaid domestic and care work per day than never-married women; for men the difference was `r mins(k_um)`. `r iff(tot_neg > 0, paste0("The largest offsetting reduction for women was in ", src_name(1), " (", src_min(1), " minutes)."), "No other division fell detectably.")` Wives did `r mins(k_cg)` of unpaid work than their husbands, and their share of the couple's unpaid work was `r pctx(csh$est, 0)`. `r iff(is_sig(k_dil$unpaid), paste0("Daughters-in-law of the household head did ", mins(k_dil$unpaid), " of unpaid work than wives in households without a parent generation."), "Unpaid work did not differ detectably between daughters-in-law of the head and wives in households without a parent generation.")`
 
@@ -512,7 +512,7 @@ Table \ref{tab:decomp} and Figure \ref{fig:fig-decomp} report the decomposition.
 
 `r iff(tot_neg > 0, paste0("Among the other seven divisions, women's additional unpaid minutes are offset mainly by lower time in ", src_name(1), " (", src_min(1), " minutes)", if (length(src_neg) >= 2) paste0(", ", src_name(2), " (", src_min(2), " minutes)") else "", if (length(src_neg) >= 3) paste0(" and ", src_name(3), " (", src_min(3), " minutes)") else "", ". Employment and learning together account for ", pct(share_emp_learn, 0), " of the reductions, socialising and leisure for ", pct(share_leis, 0), ", and self-care for ", pct(share_self, 0), "."), "None of the other seven divisions is lower for married women, so the time budget does not identify an offsetting activity.")` `r iff(tot_neg > 0 && specialisation, "Most of the offset comes from paid work and learning, which is closer to the specialisation account (H2a) than to a squeeze on free time.", iff(tot_neg > 0, "Most of the offset comes from free time and self-care rather than from paid work and learning, which is closer to the time-squeeze account (H2b) than to specialisation.", ""))`
 
-The sub-rows place the commonly studied "marriage penalties" within the budget. `r sleep_txt`, a difference of `r est_se(kW("sleep"))`. The coefficients for socialising, exercise and sport, and religious practice are `r est_se(kW("socialising"))`, `r est_se(kW("exercise_sport"))` and `r est_se(kW("religious"))`. `r iff(isTRUE(abs(bW[["sleep"]]) < abs(bW[["leisure_all"]] + bW[["social_all"]])), "Sleep moves less than free time, as H2 anticipated.", "Sleep moves at least as much as free time, contrary to the expectation that sleep is the more protected margin.")` For men, the largest coefficient in absolute value is on `r tolower(part_lab[names(which.max(abs(bM[part])))])` (`r est_se(kM(names(which.max(abs(bM[part])))))`).
+The sub-rows place the commonly studied "marriage penalties" within the budget. `r sleep_txt` (SE `r f1(kW("sleep")$se)`). The coefficients for socialising, exercise and sport, and religious practice are `r est_se(kW("socialising"))`, `r est_se(kW("exercise_sport"))` and `r est_se(kW("religious"))`. `r iff(isTRUE(abs(bW[["sleep"]]) < abs(bW[["leisure_all"]] + bW[["social_all"]])), "Sleep moves less than free time, as H2 anticipated.", "Sleep moves at least as much as free time, contrary to the expectation that sleep is the more protected margin.")` For men, the largest coefficient in absolute value is on `r tolower(part_lab[names(which.max(abs(bM[part])))])`, at `r est_se(kM(names(which.max(abs(bM[part])))))`.
 
 ## Patrilocal co-residence
 
@@ -568,6 +568,7 @@ ggplot(gt, aes(band, est, colour = sex)) +
   geom_pointrange(aes(ymin = est - 1.96 * se, ymax = est + 1.96 * se), position = position_dodge(0.4), size = 0.3) +
   geom_text(aes(label = pct(nm_share, 0), y = est + 1.96 * se), position = position_dodge(0.4), vjust = -0.6, size = 2.4, show.legend = FALSE) +
   scale_colour_manual(values = SEX_COLS, name = NULL) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.18))) +
   labs(x = "Age band", y = "Minutes per day")
 ```
 
