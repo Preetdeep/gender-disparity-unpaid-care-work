@@ -11,4 +11,4 @@ Official, public documentation from the National Statistical Office (MoSPI). Not
 Two facts from these documents that the papers rely on:
 
 1. NSO publishes estimates both from **major activities only** (which sum to 1,440 minutes) and from **all activities in each slot**. The panel's main measures are major-only; the `sec_*` columns add minor activities. Compare like with like when benchmarking.
-2. 2019 round: 9,945 FSUs, 138,799 households and 447,250 persons aged 6+. The 2024 round has about 139,500 households, the count in the legacy papers, so the `.dta` in use is the 2024 file.
+2. 2019 round: 9,945 FSUs, 138,799 households and 447,250 persons aged 6+. The 2024 round has about 139,500 households, the count in the legacy papers, which points to the `.dta` in use being the 2024 file. Confirm this against the survey-year field when the file is loaded.
