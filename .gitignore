@@ -20,6 +20,7 @@
 data/
 
 # Temporary files
+docs/probe_report.txt
 *.tmp
 *.log
 *.aux

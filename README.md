@@ -66,7 +66,13 @@ Submit one paper per journal at a time. Papers 05 and 08 share descriptive mater
 TUS_SYNTHETIC=1 Rscript run_all.R            # watermarked PDFs in data/synthetic/pdf/
 ```
 
-**4. Run on the real data:**
+**4. Probe the real file first** (aggregate counts only; no microdata rows are written):
+
+```bash
+TUS_DTA=/path/to/TimeUse106PER.dta Rscript R/probe_data.R    # writes docs/probe_report.txt
+```
+
+**5. Run on the real data:**
 
 ```bash
 TUS_DTA=/path/to/TimeUse106PER.dta Rscript run_all.R        # all eight papers

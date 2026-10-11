@@ -1,5 +1,5 @@
 ---
-title: "The Free-Time Gap over the Life Course: Gender, Family Stage, and Leisure in India"
+title: "The Free-Time Gap over the Life Course: Gender, Family Stage, and Time Poverty in India"
 author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
 date: "`r format(Sys.Date(), '%B %Y')`"
 output:
@@ -11,7 +11,7 @@ output:
       in_header: ../_common/preamble.tex
 fontsize: 11pt
 geometry: margin=1in
-bibliography: ../references.bib
+bibliography: [../references.bib, refs_local.bib]
 link-citations: true
 ---
 
@@ -22,164 +22,632 @@ TUS_ROOT <- normalizePath("../..")
 source(file.path(TUS_ROOT, "R", "setup.R"))
 pd <- load_panel()
 V  <- panel_validation(pd)
-require_cols(pd, c("marital", "hh_n_under6"), "Paper 08")
+require_cols(pd, c("marital", "hh_n_under6", "pas", "mpce", "religious", "commuting"), "Paper 08")
 ```
 
 ```{r watermark, results="asis"}
 if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
 ```
 
+```{r codes-local}
+# Usual principal activity status. docs/DataDictionaryTimeUseSurvey.xlsx uses the
+# standard NSS scheme (11, 12, 21, 31, 41, 51 = working; 81 = seeking work;
+# 91-97 = not in the labour force; 94 = rentiers, pensioners, remittance
+# recipients). R/codes.R follows docs/variables_dictionary.txt (51 = unemployed,
+# 61-66 not in the labour force, 64 = pensioners). The two disagree on code 51.
+# Detect the scheme from the values present and define status locally
+# (logged in docs/WORKLOG.md as a shared-code request).
+nss_scheme <- any(pd$pas %in% c(81, 91:97))
+PAS <- if (nss_scheme) {
+  list(employed = c(11, 12, 21, 31, 41, 51), pensioner = 94)
+} else {
+  list(employed = CODE$pas_employed, pensioner = CODE$pas_pensioner)
+}
+```
+
 ```{r sample}
+# ---- Analysis sample and all derived columns (added BEFORE any subsetting) ----
 A <- pd[age >= 15 & sex %in% c("Men", "Women")]
 A[, sex := droplevels(sex)]
-A[, `:=`(
-  total_work = employment + ownuse_goods + unpaid_domestic + unpaid_care + volunteer,
-  stage = factor(fcase(
-    age < 25 & married == 0, "Young, never married (15-24)",
-    married == 0 & age >= 25 & age < 60, "Never married/other, 25-59",
-    married == 1 & age < 60 & hh_n_under6 > 0, "Married, child under 6 in household",
-    married == 1 & age < 60 & hh_n_6_14 > 0, "Married, child 6-14 in household",
-    married == 1 & age < 60, "Married, no child under 15",
-    age >= 60 & age < 70, "Aged 60-69",
-    age >= 70, "Aged 70+",
-    default = NA_character_),
-    levels = c("Young, never married (15-24)", "Married, child under 6 in household", "Married, child 6-14 in household",
-               "Married, no child under 15", "Never married/other, 25-59", "Aged 60-69", "Aged 70+"))
-)]
+STAGES <- c("Young, never married (15-24)",
+            "Married, child under 6 in household",
+            "Married, child 6-14 in household",
+            "Married, no child under 15",
+            "Other not married (15-59)",
+            "Aged 60-69",
+            "Aged 70+")
+A[, stage := factor(fcase(
+  age < 25 & marital == CODE$marital["never_married"], STAGES[1],
+  age < 60 & married == 1 & hh_n_under6 > 0, STAGES[2],
+  age < 60 & married == 1 & hh_n_under6 == 0 & hh_n_6_14 > 0, STAGES[3],
+  age < 60 & married == 1 & hh_n_under6 == 0 & hh_n_6_14 == 0, STAGES[4],
+  age < 60 & married == 0, STAGES[5],
+  age >= 60 & age < 70, STAGES[6],
+  age >= 70, STAGES[7],
+  default = NA_character_), levels = STAGES)]
+n_A0 <- nrow(A)
+n_nostage <- A[is.na(stage), .N]
 A <- A[!is.na(stage)]
-# Time poverty: free time below 60% of the weighted median for persons 15+
-med_ft <- wquantile(A$free_time, A$weight, 0.5)
-A[, ft_poor := as.integer(free_time < 0.6 * med_ft)]
 
-st <- A[, .(ft = wmean(free_time, weight), tw = wmean(total_work, weight), sl = wmean(sleep, weight),
-            n = .N), by = .(stage, sex)]
-gapst <- dcast(st, stage ~ sex, value.var = "ft")
-gapst[, gap := Men - Women]
-max_gap_stage <- as.character(gapst[which.max(gap)]$stage)
-gst <- rbindlist(lapply(levels(A$stage), function(s) { e <- est_gap(A[stage == s], "free_time", "sex", "Women", "Men"); data.table(stage = s, est = e$est, se = e$se) }))
-gtw <- rbindlist(lapply(levels(A$stage), function(s) { e <- est_gap(A[stage == s], "total_work", "sex", "Men", "Women"); data.table(stage = s, est = e$est, se = e$se) }))
+A[, `:=`(
+  free_norel = free_time - religious,
+  worker     = as.integer(pas %in% PAS$employed),
+  pensioner  = as.integer(pas %in% PAS$pensioner),
+  sector_f   = factor(fifelse(urban == 1, "Urban", "Rural"), levels = c("Rural", "Urban"))
+)]
 
-g_all <- est_gap(A, "free_time", "sex", "Women", "Men"); g_tw <- est_gap(A, "total_work", "sex", "Men", "Women")
-g_pov <- est_gap(A, "ft_poor", "sex", "Men", "Women")
-mft <- est_mean(A, "free_time", "sex")
-
-# Heterogeneity of the gap: regression with interactions
-controls <- ctrl(A, c("i(stage)", "urban", "i(edu_tier)", "i(mpce_quintile)", "i(social_group_f)", "i(religion_f)", "hh_size", "proxy_report"))
-FE <- fe(A)
-het <- function(v) {
-  m <- reg(as.formula(paste0("free_time ~ female * i(", v, ") + ", controls, FE)), A)
-  if (is.null(m)) return(NULL)
-  ct <- coeftable(m); r <- grep(paste0("^female:", v), rownames(ct))
-  data.table(dim = v, level = sub(paste0("^female:", v, "::"), "", rownames(ct)[r]), est = ct[r, 1], se = ct[r, 2], p = ct[r, 4])
+# Free time accompanied by secondary unpaid work (major free-time episode with a
+# minor domestic or care record inside it), from the slot-pair file.
+P <- load_pairs()
+have_pairs <- !is.null(P) && nrow(P) > 0
+A[, ft_contam := NA_real_]
+if (have_pairs) {
+  cp <- P[major_cat %in% c("social_all", "leisure_all") &
+            minor_cat %in% c("unpaid_domestic", "care_child", "care_dep_adult",
+                             "care_nondep_adult", "care_other"),
+          .(v = sum(minutes)), by = pid]
+  A[, ft_contam := 0]
+  A[cp, on = "pid", ft_contam := i.v]
 }
-H <- rbindlist(Filter(Negate(is.null), lapply(intersect(c("edu_tier", "mpce_quintile", "social_group_f", "religion_f"), names(A)), het)))
-base_gap <- coef_of(reg(as.formula(paste("free_time ~ female +", controls, FE)), A), "female")
-k_urb <- coef_of(reg(as.formula(paste("free_time ~ female * urban +", controls, FE)), A), "female:urban")
 
-# Composition of free time by sex
-comp_vars <- c("socialising", "community", "religious", "mass_media", "exercise_sport", "hobbies_games", "resting", "culture_events")
-comp_lab <- c(socialising = "Socialising and talking", community = "Community participation", religious = "Religious practice",
-              mass_media = "Mass media (TV, radio, reading)", exercise_sport = "Exercise and sport", hobbies_games = "Hobbies and games",
-              resting = "Resting and relaxing", culture_events = "Attending events")
+# ---- Poverty lines ----------------------------------------------------------
+med_ft  <- wquantile(A$free_time, A$weight, 0.5)
+med_fn  <- wquantile(A$free_norel, A$weight, 0.5)
+med_tw  <- wquantile(A$total_work, A$weight, 0.5)
+pm      <- pd[!is.na(mpce) & !is.na(weight)]
+med_mp  <- wquantile(pm$mpce, pm$weight, 0.5)
+z60 <- 0.6 * med_ft; z50 <- 0.5 * med_ft
+A[, `:=`(
+  tp50       = as.integer(free_time < z50),
+  tp60       = as.integer(free_time < z60),
+  fgt1       = pmax(0, (z60 - free_time) / z60),
+  tp60_norel = as.integer(free_norel < 0.6 * med_fn),
+  longwork   = as.integer(total_work > 1.5 * med_tw),
+  cpoor      = as.integer(mpce < 0.6 * med_mp)
+)]
+A[, `:=`(tp_and_cp = tp60 * cpoor, tp_only = tp60 * (1L - cpoor), cp_only = (1L - tp60) * cpoor)]
 
-# Commuting for workers (replaces the legacy commuting paper)
-Wk <- A[employment > 0]
-g_comm <- est_gap(Wk, "commuting", "sex", "Women", "Men")
-women_less <- is_pos(g_all)
-stage_range <- diff(range(gst$est, na.rm = TRUE))
-het_range <- if (nrow(H)) max(abs(H$est), na.rm = TRUE) else NA
-stage_dominates <- isTRUE(stage_range > 2 * het_range)
-tw_more <- isTRUE(mean(gtw$est > 0, na.rm = TRUE) > 0.5)
-min_gap_stage <- as.character(gapst[which.min(gap)]$stage)
+# Gap convention throughout: women minus men.
+gwm <- function(d, y) est_gap(d, y, "sex", "Men", "Women")
+mean_by_sex <- function(d, y) { m <- est_mean(d, y, "sex"); setNames(m$est, m$group) }
+
+# ---- Headline gaps ----------------------------------------------------------
+g_ft   <- gwm(A, "free_time")
+g_fn   <- gwm(A, "free_norel")
+g_rel  <- gwm(A, "religious")
+g_tw   <- gwm(A, "total_work")
+g_sl   <- gwm(A, "sleep")
+g_sc   <- gwm(A, "selfcare_all")
+g_lrn  <- gwm(A, "learning")
+g_p60  <- gwm(A, "tp60")
+g_p50  <- gwm(A, "tp50")
+g_lw   <- gwm(A, "longwork")
+mft    <- mean_by_sex(A, "free_time")
+A[, widowed := as.integer(marital == CODE$marital["widowed"])]
+wid    <- mean_by_sex(A, "widowed")
+mrel   <- mean_by_sex(A, "religious")
+women_less <- is_neg(g_ft)
+tw_women_more <- is_pos(g_tw)
+```
+
+```{r stage-gaps}
+stage_gap <- function(y) rbindlist(lapply(STAGES, function(s) {
+  e <- gwm(A[stage == s], y)
+  data.table(stage = s, est = e$est, se = e$se, p = e$p)
+}))
+gst  <- stage_gap("free_time")
+gstn <- stage_gap("free_norel")
+gtw  <- stage_gap("total_work")
+gp60 <- stage_gap("tp60")
+gp50 <- stage_gap("tp50")
+st <- A[, .(ft = wmean(free_time, weight), n = .N, w = sum(weight)), by = .(stage, sex)]
+nst <- dcast(st, stage ~ sex, value.var = "n")
+
+worst_stage  <- gst[which.min(est)]$stage           # most negative women-minus-men gap
+best_stage   <- gst[which.max(est)]$stage
+worst_stage_n <- gstn[which.min(est)]$stage
+stage_range  <- diff(range(gst$est, na.rm = TRUE))
+tw_more_most <- isTRUE(mean(gtw$est > 0 & gtw$p < 0.05, na.rm = TRUE) > 0.5)
+ft_neg_all   <- isTRUE(all(gst$est < 0 & gst$p < 0.05))
+rank_cor_rel <- suppressWarnings(cor(gst$est, gstn$est, method = "spearman", use = "complete.obs"))
+rank_cor_pov <- suppressWarnings(cor(gp50$est, gp60$est, method = "spearman", use = "complete.obs"))
+worst_pov60  <- gp60[which.max(est)]$stage
+worst_pov50  <- gp50[which.max(est)]$stage
+pov_rank_same <- identical(worst_pov60, worst_pov50)
+rel_same_worst <- identical(worst_stage, worst_stage_n)
+```
+
+```{r kitagawa}
+# Kitagawa (1955) two-factor decomposition of the women-minus-men gap in mean y
+# into a within-stage (rate) component and a stage-composition component.
+kit <- function(d, y) {
+  s <- d[, .(w = sum(weight), f = sum(weight * get(y)) / sum(weight)), by = .(stage, sex)]
+  s[, sh := w / sum(w), by = sex]
+  W <- dcast(s, stage ~ sex, value.var = c("sh", "f"))
+  for (v in c("sh_Men", "sh_Women")) set(W, which(is.na(W[[v]])), v, 0)
+  W[, within := (sh_Women + sh_Men) / 2 * (f_Women - f_Men)]
+  W[, comp   := (sh_Women - sh_Men) * (f_Women + f_Men) / 2]
+  W[]
+}
+K  <- kit(A, "free_time");  K[, stage := factor(stage, levels = STAGES)]; setorder(K, stage)
+Kn <- kit(A, "free_norel")
+kit_tot <- function(W) c(within = sum(W$within, na.rm = TRUE), comp = sum(W$comp, na.rm = TRUE))
+kt <- kit_tot(K); ktn <- kit_tot(Kn)
+
+# FSU-cluster bootstrap of the two components.
+B <- 199
+set.seed(20241008)
+Ak <- A[, .(fsu, stage, sex, weight, free_time, free_norel)]
+setkey(Ak, fsu)
+fsus <- unique(Ak$fsu)
+bt <- t(replicate(B, {
+  d <- Ak[J(sample(fsus, replace = TRUE)), allow.cartesian = TRUE]
+  c(kit_tot(kit(d, "free_time")), kit_tot(kit(d, "free_norel")))
+}))
+kse <- apply(bt, 2, sd)
+k_within <- list(est = kt["within"], se = kse[1]); k_comp <- list(est = kt["comp"], se = kse[2])
+kn_within <- list(est = ktn["within"], se = kse[3]); kn_comp <- list(est = ktn["comp"], se = kse[4])
+k_total <- sum(kt)
+comp_share <- if (isTRUE(abs(k_total) > 0)) kt["comp"] / k_total else NA
+comp_matters <- isTRUE(abs(kt["comp"]) > 1.96 * kse[2]) && isTRUE(abs(comp_share) >= 0.2)
+within_dominant <- isTRUE(abs(kt["within"]) > abs(kt["comp"]))
+comp_same_sign <- isTRUE(sign(kt["comp"]) == sign(kt["within"]))
+```
+
+```{r heterogeneity}
+DIMS <- c(stage = "Family stage", edu_tier = "Education", mpce_quintile = "Consumption quintile",
+          social_group_f = "Social group", religion_f = "Religion", sector_f = "Sector")
+DIMS <- DIMS[names(DIMS) %in% names(A)]
+ctrl_all <- c(stage = "i(stage)", edu_tier = "i(edu_tier)", mpce_quintile = "i(mpce_quintile)",
+              social_group_f = "i(social_group_f)", religion_f = "i(religion_f)", sector_f = "urban")
+FE <- fe(A)
+wsd <- function(g, p) { ok <- !is.na(g) & !is.na(p); p <- p[ok] / sum(p[ok]); g <- g[ok]; sqrt(sum(p * (g - sum(p * g))^2)) }
+
+het_dim <- function(dv) {
+  lev <- levels(droplevels(as.factor(A[[dv]])))
+  raw <- rbindlist(lapply(lev, function(lv) {
+    dd <- A[as.character(A[[dv]]) == lv]
+    e <- gwm(dd, "free_time")
+    data.table(level = lv, raw = e$est, raw_se = e$se, w = sum(dd$weight), n = nrow(dd))
+  }))
+  # ctrl() cannot parse the two-argument i(); build the interaction terms directly.
+  rhs <- paste0("i(", dv, ", female) + i(", dv, ") + ",
+                ctrl(A, c(ctrl_all[names(ctrl_all) != dv], "hh_size", "proxy_report")))
+  m <- reg(as.formula(paste("free_time ~", rhs, FE)), A)
+  raw[, `:=`(cond = NA_real_, cond_se = NA_real_)]
+  if (!is.null(m)) {
+    ct <- coeftable(m)
+    for (i in seq_len(nrow(raw))) {
+      nm <- paste0(dv, "::", raw$level[i], ":female")
+      if (nm %in% rownames(ct)) raw[i, `:=`(cond = ct[nm, 1], cond_se = ct[nm, 2])]
+    }
+  }
+  raw[, dim := dv][]
+}
+H <- rbindlist(lapply(names(DIMS), het_dim))
+D <- H[, .(range_raw = diff(range(raw, na.rm = TRUE)), sd_raw = wsd(raw, w),
+           range_cond = if (all(is.na(cond))) NA_real_ else diff(range(cond, na.rm = TRUE)),
+           sd_cond = if (all(is.na(cond))) NA_real_ else wsd(cond, w)), by = dim]
+sd_stage <- D[dim == "stage"]$sd_cond
+sd_other_max <- max(D[dim != "stage"]$sd_cond, na.rm = TRUE)
+dim_other_max <- D[dim != "stage"][which.max(sd_cond)]$dim
+stage_dominates <- isTRUE(sd_stage > sd_other_max)
+stage_dominates_raw <- isTRUE(D[dim == "stage"]$sd_raw > max(D[dim != "stage"]$sd_raw, na.rm = TRUE))
+base_rhs <- ctrl(A, c("female", ctrl_all, "hh_size", "proxy_report"))
+base_gap <- coef_of(reg(as.formula(paste("free_time ~", base_rhs, FE)), A), "female")
+```
+
+```{r poverty}
+pov_lab <- c(tp50 = "Free time below 50% of median",
+             tp60 = "Free time below 60% of median",
+             fgt1 = "Free-time poverty gap index, 60% line (x 100)",
+             tp60_norel = "Free time excl. religious practice below 60% of its median",
+             longwork = "Total work above 1.5 times the median",
+             cpoor = "Consumption-poor (MPCE below 60% of median)",
+             tp_and_cp = "Time-poor and consumption-poor",
+             tp_only = "Time-poor only",
+             cp_only = "Consumption-poor only")
+PV <- rbindlist(lapply(names(pov_lab), function(v) {
+  m <- mean_by_sex(A, v); e <- gwm(A, v)
+  data.table(v = v, Measure = pov_lab[[v]], Men = m["Men"], Women = m["Women"],
+             est = e$est, se = e$se, p = e$p)
+}))
+g_both  <- gwm(A, "tp_and_cp"); g_cp <- gwm(A, "cpoor"); g_fgt <- gwm(A, "fgt1")
+g_pn    <- gwm(A, "tp60_norel")
+# Is time poverty concentrated among the consumption-poor?
+tp_by_cp <- function(sx) {
+  d <- A[sex == sx & !is.na(cpoor)]
+  e <- est_gap(d, "tp60", "cpoor", 0, 1)   # consumption-poor minus non-poor
+  e
+}
+tpcp_w <- tp_by_cp("Women"); tpcp_m <- tp_by_cp("Men")
+tp_poor_less_w <- is_neg(tpcp_w)
+tp_poor_more_w <- is_pos(tpcp_w)
+pov_gap_both_lines <- is_pos(g_p50) && is_pos(g_p60)
+```
+
+```{r retirement}
+R <- A[age >= 55 & age <= 70 & (worker == 1 | pensioner == 1)]
+nR <- R[, .N, by = .(sex, pensioner)]
+nR_w_pen <- nR[sex == "Women" & pensioner == 1]$N; if (!length(nR_w_pen)) nR_w_pen <- 0
+nR_m_pen <- nR[sex == "Men" & pensioner == 1]$N; if (!length(nR_m_pen)) nR_m_pen <- 0
+ret_out <- c(free_time = "Free time", free_norel = "Free time excl. religious practice",
+             religious = "Religious practice", socialising = "Socialising and talking",
+             mass_media = "Mass media", employment = "Employment",
+             unpaid_total = "Unpaid domestic and care work", total_work = "Total work",
+             sleep = "Sleep")
+rc <- ctrl(R, c("i(age)", "urban", "i(edu_tier)", "i(mpce_quintile)", "i(social_group_f)",
+                "i(religion_f)", "hh_size", "proxy_report"))
+FEr <- fe(R)
+ret_fit <- function(y, sx) {
+  d <- R[sex == sx]
+  if (d[pensioner == 1, .N] < 10 || d[pensioner == 0, .N] < 10) return(list(est = NA, se = NA, p = NA))
+  coef_of(reg(as.formula(paste(y, "~ pensioner +", rc, FEr)), d), "pensioner")
+}
+ret_int <- function(y) coef_of(reg(as.formula(paste(y, "~ pensioner * female +", rc, FEr)), R), "pensioner:female")
+RT <- rbindlist(lapply(names(ret_out), function(y) {
+  m <- ret_fit(y, "Men"); w <- ret_fit(y, "Women"); x <- ret_int(y)
+  data.table(y = y, lab = ret_out[[y]], m_est = m$est, m_se = m$se, m_p = m$p,
+             w_est = w$est, w_se = w$se, w_p = w$p, x_est = x$est, x_se = x$se, x_p = x$p)
+}))
+rget <- function(outc, who) { r <- RT[RT$y == outc]; list(est = r[[paste0(who, "_est")]], se = r[[paste0(who, "_se")]], p = r[[paste0(who, "_p")]]) }
+r_ft_m <- rget("free_time", "m"); r_ft_w <- rget("free_time", "w"); r_ft_x <- rget("free_time", "x")
+r_up_m <- rget("unpaid_total", "m"); r_up_w <- rget("unpaid_total", "w")
+r_tw_m <- rget("total_work", "m"); r_tw_w <- rget("total_work", "w")
+g_ft_pen <- gwm(R[pensioner == 1], "free_time")
+g_ft_wrk <- gwm(R[pensioner == 0], "free_time")
+ret_gap_narrower <- isTRUE(abs(g_ft_pen$est) < abs(g_ft_wrk$est))
+ret_gain_men <- is_pos(r_ft_m); ret_gain_women <- is_pos(r_ft_w)
+ret_homeprod_men <- is_pos(r_up_m)
+ret_gain_differs <- is_sig(r_ft_x)
+few_women_pen <- nR_w_pen < 200
+```
+
+```{r commuting}
+Wk <- A[worker == 1 & employment > 0]
+Wk[, any_comm := as.integer(commuting > 0)]
+Wk[, comm_share := commuting / employment]
+comm_vars <- c(any_comm = "Any commuting on diary day (share)", commuting = "Commuting, minutes",
+               paid_work = "Paid work excl. travel, minutes", comm_share = "Commuting as share of employment time",
+               free_time = "Free time, minutes", total_work = "Total work, minutes")
+comm_vars <- comm_vars[names(comm_vars) %in% names(Wk)]
+CM <- rbindlist(lapply(names(comm_vars), function(v) {
+  m <- mean_by_sex(Wk, v); e <- gwm(Wk, v)
+  eu <- gwm(Wk[urban == 1], v); er <- gwm(Wk[urban == 0], v)
+  data.table(v = v, lab = comm_vars[[v]], Men = m["Men"], Women = m["Women"], est = e$est, se = e$se,
+             u_est = eu$est, u_se = eu$se, r_est = er$est, r_se = er$se)
+}))
+g_comm   <- gwm(Wk, "commuting")
+g_anyc   <- gwm(Wk, "any_comm")
+g_comm_c <- gwm(Wk[commuting > 0], "commuting")
+g_comm_u <- gwm(Wk[urban == 1], "commuting")
+g_comm_r <- gwm(Wk[urban == 0], "commuting")
+g_ft_wk  <- gwm(Wk, "free_time")
+cc <- ctrl(Wk, c("paid_work", "i(age_band)", "urban", "i(edu_tier)", "i(mpce_quintile)", "i(stage)",
+                 "i(social_group_f)", "hh_size", "proxy_report"))
+FEw <- fe(Wk)
+cm_fit <- function(sx) coef_of(reg(as.formula(paste("free_time ~ commuting +", cc, FEw)), Wk[sex == sx]), "commuting")
+b_cm_m <- cm_fit("Men"); b_cm_w <- cm_fit("Women")
+b_cm_x <- coef_of(reg(as.formula(paste("free_time ~ commuting * female +", cc, FEw)), Wk), "commuting:female")
+women_commute_less <- is_neg(g_comm)
+women_commute_more <- is_pos(g_comm)
+comm_cost_w_larger <- is_neg(b_cm_x)
+comm_cost_sig_w <- is_neg(b_cm_w); comm_cost_sig_m <- is_neg(b_cm_m)
+```
+
+```{r composition}
+comp_vars <- c(socialising = "Socialising and talking", community = "Community participation",
+               religious = "Religious practice", social_other = "Other social activities",
+               culture_events = "Attending cultural events", hobbies_games = "Hobbies and games",
+               exercise_sport = "Exercise and sport", mass_media = "Mass media (TV, radio, reading)",
+               resting = "Resting and relaxing", leisure_other = "Other leisure")
+comp_vars <- comp_vars[names(comp_vars) %in% names(A)]
+CP <- rbindlist(lapply(names(comp_vars), function(v) {
+  m <- mean_by_sex(A, v); e <- gwm(A, v)
+  A[, .pz := as.integer(get(v) > 0)]
+  pz <- mean_by_sex(A, ".pz"); A[, .pz := NULL]
+  data.table(v = v, lab = comp_vars[[v]], Men = m["Men"], Women = m["Women"], est = e$est, se = e$se, p = e$p,
+             pm = pz["Men"], pw = pz["Women"])
+}))
+largest_comp <- CP[which.min(est)]$lab           # component where women's shortfall is largest
+women_more_comp <- CP[est > 0 & p < 0.05]$lab
+g_media <- gwm(A, "mass_media"); g_rest <- gwm(A, "resting"); g_soc <- gwm(A, "socialising")
+g_sec   <- gwm(A, "sec_free_time")
+g_cont  <- if (have_pairs) gwm(A, "ft_contam") else list(est = NA, se = NA, p = NA)
+rel_women_more <- is_pos(g_rel)
+rel_closes <- isTRUE(abs(g_fn$est) > abs(g_ft$est))
 ```
 
 \begin{abstract}
-Free time is a basic dimension of well-being, but gender gaps in it are usually reported as a single national average. I use every diary in India's Time Use Survey 2024 (`r fn(V$n_persons)` persons) to trace the free-time gap between men and women across family stages: youth, marriage with young children, marriage with school-age children, later working life and old age. Men aged 15 and above have `r f0(abs(g_all$est))` `r more_less(g_all$est, "more", "fewer")` minutes of free time a day than women (SE `r f1(g_all$se)`), and do `r f0(abs(g_tw$est))` `r more_less(g_tw$est, "more", "fewer")` minutes of total paid and unpaid work. The gap is largest at the stage "`r tolower(max_gap_stage)`". Women are `r diff_pp(g_pov, "more", "less")` likely than men to be time-poor (free time below 60\% of the median). `r iff(stage_dominates, 'The gap varies far less across education, consumption, caste and religion than across family stages, so life-course position, more than social group, organises gender inequality in leisure.', 'The gap varies across social groups as much as across family stages.')` I also report how the composition of free time differs, from socialising and religious practice to media and exercise.
-\keywords{free time, leisure, time poverty, life course, gender, well-being, India}
-\jel{D13, I31, J16, J22}
+Free time is a basic dimension of well-being, yet gender gaps in it are usually reported as a single national average. Using every diary in India's Time Use Survey 2024 (`r fn(V$n_persons)` persons), I trace the women-minus-men gap in free time, and in time poverty, across seven family stages from youth to old age. Women aged 15 and above have `r f0(abs(g_ft$est))` minutes `r more_less(g_ft$est, "more", "less")` free time a day than men (SE `r f1(g_ft$se)`) and do `r f0(abs(g_tw$est))` minutes `r more_less(g_tw$est, "more", "less")` total paid and unpaid work. The gap is widest among persons ```r tolower(worst_stage)`''. A Kitagawa decomposition splits the women-minus-men gap of `r f1(k_total)` minutes into `r f1(kt["within"])` minutes arising within stages and `r f1(kt["comp"])` minutes arising from the different distribution of men and women across stages. Women are `r f1(100 * abs(g_p60$est))` percentage points `r more_less(g_p60$est, "more", "less")` likely than men to be time-poor at a line of 60\% of median free time, and `r f1(100 * abs(g_p50$est))` points `r more_less(g_p50$est, "more", "less")` at 50\%. `r iff(stage_dominates, 'Conditional on covariates, the gap varies more across family stages than across education, consumption, caste, religion or sector.', 'Conditional on covariates, the gap varies across at least one social dimension as much as across family stages.')` I also report the gap with religious practice excluded from free time, a joint time and consumption poverty measure, the free-time difference between pensioners and workers aged 55 to 70, and the time cost of commuting for employed men and women.
+\keywords{free time, leisure, time poverty, life course, gender, retirement, commuting, India}
+\jel{D13, I31, I32, J16, J22}
 \end{abstract}
 
 \newpage
 
 # Introduction
 
-Time is a resource, and free time is one of the clearest measures of well-being that it yields. People with little discretionary time are "time-poor" even if their income is adequate [@vickery1977time; @bardasi2010working]. In rich countries, the study of leisure inequality has shown that free time has diverged by education [@aguiar2007measuring; @sevilla2012leisure] and that women's leisure is both shorter and more fragmented than men's [@bittman2000rush; @mattingly2003free]. Evidence for India, where women's paid and unpaid work combined typically exceeds men's [@hirway2011understanding; @burda2013total], is limited to national averages.
+Time is a resource, and free time is one of the clearest measures of well-being that a time budget yields. A person with little discretionary time is constrained even when household income is adequate, because the hours needed to earn, cook, clean and care leave no room for rest, social life or civic participation [@vickery1977time; @goodin2008discretionary]. The Commission on the Measurement of Economic Performance and Social Progress recommended that leisure and the distribution of time enter the measurement of social progress alongside income [@stiglitz2009report], and time-use surveys are the instrument that makes this possible [@juster1991allocation; @krueger2009national].
 
-Averages obscure when in life the gap is incurred. A young unmarried woman, a mother of a toddler and a grandmother live very different days, and so do their male counterparts. This paper describes the free-time gap over the life course using India's Time Use Survey 2024 [@nso2025tus]. I define seven family stages from age, marital status and household composition, and measure free time as the sum of ICATUS divisions 7 and 8 (socialising, community participation, religious practice, culture, leisure, mass media and sports).
+In high-income countries, a large literature has documented how leisure is distributed. Leisure has risen over the long run but has diverged by education [@aguiar2007measuring; @ramey2009century; @sevilla2012leisure]. Women's free time is shorter than men's and is more often fragmented or combined with childcare [@bittman2000rush; @mattingly2003free], and the gender gap in free time persisted as paid and unpaid work converged [@sayer2005gender]. In developing countries the evidence is thinner. Women's long combined hours of paid and unpaid work have been documented for India and for other low- and middle-income countries [@hirway2011understanding; @antonopoulos2010unpaid; @charmes2019unpaid], and time poverty has been measured in Guinea, Guatemala and parts of Latin America [@bardasi2010working; @gammage2010time; @zacharias2012why]. Evidence on how the free-time gap in India varies over the life course, and on how much of it is a matter of life stage rather than social position, is scarce.
 
-Three findings stand out. First, men have `r diff_txt(g_all)` free time than women overall, and men do `r diff_txt(g_tw)` total work. Second, the gap is largest for "`r tolower(max_gap_stage)`" (`r f0(max(gapst$gap, na.rm = TRUE))` minutes) and varies across stages. Third, the range of the gap across family stages is `r f0(stage_range)` minutes, against a largest social-group interaction of `r f0(het_range)` minutes (Table \ref{tab:het}). `r iff(stage_dominates, 'The free-time gap in India is mainly a function of position in the family life cycle, not of social group.', 'Social position matters for the gap about as much as family stage does.')`
+A single national average hides when in life the gap is incurred. A young unmarried woman, a mother of a toddler and a grandmother live very different days, and so do their male counterparts. If the gap is concentrated in a few family stages, policy that targets women by income or caste will reach the wrong people at the wrong time. This paper describes the free-time gap over the life course using all `r fn(V$n_persons)` diaries in India's Time Use Survey 2024 [@nso2025tus]. I define seven family stages from age, marital status and household composition. Free time is the sum of ICATUS 2016 divisions 7 and 8: socialising, community participation, religious practice, culture, leisure, mass media and sports [@un2016icatus].
 
-Rather than estimating the gap one dimension at a time (education, employment, religion, caste, household size, commuting, retirement, parenthood), the paper places all of them in a single descriptive framework organised by family stage.
+The analysis has six parts. First, I estimate the gender gap in free time and in total work by family stage. Second, a Kitagawa decomposition separates the national gap into a within-stage component and a component due to men and women being distributed differently across stages [@kitagawa1955components]. Third, I measure time poverty in three ways: a relative free-time line at 50% and 60% of the median, a long-hours line on total work, and a two-dimensional measure that crosses time poverty with consumption poverty [@burchardt2008time; @merz2014time]. Fourth, I report every main result with and without religious practice in free time, because whether worship is discretionary is contested. Fifth, I compare the conditional dispersion of the gap across family stages with its dispersion across education, consumption, caste, religion and sector. Sixth, I examine two transitions that the life-course literature emphasises: retirement, by comparing pensioners with workers aged 55 to 70, and the journey to work, by measuring commuting among the employed.
+
+The headline findings are as follows. Women have `r diff_txt(g_ft)` free time than men, and do `r diff_txt(g_tw)` total work. The gap is widest for persons "`r tolower(worst_stage)`" (`r est_se(gst[stage == worst_stage])`) and narrowest for "`r tolower(best_stage)`" (`r est_se(gst[stage == best_stage])`). Of the national gap of `r f1(k_total)` minutes, `r f1(kt["within"])` minutes (bootstrap SE `r f1(kse[1])`) arise within stages and `r f1(kt["comp"])` minutes (SE `r f1(kse[2])`) from stage composition. `r iff(stage_dominates, 'The conditional gap is more dispersed across family stages than across any social dimension, so life-course position organises the gender gap in leisure more than social group does.', paste0('The conditional gap is at least as dispersed across ', tolower(DIMS[[dim_other_max]]), ' as across family stages, so social position shapes the gap as much as life-course position does.'))` Women are `r diff_pp(g_p60, "more", "less")` likely than men to be time-poor at the 60% line, and `r diff_pp(g_p50, "more", "less")` at the 50% line.
+
+The paper contributes to the social-indicators literature in three ways. It provides a life-course profile of the free-time gap and of time poverty for the world's most populous country from a complete national diary survey. It shows how sensitive time-poverty comparisons are to the choice of line, to the treatment of religious practice and to whether income is considered jointly. And it consolidates into one framework a set of dimensions (parenthood, education, employment, retirement, commuting, religion, caste, household size) that are often studied one at a time.
 
 # Related literature
 
-*Leisure and its measurement.* @aguiar2007measuring measure leisure trends with complete time budgets and find rising leisure in the United States, concentrated among the less educated. @sevilla2012leisure show growing leisure inequality by education, both in quantity and quality. @robinson1997time and @gershuny2000changing provide long-run perspectives. @kahneman2004drm show that activities differ in experienced well-being, so the composition of free time matters as well as its quantity.
+## Measuring leisure and its distribution
 
-*Gender and free time.* @mattingly2003free show that women's free time is shorter and more often contaminated by childcare. @bittman2000rush find that women's leisure is more fragmented. @hamermesh2007stressed document that subjective time stress is concentrated among those with high earnings and family obligations. @sayer2005gender shows that the gender gap in free time persisted as paid and unpaid work converged.
+Time-use research distinguishes three ways of defining leisure [@juster1991allocation; @aguiar2012recent]. The activity approach, used here, counts minutes spent in activities classified as leisure. The residual approach counts the time left over after paid work, unpaid work and personal care. The subjective approach asks people whether they experienced an activity as free. The activity approach has the advantage of being replicable across surveys that share a classification such as ICATUS, and it is the basis for the long-run series in @robinson1997time, @gershuny2000changing, @aguiar2007measuring and @ramey2009century. @aguiar2007measuring show that leisure in the United States rose between 1965 and 2003, and that the gains were largest for less-educated adults. @sevilla2012leisure find that leisure inequality by education grew over the same period in both quantity and quality. Cross-country comparisons confirm rising leisure in most industrialised countries [@gimenez2012trends].
 
-*Time poverty.* @vickery1977time introduced time poverty as a complement to income poverty. @bardasi2010working operationalise it for a developing country and find women in Guinea more time-poor than men.
+Minutes of leisure are not the same as well-being. The Day Reconstruction Method showed that activities differ widely in experienced affect, so the composition of free time matters as well as its quantity [@kahneman2004drm; @kahneman2006developments]. National time accounting proposes weighting time by its experienced quality [@krueger2009national]. @goodin2008discretionary go further and define discretionary time: the hours left after the time strictly necessary to reach a socially defined minimum in income, household work and personal care. @goodin2005illusion show that free time and discretionary time can give different answers about who is pressed for time. Other work stresses that the experience of time pressure has a social meaning of its own [@gershuny2005busyness; @wajcman2015pressed] and that self-reported time stress rises with earnings and family obligations [@hamermesh2007stressed]. @hamermesh2019spending surveys this economics of time.
 
-*Life course.* Free time rises sharply at retirement, partly offset by more home production [@aguiar2005consumption; @stancanelli2012retirement], and falls with young children [@craig2007contemporary; @kleven2019denmark]. Commuting is a further drain on time with documented well-being costs [@stutzer2008commuting].
+## Gender and the quantity and quality of free time
 
-# Data
+The gender gap in free time is one of the most stable findings in time-use research. In the United States, women have less free time than men, and their free time is more often combined with other activities, especially childcare [@mattingly2003free]. In Australia, women's leisure is more fragmented and less often "pure" adult leisure [@bittman2000rush]. @sayer2005gender shows that the gender gap in free time persisted while men's and women's paid and unpaid work converged. Leisure quality matters for the gender comparison because overlapping activities intensify work [@floro1995women; @floro2003overlapping]. @mattingly2006pressure find that the relation between free time and feeling rushed differs between women and men.
 
-I use every activity record of the Time Use Survey 2024 (`r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries, `r fn(V$n_households)` households). Major activities are summed to the person-day, and diaries sum to 1,440 minutes (`r pct(V$share_diaries_1440)`). The sample is the `r fn(nrow(A))` men and women aged 15 and above. Free time is ICATUS divisions 7 and 8. Total work is employment (including travel), own-use production of goods, unpaid domestic and care services, and volunteering. Children under six, who keep no diaries, are counted from household size. The time-poverty line is 60% of the weighted median free time (`r f0(med_ft)` minutes).
+The arrival of children is the life-course event most clearly associated with lost leisure. Mothers absorb more of the extra childcare time than fathers [@bianchi2006changing; @craig2007contemporary; @craig2011share], and in a comparison of five countries mothers have less leisure than fathers, with less of it free of children [@craig2013parental]. Gender differences in free time are also shaped by class: among British workers, free-time poverty is concentrated in particular class positions as well as among women [@chatzitheochari2012class]. Whether the gender gap in free time is larger across family stages or across social groups is therefore an empirical question.
+
+## Time poverty: competing measures
+
+@vickery1977time introduced time poverty by noting that a household needs a minimum of both money and time for home production, so that an income poverty line that ignores time understates deprivation among households with few adults. Three families of measures have since developed [@williams2016measure].
+
+The first sets a threshold on free time, typically a fraction of the median, in the tradition of relative income poverty lines such as the European convention of 60% of median income [@atkinson2002social]. Relative free-time lines have been used to compare groups within countries [@chatzitheochari2012class], and @kalenkoski2011thresholds derive time-poverty thresholds and rates for the US population that differ by household type. The second sets a threshold on working time. @bardasi2010working classify as time-poor those whose total paid and unpaid working hours exceed a multiple of the median, and show that women in Guinea are more often time-poor than men. @blackden2006gender and @gammage2010time document long working hours and their gendered distribution in Sub-Saharan Africa and Guatemala. The third family is two-dimensional. @burchardt2008time models the joint space of time and income for British households; @harvey2007twentyfour measure the time poverty of working parents in Canada; @merz2014time propose an interdependent measure for Germany in which a shortfall in one dimension can be compensated by the other; and @zacharias2012why construct a time-adjusted income poverty measure for Latin American countries in which the cost of replacing missing household production is added to the poverty line. Multidimensional counting approaches give a general framework for such joint measures [@alkire2011counting], and poverty gap indices summarise depth as well as incidence [@foster1984class].
+
+The choice among these measures matters. A free-time line classifies as poor people with long hours of personal care; a work-time line classifies as poor anyone with long hours, including the well paid. Two-dimensional measures deal with the second objection but require income data. This paper reports all three, with consumption standing in for income.
+
+## The life course and retirement
+
+The life-course perspective treats the timing of transitions, and the lives linked to one's own, as determinants of outcomes at each age [@elder1994time]. For time use, the transitions that matter most are marriage, the arrival and ageing of children, and exit from paid work. Free time rises at older ages in high-income countries, with much of the gain going to passive leisure such as television [@gauthier2003time]. Retirement frees time but part of it goes to home production: @aguiar2005consumption show that retirees spend more time on food production and shopping, and @stancanelli2012retirement find, using a regression discontinuity at the French retirement age, that retirement raises housework. Whether retirement narrows or widens the gender gap in free time therefore depends on how men and women reallocate the freed hours. In India, formal retirement with a pension is the experience of a minority of older people, and population ageing is raising the policy salience of their well-being [@iips2020lasi; @unfpa2023ageing].
+
+## Commuting and well-being
+
+Commuting is a large and growing claim on the working day in urbanising economies, and it is among the least enjoyed activities of the day [@kahneman2004drm]. @stutzer2008commuting find that German commuters report lower life satisfaction and are not compensated by higher wages or better housing, a "commuting paradox". @roberts2011driving find that commuting harms women's psychological health more than men's in Britain, which they attribute to women's greater responsibility for household work. Women tend to work closer to home [@hanson1995gender] and, in French job-search data, value shorter commutes more than men do [@lebarbanchon2021gender]. A shorter commute leaves more time for other activities but may come with a lower wage or a narrower set of jobs.
+
+## Leisure and time use in developing countries and India
+
+Time-use surveys in the Global South have expanded rapidly, and they show that measuring women's work requires capturing unpaid and own-use production [@esquivel2008explorations; @antonopoulos2010unpaid]. In India, analyses of the 1998--99 pilot time-use survey documented women's large unpaid workloads [@hirway2011understanding], and the first national survey in 2019 provided national estimates [@nso2020tus]. Women's paid work in India is shaped by marriage, social norms about mobility and household status [@klasen2015stagnation; @afridi2018married; @jayachandran2021social; @fletcher2017women], and these same constraints bear on how women can use free time outside the home. Total work tends to be higher for women than for men in poorer countries [@burda2013total], so in India the free-time gap is likely to reflect a total-work gap rather than a different mix of paid and unpaid work. The life-course profile of free time in India, and the robustness of gendered time-poverty comparisons to measurement choices, have not been documented from a complete national diary survey.
+
+# Data and measures
+
+## The Time Use Survey 2024
+
+The Time Use Survey 2024 was fielded by the National Statistics Office between January and December 2024 [@nso2025tus]. Members aged six and above in each sampled household reported their activities over the 24 hours from 4 a.m. on the day before the interview, in 30-minute slots following the design of the 2019 round, with each activity coded to the ICATUS 2016 three-digit classification [@un2016icatus]. Each slot can hold several activities, one of which is flagged as the major activity. I use every activity record (`r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries, `r fn(V$n_households)` households in `r fn(V$n_fsu)` first-stage units). Major activities are summed to the person-day, so each diary sums to 1,440 minutes (`r pct(V$share_diaries_1440)` of diaries do). Minor activity records are used only to measure secondary activities during free time. Table \ref{tab:validation} in the appendix summarises the construction checks.
+
+The analysis sample is the `r fn(n_A0)` men and women aged 15 and above. `r iff(n_nostage > 0, paste0('A further ', fn(n_nostage), ' married persons below 60 whose number of children under six cannot be recovered (because the reported household size is smaller than the number of diarists) are excluded, leaving ', fn(nrow(A)), ' persons.'), paste0('Every person can be assigned to a family stage, so the sample is ', fn(nrow(A)), ' persons.'))` All estimates use the survey multipliers.
+
+## Free time and its components
+
+Free time is the sum of minutes in ICATUS divisions 7 (socialising and communication, community participation, religious practice) and 8 (culture, leisure, mass media and sports). I report ten components: socialising and talking, community participation, religious practice, other social activities, attending cultural events, hobbies and games, exercise and sport, mass media, resting and relaxing, and other leisure. Because religious practice is an obligation for some and a chosen activity for others, I construct a second measure, free time excluding religious practice, and report every main result for both.
+
+Total work is the sum of employment (including employment-related travel and commuting), own-use production of goods, unpaid domestic services, unpaid care for household members, and unpaid volunteer work: ICATUS divisions 1 to 5. Commuting is ICATUS code 182, travel between home and the place of work.
+
+Two measures of free-time quality are available. Secondary free time is minutes of free-time activities recorded as minor activities in a slot. Free time accompanied by unpaid work is the number of minutes of minor domestic or care activities recorded within a major free-time episode, matched by start time. This is a lower bound on what @mattingly2003free call contaminated free time, because only activities that respondents report as simultaneous are captured.
+
+## Family stages
+
+I assign each person to one of seven stages:
+
+1. *Young, never married (15--24).*
+2. *Married, child under 6 in household*: currently married, below 60, and at least one child under six lives in the household.
+3. *Married, child 6--14 in household*: as above, with no child under six and at least one child aged 6 to 14.
+4. *Married, no child under 15*: currently married, below 60, with no child under 15 in the household.
+5. *Other not married (15--59)*: never married aged 25 to 59, and widowed, divorced or separated persons aged 15 to 59.
+6. *Aged 60--69*, and 7. *Aged 70+*, regardless of marital status.
+
+Children under six do not keep diaries, so their number is household size minus the number of diarists. Children are counted at the household level, so the "child under 6" stage includes grandparents below 60 living with young grandchildren. The stages are cross-sectional positions, not transitions observed for the same people; the profile they trace combines life-course and cohort differences.
+
+## Poverty lines
+
+The relative time-poverty lines are 50% and 60% of the weighted median of free time among persons 15 and above (`r f0(med_ft)` minutes, so the lines are `r f0(z50)` and `r f0(z60)` minutes). At the 60% line I also report the poverty gap index, the mean of the proportional shortfall below the line [@foster1984class]. The line for free time excluding religious practice is 60% of its own median (`r f0(med_fn)` minutes). The long-hours line follows the logic of @bardasi2010working: total work above 1.5 times its median (`r f0(med_tw)` minutes). For the two-dimensional measure, a person is consumption-poor if household monthly per capita consumption expenditure (MPCE) is below 60% of the person-weighted median (`r f0(med_mp)` rupees). Crossing this with the 60% free-time line gives four groups: neither poor, time-poor only, consumption-poor only, and both. Consumption is measured for the household, so any gender gap in consumption poverty reflects only differences in the households that men and women live in, not intra-household allocation.
+
+# Methods
+
+All means and gaps are survey-weighted. Gaps are reported as women minus men, so a negative free-time gap means women have less. Standard errors are clustered on the first-stage unit, the primary sampling unit of the survey design [@cameron2015practitioner; @abadie2023cluster]. Strata are not used, which makes the standard errors conservative.
+
+**Decomposition.** Let $s_{gk}$ be the population share of sex $g$ in stage $k$ and $\bar F_{gk}$ the mean free time of that cell. The national gap $\bar F_W - \bar F_M = \sum_k s_{Wk}\bar F_{Wk} - \sum_k s_{Mk}\bar F_{Mk}$ is decomposed following @kitagawa1955components as
+$$
+\bar F_W - \bar F_M = \underbrace{\sum_k \tfrac{s_{Wk}+s_{Mk}}{2}\,(\bar F_{Wk}-\bar F_{Mk})}_{\text{within stages}} + \underbrace{\sum_k (s_{Wk}-s_{Mk})\,\tfrac{\bar F_{Wk}+\bar F_{Mk}}{2}}_{\text{stage composition}}.
+$$
+The within-stage component is the gap that would remain if men and women were distributed identically across stages. The composition component arises because, for example, women marry younger than men and are more often widowed. The symmetric weights avoid the index-number problem of choosing men or women as the reference, which arises in the regression-based analogue [@oaxaca1973male; @blinder1973wage]. Standard errors for the two components come from `r B` bootstrap replications that resample first-stage units.
+
+**Heterogeneity.** For each dimension $D$ (family stage, education, consumption quintile, social group, religion, sector) I estimate
+$$
+F_i = \sum_{d} \gamma_d\, \mathbf{1}[D_i = d]\times W_i + \sum_d \alpha_d\,\mathbf{1}[D_i=d] + X_i'\beta + \mu_{s(i)} + \tau_{t(i)} + \varepsilon_i,
+$$
+where $W_i$ indicates a woman, $X_i$ contains the other dimensions, household size and an indicator for a proxy-reported diary, and $\mu$ and $\tau$ are state and day-of-week fixed effects. Each $\gamma_d$ is the conditional women-minus-men gap at level $d$. I summarise how much the gap varies along a dimension by the population-weighted standard deviation of the $\gamma_d$ across its levels, and also report the range. The comparison of dispersions is descriptive: a dimension with more levels or finer categories can show more dispersion mechanically.
+
+**Retirement.** Among persons aged 55 to 70 whose usual principal status is either working or pensioner, I regress each time-use outcome on a pensioner indicator, single-year-of-age dummies, sector, education, consumption quintile, social group, religion, household size, proxy report, and state and day fixed effects, separately for men and women. A pooled model with a pensioner-by-woman interaction tests whether the pensioner difference differs by sex. Status is self-reported and retirement is not randomly assigned, so the estimates describe how pensioners' days differ from those of otherwise similar workers, not the causal effect of retirement.
+
+**Commuting.** Among persons whose usual status is working and who did some employment on the diary day, I estimate the gender gap in commuting and the association between commuting minutes and free time, holding minutes of paid work, age band, sector, education, consumption quintile, family stage, social group and household size constant.
 
 # Results
 
-## Over the life course
+## Free time and total work over the life course
 
 ```{r fig-stage, fig.cap = paste0("Free time by family stage and sex", syn_note()), fig.height = 3.8}
-st[, stage := factor(stage, levels = levels(A$stage))]
+st[, stage := factor(stage, levels = STAGES)]
 ggplot(st, aes(ft, stage, fill = sex)) + geom_col(position = position_dodge(0.75), width = 0.7) +
   scale_fill_manual(values = SEX_COLS, name = NULL) + scale_y_discrete(limits = rev) +
-  labs(x = "Free time, minutes per day", y = NULL, caption = "Persons 15+. Survey-weighted means. Free time = ICATUS divisions 7 and 8.")
+  labs(x = "Free time, minutes per day", y = NULL,
+       caption = "Persons 15+. Survey-weighted means. Free time = ICATUS divisions 7 and 8.")
 ```
 
 ```{r tab-stage}
-tb <- merge(gst, gtw, by = "stage", suffixes = c("_ft", "_tw"))
-tb[, stage := factor(stage, levels = levels(A$stage))]; setorder(tb, stage)
-tab(data.frame(Stage = tb$stage,
-               `Free time: men minus women` = paste0(f1(tb$est_ft), " (", f1(tb$se_ft), ")"),
-               `Total work: women minus men` = paste0(f1(tb$est_tw), " (", f1(tb$se_tw), ")"), check.names = FALSE),
-    caption = paste0("Gender gaps in free time and total work by family stage", syn_note()), label = "stage", align = c("l", "r", "r"),
-    notes = "Persons 15+. Survey-weighted differences; FSU-clustered SEs in parentheses.")
+tb <- data.table(stage = STAGES)
+tb <- merge(tb, nst, by = "stage", sort = FALSE)
+cell <- function(x) paste0(f1(x$est), stars(x$p), " (", f1(x$se), ")")
+tb[, c_ft := cell(gst[match(stage, gst$stage)])]
+tb[, c_fn := cell(gstn[match(stage, gstn$stage)])]
+tb[, c_tw := cell(gtw[match(stage, gtw$stage)])]
+tab(data.frame(Stage = tb$stage, `N men` = fn(tb$Men), `N women` = fn(tb$Women),
+               `Free time` = tb$c_ft, `Free time excl. religion` = tb$c_fn, `Total work` = tb$c_tw,
+               check.names = FALSE),
+    caption = paste0("Women-minus-men gaps in free time and total work by family stage, minutes per day", syn_note()),
+    label = "stage", align = c("l", "r", "r", "r", "r", "r"),
+    notes = "Persons 15+. Survey-weighted differences in means, women minus men; FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
-Figure \ref{fig:fig-stage} and Table \ref{tab:stage} trace the gap. The gap is smallest for "`r tolower(min_gap_stage)`" and largest for "`r tolower(max_gap_stage)`". `r iff(tw_more, 'Women\'s total work exceeds men\'s at most stages, so the free-time gap reflects a total-work gap, not just a different mix of paid and unpaid work.', 'Women\'s total work does not exceed men\'s at most stages, so the free-time gap partly reflects differences in sleep and self-care.')`
+Figure \ref{fig:fig-stage} shows mean free time by stage and sex, and Table \ref{tab:stage} reports the women-minus-men gaps. Men aged 15 and above have `r f0(mft["Men"])` minutes of free time a day and women `r f0(mft["Women"])`. `r iff(ft_neg_all, 'Women have significantly less free time than men at every stage.', 'The gap is not uniformly negative and significant across stages.')` The gap is widest for "`r tolower(worst_stage)`" and narrowest for "`r tolower(best_stage)`"; the difference between these two stages is `r f0(stage_range)` minutes.
 
-## Who is time-poor
+`r iff(tw_more_most, 'Women do significantly more total work than men at most stages, so the free-time gap reflects a gap in total work and not merely a different mix of paid and unpaid work. This is the pattern expected for a lower-income country [@burda2013total].', 'Women do not do significantly more total work than men at most stages, so part of the free-time gap must come from other uses of time, such as sleep, personal care and learning.')` Across all persons 15+, women's sleep differs from men's by `r est_se(g_sl)`, all personal care by `r est_se(g_sc)` and learning by `r est_se(g_lrn)`. Because the day is fixed at 1,440 minutes, the free-time gap equals minus the sum of the gaps in total work, learning and personal care; these figures show where women's shortfall in free time is absorbed.
 
-Women are `r diff_pp(g_pov, "more", "less")` likely than men to fall below the time-poverty line.
+## Within-stage gaps and stage composition
 
-## Does social position matter?
-
-```{r tab-het}
-dl <- c(edu_tier = "Education", mpce_quintile = "Consumption quintile", social_group_f = "Social group", religion_f = "Religion")
-if (nrow(H)) {
-  tab(data.frame(Dimension = dl[H$dim], Level = H$level, `Additional women's gap` = paste0(f1(H$est), stars(H$p)), SE = f1(H$se), check.names = FALSE),
-      caption = paste0("Heterogeneity of the women-minus-men free-time gap, conditional on family stage", syn_note()), label = "het",
-      align = c("l", "l", "r", "r"),
-      notes = paste0("Interactions of woman with each category (reference: first category), controlling for family stage, urban, education, consumption quintile, social group, religion, household size, proxy report, state and day fixed effects. Baseline conditional gap: ", f1(base_gap$est), " minutes (SE ", f1(base_gap$se), ")."))
-}
+```{r fig-kitagawa, fig.cap = paste0("Contributions of each family stage to the women-minus-men free-time gap", syn_note()), fig.height = 3.6}
+Kl <- melt(K[, .(stage, `Within stage` = within, `Stage composition` = comp)], id.vars = "stage")
+ggplot(Kl, aes(value, stage, fill = variable)) + geom_col(position = position_dodge(0.75), width = 0.7) +
+  geom_vline(xintercept = 0, linewidth = 0.3) + scale_y_discrete(limits = rev) +
+  scale_fill_manual(values = c(`Within stage` = "#4D4D4D", `Stage composition` = "#B8B8B8"), name = NULL) +
+  labs(x = "Contribution to the gap, minutes per day", y = NULL,
+       caption = "Kitagawa (1955) decomposition with symmetric weights. Contributions sum to the national gap.")
 ```
 
-Table \ref{tab:het} reports how the conditional gap of `r est_se(base_gap)` differs across education, consumption, caste and religion. The urban--rural difference in the gap is `r est_se(k_urb)`. `r iff(stage_dominates, 'The interaction coefficients are small relative to the differences across family stages, so gender inequality in free time is shared across India\'s social groups.', 'Some interactions are as large as the differences across family stages, so social position shapes the gap.')`
+```{r tab-kitagawa}
+kt_tab <- K[, .(Stage = as.character(stage), `Share of men` = pct(sh_Men), `Share of women` = pct(sh_Women),
+                `Free time, men` = f1(f_Men), `Free time, women` = f1(f_Women),
+                `Within stage` = f1(within), `Composition` = f1(comp))]
+kt_tab <- rbind(kt_tab, data.table(Stage = "Total", `Share of men` = "100%", `Share of women` = "100%",
+                                   `Free time, men` = f1(mft["Men"]), `Free time, women` = f1(mft["Women"]),
+                                   `Within stage` = paste0(f1(kt["within"]), " (", f1(kse[1]), ")"),
+                                   `Composition` = paste0(f1(kt["comp"]), " (", f1(kse[2]), ")")))
+tab(kt_tab, caption = paste0("Decomposition of the women-minus-men free-time gap by family stage", syn_note()),
+    label = "kitagawa", align = c("l", rep("r", 6)),
+    notes = paste0("Persons 15+. Survey-weighted. Within-stage and composition contributions use symmetric (average) weights and sum to the national gap of ",
+                   f1(k_total), " minutes. Bootstrap SEs (", B, " replications resampling FSUs) for the totals in parentheses. Excluding religious practice, the within-stage component is ",
+                   f1(ktn["within"]), " (", f1(kse[3]), ") and the composition component ", f1(ktn["comp"]), " (", f1(kse[4]), ")."))
+```
 
-## What free time consists of
+Table \ref{tab:kitagawa} and Figure \ref{fig:fig-kitagawa} decompose the national gap of `r f1(k_total)` minutes. The within-stage component is `r est_se(k_within)` and the stage-composition component is `r est_se(k_comp)`. `r iff(within_dominant, 'Most of the national gap therefore arises because women have less free time than men at the same family stage, not because women are concentrated in stages where everyone has little free time.', 'The composition component is at least as large as the within-stage component, so a substantial part of the national gap reflects the different distribution of men and women across family stages.')` `r iff(comp_matters, paste0('Composition accounts for ', pct(abs(comp_share), 0), ' of the gap and is statistically distinguishable from zero.'), 'The composition component is small or imprecisely estimated.')` `r iff(comp_matters & comp_same_sign, 'Composition widens the gap: women are over-represented in stages where free time is scarce.', iff(comp_matters, 'Composition narrows the gap: women are over-represented in stages where free time is plentiful, such as old age, so the within-stage gap is larger than the national average suggests.', ''))` Without religious practice, the within-stage component is `r est_se(kn_within)` and the composition component `r est_se(kn_comp)`.
+
+The composition component reflects demography. Women in India marry younger than men [@desai2010gender], so more women than men of a given age are in the married stages, and widowhood is more common among women: `r pct(wid["Women"])` of women aged 15 and above are widowed, against `r pct(wid["Men"])` of men. A national average that ignores this mixes a gap between equals with a gap that arises from where men and women are in the life cycle.
+
+## Time poverty: sensitivity to the line and the second dimension
+
+```{r tab-poverty}
+fmt_rate <- function(v, x) ifelse(v == "fgt1", f1(100 * x), pct(x))
+tab(data.frame(Measure = PV$Measure, Men = fmt_rate(PV$v, PV$Men), Women = fmt_rate(PV$v, PV$Women),
+               `Women minus men (pp)` = paste0(f1(100 * PV$est), stars(PV$p), " (", f1(100 * PV$se), ")"),
+               check.names = FALSE),
+    caption = paste0("Time poverty and joint time-consumption poverty by sex", syn_note()), label = "poverty",
+    align = c("l", "r", "r", "r"),
+    notes = paste0("Persons 15+. Survey-weighted. Median free time ", f0(med_ft), " minutes; median free time excluding religious practice ",
+                   f0(med_fn), "; median total work ", f0(med_tw), "; person-weighted median MPCE ", f0(med_mp),
+                   " rupees. The last three rows use the 60% free-time line and partition the population with the 'neither poor' group. FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:poverty} reports time poverty under each definition. Women are `r diff_pp(g_p60, "more", "less")` likely than men to have free time below 60% of the median and `r diff_pp(g_p50, "more", "less")` likely at the 50% line. `r iff(pov_gap_both_lines, 'The sign and significance of the gender gap in time poverty do not depend on the choice between the two lines.', 'The gender gap in time poverty is not significantly positive at both lines, so conclusions about it are sensitive to the choice of line.')` The poverty gap index, which counts how far below the line the poor fall, differs by `r f1(100 * g_fgt$est)` points (SE `r f1(100 * g_fgt$se)`), women minus men. Excluding religious practice from free time, the gap in the headcount is `r diff_pp(g_pn, "higher", "lower")` for women. On the long-hours definition, women are `r diff_pp(g_lw, "more", "less")` likely than men to be time-poor. The free-time and work-time definitions need not agree, because the first is affected by time in personal care and learning and the second is not.
+
+The two-dimensional measure shows how time poverty and consumption poverty overlap. The share who are both time-poor and consumption-poor is `r diff_pp(g_both, "higher", "lower")` for women than for men, and the gap in consumption poverty alone is `r diff_pp(g_cp, "higher", "lower")` for women. Among women, the time-poverty rate of the consumption-poor differs from that of the non-poor by `r diff_pp(tpcp_w, "higher", "lower")`; among men by `r diff_pp(tpcp_m, "higher", "lower")`. `r iff(tp_poor_more_w, 'Time poverty among women is concentrated in consumption-poor households, so the two deprivations compound.', iff(tp_poor_less_w, 'Women in consumption-poor households are less often time-poor than other women, so time poverty is not simply a correlate of low consumption; a measure based on income alone would miss many time-poor women in better-off households.', 'Women\'s time poverty is not significantly related to household consumption poverty, so time poverty is a distinct deprivation that a measure based on consumption alone would miss.'))`
+
+```{r fig-pov-stage, fig.cap = paste0("Time-poverty headcount by family stage, sex and poverty line", syn_note()), fig.height = 3.8}
+PS <- A[, .(p50 = wmean(tp50, weight), p60 = wmean(tp60, weight)), by = .(stage, sex)]
+PS <- melt(PS, id.vars = c("stage", "sex"), variable.name = "line")
+PS[, line := factor(line, c("p50", "p60"), c("Line: 50% of median", "Line: 60% of median"))]
+PS[, stage := factor(stage, levels = STAGES)]
+ggplot(PS, aes(100 * value, stage, colour = sex)) + geom_point(size = 2) + facet_wrap(~line) +
+  scale_colour_manual(values = SEX_COLS, name = NULL) + scale_y_discrete(limits = rev) +
+  labs(x = "Share time-poor, %", y = NULL, caption = "Persons 15+. Survey-weighted. Free time below the stated share of the weighted median.")
+```
+
+Figure \ref{fig:fig-pov-stage} shows time poverty by stage at both lines. The gender gap in the 60% headcount is largest for "`r tolower(worst_pov60)`" and, at the 50% line, for "`r tolower(worst_pov50)`". `r iff(pov_rank_same, 'The stage at which women are most disadvantaged is the same under both lines.', 'The stage at which women are most disadvantaged changes with the line, so the location of the peak should be read with caution.')` The rank correlation of the stage-specific gaps across the two lines is `r f2(rank_cor_pov)`.
+
+## Religious practice
+
+Women spend `r f0(mrel["Women"])` and men `r f0(mrel["Men"])` minutes a day on religious practice, a gap of `r est_se(g_rel)`. Excluding it, the women-minus-men gap in free time is `r est_se(g_fn)`, against `r est_se(g_ft)` with it. `r iff(rel_closes, 'Because women spend more time than men on religious practice, counting it as free time narrows the measured gap; on the narrower definition the gap is wider.', 'Counting religious practice as free time does not narrow the measured gap.')` Across stages, the rank correlation between the gaps with and without religious practice is `r f2(rank_cor_rel)` (Table \ref{tab:stage}), and `r iff(rel_same_worst, 'the stage with the widest gap is the same on both definitions.', paste0('the stage with the widest gap changes to "', tolower(worst_stage_n), '" when religious practice is excluded.'))` Readers who regard worship as obligatory rather than discretionary can use the narrower measure throughout; the decomposition and poverty results are reported for both.
+
+## Does social position matter as much as life stage?
+
+```{r tab-disp}
+dtab <- D[match(names(DIMS), dim)]
+tab(data.frame(Dimension = DIMS[dtab$dim], Levels = H[, .N, by = dim][match(dtab$dim, dim)]$N,
+               `Range, raw` = f1(dtab$range_raw), `SD, raw` = f1(dtab$sd_raw),
+               `Range, conditional` = f1(dtab$range_cond), `SD, conditional` = f1(dtab$sd_cond), check.names = FALSE),
+    caption = paste0("Dispersion of the women-minus-men free-time gap across levels of each dimension, minutes", syn_note()),
+    label = "disp", align = c("l", "r", "r", "r", "r", "r"),
+    notes = paste0("Raw: women-minus-men gap estimated separately within each level. Conditional: coefficients on level-by-woman interactions in a model with all other dimensions, household size, proxy report, and state and day-of-week fixed effects. SD is the population-weighted standard deviation of the level-specific gaps. Level-specific estimates are in the appendix. Baseline conditional gap (common across levels): ",
+                   est_se(base_gap), "."))
+```
+
+Table \ref{tab:disp} compares how much the gap varies along each dimension; the level-specific gaps are in Table \ref{tab:het} in the appendix. The pooled conditional gap is `r est_se(base_gap)`. Across family stages the weighted standard deviation of the conditional gap is `r f1(sd_stage)` minutes; the largest standard deviation for any other dimension is `r f1(sd_other_max)` minutes, for `r tolower(DIMS[[dim_other_max]])`. `r iff(stage_dominates, 'Conditional on the other dimensions, the gap is more dispersed across family stages than across education, consumption, caste, religion or sector.', 'Conditional on the other dimensions, the gap is at least as dispersed across one social dimension as across family stages.')` `r iff(stage_dominates == stage_dominates_raw, 'The unconditional comparison gives the same ordering.', 'The unconditional comparison gives a different ordering, so part of the apparent variation along social dimensions is due to their correlation with family stage, or vice versa.')` Because consumption quintiles and education tiers are ordered, Table \ref{tab:het} also shows whether the gap rises or falls along them.
+
+## What free time consists of and its quality
 
 ```{r tab-comp}
-tab(means_table(A, comp_vars, "sex", comp_lab[comp_vars]), caption = paste0("Composition of free time by sex, minutes per day", syn_note()),
-    label = "comp", align = c("l", "r", "r"), notes = "Persons 15+. Survey-weighted means; FSU-clustered SEs.")
+cpt <- data.frame(Component = CP$lab, Men = f1(CP$Men), Women = f1(CP$Women),
+                  `Women minus men` = paste0(f1(CP$est), stars(CP$p), " (", f1(CP$se), ")"),
+                  `Doing any, men` = pct(CP$pm, 0), `Doing any, women` = pct(CP$pw, 0), check.names = FALSE)
+tab(cpt, caption = paste0("Composition of free time by sex, minutes per day and participation", syn_note()),
+    label = "comp", align = c("l", "r", "r", "r", "r", "r"),
+    notes = "Persons 15+. Survey-weighted means over all persons (including non-participants). Participation is the share with any minutes of the activity as a major activity on the diary day. FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
-Table \ref{tab:comp} decomposes free time. Among employed persons, women commute `r diff_txt(g_comm)` than men.
+Table \ref{tab:comp} breaks free time into its components. The component in which women's shortfall is largest is `r tolower(largest_comp)`. Women differ from men by `r est_se(g_media)` in mass media, `r est_se(g_soc)` in socialising and talking, and `r est_se(g_rest)` in resting. `r iff(length(women_more_comp) > 0, paste0('Women spend significantly more time than men in ', paste(tolower(women_more_comp), collapse = ', '), '.'), 'There is no component in which women spend significantly more time than men.')`
 
-# Discussion and conclusion
+Two quality measures point in the direction of the literature on contaminated leisure [@mattingly2003free; @bittman2000rush]. Secondary free time, recorded alongside another major activity, differs by `r est_se(g_sec)`, women minus men. `r iff(have_pairs, paste0('Minutes of secondary domestic or care work recorded during free-time episodes differ by ', est_se(g_cont), ', women minus men.'), 'The slot-level pairing of minor and major activities is not available, so contaminated free time cannot be measured.')` These measures capture only what respondents recorded as simultaneous, so they understate the extent to which free time is interrupted or supervised.
 
-`r iff(women_less, 'Indian women have less free time than men,', 'The free-time gap between Indian women and men is small,')` `r iff(stage_dominates, 'and the gap is organised by family stage more than by education, income, caste or religion.', 'and the gap varies with both family stage and social position.')` This has two implications. For measurement, national averages of leisure, and the SDG indicator on unpaid work, should be reported by life stage. For policy, `r iff(stage_dominates, 'interventions that target groups by income or caste will miss the main source of women\'s time poverty, which is the stage of the family life cycle.', 'targeting by both family stage and social group is warranted.')`
+## Retirement: pensioners and workers aged 55 to 70
 
-The limits are the cross-sectional design, under which stages are compared across different people, and the definition of free time, which counts religious practice and community participation as discretionary although for some they are obligations.
+```{r tab-ret}
+rcell <- function(e, s, p) paste0(f1(e), stars(p), " (", f1(s), ")")
+tab(data.frame(Outcome = RT$lab, Men = rcell(RT$m_est, RT$m_se, RT$m_p), Women = rcell(RT$w_est, RT$w_se, RT$w_p),
+               `Difference, women minus men` = rcell(RT$x_est, RT$x_se, RT$x_p), check.names = FALSE),
+    caption = paste0("Pensioners minus workers aged 55 to 70, conditional differences in minutes per day", syn_note()),
+    label = "ret", align = c("l", "r", "r", "r"),
+    notes = paste0("Persons aged 55-70 whose usual principal status is working or 'rentier, pensioner, remittance recipient'. N: men ",
+                   fn(nR[sex == "Men" & pensioner == 0]$N), " workers and ", fn(nR_m_pen), " pensioners; women ",
+                   fn(nR[sex == "Women" & pensioner == 0]$N), " workers and ", fn(nR_w_pen),
+                   " pensioners. Controls: single years of age, urban, education, consumption quintile, social group, religion, household size, proxy report; state and day-of-week fixed effects. The last column is the pensioner-by-woman interaction in a pooled model with common controls. FSU-clustered SEs. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:ret} compares the days of pensioners and workers aged 55 to 70. Male pensioners have `r diff_txt(r_ft_m)` free time than comparable male workers, and female pensioners `r diff_txt(r_ft_w)` than comparable female workers. `r iff(ret_gain_men & ret_homeprod_men, 'Part of the time freed from paid work goes to unpaid domestic and care work, consistent with the reallocation to home production found in high-income countries [@aguiar2005consumption; @stancanelli2012retirement].', iff(ret_gain_men, 'Male pensioners do not do significantly more unpaid work than male workers, so the time freed from paid work goes mainly to free time and personal care.', 'Male pensioners do not have significantly more free time than male workers.'))` Unpaid domestic and care work differs between pensioners and workers by `r est_se(r_up_m)` for men and `r est_se(r_up_w)` for women. `r iff(ret_gain_differs, 'The pensioner difference in free time differs significantly between men and women.', 'The pensioner difference in free time does not differ significantly between men and women.')` Among pensioners the women-minus-men free-time gap is `r est_se(g_ft_pen)`, against `r est_se(g_ft_wrk)` among workers of the same ages, so `r iff(ret_gap_narrower, 'the gap is narrower among pensioners.', 'the gap is not narrower among pensioners.')` `r iff(few_women_pen, 'Women pensioners are few in the sample, so the estimates for women are imprecise.', '')`
+
+These comparisons describe the pensioner population, which is likely to be selected toward formal and urban employment, and the "pensioner" status also covers rentiers and remittance recipients. The estimates should not be read as the effect of retiring.
+
+## Commuting among the employed
+
+```{r tab-comm}
+fmt_c <- function(v, x) ifelse(v %in% c("any_comm", "comm_share"), pct(x), f1(x))
+fmt_g <- function(v, e, s) ifelse(v %in% c("any_comm", "comm_share"),
+                                  paste0(f1(100 * e), " (", f1(100 * s), ")"), paste0(f1(e), " (", f1(s), ")"))
+tab(data.frame(Outcome = CM$lab, Men = fmt_c(CM$v, CM$Men), Women = fmt_c(CM$v, CM$Women),
+               `Gap, all` = fmt_g(CM$v, CM$est, CM$se), `Gap, urban` = fmt_g(CM$v, CM$u_est, CM$u_se),
+               `Gap, rural` = fmt_g(CM$v, CM$r_est, CM$r_se), check.names = FALSE),
+    caption = paste0("Commuting and time use among employed persons", syn_note()), label = "comm",
+    align = c("l", "r", "r", "r", "r", "r"),
+    notes = paste0("Persons 15+ whose usual principal status is working and who report some employment on the diary day (N = ",
+                   fn(nrow(Wk)), "). Gaps are women minus men; shares are in percentage points. Commuting is ICATUS code 182. Survey-weighted; FSU-clustered SEs in parentheses."))
+```
+
+Table \ref{tab:comm} describes commuting among the `r fn(nrow(Wk))` employed persons who worked on the diary day. Employed women commute `r diff_txt(g_comm)` than employed men (`r diff_txt(g_comm_u)` in urban areas and `r diff_txt(g_comm_r)` in rural areas), and they are `r diff_pp(g_anyc, "more", "less")` likely to commute at all. Among those who commute, the gap is `r est_se(g_comm_c)`. `r iff(women_commute_less, 'Women\'s shorter commutes are consistent with evidence that women work closer to home [@hanson1995gender; @lebarbanchon2021gender], which in India may also reflect constraints on women\'s mobility [@jayachandran2021social].', iff(women_commute_more, 'Employed women commute more than employed men, which is unusual relative to the evidence from high-income countries [@hanson1995gender; @lebarbanchon2021gender].', 'There is no significant gender difference in commuting time among the employed.'))`
+
+Holding paid-work minutes and other characteristics constant, each additional minute of commuting is associated with `r est_se(b_cm_m, 2)` of free time for men and `r est_se(b_cm_w, 2)` for women. The difference between women and men is `r est_se(b_cm_x, 2)`. `r iff(comm_cost_w_larger, 'Commuting displaces more of women\'s free time than of men\'s, consistent with the argument that women\'s household responsibilities make the commute costlier for them [@roberts2011driving].', 'There is no evidence that commuting displaces more of women\'s free time than of men\'s.')` Among workers overall, women have `r diff_txt(g_ft_wk)` free time than men. These associations are descriptive: commute length, hours and free time are chosen jointly, and the diary records a single day.
+
+# Discussion
+
+`r iff(women_less, 'Indian women have less free time than men,', 'The free-time gap between Indian women and men is not significantly negative,')` `r iff(stage_dominates, 'and, conditional on covariates, the gap varies more with family stage than with education, consumption, caste, religion or sector.', 'and the gap varies with social position about as much as with family stage.')` Four features of the results bear on how free time and time poverty should be measured and used as social indicators.
+
+First, the national average is a mixture. The decomposition separates a within-stage gap from a gap that arises because women and men occupy different stages. `r iff(within_dominant, 'The within-stage component dominates, so most of the gap is between men and women at the same point in the life cycle.', 'The composition component is as large as the within-stage component, so a national average overstates or understates the gap between equals depending on the stage mix.')` Reporting the gap by family stage, alongside the national figure, would make SDG 5.4 reporting on unpaid work and its leisure counterpart easier to interpret and to compare across countries with different demographic structures.
+
+Second, time-poverty comparisons are sensitive to the definition. The free-time and long-hours definitions answer different questions, the line can move the location of the peak across stages, and the treatment of religious practice changes measured free time by `r f0(abs(mrel["Women"]))` minutes for women and `r f0(abs(mrel["Men"]))` minutes for men. I recommend that studies of time poverty in South Asia report at least two lines and both treatments of religious practice, as this paper does. The two-dimensional measure shows that time poverty and consumption poverty are distinct; `r iff(tp_poor_more_w, 'because they overlap among women, programmes that add to the working hours of poor women, such as public works, should count the time cost as well as the income gain.', 'because they do not coincide, programmes targeted on consumption alone will miss many time-poor women.')`
+
+Third, the life-course pattern has a direct policy reading. `r iff(stage_dominates, 'Interventions that target women by income or caste alone will miss the main source of variation in women\'s free time, which is the stage of the family life cycle.', 'Targeting by both family stage and social group is warranted.')` The stages with the widest gap are natural targets for time-saving services, such as childcare, piped water and clean cooking fuel. Their effect on women's free time, rather than on paid work alone, deserves evaluation.
+
+Fourth, retirement and commuting show how transitions in and around paid work redistribute free time. `r iff(ret_gap_narrower, 'Among people in their late fifties and sixties, the gender gap in free time is narrower among pensioners than among workers,', 'Among people in their late fifties and sixties, the gender gap in free time is not narrower among pensioners than among workers,')` and `r iff(women_commute_less, 'employed women commute less than employed men.', 'employed women do not commute less than employed men.')` Both patterns describe a selected population: pensions and long commutes are features of formal and urban employment, which few Indian women hold.
+
+# Limitations
+
+The design is a single cross-section. Stages are positions occupied by different people, not transitions experienced by the same people, so cohort differences are confounded with life-course differences. The single diary day records one day per person; it estimates group means without bias but overstates the dispersion of individual time use, which matters for headcount measures of time poverty [@frazis2012think]. Free time is defined by activity, so it includes activities that some respondents experience as obligations and excludes leisure taken while doing something else. No measure of experienced well-being is available, so the paper cannot say whether the minutes women lose are minutes they would have enjoyed [@kahneman2004drm]. Consumption is measured for the household, so consumption poverty does not capture intra-household inequality, and the two-dimensional measure does not adjust the consumption line for the cost of replacing household production, as @zacharias2012why do. Children under six are counted from household size, and only at the household level. Finally, the dispersion comparison across dimensions depends on how finely each dimension is divided.
+
+# Conclusion
+
+Using every diary in India's Time Use Survey 2024, this paper has traced the gender gap in free time across seven family stages, decomposed the national gap into within-stage and composition components, measured time poverty with three definitions and two lines, reported every main result with and without religious practice, and examined two transitions around paid work, retirement and commuting. `r iff(women_less & stage_dominates, 'Women have less free time than men, and the size of their shortfall depends more on where they are in the family life cycle than on their education, consumption, caste or religion.', iff(women_less, 'Women have less free time than men, and the shortfall varies with both life stage and social position.', 'The gender gap in free time is not uniformly negative, and its size varies with both life stage and social position.'))` Free time and time poverty should be reported by life stage, with the definition and line stated, if they are to serve as indicators of gender equality in well-being.
 
 \newpage
 
@@ -196,4 +664,16 @@ The limits are the cross-sectional design, under which stages are compared acros
 ```{r tab-validation}
 tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
     align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```
+
+```{r tab-het}
+Hp <- copy(H)
+Hp[, Dimension := DIMS[dim]]
+Hp[, Dimension := ifelse(duplicated(Dimension), "", Dimension)]
+tab(data.frame(Dimension = Hp$Dimension, Level = Hp$level, N = fn(Hp$n),
+               `Raw gap` = paste0(f1(Hp$raw), " (", f1(Hp$raw_se), ")"),
+               `Conditional gap` = paste0(f1(Hp$cond), " (", f1(Hp$cond_se), ")"), check.names = FALSE),
+    caption = paste0("Women-minus-men free-time gap by level of each dimension, minutes per day", syn_note()),
+    label = "het", align = c("l", "l", "r", "r", "r"),
+    notes = "Raw: survey-weighted difference in means within the level. Conditional: coefficient on the level-by-woman interaction in a model that also includes the level main effects, the other dimensions, household size, proxy report, and state and day-of-week fixed effects. FSU-clustered SEs in parentheses.")
 ```
