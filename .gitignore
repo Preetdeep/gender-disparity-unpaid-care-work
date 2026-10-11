@@ -20,6 +20,7 @@
 data/
 
 # Temporary files
+docs/probe_report.txt
 *.tmp
 *.log
 *.aux
@@ -39,3 +40,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Derived data and knit by-products
+*.rds
+*.fls
+*.fdb_latexmk
+submission/**/*_files/
+submission/**/*.html

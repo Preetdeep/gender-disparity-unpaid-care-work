@@ -1,430 +1,122 @@
-# India Time Use Survey 2024: Multi-Paper Research Repository
+# Gender and Time in India: A Research Programme on the Time Use Survey 2024
 
-[![R](https://img.shields.io/badge/R-4.4+-blue.svg)](https://www.r-project.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Eight journal-targeted papers on unpaid work, care and free time in India, built on one audited data pipeline for the National Statistics Office's **Time Use Survey (January–December 2024)**: about 10.2 million activity records, about 450,000 person-day diaries, about 139,500 households, every state and union territory.
 
-## Overview
+**Author:** Dr Preet Deep Singh, Blue Machines (preetdeepsingh111@yahoo.com)
 
-This repository contains **replicable code, analysis, and research questions** for multiple published and working papers examining various dimensions of time use patterns in India using the **India Time Use Survey 2024** conducted by the National Statistical Office. 
-
-The repository includes analyses covering:
-- Gender disparities in unpaid care work
-- Marriage and care penalties
-- Friendship and social time penalties
-- Weekend vs. weekday time allocation patterns
-- Childcare vs. eldercare responsibilities
-
-**Data source:** India's Time Use Survey 2024 (10,211,478 activity observations from 139,489 households)
+> **Status (October 2026).** The pipeline and all eight manuscripts are complete and knit end to end. Every number in every manuscript is computed from the data at knit time, and every sentence that depends on a result is chosen by the estimates. **The manuscripts have been tested on synthetic data only.** Run them on the real microdata, read the checklist in each paper's `SUBMISSION.md`, then submit. All earlier papers are retired: their estimates are invalid (see [`docs/AUDIT.md`](docs/AUDIT.md)).
 
 ---
 
-## 🎉 Recent Updates (November 2, 2025)
+## The portfolio
 
-### Major Discovery: Weekend Paper Unblocked!
+Ranked by expected publishability. Each folder holds `manuscript.Rmd` and `SUBMISSION.md`, which gives the target journal, fallbacks, a pre-submission checklist and a draft cover letter.
 
-**Previously thought to be blocked** due to missing day-of-week variable, the Weekend Effect paper (`weekend_effect.Rmd`) is **actually complete and uses the `Day_of_Week` variable** that exists in the dataset!
+| # | Paper | Question | Target journal | Fallbacks |
+|---|---|---|---|---|
+| 01 | [Machines, Maids, and Money](submission/01_outsourcing_domestic_work) | Do clean fuel, laundry and sweeping outsourcing, and live-in help reduce women's time in the specific task each replaces? Where does released time go? | ***World Development*** | Feminist Economics; J. Development Studies; Energy Policy |
+| 02 | [Co-resident Grandmothers](submission/02_grandparent_care) | Do grandmothers in three-generation households substitute for mothers' childcare, or add constraints? Diaries for both generations | ***Journal of Population Economics*** | Demography; Population and Development Review; Feminist Economics |
+| 03 | [Who Cares When Care Is Needed?](submission/03_care_need) | The gender division of childcare vs dependent-adult care, conditional on the household actually needing each | ***Feminist Economics*** | Population and Development Review; J. Aging & Social Policy; Ageing & Society |
+| 04 | [The Care Hidden in the Margins](submission/04_multitasking_secondary_care) | How much women's work is missed by single-activity accounting: secondary childcare, eating while working, leisure shared with care | ***Review of Economics of the Household*** | Feminist Economics; J. Time Use Research; Social Indicators Research |
+| 05 | [Where Do the Minutes Come From?](submission/05_marriage_time_reallocation) | A 1,440-minute decomposition of marriage's effect on women's and men's days, within-couple gaps, and widowhood | ***Journal of Marriage and Family*** | Demographic Research; Population Studies; Rev. Econ. Household |
+| 06 | [Daughters' Days](submission/06_son_preference_time) | Son preference in children's own time: sisters vs brothers in the same household (sibling fixed effects) | ***Journal of Development Studies*** | Econ. Development and Cultural Change; PDR; World Development |
+| 07 | [What Men Do with a Day Off](submission/07_weekend_care_division) | IV from the quasi-random diary day: how much paid-work time men give up on Sunday goes to unpaid work? | ***Journal of Time Use Research*** | J. Population Economics; Rev. Econ. Household; Feminist Economics |
+| 08 | [The Free-Time Gap over the Life Course](submission/08_life_course_free_time) | Free time and time poverty by family stage vs education, consumption, caste, religion | ***Social Indicators Research*** | J. Time Use Research; Feminist Economics; Asian Population Studies |
 
-**Key Variable Found:**
-- `Day_of_Week`: Codes day of week (Saturday = 6, Sunday = 7)
-- Used in line 59 of `weekend_effect.Rmd`
-- Enables weekday vs weekend comparison analysis
-
-**Status**: Paper exists, substantially complete, needs editorial review. See `CRITIQUE_weekend_effect_REQUIRED_CHANGES.md` for issues to address.
-
-### Son Preference Paper: Investigation Ongoing
-
-**New Finding**: The TUS 2024 data dictionary documents a `Relationship_to_Head` variable that includes:
-- Code 5 = unmarried child
-- Code 6 = grandchild
-- Combined with Gender + Age, this *may* enable household composition analysis
-
-**Action Required**: Investigate if `Relationship_to_Head` exists in TimeUse106PER.dta or separate household roster file. If available, son preference analysis becomes feasible!
-
-See `PAPER_STATUS_son_preference_care.md` for detailed investigation plan.
+Submit one paper per journal at a time. Papers 05 and 08 share descriptive material; cite the first accepted one in the other.
 
 ---
 
-## 🎯 Research Questions by Paper
-
-This repository contains code and analysis for the following research papers:
-
-### 1. **Gender Disparities in Unpaid Care Work** (`gender_disparity_enhanced.Rmd`)
-**Research Questions:**
-- What is the magnitude of gender disparities in unpaid care work in India?
-- Is the gender gap driven by participation rates or time intensity conditional on participation?
-- How do these disparities vary across education levels, urban/rural sectors, and household structures?
-- What are the policy implications for reducing gender inequality in care work?
-
-**Key Finding:** Women perform unpaid care work at rates **3.5 times higher** than men, but conditional on participation, men and women work statistically indistinguishable durations (50.7 vs 47.4 minutes per activity).
-
----
-
-### 2. **Marriage Care Penalty** (`marriage_care_penalty.Rmd`)
-**Research Questions:**
-- Does marriage increase women's unpaid care work burden compared to single women?
-- What is the differential impact of marriage on men's vs. women's care work participation?
-- How does the marriage penalty vary across age groups and education levels?
-- What mechanisms explain the divergent marriage effects by gender?
-
----
-
-### 3. **Friendship Penalty** (`friendship_penalty.Rmd`)
-**Research Questions:**
-- How does time spent on social relationships (friendships, social activities) differ by gender?
-- Do women face a "friendship penalty" due to care work responsibilities?
-- How does this penalty vary across marital status and parenthood?
-- What are the implications for women's social capital and well-being?
-
----
-
-### 4. **Weekend Effect** (`weekend_effect.Rmd`)
-**Research Questions:**
-- How do time use patterns differ between weekdays and weekends?
-- Does the weekend provide equitable relief from care work for men and women?
-- How do weekend patterns vary across employment status and household structure?
-- Do weekends perpetuate or reduce gender inequalities in time use?
-
----
-
-### 5. **Childcare vs. Eldercare** (`childcare_vs_eldercare.Rmd`)
-**Research Questions:**
-- How do gender patterns differ between childcare and eldercare responsibilities?
-- Which type of care work shows larger gender disparities?
-- How do participation rates and time intensity compare across care types?
-- What factors predict engagement in childcare vs. eldercare?
-
----
-
-### 6. **Son Preference in Parental Time** (`son_preference_care.Rmd`) ⚠️
-**Research Questions:**
-- Does India's well-documented son preference extend to differential parental time investment?
-- Do families invest more childcare time when sons are present compared to daughters?
-- How does son preference in time allocation vary by socioeconomic status?
-- What are the implications for gender inequality reproduction across generations?
-
-**Status**: ⚠️ **Under Investigation** - Requires household roster data (Relationship_to_Head variable). Paper currently contains placeholder data pending data availability confirmation. See `PAPER_STATUS_son_preference_care.md` for investigation details.
-
----
-
-### 7. **Shopping and Mental Load** (`shopping_mental_load.Rmd`)
-**Research Questions:**
-- Who bears the burden of shopping and household management tasks?
-- How does the "mental load" of household management differ by gender?
-- Does marriage increase the mental load burden for women?
-- What are the implications for women's employment and time use?
-
----
-
-## 📊 Repository Contents
+## Repository layout
 
 ```
-├── README.md                                    # This file
-├── gender_disparity_enhanced.Rmd                # Paper 1: Gender disparities analysis
-├── marriage_care_penalty.Rmd                    # Paper 2: Marriage penalty analysis
-├── friendship_penalty.Rmd                       # Paper 3: Friendship/social time analysis
-├── weekend_effect.Rmd                           # Paper 4: Weekend patterns analysis ✅
-├── childcare_vs_eldercare.Rmd                   # Paper 5: Care type comparison
-├── son_preference_care.Rmd                      # Paper 6: Son preference (under investigation) ⚠️
-├── shopping_mental_load.Rmd                     # Paper 7: Shopping and mental load
-├── PAPER_SEQUENCE_STATUS.md                     # Research pipeline status (UPDATED Nov 2)
-├── RESEARCH_QUESTIONS_IDEAS.md                  # Additional research ideas
-├── HOW_TO_RUN_MARRIAGE_PENALTY.md              # Detailed replication guide
-├── DataDictionaryTimeUseSurvey.xlsx            # TUS 2024 data dictionary
-├── Variables                                    # Variable definitions
-└── data/                                        # [Not included - see Data Access]
-    └── TimeUse106PER.dta                        # TUS 2024 person-level data
+.
+├── README.md                  this file
+├── run_all.R                  build panel + knit every manuscript (or selected ones)
+├── R/                         the shared, audited pipeline
+│   ├── setup.R                the only file a manuscript sources
+│   ├── codes.R                every ICATUS and roster code, checked against the dictionary
+│   ├── icatus_labels.R        165 activity labels transcribed from the dictionary
+│   ├── build_panel.R          activity records -> person-day panel (+ validation report)
+│   ├── helpers.R              weighted estimates, FSU-clustered SEs, tables, text helpers
+│   └── make_synthetic_data.R  schema-identical fake data for test knitting
+├── submission/
+│   ├── references.bib         curated bibliography shared by all papers
+│   ├── _common/preamble.tex   shared LaTeX preamble
+│   └── NN_<paper>/            manuscript.Rmd + SUBMISSION.md
+├── docs/
+│   ├── AUDIT.md               what was wrong with the legacy papers, and the merge map
+│   ├── DataDictionaryTimeUseSurvey.xlsx
+│   └── variables_dictionary.txt
+├── defunct/                   all legacy papers, PDFs and memos (not citable)
+└── data/                      git-ignored: microdata, derived panel, synthetic test data
 ```
 
 ---
 
-## 🙏 Acknowledgments & Credit
+## Reproducing the papers
 
-### Research Guidance and Institutional Support
+**1. Get the data.** The unit-level file (`TimeUse106PER.dta`, activity level) is distributed by MoSPI/NSO on request (<https://www.mospi.gov.in/>). It is not in this repository.
 
-This research would not have been possible without the exceptional guidance, institutional support, and mentorship provided by:
+**2. Install requirements.** R ≥ 4.3 with `data.table haven dplyr tidyr ggplot2 fixest knitr rmarkdown kableExtra`, pandoc, and a LaTeX distribution (TeX Live or TinyTeX with `booktabs threeparttable threeparttablex makecell draftwatermark titling adjustbox`).
 
-#### **Dr. Tanu Goel** (Indian Council for Research on International Economic Relations - ICRIER)
-- **Research guidance and conceptualization:** Dr. Tanu Goel provided invaluable intellectual guidance throughout all stages of this research, from initial research design through final analysis and interpretation
-- **Methodological support:** Critical feedback on econometric approaches, variable construction, and analytical frameworks
-- **Subject matter expertise:** Deep insights into gender economics, time use analysis, and Indian policy context
-- **Mentorship:** Ongoing mentorship that shaped the research questions and analytical approaches across all papers
+**3. Smoke-test on synthetic data** (about one minute, no microdata needed):
 
-#### **Indian Council for Research on International Economic Relations (ICRIER)**
-- **Institutional support:** ICRIER provided the institutional framework and research environment that made this multi-paper project possible
-- **Data access:** ICRIER facilitated access to the India Time Use Survey 2024 microdata
-- **Research infrastructure:** Access to computational resources, library services, and collaborative research environment
-
-#### Additional Acknowledgments
-- **Chellsea Lauhka** (ICRIER) for essential assistance with data access and methodology
-- **National Statistical Office, India** for conducting and disseminating the Time Use Survey 2024
-
-**Note:** All papers in this repository reflect research conducted under the guidance of Dr. Tanu Goel and with the institutional support of ICRIER.
-
----
-
-## 📖 Data Access
-
-This analysis uses India's **Time Use Survey 2024** conducted by the National Statistical Office. The dataset contains 10,211,478 activity observations from 139,489 households.
-
-**Data availability:** The microdata can be obtained from the [Ministry of Statistics and Programme Implementation](https://mospi.gov.in/) or through authorized research institutions.
-
-**Data not included in this repository** due to size (1GB+)
-
----
-
-## 🔧 Methodology
-
-### Data Processing
-
-1. **Load TUS 2024 person-level data** (10.2M observations)
-2. **Filter to major activities** (`Major_Activity_Flag == 1` per TUS guidelines)
-3. **Identify relevant time use categories** (care work, paid work, social time, leisure, etc.)
-4. **Apply survey weights** (Weight = MULT/100 for national representativeness)
-
-### Statistical Analysis
-
-- **Decomposition analysis:** Separate participation effects from intensity effects
-- **Heterogeneity analysis:** Examine patterns across demographics, geography, household structure
-- **Regression analysis:** Linear probability models and OLS with state fixed effects
-- **Robustness checks:** Alternative activity definitions and sample specifications
-
-### Software Requirements
-
-```r
-# Required R packages
-library(haven)          # Read Stata .dta files
-library(dplyr)          # Data manipulation
-library(ggplot2)        # Visualization
-library(knitr)          # R Markdown
-library(tidyr)          # Data reshaping
-library(fixest)         # Fast fixed effects regression
-library(modelsummary)   # Regression tables
-library(kableExtra)     # Table formatting
+```bash
+TUS_SYNTHETIC=1 Rscript run_all.R            # watermarked PDFs in data/synthetic/pdf/
 ```
 
-**R version:** 4.4+ recommended
+**4. Probe the real file first** (aggregate counts only; no microdata rows are written):
 
----
-
-## 🚀 Replication Instructions
-
-### Quick Start
-
-1. **Obtain data:** Request TUS 2024 data from NSO India
-2. **Place data file:** Save `TimeUse106PER.dta` in working directory
-3. **Run analysis:**
-   ```r
-   rmarkdown::render("gender_disparity_enhanced.Rmd")  # For Paper 1
-   rmarkdown::render("marriage_care_penalty.Rmd")      # For Paper 2
-   # etc.
-   ```
-
-### For Large Datasets
-
-If you encounter memory errors with the full 10M+ observation dataset:
-
-**Option 1: Sample 10% of data** (see `alternative_large_data_approach.md`)
-
-```r
-set.seed(123)
-data <- data %>% slice_sample(prop = 0.1)
-data <- data %>% mutate(Weight = Weight / 0.1)  # Adjust weights
+```bash
+TUS_DTA=/path/to/TimeUse106PER.dta Rscript R/probe_data.R    # writes docs/probe_report.txt
 ```
 
-**Option 2: Pre-compute summaries** (recommended for production)
+**5. Run on the real data:**
 
-1. Run full analysis in separate R script
-2. Save summary objects as .rds files
-3. Load only summaries in RMD for fast knitting
-
-See `alternative_large_data_approach.md` for detailed instructions.
-
-### Using the Prompt Template
-
-To recreate this analysis workflow in a new conversation with Claude or another LLM:
-
-1. Open `prompt_template_for_future_threads.md`
-2. Copy the "Initial Prompt" section
-3. Paste into new conversation
-4. Follow with specific analysis requests as needed
-
-The template includes:
-- Data structure description
-- Research question framing
-- Communication style preferences
-- Follow-up prompts for each analysis stage
-- Expected output specifications
-
----
-
-## 📈 Key Results Across Papers
-
-### Gender Disparities (Paper 1)
-- **Participation gap:** Women 3.1x more likely to do care work than men
-- **Intensity gap:** No significant difference conditional on participation (50.7 vs 47.4 minutes)
-- **Aggregate gap:** 2.9x total gap driven entirely by participation, not intensity
-- **Policy implication:** Must target male participation, not just reduce hours for participating women
-
-### Cross-Cutting Themes
-- Gender inequalities persist across urban/rural, education levels, and employment status
-- Marriage dramatically increases gender disparities in time use
-- Weekend patterns often perpetuate rather than reduce inequalities
-- Different types of care work (childcare vs. eldercare) show varying gender patterns
-
----
-
-
-## 📧 Contact
-
-For questions about the analysis or replication:
-
-- Open an issue on this repository
-- @DrPreetDeep
-
----
-
-## 📄 Citation
-
-If you use code or analysis from this repository, please cite:
-
-```bibtex
-@unpublished{gendercapre2025,
-  title = {Analysis of Gender and Time Use Patterns Using India's Time Use Survey 2024},
-  author = {[Dr Preet Deep Singh]},
-  year = {2025},
-  url = {https://github.com/Preetdeep/gender-disparity-unpaid-care-work}
-}
+```bash
+TUS_DTA=/path/to/TimeUse106PER.dta Rscript run_all.R        # all eight papers
+TUS_DTA=/path/to/TimeUse106PER.dta Rscript run_all.R 01 03  # selected papers
 ```
 
+The first run builds `data/derived/person_day.rds` and `data/derived/validation.txt`. **Read the validation report before anything else.** It lists which columns were found under which names, the share of diaries summing to 1,440 minutes, the major/minor flag values, invalid codes, weight constancy, the spouse-link rate and the under-6 method. If a column has a different name in your release, add it to `TUS_COLS` in `R/build_panel.R`. Nothing else needs to change.
 
 ---
 
-## 📜 License
+## What the pipeline guarantees
 
-This project is licensed under the MIT License - see below for details.
+These rules are enforced in code because breaking them invalidated every legacy estimate:
 
-```
-MIT License
+1. **All rows, no row sampling.** Optional subsampling is by household (`build_panel(hh_sample_frac = 0.2)`) and rescales weights.
+2. **Person-day unit of analysis.** Minutes come from major activities, so each diary sums to 1,440. Participation means a person did the activity that day, not that an activity row has that code.
+3. **One code map.** `R/codes.R` defines every category from ICATUS 2016 three-digit codes and checks at load time that the nine top-level categories partition all 165 dictionary codes exactly.
+4. **Correct flags.** Major = 1 and minor = 2 (not 1/0). Yes/no = 1/2. Diary day: Monday = 1 to Sunday = 7, referring to the day before the interview.
+5. **Household structure from the roster.** Persons are FSU × household × serial number. Children under 6 keep no diary and are counted as household size minus diarists. Spouses are linked head ↔ spouse and married child ↔ child's spouse. Grandparents are identified for both head-level and daughter-in-law mothers.
+6. **Inference.** Every estimate uses the survey multiplier; standard errors are clustered on the FSU, the primary sampling unit.
+7. **No hard-coded results.** Every number in the text is inline R, and every interpretive sentence that depends on a sign or significance level is chosen by `iff()` from the estimate.
 
-Copyright (c) 2025 Dr Preet Deep Singh
+### Core activity categories (ICATUS 2016)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORES OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+| Category | Codes | Category | Codes |
+|---|---|---|---|
+| Employment incl. travel | 110–182 | Childcare | 411–419, 442 |
+| Commuting | 182 | Dependent-adult care | 421–429, 443 |
+| Own-use goods | 211–250 | Unpaid domestic + care (SDG 5.4.1) | 311–390, 411–490 |
+| Water and fuel collection | 241–242 | Socialising and communication | 711–719 |
+| Food and meals | 311–319 | Religious practice | 741–749 |
+| Cleaning dwelling | 321–329 | Exercise and sport | 831–832 |
+| Laundry and textiles | 341–349 | Mass media | 841–849 |
+| Household management | 351–359 | Free time | divisions 7 + 8 |
+| Shopping | 371–372 | Sleep | 911–919 |
 
 ---
 
-## 📝 Change Log & Quality Improvements
+## Why the earlier papers were retired
 
-### November 2, 2025 - Major Data Dictionary Investigation & Paper Unblocking
-
-#### Papers Status Updated:
-
-**✅ Weekend Effect Paper UNBLOCKED:**
-- **Discovery**: `Day_of_Week` variable EXISTS in dataset (Saturday=6, Sunday=7)
-- **Location**: Used in `weekend_effect.Rmd` line 59
-- **Status**: Paper substantially complete, needs editorial review
-- **Action**: Fix statistical interpretation issues documented in `CRITIQUE_weekend_effect_REQUIRED_CHANGES.md`
-
-**⚠️ Son Preference Paper Investigation Initiated:**
-- **Discovery**: `Relationship_to_Head` variable documented in data dictionary
-  - Code 5 = unmarried child
-  - Code 6 = grandchild
-- **Potential**: Combined with Gender + Age, may enable household composition analysis
-- **Action Required**: Check if variable exists in TimeUse106PER.dta or separate roster file
-- **Documents Created**:
-  - `EDITORIAL_REVIEW_son_preference_care.md` - Comprehensive JFE editorial review
-  - `PAPER_STATUS_son_preference_care.md` - Investigation plan and status
-
-**Key Documentation Created:**
-- `PAPER_SEQUENCE_STATUS.md` - Fully updated with weekend unblocking and son preference investigation
-- README.md - This file updated with recent discoveries
-
-**Key Insight**: Always check data dictionary AND existing completed code - the weekend paper was already done but marked as blocked!
+The 37 earlier papers (73 `.Rmd` variants) shared three fatal errors: a **10% sample of activity rows**, which kept about 2 of a person's about 21 records; **mis-mapped activity codes**, e.g. "childcare" = cooking, "exercise" = conversation, "sleep" = nothing; and **activity-row averages reported as participation**. They also contradicted each other on the survey year, the sample size and several headline findings. [`docs/AUDIT.md`](docs/AUDIT.md) documents every error, every contradiction, and how the 37 papers map onto the eight above. The originals are in [`defunct/`](defunct/), grouped by topic.
 
 ---
 
-### October 31, 2025 - Comprehensive Review & Fixes
+## Citing the data
 
-#### Files Reviewed and Completed:
-
-**1. class_gradient_equality.Rmd** ✅
-- **Added**: 10% random sampling with weight adjustment (Weight/0.1)
-- **Added**: Household clustering in all regressions (cluster=~household_id)
-- **Added**: Package versions documentation
-- **Added**: Comprehensive Limitations section (6 detailed points)
-- **Added**: Data and Measurement section
-- **Fixed**: Causal language made more cautious throughout
-- **Status**: All methodological requirements met
-
-**2. friendship_penalty.Rmd** ✅
-- **Added**: 10% random sampling with weight adjustment
-- **Added**: Household clustering for all standard errors
-- **Added**: Package versions (R 4.3.0, haven_2.5.2, dplyr_1.1.2, etc.)
-- **Added**: Comprehensive Limitations section (12+ detailed points)
-- **Fixed**: LaTeX table caption error (added escape=FALSE to tables with add_header_above)
-- **Fixed**: Cautious interpretation language throughout
-- **Status**: All critical issues addressed
-
-**3. childcare_vs_eldercare.Rmd** ✅
-- **Added**: 10% random sampling with weight adjustment
-- **Added**: Household clustering in all regressions
-- **Added**: Package versions documentation
-- **Added**: Comprehensive Limitations section (8+ detailed points)
-- **Fixed**: Figure numbering (was Figure 1→2→3, now correctly ordered)
-- **Fixed**: Table 5 column headers (shortened to fit: "Childcare Part." instead of "Childcare\nParticipation")
-- **Fixed**: Special character rendering ("≤25" changed to "25 and below" to avoid PDF rendering issues)
-- **Fixed**: Abstract reduced from 213 to 114 words
-- **Added**: Explicit discussion of Activity Code 32 limitations (aggregates elderly, disabled, sick adult care)
-- **Added**: Critical caveat about unobserved household structure (lines 806-811)
-- **Added**: Standard error clustering explanation (lines 685-686)
-- **Status**: 87% of original harsh feedback addressed, remaining issues are PDF compilation dependent
-
-#### Key Methodological Improvements Applied Across All Three Papers:
-
-1. **Memory Management**: All papers now use 10% random sampling with proper weight adjustment to handle 10.2M observation dataset
-2. **Statistical Rigor**: Household clustering added to all regression models to correct standard errors for within-household correlation
-3. **Transparency**:
-   - Package versions documented for reproducibility
-   - Sampling methodology clearly explained
-   - Data limitations explicitly discussed
-4. **Causality**: Cautious language throughout, avoiding causal claims from cross-sectional data
-5. **Measurement**: Dedicated sections explaining variable construction and interpretation constraints
-
-#### Specific Technical Fixes:
-
-- **class_gradient_equality.Rmd**: Added missing 10% sampling (commit 3828b58)
-- **friendship_penalty.Rmd**: Fixed LaTeX caption error with escape=FALSE
-- **childcare_vs_eldercare.Rmd**:
-  - Renumbered figures (selectivity ratio plot moved from Figure 1 to Figure 3)
-  - Shortened Table 5 headers to prevent truncation
-  - Changed "≤25" to "25 and below" throughout for PDF rendering
-
-#### Quality Standards Achieved:
-
-✅ **Methodological**: 10% sampling, household clustering, proper weight adjustment
-✅ **Transparency**: Package versions, seed values, data availability statements
-✅ **Rigor**: Comprehensive limitations sections, cautious interpretation
-✅ **Reproducibility**: Clear documentation of all analytical choices
-✅ **Statistical**: Proper standard error clustering, fixed effects models
-
----
-
-**Repository Status:** Active development | Multiple papers | Replication materials available | Data available upon request
-
-**Last Updated:** October 31, 2025
+National Statistics Office (2025). *Time Use Survey (January–December 2024)*. Ministry of Statistics and Programme Implementation, Government of India.
