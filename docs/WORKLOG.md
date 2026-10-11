@@ -98,3 +98,30 @@ Sample (python random): 01, 02, 05, 08. Audited files at their 12:09–12:25 mti
 - refs_local.bib exists but is not listed in YAML `bibliography:`, so its keys silently fail to resolve once cited (02, 08 at 12:36).
 - CODE$pas_* and CODE$cooking_* conflict with the xlsx dictionary (see round 1). Any "employed", "casual", "unemployed" or "clean fuel" result is provisional until the lead resolves it.
 - Parallel knits that share `/tmp` dirs can fail with "preamble.tex not found". Retry alone before reporting a failure.
+
+### Paper 08 (life course free time) -- 2026-10-11
+- New common errors found:
+  - Mixed sign conventions: `est_gap(A, y, "sex", "Women", "Men")` is men minus women, but prose said "women commute X more" / "men do X more total work" from a women-minus-men estimate. Pick ONE convention per paper (08 now uses women minus men everywhere via a `gwm()` wrapper) and phrase every sentence from it.
+  - `married == 0` is not "never married" (it includes widowed/separated). Use `marital == CODE$marital["never_married"]`.
+  - `fcase()` treats NA conditions as FALSE, so persons with `hh_n_under6 = NA` silently fall to the next stage. Test `== 0` explicitly and drop/report NAs.
+  - `ctrl()` cannot parse two-argument `i(x, female)` (it strips to "x, female", not a column) and silently drops it. Build such terms outside `ctrl()`.
+  - `female * i(x)` gives an unclear reference level in fixest; use `i(x, female) + i(x)` to get each level's gap directly.
+  - `\ref{}` inside `tab(notes=)` is escaped by kableExtra::footnote and prints literally. Keep refs in the text.
+  - `diff_pp()`/`diff_txt()` return "not estimable" when NA, which breaks the sentence around them ("they are not estimable likely to..."). Wrap in `iff(!is.na(e$est), ...)`.
+- Requests for shared code:
+  - **HIGH: principal activity status codes.** `docs/DataDictionaryTimeUseSurvey.xlsx` lists NSS codes 11,12,21,31,41,51 (working; 21 = unpaid helper, 31 = regular wage, 51 = casual labour other), 81 (seeking work), 91 (education), 92/93 (domestic), 94 (pensioners), 95 (disabled), 97 (others). `R/codes.R` (`CODE$pas_*`) and `docs/variables_dictionary.txt` use 13, 51 = unemployed, 61-66, 64 = pensioner. If the real file follows the xlsx, `employed`, `pas_group`, casual/regular, unemployed and pensioner are all wrong in `build_panel.R`. Paper 08 works around this locally (detects scheme from values present). Please verify on the real file and fix `CODE`.
+  - `ctrl()`: accept multi-argument `i(a, b)` terms.
+- Progress: 08 rewritten (~7,200 words body). Fixed sign bugs (total work, commuting), stage definitions, heterogeneity spec. Added: Kitagawa within/composition decomposition with FSU bootstrap; time poverty at 50/60% + FGT1 + long-hours + joint time x consumption poverty; with/without religious practice throughout; conditional dispersion of gap across dimensions; pensioners vs workers 55-70; commuting among workers; free-time quality (secondary free time, care during free time from slot pairs). 30 verified-only refs in refs_local.bib. Knits clean on synthetic data (22 pp).
+
+## Lead update: code schemes and survey round (read before editing)
+
+- The two dictionaries (`docs/DataDictionaryTimeUseSurvey.xlsx` and `docs/variables_dictionary.txt`) disagree on codes for usual
+  principal activity status, cooking fuel and lighting. `R/codes.R` now holds both (`CODE_SCHEMES`); `build_panel()` detects which one the
+  data use and `load_panel()` applies it. `CODE$pas_*`, `CODE$cooking_lpg/clean/solid` follow the detected scheme.
+  NEVER hard-code principal-activity or fuel codes in a manuscript. Use `pas_group`, `employed`, `CODE$pas_*`, `CODE$cooking_*`.
+- New `pas_group` level: "Unpaid family helper" (previously folded into "Self-employed").
+- The panel stores the detected scheme in `validation$code_scheme`.
+- The data are the 2024 round per the author. The 2019 round is a different file; the probe (`R/probe_data.R`) compares the file's counts
+  to the 2019 report (9,945 FSUs, 138,799 households, 447,250 persons 6+) to catch the wrong file.
+- 2019-round layout (docs/nso_reference) has no "care giver available" item and no informant serial number. Do not rely on those columns
+  existing; the 2024 xlsx lists them. Code must degrade gracefully when a column is absent.

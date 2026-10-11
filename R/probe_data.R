@@ -45,6 +45,18 @@ if (!is.null(col)) {
   d[, hh_id := paste(fsu, hh, sep = "_")][, pid := paste(hh_id, person, sep = "_")]
   say("FSUs: %s  Households: %s  Persons: %s", format(uniqueN(d$fsu), big.mark = ","),
       format(uniqueN(d$hh_id), big.mark = ","), format(uniqueN(d$pid), big.mark = ","))
+  say("\n== WHICH ROUND IS THIS FILE? ==")
+  ref19 <- c(FSUs = 9945, Households = 138799, Persons_6plus = 447250)   # NSO, Time Use in India 2019, Table 1
+  have <- c(FSUs = uniqueN(d$fsu), Households = uniqueN(d$hh_id), Persons_6plus = uniqueN(d$pid[d$age >= 6]))
+  for (k in names(ref19)) say("%-14s file: %s   NSO 2019 report: %s   ratio: %.3f", k, format(have[[k]], big.mark = ","),
+                              format(ref19[[k]], big.mark = ","), have[[k]] / ref19[[k]])
+  close19 <- all(abs(have / ref19 - 1) < 0.01)
+  say("%s", if (close19) "WARNING: counts match the 2019 round within 1%. This may be the 2019 file, not 2024."
+            else "Counts differ from the 2019 round by more than 1% on at least one measure (consistent with a different round).")
+  yr <- grep("year", names(hdr), ignore.case = TRUE, value = TRUE)
+  if (length(yr)) { say("Survey-year column(s) found: %s", paste(yr, collapse = ", "))
+    for (v in yr) say("%s:\n%s", v, tbl(haven::read_dta(TUS_DTA, col_select = dplyr::all_of(v))[[1]], 5)) }
+  else say("No survey-year column in the file. Confirm the round from the file name, its folder and the counts above.")
   say("Records per person: median %.0f, mean %.1f", median(d[, .N, by = pid]$N), mean(d[, .N, by = pid]$N))
   say("\n== Key checks ==")
   say("Major flag values:\n%s", tbl(d$major))
@@ -62,6 +74,13 @@ if (!is.null(col)) {
   if ("act2" %in% names(d)) say("2-digit = floor(3-digit/10): %.2f%%", 100 * mean(floor(d$act3 / 10) == d$act2, na.rm = TRUE))
   for (v in intersect(c("multiple", "simult", "location", "paid_status", "enterprise"), names(d)))
     say("%s (activity records):\n%s", v, tbl(d[[v]], 12))
+  det <- detect_code_scheme(unique(d, by = "pid")$pas, unique(d, by = "pid")$cooking)
+  say("\n== CODE SCHEME ==\nDetected: %s (%s)\nMarker evidence: %s", det$scheme,
+      if (det$conflicting) "CONFLICT" else if (det$undetermined) "UNDETERMINED" else "clear",
+      paste(names(det$evidence), det$evidence, sep = "=", collapse = ", "))
+  say("Principal activity status (persons):\n%s", tbl(unique(d, by = "pid")$pas, 30))
+  say("Cooking fuel (persons):\n%s", tbl(unique(d, by = "pid")$cooking, 30))
+  if ("lighting" %in% names(d)) say("Lighting (persons):\n%s", tbl(unique(d, by = "pid")$lighting, 30))
   for (v in intersect(c("sector", "marital", "rel", "dow", "special_care", "caregiver", "cooking", "washing",
                         "sweeping", "religion", "social_group", "sub_round"), names(d)))
     say("%s (persons):\n%s", v, tbl(unique(d, by = "pid")[[v]], 12))

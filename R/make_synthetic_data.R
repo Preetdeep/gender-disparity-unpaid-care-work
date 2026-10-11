@@ -160,7 +160,16 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
             "Multiple_Activity_Flag", "Simultaneous_Activity_Flag", "Major_Activity_Flag",
             "Location_of_Activity", "Unpaid_Paid_Status", "Enterprise_Type",
             "Activity_Code_2Digit", "Activity_Code_3Digit")
-  out[, ..keep]
+  res <- out[, ..keep]
+  # Recode to the official-dictionary scheme unless TUS_SYNTH_SCHEME=legacy_txt.
+  if (!identical(Sys.getenv("TUS_SYNTH_SCHEME"), "legacy_txt")) {
+    pas_map <- c("11" = 11, "12" = 12, "13" = 21, "21" = 31, "31" = 41, "41" = 51, "51" = 81, "61" = 91,
+                 "62" = 92, "63" = 93, "64" = 94, "65" = 95, "66" = 97)
+    cook_map <- c("1" = 1, "2" = 1, "3" = 4, "4" = 6, "5" = 5, "6" = 2, "7" = 7, "8" = 11, "9" = 19)
+    res[, Principal_Activity_Status := unname(pas_map[as.character(Principal_Activity_Status)])]
+    res[, primary_energy_cooking := unname(cook_map[as.character(primary_energy_cooking)])]
+  }
+  res
 }
 
 if (sys.nframe() == 0) {

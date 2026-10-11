@@ -236,6 +236,17 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
   }
   rm(dt, agg, agg2); invisible(gc())
 
+  # ---- Code scheme (principal activity status, fuels) ----------------------------
+  det <- detect_code_scheme(if ("pas" %in% names(pdy)) pdy$pas else NULL,
+                            if ("cooking" %in% names(pdy)) pdy$cooking else NULL)
+  apply_code_scheme(det$scheme)
+  V$code_scheme <- det$scheme
+  V$code_scheme_evidence <- det$evidence
+  V$code_scheme_note <- if (det$conflicting) "CONFLICT: markers from both dictionaries present; check the file"
+                        else if (det$undetermined) "UNDETERMINED: no marker codes present; defaulted to official dictionary"
+                        else "detected from marker codes"
+  if (det$conflicting || det$undetermined) warning("Code scheme ", V$code_scheme_note)
+
   # ---- Derived person variables ----------------------------------------------------
   pdy[, `:=`(
     female   = as.integer(gender == CODE$gender["female"]),
@@ -261,13 +272,14 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
     pdy[, `:=`(
       employed = as.integer(pas %in% CODE$pas_employed),
       pas_group = factor(fcase(pas %in% CODE$pas_self_emp, "Self-employed",
+                               pas %in% CODE$pas_helper, "Unpaid family helper",
                                pas %in% CODE$pas_regular, "Regular wage/salaried",
                                pas %in% CODE$pas_casual, "Casual labour",
                                pas %in% CODE$pas_unemployed, "Unemployed",
                                pas %in% CODE$pas_student, "Student",
                                pas %in% CODE$pas_domestic, "Domestic duties",
                                default = "Other not working"),
-                         levels = c("Self-employed", "Regular wage/salaried", "Casual labour",
+                         levels = c("Self-employed", "Unpaid family helper", "Regular wage/salaried", "Casual labour",
                                     "Unemployed", "Student", "Domestic duties", "Other not working")))]
   }
   if ("dow" %in% names(pdy)) {
@@ -456,7 +468,10 @@ load_panel <- function(rebuild = FALSE) {
     }
     build_panel()
   }
-  readRDS(f)
+  pd <- readRDS(f)
+  sc <- attr(pd, "validation")$code_scheme
+  if (!is.null(sc)) apply_code_scheme(sc)       # restore the scheme detected at build time
+  pd
 }
 
 load_pairs <- function() {

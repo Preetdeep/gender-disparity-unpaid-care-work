@@ -127,21 +127,11 @@ CODE <- list(
   location    = c(inside_dwelling = 1, outside_fixed = 2, outside_nonfixed = 3),
   washing     = c(mechanical = 1, manual = 2, outsourced = 3),
   sweeping    = c(mechanical = 1, manual = 2, outsourced = 3),
-  cooking_clean = c(6, 7, 8),                     # LPG, gobar gas, electricity
-  cooking_solid = c(1, 2, 3, 4),                  # firewood, crop residue, dung, coal
   religion = c(Hindu = 1, Muslim = 2, Christian = 3, Sikh = 4, Jain = 5,
                Buddhist = 6, Other = 7),
   social_group = c(ST = 1, SC = 2, OBC = 3, Other = 9),
-  # Usual principal activity status
-  pas_employed   = c(11, 12, 13, 21, 31, 41),
-  pas_self_emp   = c(11, 12, 13),
-  pas_regular    = 21,
-  pas_casual     = c(31, 41),
-  pas_unemployed = 51,
-  pas_student    = 61,
-  pas_domestic   = c(62, 63),
-  pas_pensioner  = 64,
-  pas_disabled   = 65,
+  # Usual principal activity status, cooking and lighting fuel: scheme-dependent,
+  # set by apply_code_scheme() (defaults to the official-dictionary scheme).
   # Highest education (dictionary has no code 09)
   edu_tier = list(
     "Not literate / below primary" = c(1, 2),
@@ -154,6 +144,46 @@ CODE <- list(
   ent_informal  = c(1, 2, 6, 9),   # proprietary, partnership, co-op, others
   ent_household = 8                # employer's household (domestic workers)
 )
+
+# ---- Scheme-dependent codes ----------------------------------------------------
+# docs/DataDictionaryTimeUseSurvey.xlsx ("nso") and docs/variables_dictionary.txt
+# ("legacy_txt") disagree on the codes for usual principal activity status,
+# cooking fuel and lighting. The microdata settle which one applies. build_panel()
+# detects the scheme from the values present (see detect_code_scheme) and records
+# it in validation.txt; load_panel() re-applies it. NEVER hard-code these codes in
+# a manuscript: use CODE$pas_*, CODE$cooking_* and the factors built in the panel.
+CODE_SCHEMES <- list(
+  nso = list(                                   # official data dictionary (xlsx), NSS-style codes
+    pas_employed = c(11, 12, 21, 31, 41, 51), pas_self_emp = c(11, 12), pas_helper = 21,
+    pas_regular = 31, pas_casual = c(41, 51), pas_unemployed = 81, pas_student = 91,
+    pas_domestic = c(92, 93), pas_pensioner = 94, pas_disabled = 95,
+    cooking_lpg = 2, cooking_clean = c(2, 3, 7, 8, 11),   # LPG, other natural gas, gobar gas, other biogas, electricity
+    cooking_solid = c(1, 4, 6, 10),                       # firewood, dung cake, coke/coal, charcoal
+    lighting_electric = 1),
+  legacy_txt = list(                            # docs/variables_dictionary.txt
+    pas_employed = c(11, 12, 13, 21, 31, 41), pas_self_emp = c(11, 12), pas_helper = 13,
+    pas_regular = 21, pas_casual = c(31, 41), pas_unemployed = 51, pas_student = 61,
+    pas_domestic = c(62, 63), pas_pensioner = 64, pas_disabled = 65,
+    cooking_lpg = 6, cooking_clean = c(6, 7, 8), cooking_solid = c(1, 2, 3, 4),
+    lighting_electric = 3)
+)
+apply_code_scheme <- function(scheme) {
+  stopifnot(scheme %in% names(CODE_SCHEMES))
+  for (k in names(CODE_SCHEMES[[scheme]])) CODE[[k]] <<- CODE_SCHEMES[[scheme]][[k]]
+  CODE_SCHEME <<- scheme
+  invisible(scheme)
+}
+# Marker codes exist in only one dictionary. pas: 81/91-97 only in nso; 61-66 and 13
+# only in legacy_txt. cooking: 10/11/12/19 only in nso; 9 only in legacy_txt.
+detect_code_scheme <- function(pas, cooking = NULL) {
+  pv <- unique(pas[!is.na(pas)]); cv <- if (is.null(cooking)) numeric() else unique(cooking[!is.na(cooking)])
+  ev <- c(nso_pas = sum(pv %in% c(81, 91, 92, 93, 94, 95, 97)), legacy_pas = sum(pv %in% c(13, 61, 62, 63, 64, 65, 66)),
+          nso_cook = sum(cv %in% c(10, 11, 12, 19)), legacy_cook = sum(cv %in% 9))
+  n <- ev[["nso_pas"]] + ev[["nso_cook"]]; l <- ev[["legacy_pas"]] + ev[["legacy_cook"]]
+  scheme <- if (n > 0 && l == 0) "nso" else if (l > 0 && n == 0) "legacy_txt" else "nso"
+  list(scheme = scheme, conflicting = (n > 0 && l > 0), undetermined = (n == 0 && l == 0), evidence = ev)
+}
+apply_code_scheme("nso")
 
 act_label <- function(code3) unname(icatus_labels[as.character(code3)])
 
