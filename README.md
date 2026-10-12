@@ -2,7 +2,7 @@
 
 Eight journal-targeted papers on unpaid work, care and free time in India, built on one audited data pipeline for the National Statistics Office's **Time Use Survey (January–December 2024)**: about 10.2 million activity records, about 450,000 person-day diaries, about 139,500 households, every state and union territory.
 
-**Author:** Dr Preet Deep Singh, Blue Machines (preetdeepsingh111@yahoo.com)
+**Author:** Dr Preet Deep Singh, independent researcher (ORCID 0000-0003-3721-7548; preetdeepsingh111@gmail.com)
 
 > **Status (October 2026).** The pipeline and all eight manuscripts are complete and knit end to end. Every number in every manuscript is computed from the data at knit time, and every sentence that depends on a result is chosen by the estimates. **The manuscripts have been tested on synthetic data only.** Run them on the real microdata, read the checklist in each paper's `SUBMISSION.md`, then submit. All earlier papers are retired: their estimates are invalid (see [`docs/AUDIT.md`](docs/AUDIT.md)).
 

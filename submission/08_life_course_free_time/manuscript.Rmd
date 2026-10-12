@@ -1,6 +1,8 @@
 ---
 title: "The Free-Time Gap over the Life Course: Gender, Family Stage, and Time Poverty in India"
-author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+params:
+  blind: false
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent researcher. ORCID: 0000-0003-3721-7548. Email: preetdeepsingh111@gmail.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. AI-assisted tools were used for code checking and language editing; the author takes full responsibility for the content. No conflicts of interest. All errors are mine.}"`'
 date: "`r format(Sys.Date(), '%B %Y')`"
 output:
   pdf_document:
