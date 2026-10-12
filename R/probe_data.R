@@ -81,6 +81,26 @@ if (!is.null(col)) {
   say("Principal activity status (persons):\n%s", tbl(unique(d, by = "pid")$pas, 30))
   say("Cooking fuel (persons):\n%s", tbl(unique(d, by = "pid")$cooking, 30))
   if ("lighting" %in% names(d)) say("Lighting (persons):\n%s", tbl(unique(d, by = "pid")$lighting, 30))
+  # ---- Feasibility counts for redesigned papers (persons, unweighted) ----
+  say("\n== FEASIBILITY COUNTS (persons) ==")
+  P1 <- unique(d, by = "pid")
+  cnt <- function(lbl, ids) {
+    g <- P1[pid %in% ids, .N, by = gender]
+    say("%-62s total %8s | men %7s | women %7s", lbl, format(length(unique(ids)), big.mark = ","),
+        format(sum(g[gender == 1]$N), big.mark = ","), format(sum(g[gender == 2]$N), big.mark = ","))
+  }
+  mj <- d[!is.na(act3) & major == 1]
+  cnt("Did paid domestic services (ICATUS 136) on diary day", mj[act3 == 136, unique(pid)])
+  if ("nic" %in% names(d)) cnt("Industry NIC 97 (households as employers of domestic staff)", P1[nic == 97, pid])
+  if ("enterprise" %in% names(d)) cnt("Worked for an employer's household (enterprise type 8)", d[enterprise == 8, unique(pid)])
+  cnt("Fetched water (242) on diary day", mj[act3 == 242, unique(pid)])
+  cnt("Gathered firewood/fuel (241) on diary day", mj[act3 == 241, unique(pid)])
+  cnt("Received personal/health care from others (941-949)", mj[act3 >= 941 & act3 <= 949, unique(pid)])
+  cnt("Gave care to a dependent adult (421-429, 443)", mj[(act3 >= 421 & act3 <= 429) | act3 == 443, unique(pid)])
+  cnt("Usual status: not able to work owing to disability (code 95)", P1[pas == 95, pid])
+  cnt("Aged 80 or above", P1[age >= 80, pid])
+  cnt("Live-in non-relative (relationship code 9)", P1[rel == 9, pid])
+  if ("district" %in% names(d)) say("Districts (state x district): %s", format(uniqueN(P1[, paste(state, district)]), big.mark = ","))
   for (v in intersect(c("sector", "marital", "rel", "dow", "special_care", "caregiver", "cooking", "washing",
                         "sweeping", "religion", "social_group", "sub_round"), names(d)))
     say("%s (persons):\n%s", v, tbl(unique(d, by = "pid")[[v]], 12))

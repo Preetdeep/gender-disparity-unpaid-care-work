@@ -22,6 +22,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     FSU_Serial_No = sample(10000 + seq_len(n_fsu), n_hh, replace = TRUE),
     Sector = sample(1:2, n_hh, TRUE, c(.68, .32)),
     State = sample(1:36, n_hh, TRUE),
+    District = sample(1:12, n_hh, TRUE),
     Religion = sample(c(1, 2, 3, 4, 7), n_hh, TRUE, c(.79, .14, .03, .02, .02)),
     Social_Group = sample(c(1, 2, 3, 9), n_hh, TRUE, c(.09, .2, .44, .27)),
     primary_energy_cooking = sample(c(1, 2, 3, 6, 8), n_hh, TRUE, c(.3, .05, .05, .55, .05)),
@@ -151,7 +152,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     Enterprise_Type = fifelse(Activity_Code_3Digit %/% 100 == 1, sample(c(1, 3, 5, 8), .N, TRUE), NA_real_),
     Gender = sex, Age = age, Marital_Status = mar, Relationship_to_Head = rel
   )]
-  keep <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No", "Sector", "State",
+  keep <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No", "Sector", "State", "District",
             "Gender", "Age", "Marital_Status", "Highest_Education", "Principal_Activity_Status",
             "Relationship_to_Head", "Household_Size", "Religion", "Social_Group",
             "umpce_item10", "primary_energy_cooking", "type_of_washing", "type_of_sweeping",

@@ -58,7 +58,9 @@ TUS_COLS <- list(
   special_care = c("special_care_needed", "Special_Care_Needed"),
   caregiver  = c("care_giver_available", "Care_Giver_Available"),
   land       = c("land_possessed", "Land_Possessed"),
-  dwelling   = c("dwelling_unit_structure", "Dwelling_Unit_Structure")
+  dwelling   = c("dwelling_unit_structure", "Dwelling_Unit_Structure"),
+  nic        = c("NIC_Industry_Code", "NIC_2digit", "nic_code"),
+  sub_stratum = c("Sub_Stratum", "sub_stratum")
 )
 TUS_REQUIRED <- c("fsu", "hh", "person", "gender", "age", "act3", "time", "weight", "major")
 
@@ -221,7 +223,7 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED, hh_dta = TUS_HH_DT
   }
 
   # ---- Person-level attributes -------------------------------------------------
-  person_vars <- intersect(c("pid", "hh_id", "fsu", "person", "gender", "age", "marital",
+  person_vars <- intersect(c("pid", "hh_id", "fsu", "person", "gender", "age", "marital", "nic",
                              "edu", "pas", "rel", "sector", "state", "district",
                              "stratum", "sub_round", "dow", "type_day", "informant",
                              "religion", "social_group", "hh_size", "umpce", "cooking",
@@ -523,6 +525,36 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED, hh_dta = TUS_HH_DT
     pdy[, c("k_n", "k_sons", "k_daus", "k_youngest", "g_n", "g_sons", "g_daus",
             "g_youngest", "one_child_couple") := NULL]
   }
+
+  # ---- Roster-based SES proxies (the file has no consumption, caste or religion) -------
+  # Household head's education tier, the highest education tier among members 15+, and
+  # whether any member's usual status is regular wage/salaried employment.
+  if ("edu_tier" %in% names(pdy)) {
+    hd <- pdy[rel == CODE$relation["head"], .(hh_id, head_edu_tier = edu_tier, head_female_r = female, head_age = age)]
+    hd <- unique(hd, by = "hh_id")
+    pdy[hd, on = "hh_id", `:=`(head_edu_tier = i.head_edu_tier, head_age = i.head_age)]
+    mx <- pdy[age >= 15 & !is.na(edu_tier), .(v = max(as.integer(edu_tier))), by = hh_id]
+    pdy[mx, on = "hh_id", hh_max_edu_tier := factor(levels(pdy$edu_tier)[i.v], levels = levels(pdy$edu_tier))]
+  }
+  if ("pas" %in% names(pdy)) {
+    rg <- pdy[, .(r = as.integer(any(pas %in% CODE$pas_regular, na.rm = TRUE)),
+                  ne = sum(pas %in% CODE$pas_employed, na.rm = TRUE)), by = hh_id]
+    pdy[rg, on = "hh_id", `:=`(hh_any_regular = i.r, hh_n_employed = i.ne)]
+  }
+
+  # ---- Care need from the roster and diaries (no special-care question in the file) ----
+  # A member is a probable care recipient if their usual status is "not able to work owing
+  # to disability", or their own diary records receiving personal or health care from others
+  # (ICATUS 941-949). Members aged 80+ are counted separately.
+  pdy[, care_recipient := as.integer((if ("pas" %in% names(pdy)) pas %in% CODE$pas_disabled else FALSE) |
+                                       (!is.na(receiving_care) & receiving_care > 0))]
+  cr <- pdy[, .(hh_n_recipients = sum(care_recipient, na.rm = TRUE), hh_n_80plus = sum(age >= 80, na.rm = TRUE)), by = hh_id]
+  pdy[cr, on = "hh_id", `:=`(hh_n_recipients = i.hh_n_recipients, hh_n_80plus = i.hh_n_80plus)]
+  V$share_hh_with_recipient <- mean(unique(pdy, by = "hh_id")$hh_n_recipients > 0)
+
+  # District identifier (district codes are unique only within state).
+  if (all(c("state", "district") %in% names(pdy))) pdy[, dist_id := paste(state, district, sep = "_")]
+  V$n_districts <- if ("dist_id" %in% names(pdy)) uniqueN(pdy$dist_id) else NA
 
   # ---- Keep diarists only (household composition above used the full roster) --------
   pdy <- pdy[has_diary == TRUE]

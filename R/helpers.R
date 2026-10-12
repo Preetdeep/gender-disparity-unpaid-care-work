@@ -181,7 +181,8 @@ ctrl <- function(d, vars) {
   }, logical(1))
   if (!any(ok)) "1" else paste(vars[ok], collapse = " + ")
 }
-fe <- function(d, vars = c("state", "dow")) {
+fe <- function(d, vars = c("dist_id", "dow")) {
+  if ("dist_id" %in% vars && !"dist_id" %in% names(d)) vars[vars == "dist_id"] <- "state"
   ok <- vars[vars %in% names(d) & vapply(vars, function(v) v %in% names(d) &&
                                             data.table::uniqueN(na.omit(d[[v]])) > 1, logical(1))]
   if (length(ok)) paste("|", paste(ok, collapse = " + ")) else ""
@@ -237,4 +238,21 @@ diff_pp <- function(e, more = "higher", less = "lower", digits = 1) {
   if (is.null(e$est) || is.na(e$est)) return("not estimable")
   paste0(.fmt(100 * abs(e$est), digits), " percentage points (SE ", .fmt(100 * e$se, digits), ") ",
          more_less(e$est, more, less))
+}
+
+
+# Standard data-disclosure paragraph for every manuscript's Data section. It states
+# exactly what the 2024 person-level file contains and how household variables are built.
+data_disclosure <- function(V) {
+  hh <- if (identical(V$household_file, "NONE") || is.null(V$household_file)) {
+    paste0("The unit-level file does not contain the household questionnaire items (religion, social group, ",
+           "consumption expenditure, cooking fuel, the mode of laundry and sweeping, special-care need, land and dwelling). ",
+           "I therefore do not use them. Socioeconomic status is proxied by the household head's education, the highest ",
+           "education among members aged 15 and above, and whether any member's usual status is regular wage or salaried ",
+           "employment. District fixed effects absorb local differences in income, caste composition and infrastructure.")
+  } else "Household characteristics come from the household-level file merged on FSU and household number."
+  paste0("The file lists every household member, including children under six, who are enumerated but do not keep a diary. ",
+         "Household size is the number of listed members of all ages, and the number of children under six is counted from ",
+         "their recorded ages (", fn(V$n_roster_only), " members without a diary, of whom ", fn(V$n_roster_only_age6plus),
+         " are aged six or above and are excluded as non-respondents). ", hh)
 }
