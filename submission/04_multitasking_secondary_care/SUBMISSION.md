@@ -7,6 +7,10 @@
 
 National measures of secondary activity, secondary childcare and free time shared with care for India, with the inclusive childcare measure bounded under four duration conventions for minor records, heterogeneity by a child under 6 and by employment, and a wage-free replacement-cost uplift. It shows how much single-activity accounting changes the measured level of, and gender gap in, unpaid care, which matters for SDG 5.4.1 and for valuations of unpaid work.
 
+## Data available (2024 person-level file only)
+
+The real file (`TimeUse106PER.dta`: 10,211,478 activity records, of which 1,771,556 are minor; major flag 1 = major, 2 = minor) has no household questionnaire. Consumption (mpce and its quintiles), caste/social group, religion, cooking fuel, the mode of laundry and sweeping, special-care need, caregiver availability, land and dwelling are therefore **not used anywhere** in this paper. Household size and the number of children under 6 are counted from the roster. Socioeconomic status is proxied by `head_edu_tier`, `hh_max_edu_tier`, `hh_any_regular` and `hh_n_employed`; district fixed effects (`dist_id`) absorb local income, caste composition and infrastructure, and sub-round fixed effects absorb season. The Data section carries the standard `data_disclosure(V)` paragraph, and the Limitations section states that consumption, caste and religion are unavailable (so no results by consumption class or social group). What cannot be estimated: secondary care by consumption quintile, caste or religion; secondary care by cooking fuel or laundry/sweeping technology; secondary care in households reporting a member who needs special care.
+
 ## Before submitting
 
 - [ ] Real-data run: `TUS_DTA=/path/TimeUse106PER.dta Rscript run_all.R 04`.
@@ -18,7 +22,8 @@ National measures of secondary activity, secondary childcare and free time share
 - [ ] Verify every cited reference against the source (`submission/references.bib` and `refs_local.bib`).
 - [ ] Once the duration convention is known, say which row of the conventions table (Table `conv`) is the headline and move the others to robustness.
 - [ ] Confirm whether `Weight` is a population multiplier before keeping the aggregate-hours sentence in Section 5 (it is stated conditionally).
-- [ ] Check `share_hh_negative_under6_residual` in `validation.txt`; the child-under-6 heterogeneity depends on it.
+- [ ] Confirm `under6_method` in `validation.txt` reads "direct count" (the 2024 file lists children under 6 in the roster); the child-under-6 heterogeneity depends on it.
+- [ ] Confirm `sub_round` and `dist_id` resolve on the real file, so the regressions carry district, day-of-week and sub-round fixed effects (the notes are generated from what enters).
 - [ ] Read every `iff()`/`say3()` branch on real data; the synthetic file has no male secondary childcare and no care during free time, so several estimates are "not estimable" there.
 - [ ] Word count: about 8,000 words of text plus tables; check the journal's limit.
 - [ ] Check the journal's current length limit, reference style and anonymisation rules.
