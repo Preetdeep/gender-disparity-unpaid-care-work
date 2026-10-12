@@ -1,6 +1,6 @@
 # Paper 02: Co-resident Grandmothers and Mothers' Time
 
-**Target journal:** *Journal of Population Economics*. It publishes the grandparent-childcare and family-structure literature this paper extends (Dimova and Wolff 2011; Afridi et al. 2018).
+**Target journal (revised 12 Oct 2026 after real-data results, an informative null):** *Demographic Research* (open access, welcomes null results), fallbacks *Population and Development Review*, *Journal of Population Economics*, *Feminist Economics*.
 **Fallbacks:** *Demography*, *Population and Development Review*, *Feminist Economics*.
 
 ## Contribution in one line
