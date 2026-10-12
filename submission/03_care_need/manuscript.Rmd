@@ -257,7 +257,7 @@ Many Indian households include someone who is frail, ill or disabled and needs d
 
 \newpage
 
-# Introduction
+# Introduction {#sec:s1}
 
 Care for people who cannot fully look after themselves is the core of the unpaid economy [@folbre1994pays; @folbre2006measuring; @addati2018care]. Its largest component in most countries is childcare, and the time-use literature has studied parental care intensively [@sayer2004parents; @craig2011share; @folbre2005measure]. Care of sick, frail and disabled adults has received much less attention, especially outside high-income countries, even though demand for it is rising fastest. India's population aged 60 and above is growing faster than the population as a whole, co-residence with adult children remains the dominant living arrangement for older Indians, and a substantial share of them report difficulty with basic activities of daily living [@iips2020lasi; @unfpa2023ageing]. Public and market provision of long-term care is thin [@unfpa2023ageing; @who2015ageing], so most of this care is provided inside the household, by its members, without pay.
 
@@ -269,9 +269,9 @@ Five results stand out. First, in households that need each type of care, women 
 
 The paper contributes to three literatures. For feminist economics of care, it measures care conditional on need, which separates the gender division of care from household demography, and it uses the survey's own assessment of caregiver availability, a direct if coarse measure of the household's care capacity [@folbre2006measuring; @razavi2007political; @addati2018care]. For the economics of informal caregiving, which comes mostly from Europe and North America [@lilly2007labor; @heitmueller2007chicken; @vanhoutven2013informal; @bauer2015impacts], it provides diary-based evidence from a setting where co-residence is the norm, formal care is scarce, and women's attachment to paid work is already weak. For the study of gender and family structure in India, it documents how patrilocal residence and the expectation that daughters-in-law serve their husband's parents translate into minutes of care [@dyson1983kinship; @kandiyoti1988bargaining; @lamb2000white; @jayachandran2015roots].
 
-The rest of the paper is organised as follows. Section 2 reviews the theory and measurement of care and the evidence on informal adult care. Section 3 sets out a conceptual framework and the questions it implies. Section 4 describes the data and the construction of need, care and carers. Section 5 presents the empirical approach, Section 6 the results, and Section 7 discusses interpretation, limitations and policy.
+The rest of the paper is organised as follows. Section \ref{sec:s2} reviews the theory and measurement of care and the evidence on informal adult care. Section \ref{sec:s3} sets out a conceptual framework and the questions it implies. Section \ref{sec:s4} describes the data and the construction of need, care and carers. Section \ref{sec:s5} presents the empirical approach, Section \ref{sec:s6} the results, and Section \ref{sec:s7} discusses interpretation, limitations and policy.
 
-# Care, need and gender: theory and evidence
+# Care, need and gender: theory and evidence {#sec:s2}
 
 ## Care as work, responsibility and relationship
 
@@ -303,7 +303,7 @@ In South Asia, obligations to care are shaped by patrilineal and patrilocal kins
 
 Demographic change is putting pressure on these arrangements. Falling fertility reduces the number of potential carers per older person, migration separates adult children from their parents, and rising life expectancy, longer for women than for men, increases the number of older widows [@rajan1999india; @unfpa2023ageing]. Disability is concentrated at older ages [@nso2019disability; @iips2020lasi]. At the same time, India's female labour-force participation is low by international standards and fell for married women between the mid-2000s and the early 2010s [@afridi2018married; @klasen2015stagnation; @chatterjee2018indian]. Explanations emphasise norms, the structure of labour demand, and household responsibilities [@fletcher2017women; @jayachandran2021social]. Extended-family structure has been shown to be associated with women's employment [@dhanaraj2019family], but the role of care of adults within that structure has not been measured directly. If care of the old is part of what keeps married women out of paid work, the coming increase in the old-age dependency ratio will make it harder to raise women's employment.
 
-# Conceptual framework
+# Conceptual framework {#sec:s3}
 
 Consider a household with members $i = 1, \dots, n$ who allocate their time among paid work, unpaid care, other unpaid work, leisure and sleep. The household's need for care of a dependent member, $S_h$, raises the total care time the household must supply. How that requirement is divided depends on each member's opportunity cost of time, on bargaining power, and on norms that assign care to particular positions in the household [@folbre1994pays; @sen1990gender; @agarwal1997bargaining]. In a unitary model with comparative advantage, the member with the lowest market wage supplies care, and since women's wages and employment opportunities are lower, women supply most of it. A bargaining or identity model gives the same prediction for a different reason: care is assigned by gender and position, and departures from the assignment are costly. The models differ in what they predict when the person to whom care is assigned is absent: comparative advantage predicts that the next-lowest-cost member takes over, while strong positional norms predict that care may go unmet or be bought in.
 
@@ -317,11 +317,11 @@ The framework implies four questions that the data can answer.
 
 *Q4. Position and life course.* Which members of the household supply care, by relationship to the head, sex and age? The kinship literature predicts a central role for daughters-in-law; the gerontological literature predicts a large role for spouses at older ages, and a smaller gender gap among older people. Men's care in households where no adult woman is present tests whether men's low care elsewhere reflects substitution by women.
 
-# Data and measurement
+# Data and measurement {#sec:s4}
 
 ## The Time Use Survey 2024
 
-The Time Use Survey (TUS) 2024 was conducted by India's National Statistics Office between January and December 2024 [@nso2025tus]. It follows the 2019 survey [@nso2020tus] and covers rural and urban India with a stratified multistage design in which first-stage units (villages and urban blocks) are the primary sampling units. Every member of a sampled household aged six and above reports, in a face-to-face interview, the activities of the 24 hours from 4 a.m. on the day before the interview, coded to ICATUS 2016. More than one activity can be recorded in a time slot, each flagged as major or minor. I use all `r fn(V$n_rows)` activity records, covering `r fn(V$n_persons)` diaries in `r fn(V$n_households)` households and `r fn(V$n_fsu)` first-stage units. Time is aggregated to the person-day from major activities, so that every diary sums to 1,440 minutes (Appendix Table \ref{tab:validation}). All estimates use the survey multipliers, and standard errors are clustered on the first-stage unit.
+The Time Use Survey (TUS) 2024 was conducted by India's National Statistics Office between January and December 2024 [@nso2025tus]. It follows the 2019 survey [@nso2020tus] and covers rural and urban India with a stratified multistage design in which first-stage units (villages and urban blocks) are the primary sampling units. Every member of a sampled household aged six and above reports, in a face-to-face interview, the activities of the 24 hours from 4 a.m. on the day before the interview, coded to ICATUS 2016. More than one activity can be recorded in a time slot, each flagged as major or minor. I use all `r fn(V$n_rows)` activity records, covering `r fn(V$n_diarists)` diaries in `r fn(V$n_households)` households and `r fn(V$n_fsu)` first-stage units. Time is aggregated to the person-day from major activities, so that every diary sums to 1,440 minutes (Appendix Table \ref{tab:validation}). All estimates use the survey multipliers, and standard errors are clustered on the first-stage unit.
 
 ## Need for care
 
@@ -365,7 +365,7 @@ tab(d1, caption = paste0("Care provided in households that need it, ages 15+", s
                    "Aggregate share: women's minutes over all minutes. Division 4: all unpaid caregiving for household members (ICATUS 4xx)."))
 ```
 
-# Empirical approach
+# Empirical approach {#sec:s5}
 
 The descriptive comparisons answer Q1. For Q2, I estimate for persons aged 15 and above
 
@@ -379,11 +379,11 @@ $$ y_{ih} = \alpha + \theta^{A} S^{A}_h + \theta^{N} S^{N}_h + X_{ih}'\gamma + \
 
 where $S^{A}_h$ and $S^{N}_h$ indicate a special-care need with and without a caregiver reported available, the reference group is households with no such need, and $X_{ih}$ adds the number of children under six. The pooled version replaces the two indicators with $S_h$. Outcomes include minutes of dependent-adult care, all caregiving, domestic work, employment, free time and sleep, and two shares: any employment on the diary day and employment in the usual principal status. The last is the most direct labour-supply measure, since it refers to the year before the survey rather than to one day.
 
-These coefficients are conditional associations, not causal effects. Households in which someone needs care are likely to be older, and may be poorer, than other households, and women in them may differ in unobserved ways from other women. The controls absorb the most important observable differences, including the number of older members, which separates the effect of need from that of an older household. Two features of the setting limit the most common bias in the caregiving literature, selection into caring: need is measured at the household level, so the comparison is between women in households with and without need rather than between carers and non-carers, and in co-residential households the decision to care is arguably less a separate choice than a consequence of residence. Selection into co-residence remains: families may move a frail parent in with the child best able to care, or a daughter-in-law may withdraw from the labour market before need arises. I return to this in Section 7.
+These coefficients are conditional associations, not causal effects. Households in which someone needs care are likely to be older, and may be poorer, than other households, and women in them may differ in unobserved ways from other women. The controls absorb the most important observable differences, including the number of older members, which separates the effect of need from that of an older household. Two features of the setting limit the most common bias in the caregiving literature, selection into caring: need is measured at the household level, so the comparison is between women in households with and without need rather than between carers and non-carers, and in co-residential households the decision to care is arguably less a separate choice than a consequence of residence. Selection into co-residence remains: families may move a frail parent in with the child best able to care, or a daughter-in-law may withdraw from the labour market before need arises. I return to this in Section \ref{sec:s7}.
 
 For Q4, I report the distribution of dependent-adult care minutes by the carer's sex and relationship to the head, the age profile of care by sex, and two comparisons: care by spouses of probable recipients, and men's care in need households with and without a non-recipient woman aged 15 or above.
 
-# Results
+# Results {#sec:s6}
 
 ## The division of care conditional on need
 
@@ -492,7 +492,7 @@ The probable-recipient flag allows a closer look at spousal care. Among married 
 
 Men's care depends on whether a woman is present to provide it. `r pct(pr_nowoman, 1)` of households with a special-care need contain no non-recipient woman aged 15 or above. `r iff(ok(g_nw), paste0("Men in such households (", fn(n_nw_men), " in the sample) provide ", diff_txt(g_nw), " dependent-adult care than men in need households with a woman present, and are ", likely(g_nwp), " to provide any. With controls, the difference is ", est_se(g_nw_adj), ". They also do ", diff_txt(g_nwd), " domestic work. Men in households without a woman provide ", f1(m_nw_men), " minutes of adult care a day, against ", f1(m_w_women), " for women in need households. ", iff(is_pos(g_nw), iff(men_close_gap, "When there is no woman to assign care to, men provide care at levels close to women's, so men's low care elsewhere reflects substitution by women rather than incapacity.", "Men take on more care when there is no woman to provide it, but still far less than women do, which suggests that some care goes unmet or is provided from outside the household."), "Men's care does not rise measurably in households without a woman, which suggests that care in these households is provided from outside, by non-resident kin or paid help, or goes unmet."), iff(nw_small, " The comparison rests on few men and is indicative only.", "")), paste0("Men in such households number only ", fn(n_nw_men), " in the sample, too few for a reliable comparison."))`
 
-# Discussion
+# Discussion {#sec:s7}
 
 ## Interpretation
 
@@ -520,7 +520,7 @@ Long-term care has entered India's policy agenda mainly through the health syste
 
 *Prepare for older couples.* People who are themselves over 60, often spouses, provide `r pct(sh_min_60, 0)` of adult care in need households. As fertility falls and migration separates generations, more older couples will live alone. Their care capacity is limited by their own health, and they are the group for whom public provision most directly substitutes for family care.
 
-# Conclusion
+# Conclusion {#sec:s8}
 
 Conditioning on need changes how care in India looks. In households that need care, women provide `r pct(sh_child, 0)` of childcare minutes and `r pct(sh_adult, 0)` of dependent-adult care minutes`r iff(women_dominate, ", so the gender gap in care is not a gap in exposure", "")`. For working-age women, a member who needs special care is associated with `r diff_txt(c_emp)` time in paid work and `r diff_txt(c_ft)` free time. `r iff(wives_dil_main, "Adult care is provided mainly by wives and daughters-in-law", "Adult care is spread across household positions")`, and people aged 60 and above provide `r pct(sh_min_60, 0)` of it. As the population ages, this form of care will grow. `r iff(women_dominate, "Without public provision and a redistribution of care between men and women, most of it will be supplied by women's time.", "How it is divided between women, men and public provision will shape women's paid work and free time.")`
 

@@ -156,7 +156,7 @@ validation_table <- function(pd) {
               "Diaries summing to 1,440 minutes", "Records flagged minor (secondary)",
               "Persons with varying weight", "Invalid activity codes",
               "Married persons with linked spouse", "Under-6 count method"),
-    Value = c(fn(V$n_rows), fn(V$n_persons), fn(V$n_households), fn(V$n_fsu),
+    Value = c(fn(V$n_rows), fn(if (is.null(V$n_diarists)) V$n_persons else V$n_diarists), fn(V$n_households), fn(V$n_fsu),
               pct(V$share_diaries_1440), pct(V$share_rows_minor),
               pct(V$share_persons_weight_varies, 2),
               if (length(V$invalid_act3_codes)) paste(V$invalid_act3_codes, collapse = ", ") else "None",
