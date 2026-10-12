@@ -596,4 +596,14 @@ load_pairs <- function() {
   if (file.exists(f)) readRDS(f) else NULL
 }
 
-panel_validation <- function(pd) attr(pd, "validation")
+panel_validation <- function(pd) {
+  V <- attr(pd, "validation")
+  if (is.null(V)) return(V)
+  # Derived counts used in the data sections (all computed from the build, not assumed).
+  V$n_diaries_not1440 <- as.integer(round(V$n_diarists * (1 - V$share_diaries_1440)))
+  V$n_roster_6plus <- V$n_diarists + V$n_roster_only_age6plus
+  n3 <- attr(pd, "n_third_gender_excluded")
+  V$n_third_gender <- if (is.null(n3)) 0L else n3
+  V$n_analysed <- V$n_diarists - V$n_third_gender
+  V
+}

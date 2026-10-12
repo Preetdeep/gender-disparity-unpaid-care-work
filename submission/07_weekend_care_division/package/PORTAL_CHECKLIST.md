@@ -18,6 +18,6 @@
 - [ ] Copyright/licence notice (JTUR is open access, CC BY): Doc to accept
 - [ ] Competing interests: none. Funding: none
 - [ ] Data availability: TUS 2024 microdata from MoSPI (microdata.gov.in, catalog 236). Anonymised files: "Code available from the author on request; will be made public on acceptance." (GitHub link only on the non-anonymised title page)
-- [ ] AI-use disclosure: generative AI used only to improve language
+- [ ] AI-use disclosure: generative AI tools (Claude, Anthropic; and other AI assistants) assisted with writing and debugging analysis code, checking references, and drafting and editing text; the author verified all analyses, results, and text
 - [ ] Upload the supplement as a "supplementary file"
 - [ ] Funding: none. Conflicts: none. Suggested reviewers: none unless required. Pre-registration: not publicly pre-registered. No self-citations.

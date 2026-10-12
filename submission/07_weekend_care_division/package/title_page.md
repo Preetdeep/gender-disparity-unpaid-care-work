@@ -14,5 +14,5 @@
 **Conflicts of interest:** None.
 **Data availability:** Unit-level data from the Time Use Survey (January–December 2024), National Statistics Office, MoSPI, Government of India (microdata.gov.in, catalog 236), available to registered users. Replication code: https://github.com/Preetdeep/gender-disparity-unpaid-care-work
 **Ethics:** Secondary analysis of anonymised official survey microdata; no human-subjects contact.
-**Use of AI tools:** Generative AI was used only to improve the language of the manuscript. The author takes full responsibility for the content.
+**Use of AI tools:** Generative AI tools (Claude, Anthropic; and other AI assistants) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
 **Acknowledgements:** I thank the National Statistics Office for access to the microdata.

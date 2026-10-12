@@ -15,7 +15,7 @@
 - [ ] Separate title page with author details (anonymised review)
 - [ ] Disclosure statement: no conflicts. Funding: none
 - [ ] Data availability statement: MoSPI TUS 2024 (microdata.gov.in, catalog 236). Anonymised files: "Code available from the author on request; will be made public on acceptance." (GitHub link only on the non-anonymised title page)
-- [ ] AI-use declaration: generative AI used only to improve language
+- [ ] AI-use declaration: generative AI tools (Claude, Anthropic; and other AI assistants) assisted with writing and debugging analysis code, checking references, and drafting and editing text; the author verified all analyses, results, and text
 - [ ] Confirm the paper is not under review elsewhere
 - [ ] Upload the supplement as "Supplemental online material"
 - [ ] Funding: none. Conflicts: none. Suggested reviewers: none unless required. Pre-registration: not publicly pre-registered. No self-citations.
