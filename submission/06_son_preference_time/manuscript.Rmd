@@ -15,6 +15,7 @@ fontsize: 11pt
 geometry: margin=1in
 bibliography: [../references.bib, refs_local.bib]
 link-citations: true
+csl: apa.csl
 ---
 
 ```{r setup, include=FALSE}

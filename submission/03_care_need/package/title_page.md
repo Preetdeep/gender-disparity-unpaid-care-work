@@ -19,4 +19,4 @@
 
 **Biographical note (≈60 words, for the portal; Doc to confirm):** Preet Deep Singh is an independent researcher working on gender, time use and household economics in India. His research uses large-scale official survey microdata, including India's Time Use Surveys, to study unpaid work, care and the allocation of time within households.
 
-**JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (3–6):** care work; eldercare; disability; long-term care; gender; time use
+**JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (exactly 6):** care work; eldercare; long-term care; gender; time use; India
