@@ -676,6 +676,10 @@ tab(rt, caption = paste0("Robustness of the allocation estimates: regular salari
 
 Table \ref{tab:rob} varies the specification. The checks drop all controls, which should matter little under random assignment; replace state fixed effects with FSU fixed effects, which compare households in the same village or urban block interviewed on different days and absorb local differences in interview schedules; control for proxy reporting or keep only self-reported diaries, because diaries reported by another household member may understate men's unpaid work [@lee2005husbands]; drop Saturday diaries, so that Sunday is compared only with Monday to Friday; restrict to married men; and drop the survey weights [@solon2015weighting]. Across the `r nrow(ROB)` specifications the unpaid-work share ranges from `r f1(100 * rob_range[1])` to `r f1(100 * rob_range[2])` minutes per 100. `r iff(rob_stable, "Every estimate lies within the 95% confidence interval of the baseline, so the conclusions do not depend on these choices.", "At least one estimate lies outside the 95% confidence interval of the baseline, so the conclusions are sensitive to specification and the baseline should be read with that in mind.")`
 
+## Replication in the 2019 survey
+
+The 2019 round has the same "yesterday" design [@nso2020tus]. With a harmonised specification (age, state, residence and Saturday as controls), a Sunday diary reduces regular salaried men's paid work by `r f0(abs(cmp("07", "first_stage_sunday", 2019)$est))` minutes in 2019 and `r f0(abs(cmp("07", "first_stage_sunday", 2024)$est))` in 2024. Of every 100 minutes forgone, `r f1(cmp("07", "per100_unpaid", 2019)$est)` (SE `r f1(cmp("07", "per100_unpaid", 2019)$se)`) go to unpaid work in 2019 and `r f1(cmp("07", "per100_unpaid", 2024)$est)` (SE `r f1(cmp("07", "per100_unpaid", 2024)$se)`) in 2024, and `r f1(cmp("07", "per100_free", 2019)$est)` and `r f1(cmp("07", "per100_free", 2024)$est)` to free time. The allocation is stable across rounds.
+
 # Discussion {#sec:s7}
 
 ## What the Sunday estimate measures

@@ -262,3 +262,16 @@ diary_flow_table <- function(pd) {
              N = c(fn(V$n_roster_6plus), fn(V$n_roster_only_age6plus), fn(V$n_diarists),
                    fn(V$n_diaries_not1440), fn(V$n_third_gender), fn(V$n_analysed)))
 }
+
+# ---- 2019 vs 2024 harmonised comparisons (aggregates written by R/compare_2019.R) ----
+CMP <- local({
+  f <- file.path(TUS_ROOT, "submission", "_common", "tus_2019_2024_compare.csv")
+  if (file.exists(f)) data.table::fread(f, colClasses = c(paper = "character")) else NULL
+})
+cmp <- function(paper, stat, year) {
+  if (is.null(CMP)) return(list(est = NA_real_, se = NA_real_, n = NA_integer_))
+  p_ <- paper; s_ <- stat; y_ <- year
+  r <- as.data.frame(CMP)[CMP[["paper"]] == p_ & CMP[["stat"]] == s_ & CMP[["year"]] == y_, ]
+  if (!nrow(r)) return(list(est = NA_real_, se = NA_real_, n = NA_integer_))
+  list(est = r$est[1], se = r$se[1], n = r$n[1])
+}

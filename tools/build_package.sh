@@ -21,7 +21,7 @@ def fix(t):
     return t
 main=fix(main)
 open('main.tex','w').write(pre.replace('\\documentclass','\\RequirePackage{xr}\n\\documentclass',1)+'\\externaldocument[S-]{supplement}\n\\begin{document}'+main+'\n\\end{document}\n')
-sup_pre=pre+'\\renewcommand{\\thetable}{S\\arabic{table}}\\renewcommand{\\thefigure}{S\\arabic{figure}}\n'
+sup_pre=pre+('\\RenewDocumentCommand\\citeproc{mm}{#2}\n' if 'NewDocumentCommand\\citeproc' in pre else '')+'\\renewcommand{\\thetable}{S\\arabic{table}}\\renewcommand{\\thefigure}{S\\arabic{figure}}\n'
 title=re.search(r'\\title\{(.*?)\}\n',pre,re.S)
 app=app.replace('\\appendix','',1)
 app=re.sub(r'\\section\*\{Appendix\}\\label\{appendix\}','',app)
