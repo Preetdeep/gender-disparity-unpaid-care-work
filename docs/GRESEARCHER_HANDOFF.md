@@ -32,3 +32,18 @@ Rscript run_all.R            # ~15 min; or: Rscript run_all.R 05 07
 3. Build anonymised PDFs (`rmarkdown::render(..., params = list(blind = TRUE))`) and, for JMF, a .docx.
 4. Reframe 01, 02, 04, 08 per REALDATA_RESULTS before choosing their journals.
 5. Doc approves each submission. Nothing has been submitted.
+
+## Status 12 Oct 2026, 09:15 IST (GResearcher)
+Submission packages built with `tools/build_package.sh NN` (anonymised main PDF + online supplement, cross-references to S-tables resolved via xr) and, for JMF, `tools/tex2docx.py` (Word file with editable tables):
+
+| Paper | Journal | Main text (words incl. refs + tables) | Limit | Abstract | Limit | Package |
+|---|---|---|---|---|---|---|
+| 05 | J. Marriage and Family | 9,339; about 24 pp double-spaced before refs | about 35 pp | 221 incl. labels, third person, structured | 200–225 | submission/05_marriage_time_reallocation/package |
+| 06 | J. Development Studies | 9,897 | 8,000–10,000 (typical; re-confirm) | 149 | 200 | submission/06_son_preference_time/package |
+| 07 | J. Time Use Research | 9,786 | 10,000 | 134 | 150 | submission/07_weekend_care_division/package |
+| 03 | Feminist Economics | 9,192 | 10,000 | 126 | 150 | submission/03_care_need/package |
+
+Each package has `PORTAL_CHECKLIST.md`, `title_page.md`, `cover_letter.md`. Nothing has been submitted.
+
+Reframes: 02 is now an informative null (new title and abstract, CI from estimates, retargeted to Demographic Research). 04 is retitled as a measurement paper ("Counting Secondary Care"); its abstract conclusion was already conditional. Suggested journals: Review of Economics of the Household, then Feminist Economics. 08 is retitled "A Small Gap in Free Time, a Larger Gap in Work"; suggested journals: Social Indicators Research, then the Journal of Time Use Research. 01 is unchanged.
+Hard-coded-number scan (`tools/hardnums.py`) on 03, 05, 06 and 07 found only design constants (1,440, ICATUS codes, age bounds, literature figures).
