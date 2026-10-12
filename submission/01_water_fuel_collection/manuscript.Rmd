@@ -1,0 +1,697 @@
+---
+title: "Carrying the Household: Water and Fuel Collection, Intrahousehold Allocation and Seasonal Time Costs for Women and Girls in India"
+author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+date: "`r format(Sys.Date(), '%B %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 11pt
+geometry: margin=1in
+bibliography: [../references.bib, refs_local.bib]
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "H", out.width = "90%")
+TUS_ROOT <- normalizePath("../..")
+source(file.path(TUS_ROOT, "R", "setup.R"))
+pd <- load_panel()
+V  <- panel_validation(pd)
+require_cols(pd, c("rel", "marital", "edu_tier", "pas", "dow", "water_fetch", "fuel_gather", "sector"), "Paper 01")
+```
+
+```{r watermark, results="asis"}
+if (TUS_SYNTHETIC) cat("\\SetWatermarkText{SYNTHETIC TEST DATA}")
+```
+
+```{r sample}
+R <- CODE$relation
+has_col <- function(v, d = pd) v %in% names(d) && data.table::uniqueN(na.omit(d[[v]])) > 1
+has_sr <- has_col("sub_round"); has_typeday <- has_col("type_day")
+has_nic <- "nic" %in% names(pd) && any(!is.na(pd$nic))
+has_dist <- "dist_id" %in% names(pd)
+
+# Analysis population: diarists who are women or men, excluding live-in non-relatives (rel 9),
+# who keep their own diaries but are not members of the family whose allocation is studied.
+# All derived columns are created on A before any subset is taken.
+A <- pd[sex %in% c("Men", "Women") & (is.na(rel) | rel != R["servant_nonrelative"])]
+A[, `:=`(
+  collect = water_fetch + fuel_gather,
+  rural = 1L - urban,
+  ownuse_rest = ownuse_goods - water_fetch - fuel_gather,
+  selfcare_rest = selfcare_all - sleep,
+  sector_f = factor(ifelse(urban == 1, "Urban", "Rural"), levels = c("Rural", "Urban")),
+  grp = factor(fcase(female == 1 & age <= 14, "Girls 6--14", female == 1 & age <= 17, "Girls 15--17",
+                     female == 1, "Women 18+", female == 0 & age <= 14, "Boys 6--14",
+                     female == 0 & age <= 17, "Boys 15--17", default = "Men 18+"),
+               levels = c("Girls 6--14", "Girls 15--17", "Women 18+", "Boys 6--14", "Boys 15--17", "Men 18+")),
+  age_f = factor(age)
+)]
+A[, any_collect := as.integer(collect > 0)]
+A[, dist_sec := if (has_dist) paste(dist_id, urban, sep = "_") else paste(state, urban, sep = "_")]
+A[, hi := if (has_sr) as.integer(sub_round == 2) else NA_integer_]
+A[, st_sr := if (has_sr) paste(state, sub_round, sep = "_") else NA_character_]
+# Agricultural workers: usual status employed, 2-digit NIC 2008 division 01-03. A 5-digit code
+# is reduced to its first two digits.
+A[, nic2 := if (has_nic) fifelse(!is.na(nic) & nic > 99, nic %/% 1000, nic) else NA_real_]
+A[, agri := if (has_nic) as.integer(employed == 1 & nic2 %in% CODE$nic_agriculture) else NA_integer_]
+
+# Household counts among diarists (members aged 6+), added to A before any subset.
+hc <- A[, .(
+  h_collect = sum(collect), h_any = as.integer(any(collect > 0)),
+  h_onlyf = if (any(collect > 0)) as.integer(all(female[collect > 0] == 1)) else NA_integer_,
+  h_girl = as.integer(any(collect > 0 & female == 1 & age <= 17)),
+  h_child = as.integer(any(collect > 0 & age <= 17)),
+  n_nonemp_w = sum(female == 1 & age >= 18 & age <= 69 & employed == 0 &
+                     !(pas %in% c(CODE$pas_student, CODE$pas_disabled)), na.rm = TRUE),
+  n_emp_w = sum(female == 1 & age >= 18 & employed == 1, na.rm = TRUE),
+  n_girl1017 = sum(female == 1 & age >= 10 & age <= 17),
+  n_boy1017 = sum(female == 0 & age >= 10 & age <= 17),
+  n_men18 = sum(female == 0 & age >= 18),
+  n_jmw = sum(female == 1 & married == 1 & rel == R["child_spouse"] & age >= 15 & age <= 49, na.rm = TRUE)
+), by = hh_id]
+A[hc, on = "hh_id", names(hc)[-1] := mget(paste0("i.", names(hc)[-1]))]
+
+# Time accounting: ten categories that partition the 1,440-minute day.
+RA <- c(collect = "Water and fuel collection", employment = "Employment and related travel",
+        ownuse_rest = "Other own-use production", unpaid_domestic = "Unpaid domestic services",
+        unpaid_care = "Unpaid caregiving", volunteer = "Volunteer and other unpaid work",
+        learning = "Learning", free_time = "Free time", sleep = "Sleep",
+        selfcare_rest = "Eating, hygiene and other self-care")
+DISP <- setdiff(names(RA), "collect")
+acc_gap <- A[, max(abs(rowSums(.SD) - 1440)), .SDcols = names(RA)]
+
+# Controls and fixed effects
+XC <- c("i(age_band)", "i(edu_tier)", "i(marital_f)", "hh_size", "hh_n_under6", "hh_n_60plus")
+FE_A <- c("dist_id", "dow", "sub_round")
+fe_used <- function(d, v) { v <- v[v %in% names(d)]; v[vapply(v, function(x) data.table::uniqueN(na.omit(d[[x]])) > 1, logical(1))] }
+fe_words <- function(v) {
+  w <- c(dist_id = "district", state = "state", dist_sec = "district-by-sector", dow = "day-of-week",
+         sub_round = "sub-round", st_sr = "state-by-sub-round", hh_id = "household", sib_id = "sibling-set")
+  v <- unname(w[v]); if (!length(v)) return("no")
+  if (length(v) == 1) v else paste(paste(v[-length(v)], collapse = ", "), "and", v[length(v)])
+}
+n_fsu <- uniqueN(A$fsu)
+```
+
+```{r helpers}
+cell <- function(k, scale = 1, d = 1) if (is.null(k$est) || is.na(k$est)) "--" else
+  paste0(.fmt(scale * k$est, d), stars(k$p), " (", .fmt(scale * k$se, d), ")")
+row_df <- function(lab, vals) { d <- as.data.frame(as.list(c(unname(lab), unname(vals))), stringsAsFactors = FALSE)
+  names(d) <- paste0("V", seq_along(d)); d }
+lin2 <- function(m, a, b, s = 1) {
+  if (is.null(m) || !all(c(a, b) %in% names(coef(m)))) return(list(est = NA, se = NA, p = NA))
+  v <- vcov(m); est <- unname(coef(m)[a] + s * coef(m)[b])
+  se <- sqrt(v[a, a] + v[b, b] + 2 * s * v[a, b])
+  list(est = est, se = unname(se), p = 2 * pnorm(-abs(est / unname(se))))
+}
+ok <- function(e) !is.null(e$est) && !is.na(e$est)
+# "12.3 minutes, SE 1.1" for use inside parentheses
+es <- function(e, unit = " minutes", scale = 1, d = 1) if (!ok(e)) "not estimable" else
+  paste0(.fmt(scale * e$est, d), unit, ", SE ", .fmt(scale * e$se, d))
+# Signed estimate with SE, no direction word (safe when the estimate may be NA)
+sg <- function(e, unit = "minutes", d = 1) if (!ok(e)) "not estimable" else est_se(e, d, unit)
+cse <- function(e, d = 2) if (!ok(e)) "not estimable" else paste0(.fmt(e$est, d), " (SE ", .fmt(e$se, d), ")")
+ppx <- function(e) if (!ok(e)) "not estimable" else paste0(.fmt(100 * e$est, 1), " percentage points (SE ", .fmt(100 * e$se, 1), ")")
+mcell <- function(r, scale = 1, d = 1) if (is.null(r) || !nrow(r) || is.na(r$est[1])) "--" else
+  paste0(.fmt(scale * r$est[1], d), " (", .fmt(scale * r$se[1], d), ")")
+safe_mean <- function(d, y, weight = "weight") {
+  if (!nrow(d) || all(is.na(d[[y]])) || sum(d[[weight]], na.rm = TRUE) <= 0) return(data.frame(est = NA, se = NA, n = 0))
+  v <- d[[y]][!is.na(d[[y]])]
+  if (all(v == v[1])) return(data.frame(est = v[1], se = 0, n = length(v)))   # constant (e.g. nobody collects)
+  tryCatch(est_mean(d, y, weight = weight), error = function(e) data.frame(est = NA, se = NA, n = nrow(d)))
+}
+cap1 <- function(x) paste0(toupper(substr(x, 1, 1)), substring(x, 2))
+ivF <- function(m) if (is.null(m)) NA_real_ else tryCatch(unname(fitstat(m, "ivwald1")[[1]]$stat), error = function(e) NA_real_)
+```
+
+```{r partA}
+# ---- Part A: who collects ----------------------------------------------------------
+gm <- function(d, y) safe_mean(d, y)
+pa_vars <- c("any_water_fetch", "water_fetch", "any_fuel_gather", "fuel_gather", "collect")
+burden <- rbindlist(lapply(c("Rural", "Urban", "All"), function(s) {
+  d0 <- if (s == "All") A else A[sector_f == s]
+  rbindlist(lapply(levels(A$grp), function(g) {
+    d <- d0[grp == g]
+    data.table(sector = s, group = g, n = nrow(d),
+               p_w = list(gm(d, "any_water_fetch")), m_w = list(gm(d, "water_fetch")),
+               p_f = list(gm(d, "any_fuel_gather")), m_f = list(gm(d, "fuel_gather")),
+               m_c = list(gm(d, "collect")), m_cd = list(gm(d[collect > 0], "collect")))
+  }))
+}))
+bget <- function(s, g, v) { r <- burden[sector == s & group == g][[v]]; if (!length(r)) list(est = NA, se = NA) else as.list(r[[1]][1, c("est", "se")]) }
+pw_rw <- bget("Rural", "Women 18+", "p_w"); pw_rm <- bget("Rural", "Men 18+", "p_w")
+pf_rw <- bget("Rural", "Women 18+", "p_f"); pf_rm <- bget("Rural", "Men 18+", "p_f")
+pw_uw <- bget("Urban", "Women 18+", "p_w"); pw_um <- bget("Urban", "Men 18+", "p_w")
+mc_rw <- bget("Rural", "Women 18+", "m_c"); mc_rm <- bget("Rural", "Men 18+", "m_c")
+mcd_rw <- bget("Rural", "Women 18+", "m_cd"); mcd_rm <- bget("Rural", "Men 18+", "m_cd")
+pw_rg <- bget("Rural", "Girls 15--17", "p_w"); pw_rb <- bget("Rural", "Boys 15--17", "p_w")
+pw_rg6 <- bget("Rural", "Girls 6--14", "p_w"); pw_rb6 <- bget("Rural", "Boys 6--14", "p_w")
+# Adult participation gaps (women minus men), rural
+A18r <- A[age >= 18 & rural == 1]
+g_pw <- est_gap(A18r, "any_water_fetch", "female", 0, 1)
+g_pf <- est_gap(A18r, "any_fuel_gather", "female", 0, 1)
+g_mc <- est_gap(A18r, "collect", "female", 0, 1)
+
+# Share of all collection minutes done by female members (and by girls under 18):
+# a weighted mean of the female indicator with weights = survey weight x minutes.
+A[, `:=`(w_c = weight * collect, w_w = weight * water_fetch, w_f = weight * fuel_gather,
+         girl18 = as.integer(female == 1 & age <= 17), child18 = as.integer(age <= 17))]
+fsh <- function(d, wv, y = "female") { d <- d[get(wv) > 0]; if (!nrow(d)) return(list(est = NA, se = NA)) else as.list(safe_mean(d, y, wv)[1, c("est", "se")]) }
+sh_c <- fsh(A, "w_c"); sh_w <- fsh(A, "w_w"); sh_f <- fsh(A, "w_f")
+sh_c_r <- fsh(A[rural == 1], "w_c"); sh_c_u <- fsh(A[rural == 0], "w_c")
+sh_girl <- fsh(A, "w_c", "girl18"); sh_child <- fsh(A, "w_c", "child18")
+
+# Household level: among households in which any diarist collected, only female members collected
+H <- unique(A[, .(hh_id, fsu, rural, h_any, h_onlyf, h_girl, h_child, h_collect,
+                  weight = ave(weight, hh_id, FUN = mean))], by = "hh_id")
+HC <- H[h_any == 1]
+hh_onlyf <- as.list(safe_mean(HC, "h_onlyf")[1, c("est", "se")])
+hh_onlyf_r <- as.list(safe_mean(HC[rural == 1], "h_onlyf")[1, c("est", "se")])
+hh_onlyf_u <- as.list(safe_mean(HC[rural == 0], "h_onlyf")[1, c("est", "se")])
+hh_girl <- as.list(safe_mean(HC, "h_girl")[1, c("est", "se")])
+hh_share_any <- as.list(safe_mean(H, "h_any")[1, c("est", "se")])
+hh_share_any_r <- as.list(safe_mean(H[rural == 1], "h_any")[1, c("est", "se")])
+hh_min <- as.list(safe_mean(HC, "h_collect")[1, c("est", "se")])
+fem_major <- isTRUE(sh_c$est > 0.5)
+onlyf_major <- isTRUE(hh_onlyf$est > 0.5)
+```
+
+```{r partB}
+# ---- Part B1: within-household gap among members 10+ -------------------------------
+HB <- A[age >= 10]
+HB[, mix := uniqueN(female) == 2, by = hh_id]
+HB <- HB[mix == TRUE]
+b_y <- c(collect = "Water and fuel collection (minutes)", water_fetch = "Fetching water (minutes)",
+         fuel_gather = "Gathering fuel (minutes)", any_collect = "Any collection (pp)",
+         any_water_fetch = "Any water fetching (pp)", any_fuel_gather = "Any fuel gathering (pp)")
+f_hh <- function(y, d = HB, rhs = "female") reg(as.formula(paste(y, "~", rhs, "+", ctrl(d, c("i(age_band)", "i(dow_f)")), "| hh_id")), d)
+mHH <- setNames(lapply(names(b_y), f_hh), names(b_y))
+mHR <- setNames(lapply(names(b_y), f_hh, rhs = "female + female:urban"), names(b_y))
+mCS <- setNames(lapply(names(b_y), function(y) reg(as.formula(paste(y, "~ female +", ctrl(HB, c(XC, "urban")), fe(HB, FE_A))), HB)), names(b_y))
+kh <- function(y, ml = mHH, t = "female") coef_of(ml[[y]], t)
+k_hh <- kh("collect"); k_hh_w <- kh("water_fetch"); k_hh_f <- kh("fuel_gather"); k_hh_any <- kh("any_collect")
+k_hh_urb <- kh("collect", mHR, "female:urban"); k_hh_rur <- kh("collect", mHR)
+k_cs <- kh("collect", mCS)
+n_hh_B <- uniqueN(HB$hh_id)
+mean_male_B <- wmean(HB[female == 0]$collect, HB[female == 0]$weight)
+
+# ---- Part B2: women's roles within the household ---------------------------------
+W <- A[female == 1 & age >= 15 & !is.na(rel)]
+W[, role := factor(fcase(rel == R["spouse"], "Head's spouse", rel == R["head"], "Female head",
+                         rel == R["child_spouse"], "Daughter-in-law",
+                         rel %in% R[c("married_child", "unmarried_child")], "Daughter",
+                         rel == R["parent_or_inlaw"], "Head's mother or mother-in-law",
+                         default = "Other female relative"),
+                   levels = c("Head's spouse", "Female head", "Daughter-in-law", "Daughter",
+                              "Head's mother or mother-in-law", "Other female relative"))]
+W[, nrole := uniqueN(role), by = hh_id]
+WB <- W[nrole >= 2]
+roles <- setdiff(levels(W$role), "Head's spouse")
+f_role <- function(y, age = FALSE) reg(as.formula(paste(y, "~ i(role, ref = \"Head's spouse\")",
+                                                        if (age) paste("+", ctrl(WB, c("i(age_band)", "i(dow_f)"))) else "", "| hh_id")), WB)
+mR0 <- f_role("collect"); mR1 <- f_role("collect", TRUE); mRa <- f_role("any_collect", TRUE)
+kr <- function(m, r) coef_of(m, paste0("role::", r))
+k_dil <- kr(mR1, "Daughter-in-law"); k_dau <- kr(mR1, "Daughter")
+k_dil0 <- kr(mR0, "Daughter-in-law"); k_dau0 <- kr(mR0, "Daughter")
+k_dil_dau <- lin2(mR1, "role::Daughter-in-law", "role::Daughter", -1)
+n_hh_dil_dau <- W[, any(role == "Daughter-in-law") & any(role == "Daughter"), by = hh_id][V1 == TRUE, .N]
+role_means <- W[, .(m = wmean(collect, weight), p = wmean(any_collect, weight), n = .N), by = role][order(role)]
+
+# ---- Part B3: does another woman or a girl take the load off the main woman? -------
+# Focal woman: married, 20-49, the head or head's spouse in a household with no junior married
+# woman of childbearing age, or the unique daughter-in-law. (A head-level woman who lives with a
+# married daughter-in-law is usually the older generation.)
+M <- A[female == 1 & married == 1 & age >= 20 & age <= 49 &
+         ((rel %in% R[c("head", "spouse")] & n_jmw == 0) | (rel == R["child_spouse"] & n_jmw == 1))]
+M[, `:=`(
+  own_nonemp = as.integer(age <= 69 & employed == 0 & !(pas %in% c(CODE$pas_student, CODE$pas_disabled))),
+  others_collect = h_collect - collect
+)]
+M[, `:=`(oth_nonemp = as.integer(n_nonemp_w - own_nonemp > 0),
+         oth_emp_w = n_emp_w - employed,
+         girl1017 = as.integer(n_girl1017 > 0), boy1017 = as.integer(n_boy1017 > 0))]
+xm <- c("i(age_band)", "i(edu_tier)", "urban", "n_men18", "oth_emp_w", "hh_n_under6", "hh_n_6_14", "hh_n_60plus", "proxy_report")
+f_mo <- function(y, d = M) reg(as.formula(paste(y, "~ oth_nonemp + girl1017 + boy1017 +", ctrl(d, xm), fe(d, FE_A))), d)
+mo_y <- c(collect = "Her collection (minutes)", any_collect = "Her participation (pp)", others_collect = "Others' collection (minutes)")
+mMo <- setNames(lapply(names(mo_y), f_mo), names(mo_y))
+mMoR <- f_mo("collect", M[rural == 1])
+k_mo_w <- coef_of(mMo$collect, "oth_nonemp"); k_mo_g <- coef_of(mMo$collect, "girl1017"); k_mo_b <- coef_of(mMo$collect, "boy1017")
+k_mo_gb <- lin2(mMo$collect, "girl1017", "boy1017", -1)
+k_mo_g_oth <- coef_of(mMo$others_collect, "girl1017"); k_mo_w_oth <- coef_of(mMo$others_collect, "oth_nonemp")
+k_mo_g_r <- coef_of(mMoR, "girl1017"); k_mo_w_r <- coef_of(mMoR, "oth_nonemp")
+mean_M <- wmean(M$collect, M$weight)
+```
+
+```{r partC}
+# ---- Part C: seasonality as a shifter of collection need --------------------------
+A15 <- A[age >= 15]; G <- A[female == 1 & age >= 10 & age <= 17]
+A15r <- A15[rural == 1]
+FE_R <- c("dist_id", "dow")                       # rural reduced form: within district
+FE_IV <- c("dist_sec", "sub_round", "dow")        # 2SLS: district-by-sector and quarter FE
+XC_G <- c("i(age_f)", "hh_size", "hh_n_under6", "hh_n_60plus", "i(head_edu_tier)")
+
+# Quarter profile of collection in rural areas (relative to sub-round 1)
+prof_grp <- list("Women 15+" = A15r[female == 1], "Men 15+" = A15r[female == 0], "Girls 10--17" = G[rural == 1])
+prof <- rbindlist(lapply(names(prof_grp), function(g) {
+  d <- prof_grp[[g]]
+  m <- reg(as.formula(paste("collect ~ i(sub_round, ref = 1) +", ctrl(d, if (g == "Girls 10--17") XC_G else XC), fe(d, FE_R))), d)
+  rbindlist(lapply(2:4, function(q) { k <- coef_of(m, paste0("sub_round::", q)); data.table(group = g, q = q, est = k$est, se = k$se) }))
+}))
+q_means <- if (has_sr) A15r[female == 1, .(m = wmean(collect, weight)), by = sub_round][order(sub_round)] else data.table(sub_round = NA, m = NA)
+peak_q <- if (all(is.na(q_means$m))) NA else q_means$sub_round[which.max(q_means$m)]
+
+# Reduced form, rural: each category on the high-need quarter (sub-round 2), within district.
+rf <- function(y, d) reg(as.formula(paste(y, "~ hi +", ctrl(d, XC), fe(d, FE_R))), d)
+rfG <- function(y, d) reg(as.formula(paste(y, "~ hi +", ctrl(d, XC_G), fe(d, FE_R))), d)
+RFw <- setNames(lapply(names(RA), rf, d = A15r[female == 1]), names(RA))
+RFm <- setNames(lapply(names(RA), rf, d = A15r[female == 0]), names(RA))
+RFg <- setNames(lapply(names(RA), rfG, d = G[rural == 1]), names(RA))
+krf <- function(ml, y) coef_of(ml[[y]], "hi")
+rf_w <- krf(RFw, "collect"); rf_m <- krf(RFm, "collect"); rf_g <- krf(RFg, "collect")
+rf_w_emp <- krf(RFw, "employment"); rf_m_emp <- krf(RFm, "employment")
+rf_sum_w <- sum(sapply(names(RA), function(y) krf(RFw, y)$est), na.rm = TRUE)
+base_rw <- if (has_sr) wmean(A15r[female == 1 & hi == 0]$collect, A15r[female == 1 & hi == 0]$weight) else NA
+rf_up_w <- is_pos(rf_w); rf_up_m <- is_pos(rf_m)
+
+# 2SLS: displaced minutes per minute of collection. Instruments: quarter x rural, with
+# district-by-sector and quarter fixed effects (so common seasonal shocks are differenced out).
+INST <- "collect ~ i(sub_round, rural, ref = 1)"
+iv <- function(y, d, xv = XC, fev = FE_IV, w = TRUE) {
+  f <- as.formula(paste(y, "~", ctrl(d, xv), fe(d, fev), "|", INST))
+  if (w) reg(f, d) else tryCatch(feols(f, d, cluster = ~fsu), error = function(e) NULL)
+}
+IVw <- setNames(lapply(DISP, iv, d = A15[female == 1]), DISP)
+IVm <- setNames(lapply(DISP, iv, d = A15[female == 0]), DISP)
+IVg <- setNames(lapply(DISP, iv, d = G, xv = XC_G), DISP)
+kiv <- function(ml, y) coef_of(ml[[y]], "fit_collect")
+F_w <- ivF(IVw$employment); F_m <- ivF(IVm$employment); F_g <- ivF(IVg$learning)
+strong_w <- isTRUE(F_w >= 10); strong_m <- isTRUE(F_m >= 10); strong_g <- isTRUE(F_g >= 10)
+lmmp_w <- isTRUE(F_w >= 104.7)
+iv_sum <- function(ml) sum(sapply(DISP, function(y) kiv(ml, y)$est), na.rm = TRUE)
+ivs_w <- iv_sum(IVw); ivs_m <- iv_sum(IVm)
+iv_est_w <- sapply(DISP, function(y) kiv(IVw, y)$est)
+top_disp_w <- if (all(is.na(iv_est_w))) NA_character_ else names(which.min(iv_est_w))
+top2_disp_w <- if (sum(!is.na(iv_est_w)) < 2) NA_character_ else names(sort(iv_est_w))[2]
+k_iv_w_emp <- kiv(IVw, "employment"); k_iv_w_dom <- kiv(IVw, "unpaid_domestic"); k_iv_w_free <- kiv(IVw, "free_time")
+k_iv_w_sleep <- kiv(IVw, "sleep"); k_iv_w_care <- kiv(IVw, "unpaid_care")
+k_iv_m_emp <- kiv(IVm, "employment"); k_iv_g_learn <- kiv(IVg, "learning"); k_iv_g_free <- kiv(IVg, "free_time")
+k_iv_g_sleep <- kiv(IVg, "sleep")
+# First-stage coefficient on quarter 2 x rural (women)
+fs_w <- if (is.null(IVw$employment)) list(est = NA, se = NA, p = NA) else coef_of(summary(IVw$employment, stage = 1), "sub_round::2:rural")
+
+# Threat: does men's paid work move with rural quarters? Joint test of quarter x rural in a
+# reduced form for men's employment (same FE as the 2SLS).
+rf_threat <- function(d, y = "employment") {
+  m <- reg(as.formula(paste(y, "~ i(sub_round, rural, ref = 1) +", ctrl(d, XC), fe(d, FE_IV))), d)
+  if (is.null(m)) return(list(p = NA, m = NULL))
+  w <- tryCatch(wald(m, keep = "sub_round::", print = FALSE), error = function(e) NULL)
+  list(p = if (is.null(w)) NA else unname(w$p), m = m)
+}
+thr_m <- rf_threat(A15[female == 0]); thr_w <- rf_threat(A15[female == 1])
+paid_seasonal <- isTRUE(thr_m$p < 0.05) || isTRUE(thr_w$p < 0.05)
+
+# Robustness of women's 2SLS
+rb_y <- c("employment", "unpaid_domestic", "free_time", "sleep")
+W15 <- A15[female == 1]
+specs <- list(
+  base = list(lab = "Baseline", f = function(y) IVw[[y]]),
+  pas  = list(lab = "Adding usual principal activity status", f = function(y) iv(y, W15, c(XC, "i(pas_group)"))),
+  noag = list(lab = "Excluding agricultural workers (NIC 01--03)", f = function(y) if (has_nic) iv(y, W15[agri == 0]) else NULL),
+  nemp = list(lab = "Women not employed (usual status)", f = function(y) iv(y, W15[employed == 0])),
+  stq  = list(lab = "State-by-quarter fixed effects", f = function(y) iv(y, W15, fev = c("dist_sec", "st_sr", "dow"))),
+  self = list(lab = "Self-reported diaries", f = function(y) iv(y, W15[proxy_report == 0])),
+  unw  = list(lab = "Unweighted", f = function(y) iv(y, W15, w = FALSE)))
+if (has_typeday) specs$normal <- list(lab = "Normal routine days only", f = function(y) iv(y, W15[type_day == CODE$type_of_day["normal"]]))
+RB <- lapply(specs, function(s) {
+  ms <- lapply(setNames(rb_y, rb_y), s$f)
+  list(k = lapply(ms, coef_of, "fit_collect"), F = ivF(ms$employment),
+       n = if (is.null(ms$employment)) NA else nobs(ms$employment))
+})
+rb_emp_noag <- RB$noag$k$employment; rb_emp_pas <- RB$pas$k$employment; rb_emp_nemp <- RB$nemp$k$employment
+same_sign <- function(e, b) isTRUE(ok(e) && ok(b) && sign(e$est) == sign(b$est))
+n_rb_same_emp <- sum(sapply(setdiff(names(RB), "base"), function(s) same_sign(RB[[s]]$k$employment, k_iv_w_emp)))
+n_rb_est <- sum(sapply(setdiff(names(RB), "base"), function(s) ok(RB[[s]]$k$employment)))
+```
+
+```{r partD}
+# ---- Girls' schooling time: sibling comparison -------------------------------------
+K <- A[age >= 10 & age <= 17 & rel %in% R[c("unmarried_child", "grandchild")] &
+         (is.na(marital) | marital == CODE$marital["never_married"])]
+K[, `:=`(sib_id = paste(hh_id, rel), girl = female)]
+K[, mixed := uniqueN(girl) == 2, by = sib_id]
+S <- K[mixed == TRUE]
+f_sib <- function(y, rhs = "girl", d = S) reg(as.formula(paste(y, "~", rhs, "+ i(age_f) | sib_id")), d)
+sib_y <- c(collect = "Water and fuel collection", any_collect = "Any collection (pp)", learning = "Learning",
+           unpaid_domestic = "Unpaid domestic services", free_time = "Free time")
+mS <- setNames(lapply(names(sib_y), f_sib), names(sib_y))
+mSq <- setNames(lapply(names(sib_y), f_sib, rhs = "girl + girl:hi"), names(sib_y))
+mSr <- setNames(lapply(names(sib_y), f_sib, rhs = "girl + girl:rural"), names(sib_y))
+k_s_c <- coef_of(mS$collect, "girl"); k_s_l <- coef_of(mS$learning, "girl"); k_s_a <- coef_of(mS$any_collect, "girl")
+k_s_cq <- coef_of(mSq$collect, "girl:hi"); k_s_lq <- coef_of(mSq$learning, "girl:hi")
+k_s_cr <- coef_of(mSr$collect, "girl:rural")
+n_sets <- uniqueN(S$sib_id)
+girls_more <- is_pos(k_s_c)
+```
+
+\begin{abstract}
+Fetching water and gathering fuel are physically demanding forms of unpaid work in rural India, widely described as the work of women and girls. I use the Time Use Survey 2024, which records a full-day diary for every household member aged six and above, to measure who carries this burden, how it is divided within households, and what it costs in other activities when the need for it rises. In rural areas, `r pctx(pw_rw$est)` of women aged 18 and above fetched water on the diary day, compared with `r pctx(pw_rm$est)` of men, and `r pctx(pf_rw$est)` of women gathered fuel, compared with `r pctx(pf_rm$est)` of men. Female members do `r pctx(sh_c$est)` of all collection minutes. Among households in which anyone collected, only female members did so in `r pctx(hh_onlyf$est)`. Within the same household, female members aged 10 and above spend `r diff_txt(k_hh)` on collection than male members. `r iff(is_pos(k_dil_dau), "Daughters-in-law collect more than daughters of the same age in the same household.", "Daughters-in-law and daughters of the same age in the same household do not differ significantly in collection time.")` Using the survey quarter as a shifter of collection need within districts, rural women's collection is `r diff_txt(rf_w, "higher", "lower")` in the second sub-round than in other quarters. `r iff(strong_w && !is.na(top_disp_w), paste0("Instrumenting collection with quarter by sector variation, the largest offsetting change in women's time, as a point estimate, is in ", tolower(RA[top_disp_w]), "."), "Quarter by sector variation is too weak to support a two-stage estimate of what collection displaces, so I report the reduced form.")` `r iff(paid_seasonal, "Paid work also varies with the rural quarter, so these estimates mix the time cost of collection with agricultural seasonality; I report checks that hold usual activity status fixed or drop agricultural workers.", "Paid work does not vary significantly with the rural quarter, which removes the most direct threat to reading the seasonal estimates as the time cost of collection.")` `r iff(fem_major, "The time that reliable household water connections could release is therefore concentrated on women and girls.", "The time that reliable household water connections could release is shared between women and men.")`
+\keywords{water collection, firewood, time use, intrahousehold allocation, seasonality, gender, India}
+\jel{J16, J22, O13, Q25, D13}
+\end{abstract}
+
+\newpage
+
+# Introduction
+
+In much of rural India, the water a household drinks, cooks and washes with is carried home from a well, a hand pump, a public tap or a pond, and much of the fuel it cooks with is gathered from fields and forests. The national programme to provide a functional tap connection to every rural household, the Jal Jeevan Mission launched in 2019 [@mojs2019jjm], rests in part on the argument that this work takes time, that the time is mostly women's and girls', and that it competes with paid work, schooling and rest. The same argument has been made for decades in the development literature [@agarwal1986cold; @ray2007women; @blackden2006gender; @sorenson2011safe]. Its quantitative basis, however, comes mostly from household surveys that ask who usually fetches water and how long a trip takes [@whounicef2017progress; @graham2016analysis], from small area studies, or from evaluations of particular projects, rather than from complete diaries for all household members in a national sample.
+
+This paper uses the Time Use Survey 2024 [@nso2025tus] to measure water and fuel collection directly. The survey records a 24-hour diary, coded to the International Classification of Activities for Time-Use Statistics [@un2016icatus], for every household member aged six and above, in a national sample of `r fn(V$n_households)` households. The ICATUS classification gives fetching water (code 242) and gathering firewood and other natural fuel (code 241) their own codes in the division for production of goods for own final use. Because every member of a household keeps a diary, the data show not only how much collection women and men do on average but how the work is divided among the members of a single household on the same day.
+
+The paper has three parts. The first is descriptive: who collects, how much, and how concentrated the work is on women and girls, by age, sex and sector, and at the household level. The second studies intrahousehold allocation. Using household fixed effects, I compare female and male members aged 10 and above in the same household, women in different positions in the household (the head's spouse, a daughter-in-law, a daughter), and the main married woman's own collection time in households with and without another non-employed adult woman or an adolescent girl. The third uses seasonality. The survey was fielded over four quarters (sub-rounds), with sample first-stage units spread evenly across them, so within a district the quarter in which a household was surveyed shifts the need for collection. I estimate how much collection rises in the quarter of highest expected need and what other activities fall when it does, using the 1,440-minute identity to account for the whole day. Because sub-round is a shifter of need and not a randomised instrument, and because agricultural seasonality moves paid work in the same quarters, I state the threats to this design explicitly and report checks that hold usual activity status fixed, drop agricultural workers and add state-by-quarter fixed effects. A short final section compares sisters and brothers aged 10 to 17 in the same household on collection and learning time.
+
+The headline numbers are these. In rural India, `r pct(pw_rw$est)` of women aged 18 and above fetched water on the diary day, against `r pct(pw_rm$est)` of men; `r pct(pf_rw$est)` of women and `r pct(pf_rm$est)` of men gathered fuel. Female members, adults and girls together, account for `r pct(sh_c$est)` of all minutes spent collecting water and fuel, and girls under 18 alone for `r pct(sh_girl$est)`. `r iff(onlyf_major, paste0("In ", pct(hh_onlyf$est), " of households in which anyone collected, every member who collected was female."), paste0("In ", pct(hh_onlyf$est), " of households in which anyone collected, every member who collected was female; in the rest at least one male member also collected."))` Within households, female members aged 10 and above spend `r diff_txt(k_hh)` collecting water and fuel than male members of the same household, compared with a mean of `r f1(mean_male_B)` minutes for male members. `r iff(is_pos(k_dil_dau), paste0("A daughter-in-law spends ", diff_txt(k_dil_dau), " on collection than a daughter of the same age in the same household."), paste0("The difference between a daughter-in-law and a daughter of the same age in the same household is ", sg(k_dil_dau), ", which is not significantly positive."))` In the seasonal analysis, rural women's collection in the second sub-round is `r diff_txt(rf_w, "higher", "lower")` than in the other quarters of the same district, from a base of `r f1(base_rw)` minutes. `r iff(strong_w, paste0("The first stage of the two-stage estimate is strong (F = ", f1(F_w), ")."), paste0("The first stage of the two-stage estimate is weak (F = ", f1(F_w), "), so I rely on the reduced form."))`
+
+The paper contributes to three literatures. The first measures the time burden of water and fuel collection and its distribution by sex and age [@sorenson2011safe; @graham2016analysis; @whittington1990calculating; @gross2018women]. This paper adds complete diaries for every household member in a national sample, which allows the burden to be measured on the same footing as all other activities and divided among the members of one household. The second asks whether infrastructure that reduces collection time changes women's work and children's schooling [@ilahi2000public; @koolwal2013access; @devoto2012happiness; @meeks2017water; @nauges2017water]. That literature typically observes infrastructure and a few outcomes. Here, the full-day identity shows all the activities that adjust when collection need varies, including sleep and free time, which household surveys do not record. The third studies how households allocate work among their members [@becker1965theory; @chiappori1992collective; @agarwal1997bargaining; @udry1996gender]. Collection is a task for which household needs are shared and the allocation is visible, so it is a clean case in which to observe how position in the household, age and sex determine who works.
+
+Section \ref{sec:lit} reviews the literature. Section \ref{sec:data} describes the data. Section \ref{sec:burden} reports the descriptive burden, Section \ref{sec:alloc} the intrahousehold allocation, and Section \ref{sec:season} the seasonal analysis. Section \ref{sec:girls} compares sisters and brothers. Section \ref{sec:disc} discusses interpretation, policy and limitations, and Section \ref{sec:conc} concludes.
+
+# Related literature {#sec:lit}
+
+## Water and fuel collection as women's and girls' work
+
+That fetching water is mainly the work of women and girls is one of the most consistent findings in development research. @sorenson2011safe review household survey evidence from a large number of low- and middle-income countries and show that adult women are the members most often responsible for fetching water, that girls are more often responsible than boys, and that the burden carries health risks, from the physical strain of carrying heavy loads to injuries and assault on the way. @graham2016analysis analyse household surveys from 24 countries in sub-Saharan Africa and estimate the share of households that rely on water collected off the premises, the share of that work done by women and by children, and the gap between girls and boys. The joint monitoring reports of WHO and UNICEF record, for every country, the share of the population whose drinking water source is on the premises or within a round trip of 30 minutes [@whounicef2017progress]. @ray2007women reviews the research and policy debates on women and water, including the gap between the emphasis on women's time in policy statements and the limited measurement of it.
+
+Fuel collection has been studied mainly through the lens of deforestation. @agarwal1986cold describes the woodfuel crisis in South Asia and elsewhere, and argues that its costs fall disproportionately on women, who gather most of the fuel and do most of the cooking. In the hills of Nepal, @kumar1988consequences find that deforestation increased the time women spent collecting fuelwood, with consequences for agricultural production and nutrition. @cooke1998intrahousehold studies how Nepali households reallocate labour among members when fuelwood and fodder become scarce, and @amacher1996household model the choice between buying fuelwood and collecting it. @baland2010environmental study the determinants of firewood collection in rural Nepal and its relation to household living standards, and @cooke2008fuelwood review the household evidence on fuelwood, forests and community management. For Africa, @blackden2006gender assemble time-use evidence showing that water and fuel collection are a central part of women's work burden and of their time poverty, a theme taken up by @bardasi2010working for Guinea.
+
+In India, the official time-use reports document large gender gaps in unpaid work [@nso2020tus; @nso2025tus], and @hirway2011understanding show how time-use statistics reveal women's work that labour force surveys miss, including work in collection and other production for own use. National reports do not, however, divide collection among household members or relate it to other activities within a household.
+
+## Infrastructure and the reallocation of time
+
+A second strand asks what happens when collection becomes easier. @ilahi2000public show for rural Pakistan that women in communities with better water infrastructure spend less time collecting water and more time in market work. @koolwal2013access use surveys from several countries and find that better access to water reduces the time women spend collecting it, but find little evidence of a corresponding rise in women's paid work; in some countries the time savings are associated with better schooling outcomes for children. @meeks2017water studies rural water infrastructure in the Kyrgyz Republic and finds that the time saved from water collection was reallocated to other activities. @gross2018women measure the time women in rural Benin spend walking to and waiting at water points and estimate its value. Earlier, @whittington1990calculating used households' choices among water sources at different distances to value the time spent collecting water in Kenya, and @kremer2011spring used similar revealed-preference reasoning for the protection of springs in rural Kenya.
+
+A striking result is that of @devoto2012happiness. In a randomised evaluation in urban Morocco, they found that households that obtained a piped connection did not experience better health but did gain time, which went mainly to leisure and social activities, and reported higher well-being. The result implies that the value of time saved from collection need not appear in earnings, and that outcomes such as rest and free time matter. Health effects of piped water are a separate literature [@jalan2003does; @galiani2005water], as are its effects on schooling: @zhang2016long find that a rural drinking water programme in China raised educational attainment, and @nauges2017water find in Ghana that longer water hauling times are associated with lower school attendance of girls. When public supply is unreliable, households bear coping costs [@pattanayak2005coping].
+
+Related evidence comes from other infrastructure that affects household production. @dinkelman2011electrification finds that rural electrification in South Africa raised women's employment, plausibly by releasing time from home production, and @grogan2013rural find related effects in Nicaragua. @dinkelman2022time argue that the time women spend in home production, including water and fuel collection, is central to understanding gender differences in work during structural transformation. The literature on improved cookstoves and clean fuels finds that adoption and sustained use are far from automatic [@mobarak2012low; @hanna2016smoke], and in India the uptake and continued use of LPG under the Ujjwala programme have been uneven [@gould2018lpg; @kar2019ujjwala], so that firewood collection remains common.
+
+## Intrahousehold allocation and the position of women
+
+Who in the household does a given task depends on the household's production technology, on the members' opportunity costs and on their bargaining power and social norms. Models of household time allocation in the tradition of @becker1965theory emphasise comparative advantage; collective models [@chiappori1992collective; @lundberg1993separate] allow the allocation to depend on who has power. @agarwal1997bargaining argues that bargaining in South Asian households is shaped by social norms and by members' positions outside the household, and @udry1996gender shows that the allocation of inputs across household members' plots in Burkina Faso is not efficient, which is inconsistent with a unitary model. In patrilocal households, a daughter-in-law's position differs from a daughter's: she has married in, typically has less say, and may be assigned the heaviest tasks [@jayachandran2015roots]. Water and fuel collection is a task whose output is shared by the household and whose allocation is directly observable in diaries, so it offers a simple test of how position, age and sex shape who works.
+
+## Children's work and schooling
+
+Children's domestic work, of which water collection is a large part in many countries, is often omitted from measures of child labour even though it competes with school [@edmonds2008child]. @assaad2010effect show for Egypt that girls' domestic work reduces their schooling. Evidence that water collection in particular reduces girls' school attendance comes from @nauges2017water and, through infrastructure, from @koolwal2013access and @zhang2016long. A companion paper that uses the same survey studies the full allocation of time between sisters and brothers; here I report only the collection and learning margins.
+
+## Seasonality
+
+Rural work burdens are seasonal. @chambers1981seasonal document how the seasons concentrate work, illness and food shortage in particular months of the year in rural areas. Seasonal income fluctuations shape consumption and saving [@paxson1993consumption] and migration [@bryan2014underinvestment]. For collection, the season matters directly: in the dry months before the monsoon, nearby sources dry up and women must walk further or wait longer for water. For identification, seasonality is a double-edged tool. It shifts collection need, but it also shifts the demand for agricultural labour. I therefore use it with district fixed effects and urban areas as a comparison, and test whether paid work also moves with the season.
+
+# Data {#sec:data}
+
+## The Time Use Survey 2024
+
+The Time Use Survey 2024 was conducted by the National Statistics Office from January to December 2024 [@nso2025tus]. Every household member aged six and above reports the activities of the 24 hours from 4 a.m. on the day before the interview, in 30-minute slots, with activities coded at three digits to ICATUS 2016 [@un2016icatus]. Where more than one activity is recorded in a slot, one is flagged as the major activity. I use every record in the file (`r fn(V$n_rows)` records, `r fn(V$n_diarists)` diaries in `r fn(V$n_households)` households and `r fn(V$n_fsu)` first-stage units), with no sampling of records. Minutes are computed from major activities only; `r pct(V$share_diaries_1440)` of diaries sum exactly to 1,440 minutes. All estimates use the survey weights.
+
+`r data_disclosure(V)` The household questionnaire would also have recorded the household's primary source of energy for cooking. Without it, I cannot condition on whether the household cooks with firewood or has a piped water connection, and district fixed effects stand in for local infrastructure. This is the main limitation of the paper and I return to it in Section \ref{sec:disc}.
+
+## Outcomes
+
+The two outcomes are minutes per day in fetching water (ICATUS 242) and in gathering firewood and other natural products used as fuel (ICATUS 241), and indicators for any such minutes on the diary day. I call their sum "collection". Both codes belong to division 2 of ICATUS, production of goods for own final use. Travel related to own-use production is coded separately (code 250), so time spent walking to a water source may be recorded either as part of fetching water or as travel, depending on how the respondent and the enumerator recorded it; collection minutes are therefore a lower bound on the time cost if some walking time is coded as travel.
+
+For the time accounting I divide the day into ten categories that partition the 1,440 minutes: collection; employment and related travel (division 1); other production for own use (division 2 less collection); unpaid domestic services (division 3); unpaid caregiving (division 4); volunteer and other unpaid work (division 5); learning (division 6); free time (divisions 7 and 8: socialising, community participation, religious practice, culture, leisure, mass media and sports); sleep; and eating, hygiene and other self-care (the rest of division 9). `r iff(acc_gap < 1e-6, "In the analysis sample the ten categories sum to exactly 1,440 minutes in every diary.", paste0("In the analysis sample the ten categories sum to 1,440 minutes in every diary up to ", f1(acc_gap), " minutes."))`
+
+## Samples and variables
+
+The analysis population is the `r fn(nrow(A))` diarists who are women or men (`r fn(nrow(pd) - nrow(A))` diaries of transgender persons and of live-in non-relatives, who include domestic workers, are excluded). I group them into girls and boys aged 6 to 14 and 15 to 17, women and men aged 18 and above, and rural and urban sectors. Household composition is counted from the full roster. The roster records each member's relationship to the head, sex, age, marital status, education and usual principal activity status. I identify a woman's position in the household from her relationship to the head: the head's spouse, a female head, a daughter-in-law (spouse of a married child), a daughter (married or unmarried child), the head's mother or mother-in-law, or another relative.
+
+For the seasonal analysis I use the sub-round in which each first-stage unit was surveyed. `r iff(has_sr, "The file records the sub-round, a quarter of the survey year.", "The panel used here does not record the sub-round, so the seasonal analysis is not estimable.")` The 2024 data dictionary does not state the months each sub-round covers. In the 2019 round, the design document divided the survey year into four sub-rounds of three months each, January to March, April to June, July to September and October to December, with an equal number of sample first-stage units allotted to each [@nso2020tus]. If the 2024 round follows the same calendar, which its January to December reference period is consistent with but which the file does not confirm, sub-round 2 covers April to June, the hot, dry months before the monsoon reaches most of India. I designate sub-round 2 as the quarter of high collection need on this prior ground, and I report the estimates for every quarter so that the designation can be judged against the data.
+
+Agricultural workers are persons whose usual principal activity status is a form of employment and whose two-digit industry code (National Industrial Classification 2008) is in divisions 01 to 03, agriculture, forestry and fishing. `r iff(has_nic, "The roster records the industry code.", "The panel used here does not carry the industry code, so the check that drops agricultural workers is not estimable.")`
+
+# Who collects {#sec:burden}
+
+```{r tab-burden}
+bt <- rbindlist(lapply(c("Rural", "Urban", "All"), function(s) {
+  rbind(row_df(paste0("\\textit{", s, "}"), rep("", 6)),
+        rbindlist(lapply(levels(A$grp), function(g) {
+          r <- burden[sector == s & group == g]
+          row_df(paste0("\\quad ", g), c(mcell(r$p_w[[1]], 100), mcell(r$m_w[[1]]), mcell(r$p_f[[1]], 100),
+                                         mcell(r$m_f[[1]]), mcell(r$m_cd[[1]]), fn(r$n)))
+        })))
+}))
+names(bt) <- c("", "Water: any (\\%)", "Water: minutes", "Fuel: any (\\%)", "Fuel: minutes", "Minutes if collected", "N")
+tab(bt, caption = paste0("Water and fuel collection on the diary day, by sex, age and sector", syn_note()), label = "burden",
+    align = c("l", rep("r", 6)), escape = FALSE,
+    notes = "Survey-weighted means; FSU-clustered standard errors in parentheses. Any: share of persons with any minutes of fetching water (ICATUS 242) or gathering firewood and other natural fuel (241) on the diary day. Minutes: mean over all persons, including zeros. Minutes if collected: mean minutes of water and fuel collection together among persons with any. N: diaries.")
+```
+
+Table \ref{tab:burden} reports participation and minutes by sex, age group and sector. In rural areas, `r pct(pw_rw$est)` of women aged 18 and above fetched water on the diary day, against `r pct(pw_rm$est)` of men; the difference is `r diff_pp(g_pw)` for women. For fuel, the rates are `r pct(pf_rw$est)` and `r pct(pf_rm$est)`, a difference of `r ppx(g_pf)`. Averaged over all rural women, including those who did not collect, collection takes `r f1(mc_rw$est)` minutes a day, against `r f1(mc_rm$est)` minutes for men. Among those who collected, women spent `r f1(mcd_rw$est)` minutes and men `r f1(mcd_rm$est)` minutes. In urban areas, `r pct(pw_uw$est)` of women and `r pct(pw_um$est)` of men fetched water. Among rural adolescents aged 15 to 17, `r pct(pw_rg$est)` of girls and `r pct(pw_rb$est)` of boys fetched water, and among children aged 6 to 14, `r pct(pw_rg6$est)` of girls and `r pct(pw_rb6$est)` of boys.
+
+```{r tab-share}
+st <- data.frame(
+  Measure = c("Share of all collection minutes done by female members", "\\quad Rural", "\\quad Urban",
+              "Share of water-fetching minutes done by female members", "Share of fuel-gathering minutes done by female members",
+              "Share of all collection minutes done by girls under 18", "Share of all collection minutes done by children under 18",
+              "Households in which any member collected", "\\quad Rural households",
+              "Among them: only female members collected", "\\quad Rural", "\\quad Urban",
+              "Among them: a girl under 18 collected"),
+  Estimate = c(mcell(as.data.frame(sh_c), 100), mcell(as.data.frame(sh_c_r), 100), mcell(as.data.frame(sh_c_u), 100),
+               mcell(as.data.frame(sh_w), 100), mcell(as.data.frame(sh_f), 100), mcell(as.data.frame(sh_girl), 100),
+               mcell(as.data.frame(sh_child), 100), mcell(as.data.frame(hh_share_any), 100), mcell(as.data.frame(hh_share_any_r), 100),
+               mcell(as.data.frame(hh_onlyf), 100), mcell(as.data.frame(hh_onlyf_r), 100), mcell(as.data.frame(hh_onlyf_u), 100),
+               mcell(as.data.frame(hh_girl), 100)))
+names(st) <- c("", "Per cent")
+tab(st, caption = paste0("Concentration of collection on women and girls", syn_note()), label = "share",
+    align = c("l", "r"), escape = FALSE,
+    notes = "Minute shares: survey-weighted share of person-minutes of collection (ICATUS 241 and 242) done by the group, computed as a mean of the group indicator weighted by survey weight times minutes; FSU-clustered standard errors in parentheses. Household rows: households weighted by the mean survey weight of their diarists; only members aged six and above keep diaries, so collection by younger children is not observed.")
+```
+
+Table \ref{tab:share} shows how concentrated the work is. Female members do `r pct(sh_c$est)` of all minutes of water and fuel collection, `r pct(sh_w$est)` of water fetching and `r pct(sh_f$est)` of fuel gathering. `r iff(fem_major, "Collection is therefore predominantly women's and girls' work.", "Collection is therefore not predominantly done by female members in this sample.")` Girls under 18 do `r pct(sh_girl$est)` of all collection minutes. At the household level, `r pct(hh_share_any$est)` of households (`r pct(hh_share_any_r$est)` of rural households) had at least one member who collected on the diary day. Among them, `r pct(hh_onlyf$est)` relied only on female members (`r pct(hh_onlyf_r$est)` in rural and `r pct(hh_onlyf_u$est)` in urban areas), and in `r pct(hh_girl$est)` a girl under 18 was among those who collected. These household figures cover a single day and members aged six and above; a household whose members collect on other days of the week, or whose male members collect less often but in longer trips, is classified by the diary day only.
+
+# Intrahousehold allocation {#sec:alloc}
+
+## Women and men in the same household
+
+To compare female and male members facing the same household needs, I estimate
+$$ y_{ih} = \beta\, Female_{ih} + \alpha_{a(ih)} + \delta_{d(ih)} + \lambda_h + \varepsilon_{ih}, $$
+for members $i$ aged 10 and above of household $h$, where $\alpha$ are age-band effects, $\delta$ are diary-day effects and $\lambda_h$ is a household fixed effect. The household fixed effect absorbs the household's water source, distance to it, cooking fuel, income, caste, location and the season of the survey. $\beta$ is the average difference between a female and a male member of the same household and age band. The sample is the `r fn(nrow(HB))` members of the `r fn(n_hh_B)` households with at least one female and one male member aged 10 and above.
+
+```{r tab-hhfe}
+ht <- data.frame(Outcome = b_y,
+                 a = sapply(names(b_y), function(y) cell(kh(y), if (grepl("^any", y)) 100 else 1)),
+                 b = sapply(names(b_y), function(y) cell(kh(y, mCS), if (grepl("^any", y)) 100 else 1)),
+                 c = sapply(names(b_y), function(y) cell(kh(y, mHR, "female:urban"), if (grepl("^any", y)) 100 else 1)),
+                 d = sapply(names(b_y), function(y) .fmt((if (grepl("^any", y)) 100 else 1) * wmean(HB[female == 0][[y]], HB[female == 0]$weight), 1)))
+names(ht) <- c("Outcome", "Female, household FE", "Female, district FE", "Female x urban", "Male mean")
+tab(ht, caption = paste0("Female minus male members aged 10 and above", syn_note()), label = "hhfe",
+    align = c("l", "r", "r", "r", "r"),
+    notes = paste0("Household FE: household fixed effects, age-band and diary-day indicators. District FE: ", fe_words(fe_used(HB, FE_A)), " fixed effects, with age band, education, marital status, household size, members under six and aged 60 and above, and urban. Female x urban: interaction in the household FE model (the gap in urban households minus the gap in rural households). pp: percentage points. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:hhfe} reports the results. Within households, female members spend `r diff_txt(k_hh)` on collection than male members of the same age band: `r diff_txt(k_hh_w)` fetching water and `r diff_txt(k_hh_f)` gathering fuel. Their probability of collecting on the diary day is `r diff_pp(k_hh_any)`. The cross-sectional estimate with district fixed effects is `r sg(k_cs)`. `r iff(ok(k_cs) && ok(k_hh) && abs(k_cs$est - k_hh$est) > 1.96 * k_hh$se, "The difference between the two shows that female and male members are not distributed evenly across households with different collection needs.", "The within-household and cross-sectional estimates are close, so the gap is not explained by female and male members living in different kinds of households.")` The gap in urban households differs from that in rural households by `r sg(k_hh_urb)`. `r iff(is_neg(k_hh_urb), "The gap is smaller in urban households, where fewer households collect at all.", "")`
+
+## Position in the household
+
+```{r tab-role}
+roles_p <- roles[roles %in% role_means$role]          # positions held by at least one woman
+rget <- function(r, v) { x <- role_means[role == r][[v]]; if (length(x)) x[1] else NA_real_ }
+rt <- data.frame(Role = roles_p,
+                 a = sapply(roles_p, function(r) cell(kr(mR0, r))),
+                 b = sapply(roles_p, function(r) cell(kr(mR1, r))),
+                 c = sapply(roles_p, function(r) cell(kr(mRa, r), 100)),
+                 m = sapply(roles_p, function(r) .fmt(rget(r, "m"), 1)),
+                 n = sapply(roles_p, function(r) fn(rget(r, "n"))))
+rt <- rbind(rt, data.frame(Role = "Head's spouse (reference)", a = "", b = "", c = "",
+                           m = .fmt(rget("Head's spouse", "m"), 1), n = fn(rget("Head's spouse", "n"))))
+names(rt) <- c("Relative to head's spouse", "Minutes", "Minutes, age controls", "Any (pp), age controls", "Mean minutes", "N women")
+tab(rt, caption = paste0("Collection by women's position in the household, women aged 15 and above", syn_note()), label = "role",
+    align = c("l", "r", "r", "r", "r", "r"),
+    notes = paste0("Household fixed effects; the sample is women aged 15 and above in the ", fn(uniqueN(WB$hh_id)), " households with women in at least two positions (", fn(nrow(WB)), " women). Age controls: age-band and diary-day indicators. Mean minutes and N: all women aged 15 and above in each position. Daughter: married or unmarried child of the head. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:role} compares women in different positions in the same household, relative to the head's spouse. Without age controls, a daughter-in-law collects `r sg(k_dil0)` relative to the head's spouse and a daughter `r sg(k_dau0)`. With age controls, the estimates are `r sg(k_dil)` and `r sg(k_dau)`. The difference between a daughter-in-law and a daughter of the same age in the same household is `r sg(k_dil_dau)`; `r fn(n_hh_dil_dau)` households have both a daughter-in-law and a daughter aged 15 or above. `r iff(is_pos(k_dil_dau), "Daughters-in-law carry more of the household's collection than daughters, consistent with the weaker position of women who marry into the household.", iff(is_neg(k_dil_dau), "Daughters collect more than daughters-in-law of the same age, which suggests that unmarried daughters, who are often younger and have no children of their own, are assigned this work.", "The two do not differ significantly, so in these data the assignment of collection does not depend on whether a young woman was born into the household or married into it."))`
+
+## Does another woman or a girl take the load off the main woman?
+
+The third question is whether the presence of other members who could collect changes the collection time of the household's main married woman. The focal woman is a married woman aged 20 to 49 who is either the head or the head's spouse in a household with no daughter-in-law of childbearing age, or the only daughter-in-law of childbearing age; a woman at the head's level who lives with a married daughter-in-law is usually of the older generation and is excluded. There are `r fn(nrow(M))` such women. I regress her collection minutes, her participation and the collection minutes of all other diarists in her household on indicators for another non-employed woman aged 18 to 69 (whose usual status is not employment, education or disability), a girl aged 10 to 17 and a boy aged 10 to 17, controlling for her age and education, sector, the number of men aged 18 and above, the number of other employed women, the numbers of members under six, aged 6 to 14 and aged 60 and above, and proxy reporting, with `r fe_words(fe_used(M, FE_A))` fixed effects. Comparing the girl coefficient with the boy coefficient holds constant the arrival of an adolescent and isolates the role of the adolescent's sex.
+
+```{r tab-mother}
+mt <- data.frame(Term = c("Another non-employed woman 18--69", "Girl aged 10--17 present", "Boy aged 10--17 present", "Girl minus boy"),
+                 sapply(names(mo_y), function(y) {
+                   s <- if (y == "any_collect") 100 else 1; m <- mMo[[y]]
+                   c(cell(coef_of(m, "oth_nonemp"), s), cell(coef_of(m, "girl1017"), s), cell(coef_of(m, "boy1017"), s),
+                     cell(lin2(m, "girl1017", "boy1017", -1), s))
+                 }),
+                 r = c(cell(k_mo_w_r), cell(k_mo_g_r), cell(coef_of(mMoR, "boy1017")), cell(lin2(mMoR, "girl1017", "boy1017", -1))),
+                 check.names = FALSE)
+names(mt) <- c("", mo_y, "Her minutes, rural")
+tab(mt, caption = paste0("The main married woman's collection and the presence of other potential collectors", syn_note()), label = "mother",
+    align = c("l", "r", "r", "r", "r"),
+    notes = paste0("Married women aged 20--49 who are the head or head's spouse (no daughter-in-law of childbearing age present) or the only daughter-in-law (N = ", fn(nrow(M)), "; rural N = ", fn(nrow(M[rural == 1])), "). Others' collection: minutes of all other diarists in the household. Controls listed in the text. pp: percentage points. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:mother} reports the estimates. The main married woman collects `r f1(mean_M)` minutes a day on average. When another non-employed adult woman lives in the household, her own collection differs by `r sg(k_mo_w)`, and other members' collection by `r sg(k_mo_w_oth)`. When an adolescent girl is present, her collection differs by `r sg(k_mo_g)`, and the difference between the girl and the boy coefficients is `r sg(k_mo_gb)`. `r iff(is_neg(k_mo_gb), "Adolescent daughters, but not sons, take part of the collection load off the main woman.", iff(is_neg(k_mo_g), "The main woman collects less when an adolescent girl is present, but the difference from an adolescent boy is not significant, so the data do not isolate a role of the adolescent's sex.", "The presence of an adolescent girl is not associated with significantly less collection by the main woman."))` `r iff(is_neg(k_mo_w), "Another non-employed adult woman is associated with less collection by the main woman, consistent with a sharing of the work among adult women.", "Another non-employed adult woman is not associated with significantly less collection by the main woman.")` `r iff(is_pos(k_mo_g_oth), "Other members' collection is higher when an adolescent girl is present, which is what one would expect if the girl does part of it.", "")` These comparisons are across households, with district fixed effects; households with and without an adolescent girl or another adult woman differ in other ways, including in their stage of the life cycle, so I read them as descriptive of how the burden is shared rather than as the causal effect of adding a member.
+
+# Seasonal collection need and what it displaces {#sec:season}
+
+## Design
+
+Collection need varies over the year. In the dry months before the monsoon, nearby wells, ponds and hand pumps run low, and water must be carried from further away or waited for; fuel gathering also has seasonal patterns linked to the agricultural calendar and to the availability of crop residues. Because the survey allotted equal numbers of first-stage units to each sub-round, households in the same district were surveyed in different quarters. Comparing collection across quarters within a district therefore estimates how collection varies with the season, holding the district fixed.
+
+I use this in two ways. The first is a reduced form for rural persons:
+$$ y_{ij} = \pi\, Q2_{j} + X_{ij}'\gamma + \delta_{d(j)} + \omega_{w(ij)} + u_{ij}, $$
+where $Q2_j$ indicates that first-stage unit $j$ was surveyed in sub-round 2, $\delta_{d}$ are district fixed effects, $\omega$ diary-day effects and $X$ age band, education, marital status, household size and the numbers of members under six and aged 60 and above. Estimated for each of the ten categories of the day, the coefficients $\pi$ sum to zero by the 1,440-minute identity, so the reduced form shows where extra collection time comes from.
+
+The second is a two-stage least squares estimate [@angrist2009mostly] of the minutes of each other activity per minute of collection, on rural and urban persons together. Collection minutes are instrumented by the interactions of the three later sub-rounds with rural residence, with district-by-sector fixed effects and sub-round fixed effects:
+$$ y_{ij} = \theta\, C_{ij} + X_{ij}'\gamma + \delta_{d(j),s(j)} + \tau_{q(j)} + \omega_{w(ij)} + u_{ij}, \qquad C_{ij} = \sum_{q=2}^{4} \phi_q\, \mathbf{1}[q(j) = q]\times Rural_j + \ldots $$
+The sub-round fixed effects $\tau_q$ absorb everything about the quarter that is common to rural and urban areas, such as festivals, school calendars, heat and national events. What remains is the extra seasonal variation in rural areas, where collection is common, relative to urban areas in the same quarter. Because the ten categories partition the day, the nine coefficients $\theta$ for the activities other than collection sum to minus one.
+
+## Threats
+
+Sub-round is a shifter of collection need, not a randomised instrument, and the exclusion restriction (that the rural quarter affects other activities only through collection) is strong. The main threat is agriculture. The rural quarter also moves the demand for agricultural labour: sowing, weeding and harvest fall in particular months, so paid work and own-account farming vary with the season for reasons unrelated to collection. If the high-need quarter for water is also a slack or peak agricultural season, the reduced form for paid work mixes the two. Other threats are seasonal illness, the timing of festivals and weddings that differs between rural and urban areas, and school calendars that differ by sector. I address the agricultural threat in four ways: by testing whether paid work moves with the rural quarter for men, whose collection is low; by controlling for usual principal activity status; by dropping agricultural workers; and by restricting the sample to women who are not employed. I also add state-by-quarter fixed effects, which absorb seasonal shocks common to rural and urban areas of a state. None of these makes the quarter random, and I interpret the two-stage estimates as the time cost of seasonal collection need under the assumption that the remaining seasonal variation operates through collection.
+
+## Collection across quarters
+
+```{r fig-quarter, fig.cap = paste0("Collection minutes by sub-round, rural, relative to sub-round 1", syn_note()), fig.height = 3.1}
+pq <- prof[!is.na(est)]
+if (nrow(pq)) {
+  pq[, group := factor(gsub("--", "-", group), levels = gsub("--", "-", names(prof_grp)))]
+  ggplot(pq, aes(factor(q), est, colour = group)) +
+    geom_hline(yintercept = 0, linewidth = 0.3) +
+    geom_pointrange(aes(ymin = est - 1.96 * se, ymax = est + 1.96 * se), position = position_dodge(0.4), size = 0.3) +
+    scale_colour_manual(values = c("Women 15+" = "#C2512F", "Men 15+" = "#2C6E9B", "Girls 10-17" = "#E0A030"), name = NULL) +
+    labs(x = "Sub-round", y = "Minutes per day (vs sub-round 1)",
+         caption = "District and diary-day fixed effects, with the controls listed in the text; 95% confidence intervals.")
+} else {
+  ggplot() + annotate("text", x = 0, y = 0, label = "Not estimable: no sub-round in the panel") + theme_void()
+}
+```
+
+Figure \ref{fig:fig-quarter} plots collection minutes in each sub-round relative to the first, within districts, for rural women, men and girls. `r iff(!is.na(peak_q), paste0("Rural women's mean collection is highest in sub-round ", peak_q, "."), "")` `r iff(isTRUE(peak_q == 2), "This is the quarter designated in advance as the period of highest need.", iff(!is.na(peak_q), "This is not the quarter designated as the period of highest need, so the designation of sub-round 2 is not borne out by the data and the reduced form below should be read with that in mind.", ""))`
+
+## Reduced form
+
+```{r tab-rf}
+rft <- data.frame(Activity = RA,
+                  w = sapply(names(RA), function(y) cell(krf(RFw, y))),
+                  m = sapply(names(RA), function(y) cell(krf(RFm, y))),
+                  g = sapply(names(RA), function(y) cell(krf(RFg, y))))
+rft <- rbind(rft, data.frame(Activity = "Sum of the ten coefficients",
+                             w = f2(rf_sum_w), m = f2(sum(sapply(names(RA), function(y) krf(RFm, y)$est), na.rm = TRUE)),
+                             g = f2(sum(sapply(names(RA), function(y) krf(RFg, y)$est), na.rm = TRUE))))
+rft <- rbind(rft, data.frame(Activity = "N", w = fn(nrow(A15r[female == 1])), m = fn(nrow(A15r[female == 0])), g = fn(nrow(G[rural == 1]))))
+names(rft) <- c("Minutes per day", "Women 15+", "Men 15+", "Girls 10--17")
+tab(rft, caption = paste0("Reduced form: sub-round 2 versus other quarters, rural, within district", syn_note()), label = "rf",
+    align = c("l", "r", "r", "r"),
+    notes = paste0("Each cell is the coefficient on an indicator for sub-round 2 from a regression with ", fe_words(fe_used(A15r, FE_R)), " fixed effects and controls for age band, education, marital status, household size and members under six and aged 60 and above (girls: single-year age, head's education, household size, members under six and 60 and above). The ten categories partition the day, so the coefficients sum to zero. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:rf} reports the reduced form. Rural women's collection in sub-round 2 is `r diff_txt(rf_w, "higher", "lower")` than in the other quarters of the same district, from a base of `r f1(base_rw)` minutes in the other quarters. For men it is `r diff_txt(rf_m, "higher", "lower")`, and for girls aged 10 to 17 `r diff_txt(rf_g, "higher", "lower")`. `r iff(rf_up_w && !rf_up_m, "Seasonal collection need falls on women, not on men.", iff(rf_up_w && rf_up_m, "Both women's and men's collection rise in the high-need quarter.", "Collection is not significantly higher in sub-round 2 for women."))` Women's paid work in the same quarter differs by `r sg(rf_w_emp)` and men's by `r sg(rf_m_emp)`. `r iff(abs(rf_sum_w) < 0.005, "The ten coefficients for women sum to zero to two decimal places, as the identity requires.", paste0("The ten coefficients for women sum to ", f2(rf_sum_w), " minutes."))`
+
+## Two-stage estimates
+
+```{r tab-iv}
+ivt <- data.frame(Activity = RA[DISP],
+                  w = sapply(DISP, function(y) cell(kiv(IVw, y), 1, 2)),
+                  m = sapply(DISP, function(y) cell(kiv(IVm, y), 1, 2)),
+                  g = sapply(DISP, function(y) cell(kiv(IVg, y), 1, 2)))
+ivt <- rbind(ivt, data.frame(Activity = c("Sum of the nine coefficients", "First-stage F (cluster-robust)", "N"),
+                             w = c(f2(ivs_w), f1(F_w), fn(if (is.null(IVw$employment)) NA else nobs(IVw$employment))),
+                             m = c(f2(ivs_m), f1(F_m), fn(if (is.null(IVm$employment)) NA else nobs(IVm$employment))),
+                             g = c(f2(iv_sum(IVg)), f1(F_g), fn(if (is.null(IVg$learning)) NA else nobs(IVg$learning)))))
+names(ivt) <- c("Minutes per minute of collection", "Women 15+", "Men 15+", "Girls 10--17")
+tab(ivt, caption = paste0("Two-stage least squares: other activities per minute of water and fuel collection", syn_note()), label = "iv",
+    align = c("l", "r", "r", "r"),
+    notes = paste0("Collection minutes instrumented by sub-round 2, 3 and 4 interacted with rural residence. ", cap1(fe_words(fe_used(A15, FE_IV))), " fixed effects; controls as in the reduced form. Rural and urban persons. The nine coefficients sum to minus one by the 1,440-minute identity. First-stage F: cluster-robust Wald statistic for the three excluded instruments. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+Table \ref{tab:iv} reports the two-stage estimates. The first-stage F statistic for women is `r f1(F_w)`, `r f1(F_m)` for men and `r f1(F_g)` for girls. `r iff(strong_w, iff(lmmp_w, "For women it exceeds both the conventional threshold of 10 and the higher threshold that @lee2022valid show is needed for conventional t-ratio inference at the 5 per cent level.", paste0("For women it exceeds the conventional threshold of 10 [@stock2005testing], but not the threshold of 104.7 that @lee2022valid show is needed for conventional t-ratios to have correct size at the 5 per cent level, so the confidence intervals below should be read as approximate.")), "For women it is below the conventional threshold of 10 [@stock2005testing; @andrews2019weak], so the instruments are weak and the two-stage estimates are biased towards the ordinary least squares estimates and unreliable for inference. I report them for completeness and base conclusions on the reduced form.")` In sub-round 2, rural women's collection rises by `r sg(fs_w)` relative to urban women in the same district and quarter, compared with sub-round 1 (first stage).
+
+`r iff(strong_w && !is.na(top_disp_w), paste0("For women, the most negative coefficient, and so the point estimate of the largest offsetting change, is for ", tolower(RA[top_disp_w]), ": each additional minute of collection is associated with a change of ", cse(kiv(IVw, top_disp_w)), " minutes. The next is ", tolower(RA[top2_disp_w]), ", with ", cse(kiv(IVw, top2_disp_w)), " minutes."), "Because the first stage for women is weak, I do not interpret the individual two-stage coefficients.")` The coefficients for paid work, unpaid domestic services, free time and sleep are `r cse(k_iv_w_emp)`, `r cse(k_iv_w_dom)`, `r cse(k_iv_w_free)` and `r cse(k_iv_w_sleep)`. `r iff(!strong_m, "Men's collection responds too little to the rural quarter for their two-stage estimates to be informative.", "")` `r iff(strong_w && is_neg(k_iv_w_emp), "Seasonal collection need is associated with less paid work by women, which is the margin on which water infrastructure has been expected to raise women's earnings [@ilahi2000public; @koolwal2013access].", iff(strong_w, "Women's paid work does not fall significantly with collection, which is consistent with the evidence of @koolwal2013access that time saved from water collection does not necessarily go to paid work.", ""))` `r iff(strong_w && (is_neg(k_iv_w_free) || is_neg(k_iv_w_sleep)), "Part of the time comes out of free time or sleep, which, as @devoto2012happiness emphasise, are where the gains from easier access to water may be largest in welfare terms.", "")` For girls aged 10 to 17, the learning coefficient is `r cse(k_iv_g_learn)` minutes per minute of collection, and the free-time coefficient `r cse(k_iv_g_free)`. `r iff(strong_g && is_neg(k_iv_g_learn), "Girls' extra collection in the high-need season comes partly out of learning.", iff(strong_g, "Girls' learning time does not fall significantly with seasonal collection.", "The first stage for girls is weak, so these estimates are not informative."))`
+
+## Agricultural seasonality and robustness
+
+The reduced form for men's paid work, with the same fixed effects as the two-stage estimate, gives a joint p-value of `r f2(thr_m$p)` for the three quarter-by-rural interactions; for women the p-value is `r f2(thr_w$p)`. `r iff(paid_seasonal, "Paid work therefore varies with the rural quarter. Because men's collection is low, the variation in men's paid work is unlikely to be caused by collection, and it points to agricultural seasonality that may also move women's paid work directly. The two-stage coefficient for women's paid work should therefore not be read as the effect of collection alone.", "Paid work does not vary significantly with the rural quarter, for men or for women. This does not rule out agricultural seasonality in other activities, but it removes the most obvious violation of the exclusion restriction.")`
+
+```{r tab-robust}
+rbt <- data.frame(Specification = sapply(specs, `[[`, "lab"),
+                  t(sapply(names(specs), function(s) sapply(rb_y, function(y) cell(RB[[s]]$k[[y]], 1, 2)))),
+                  F = sapply(names(specs), function(s) f1(RB[[s]]$F)),
+                  N = sapply(names(specs), function(s) fn(RB[[s]]$n)), check.names = FALSE)
+names(rbt) <- c("Specification", "Employment", "Unpaid domestic", "Free time", "Sleep", "First-stage F", "N")
+tab(rbt, caption = paste0("Robustness of women's two-stage estimates (minutes per minute of collection)", syn_note()), label = "robust",
+    align = c("l", "r", "r", "r", "r", "r", "r"),
+    notes = "Women aged 15 and above. Each row re-estimates the baseline two-stage model for women on the sample or with the controls shown. Agricultural workers: usual status employed and NIC 2008 division 01--03. State-by-quarter fixed effects replace the sub-round fixed effects. Self-reported: diaries reported by the woman herself. -- : not estimable. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+```
+
+Table \ref{tab:robust} reports the checks for women. Controlling for usual principal activity status, the paid-work coefficient is `r cse(rb_emp_pas)`. `r iff(ok(rb_emp_noag), paste0("Excluding agricultural workers, it is ", cse(rb_emp_noag), "."), "The check that excludes agricultural workers is not estimable because the industry code is not available.")` `r iff(ok(rb_emp_nemp), paste0("Among women who are not employed in their usual status, it is ", cse(rb_emp_nemp), "."), "Among women who are not employed in their usual status, paid work on the diary day does not vary enough to estimate the paid-work coefficient.")` Of the `r n_rb_est` alternative specifications that can be estimated, `r n_rb_same_emp` give a paid-work coefficient with the same sign as the baseline. `r iff(n_rb_est > 0 && n_rb_same_emp == n_rb_est, "The sign of the paid-work estimate is stable across the checks.", "The sign of the paid-work estimate is not stable across all checks, so the paid-work margin is not robustly identified.")`
+
+# Girls' collection and learning {#sec:girls}
+
+```{r tab-sib}
+sbt <- data.frame(Outcome = sib_y,
+                  a = sapply(names(sib_y), function(y) cell(coef_of(mS[[y]], "girl"), if (y == "any_collect") 100 else 1)),
+                  b = sapply(names(sib_y), function(y) cell(coef_of(mSq[[y]], "girl:hi"), if (y == "any_collect") 100 else 1)),
+                  c = sapply(names(sib_y), function(y) cell(coef_of(mSr[[y]], "girl:rural"), if (y == "any_collect") 100 else 1)),
+                  d = sapply(names(sib_y), function(y) .fmt((if (y == "any_collect") 100 else 1) * wmean(S[girl == 0][[y]], S[girl == 0]$weight), 1)))
+names(sbt) <- c("Outcome", "Girl", "Girl x sub-round 2", "Girl x rural", "Boys' mean")
+tab(sbt, caption = paste0("Sisters and brothers aged 10--17: girl minus boy, minutes per day", syn_note()), label = "sib",
+    align = c("l", "r", "r", "r", "r"),
+    notes = paste0("Sibling-set fixed effects and single-year age effects; never-married children or grandchildren of the head aged 10--17 in ", fn(n_sets), " mixed-sex sets (", fn(nrow(S)), " children). Each interaction column is a separate regression adding girl x the set-level indicator. pp: percentage points. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+The last question is whether collection competes with girls' schooling. Table \ref{tab:sib} compares sisters and brothers aged 10 to 17 in the same sibling set, with single-year age effects, so that the household's water source and needs are held fixed. Girls spend `r diff_txt(k_s_c)` collecting than their brothers, and their probability of collecting on the diary day is `r diff_pp(k_s_a)`. Their learning time differs by `r sg(k_s_l)`. In sub-round 2, the girl-boy gap in collection changes by `r sg(k_s_cq)` and the gap in learning by `r sg(k_s_lq)`. `r iff(is_pos(k_s_cq) && is_neg(k_s_lq), "In the high-need quarter, girls' extra collection rises and their learning time falls relative to their brothers', which is the pattern expected if collection competes with schooling.", iff(is_pos(k_s_cq), "In the high-need quarter, girls' extra collection rises relative to their brothers', but the learning gap does not widen significantly.", "The girl-boy gap in collection does not rise significantly in the high-need quarter."))` These comparisons are short by design. Sibling comparisons of children's time raise selection issues created by son-biased fertility, which I do not address here.
+
+# Discussion {#sec:disc}
+
+## Interpretation
+
+`r iff(fem_major, "Water and fuel collection in India is overwhelmingly the work of women and girls.", "Water and fuel collection in India is shared between women and men to a greater degree than the literature suggests.")` The household fixed-effects estimates show that this is not because women and men live in different households: within the same household, facing the same source and the same need, female members do `r iff(is_pos(k_hh), "more", "no significantly different amount")` of the work. `r iff(is_pos(k_dil_dau), "The extra burden on daughters-in-law points to position in the household, and not only sex and age, as a determinant of who collects.", "")` `r iff(is_neg(k_mo_gb), "That adolescent girls, but not boys, take part of the burden off the main woman shows how the division of collection is passed from one generation of women to the next.", "")`
+
+The seasonal estimates add a time-cost dimension. `r iff(rf_up_w, "When collection need rises in the high-need quarter, women's collection rises and other activities must fall to make room for it.", "Collection does not rise significantly in the quarter designated as the high-need season, so the seasonal design does not identify a time cost.")` `r iff(rf_up_w && strong_w && !is.na(top_disp_w), paste0("The point estimate of the largest offsetting change for women is in ", tolower(RA[top_disp_w]), "."), "")` `r iff(paid_seasonal, "Because paid work also moves with the rural quarter, I cannot separate the time cost of collection from agricultural seasonality on the paid-work margin.", "")` These estimates describe the response to seasonal increases in need; the response to a permanent reduction in collection time, such as a household tap connection, may differ, because households adjust slowly and because time released permanently can be committed to activities, such as a regular job, that a seasonal fluctuation cannot.
+
+## Policy
+
+The Jal Jeevan Mission aims to provide every rural household with a functional tap connection [@mojs2019jjm]. The estimates here bear on the benefits of that programme in three ways. First, they quantify the time now spent on water collection and show who spends it. Second, they show that collection need varies seasonally, so a connection that delivers water reliably in the dry season saves more time than an average day suggests, and one that fails in the dry season saves less. Third, the reallocation estimates show which activities absorb seasonal increases in collection. `r iff(strong_w && (is_neg(k_iv_w_free) || is_neg(k_iv_w_sleep)), "To the extent that collection displaces rest and free time, the welfare gains from water connections are partly gains in rest and free time, which do not appear in labour statistics.", "")` Fuel gathering remains common despite the expansion of LPG [@kar2019ujjwala; @gould2018lpg], and the same diaries can track whether it falls as clean cooking spreads. The survey can be repeated, so the gender gap in collection time is a natural indicator for monitoring both programmes.
+
+## Limitations
+
+Five limitations matter. First, the unit-level file has no household questionnaire, so I observe neither the household's drinking water source nor its cooking fuel. The household fixed effects absorb these within households, but the descriptive and seasonal analyses cannot distinguish households that collect because they lack a connection from households that have one that does not work. Second, each person reports one day. Collection that happens every few days, such as weekly fuel trips, is measured accurately on average but not for an individual, and the household share in which only female members collected is a diary-day measure. Third, travel related to own-use production has its own code, so collection minutes understate the time cost if part of the walking is recorded as travel. Fourth, children under six keep no diary, and the roster does not identify parents, so mothers and their children are matched by relationship to the head and age. Fifth, the seasonal design rests on the assumption that the rural quarter affects other activities only through collection, which agricultural seasonality may violate; the months of each sub-round are not stated in the 2024 dictionary, and I take them from the 2019 design. The file records no caste or social group, religion or consumption expenditure, so I cannot show how the burden varies along these dimensions, and the cross-household comparisons control for socioeconomic status only through education, regular employment and district fixed effects.
+
+# Conclusion {#sec:conc}
+
+Full-day diaries for every household member show who carries water and fuel in India. In rural areas, `r pct(pw_rw$est)` of adult women and `r pct(pw_rm$est)` of adult men fetched water on the diary day, and female members do `r pct(sh_c$est)` of all collection minutes. Within the same household, female members aged 10 and above spend `r diff_txt(k_hh)` collecting than male members. `r iff(rf_up_w, paste0("In the quarter of highest expected need, rural women's collection is ", diff_txt(rf_w, "higher", "lower"), " than in other quarters of the same district."), "Collection does not rise significantly in the quarter designated as the period of highest need.")` `r iff(strong_w && !is.na(top_disp_w), paste0("The point estimate of the largest offsetting change is in ", tolower(RA[top_disp_w]), "."), "")` The gender gap in collection time is measurable in any time-use survey and is a direct indicator of the benefits that water and clean-fuel programmes can deliver to women and girls.
+
+\newpage
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-sample}
+sm <- data.frame(Step = c("Diaries in the file", "Women and men, excluding live-in non-relatives (analysis population)",
+                          "Rural persons aged 15 and above (reduced form)", "Persons aged 15 and above (two-stage estimates)",
+                          "Members aged 10+ in households with both sexes aged 10+ (household FE)",
+                          "Women 15+ in households with women in two or more positions",
+                          "Main married women aged 20--49", "Girls aged 10--17", "Children aged 10--17 in mixed-sex sibling sets"),
+                 N = c(fn(nrow(pd)), fn(nrow(A)), fn(nrow(A15r)), fn(nrow(A15)), fn(nrow(HB)), fn(nrow(WB)), fn(nrow(M)),
+                       fn(nrow(G)), fn(nrow(S))))
+tab(sm, caption = "Construction of the analysis samples", label = "sample", align = c("l", "r"),
+    notes = paste0("Diaries are kept by members aged six and above. Standard errors are clustered on the ", fn(n_fsu), " first-stage units of the analysis population."))
+```
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```

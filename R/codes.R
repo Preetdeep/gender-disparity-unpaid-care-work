@@ -42,6 +42,8 @@ ACT <- list(
   # Division 2: own-use production of goods (SNA, unpaid)
   ownuse_goods     = c(rng(211, 218), rng(221, 229), 230, 241, 242, 250),
   water_fuel       = c(241, 242),            # firewood + water fetching
+  fuel_gather      = 241,                    # gathering firewood and other natural fuel
+  water_fetch      = 242,                    # fetching water from natural and other sources
 
   # Division 3: unpaid domestic services (non-SNA)
   dom_food         = rng(311, 319),
@@ -142,7 +144,9 @@ CODE <- list(
   # Enterprise type (paid activities only)
   ent_formal    = c(3, 4, 5, 7),   # government, autonomous, ltd company, trust/NPI
   ent_informal  = c(1, 2, 6, 9),   # proprietary, partnership, co-op, others
-  ent_household = 8                # employer's household (domestic workers)
+  ent_household = 8,               # employer's household (domestic workers)
+  # NIC 2008 divisions 01-03 (section A: agriculture, forestry and fishing), 2-digit
+  nic_agriculture = c(1, 2, 3)
 )
 
 # ---- Scheme-dependent codes ----------------------------------------------------

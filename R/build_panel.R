@@ -329,6 +329,9 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED, hh_dta = TUS_HH_DT
                          grep("^sec_", names(pdy), value = TRUE), "min_multiple_slots",
                          "min_simult_slots", "min_inside_home", "min_paidstatus_care"), names(pdy))
   for (k in unique(tu_cols)) pdy[has_diary == FALSE, (k) := NA_real_]
+  # Participation on the diary day (any major minutes) in water and fuel collection
+  # (ICATUS 242, 241 and both). NA for members without a diary.
+  for (k in c("water_fetch", "fuel_gather", "water_fuel")) pdy[, (paste0("any_", k)) := as.integer(get(k) > 0)]
 
   # ---- Code scheme (principal activity status, fuels) ----------------------------
   det <- detect_code_scheme(if ("pas" %in% names(pdy)) pdy$pas else NULL,

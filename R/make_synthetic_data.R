@@ -73,6 +73,9 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     sex == 1 & age < 60, sample(c(11, 21, 41, 51, 61), .N, TRUE, c(.35, .25, .25, .05, .1)),
     sex == 2 & age < 60, sample(c(11, 13, 21, 41, 62, 63, 61), .N, TRUE, c(.08, .1, .07, .07, .5, .1, .08)),
     default = sample(c(11, 64, 62, 65, 66), .N, TRUE, c(.2, .2, .4, .1, .1)))]
+  # 2-digit NIC 2008 industry for persons in work (old-scheme codes 11-41 here; recoded below)
+  pp[, NIC_Industry_Code := fifelse(Principal_Activity_Status %in% c(11, 12, 13, 21, 31, 41),
+                                    as.numeric(sample(c(1, 10, 41, 47, 85), .N, TRUE, c(.45, .15, .15, .15, .1))), NA_real_)]
   pp[, umpce_item10 := round(Household_Size * exp(rnorm(.N, 7.8 + .4 * (Sector == 2), .5)))]
   pp[, umpce_item10 := umpce_item10[1], by = hh_row]
   pp[, srl_no_informant_member := ifelse(runif(.N) < .6, Person_Serial_No, 1)]
@@ -97,7 +100,10 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     if (emp && !kid) put(182, 2, 8, 40)
     if (f && !kid) {
       put(311, sample(4:7, 1), 4, 44); put(321, sample(1:3, 1), 4, 40)
-      put(341, sample(0:2, 1), 4, 40); put(242, sample(0:2, 1) * (r$Sector == 1), 4, 30)
+      put(341, sample(0:2, 1), 4, 40)
+      # Water and fuel collection: rural, more in sub-round 2 (a dry-season shifter in the test data)
+      put(242, (sample(0:2, 1) + sample(0:2, 1) * (r$Sub_Round == 2)) * (r$Sector == 1), 4, 30)
+      if (r$Sector == 1 && runif(1) < .15 + .15 * (r$Sub_Round == 2)) put(241, sample(1:3, 1), 4, 30)
       if (r$u6 || r$rel %in% c(1, 2, 4) && r$age < 45) put(411, sample(1:5, 1), 4, 44)
       if (r$special_care_needed == 1) put(421, sample(0:3, 1), 4, 44)
     } else if (!kid) {
@@ -108,6 +114,8 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     if (!kid && runif(1) < .05) put(sample(c(513, 521), 1), sample(1:3, 1), 8, 40)
     if (!kid && runif(1) < .05) put(630, sample(1:3, 1), 8, 40)
     if (!kid && !f && runif(1) < .1) put(sample(c(241, 242), 1), sample(1:2, 1), 4, 30)
+    if (kid && r$age >= 10 && r$Sector == 1 && runif(1) < (if (f) .3 else .1) + .1 * (r$Sub_Round == 2))
+      put(242, sample(1:2, 1), 4, 16)
     if (!kid && runif(1) < .3) put(212, sample(1:3, 1), 4, 30)
     if (!kid && runif(1) < .1) put(sample(c(351, 352), 1), 1, 20, 44)
     if (!kid && runif(1) < .05) put(912, 1, 20, 40)
@@ -158,7 +166,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
   out[, Type_of_Day := Type_of_Day[1], by = .(FSU_Serial_No, Sample_HH_No, Person_Serial_No)]
   keep <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No", "Sector", "State", "District", "Sub_Round", "Type_of_Day",
             "Gender", "Age", "Marital_Status", "Highest_Education", "Principal_Activity_Status",
-            "Relationship_to_Head", "Household_Size", "Religion", "Social_Group",
+            "Relationship_to_Head", "NIC_Industry_Code", "Household_Size", "Religion", "Social_Group",
             "umpce_item10", "primary_energy_cooking", "type_of_washing", "type_of_sweeping",
             "special_care_needed", "care_giver_available", "land_possessed",
             "srl_no_informant_member", "Day_of_Week", "Weight", "Time_From", "time_spent",

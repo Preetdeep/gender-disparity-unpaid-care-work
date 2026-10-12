@@ -117,5 +117,6 @@ Retired (kept in `defunct/legacy_papers/RETIRED_*` for the record):
 | gender_disparity_clean / _enhanced (participation puzzle) | The headline is an artifact of per-episode means (Section 3), and the descriptive gender-gap paper already exists as "The Domestic Anchor" in your India-TUS project. A second one would compete with it |
 | income_religion_region_intersectionality | Built on miscoded categories; its question (structure vs culture) overlaps paper 08. Revive later as a variance-decomposition note if paper 08 lands |
 | master_descriptive_statistics | Replaced by `R/build_panel.R` validation output and each paper's descriptive table. Its activity labels were wrong |
+| 01_outsourcing_domestic_work (2024 design; now `RETIRED_01_outsourcing_domestic_work_2024design`) | Infeasible on the real 2024 file: cooking fuel, laundry/sweeping mode and consumption are household-questionnaire (Block 4) items absent from the person file. Replaced by `submission/01_water_fuel_collection` (ICATUS 241/242, intrahousehold allocation, sub-round seasonality) |
 
 Process memos (critiques, status reports, quality scores, plans) are in `defunct/notes/`. They describe the legacy code and should not guide new work.
