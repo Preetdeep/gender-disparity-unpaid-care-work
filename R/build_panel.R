@@ -41,7 +41,7 @@ TUS_COLS <- list(
   paid_status = c("Unpaid_Paid_Status", "unpaid_paid_status"),
   dow        = c("Day_of_Week", "Day_Of_Week", "day_of_week"),
   type_day   = c("Type_of_Day", "type_of_day"),
-  informant  = c("srl_no_informant_member", "Informant_Srl_No", "Srl_No_Informant"),
+  informant  = c("Informant_Serial_No", "srl_no_informant_member", "Informant_Srl_No", "Srl_No_Informant"),
   multiple   = c("Multiple_Activity_Flag", "multiple_activity", "Multiple_Activity"),
   simult     = c("Simultaneous_Activity_Flag", "simultaneous_activity", "Simultaneous_Activity"),
   location   = c("Location_of_Activity", "activity_location", "Activity_Location"),
@@ -86,8 +86,76 @@ as_num <- function(x) {
   as.numeric(x)
 }
 
+# ---- Optional household-characteristics file (Block 4) --------------------------
+# The person-level .dta of the 2024 release carries NO household characteristics
+# (religion, caste, household size, consumption, cooking fuel, laundry, sweeping,
+# special-care need, caregiver). They live in a separate household-level file (Level 03
+# of the NSO release). Point TUS_HH_DTA at it (.dta or .csv). Columns are matched on the
+# variable name AND its label, so exact names are not needed. The probe prints what
+# was matched; adjust HH_PATTERNS if a concept is mismatched.
+HH_PATTERNS <- list(
+  hh_size      = "household.?size|hh.?size|members",
+  religion     = "religion",
+  social_group = "social.?group|caste",
+  land         = "land",
+  umpce        = "consumer.?expend|umpce|umce|mpce|monthly.?expend|consumption",
+  cooking      = "cook",
+  lighting     = "lighting|light",
+  washing      = "wash",
+  sweeping     = "sweep",
+  dwelling     = "dwelling|structure",
+  special_care = "special.?care|needing.?special|needs.?special",
+  caregiver    = "care.?giver|caregiver"
+)
+resolve_hh_columns <- function(hdr) {
+  nm  <- names(hdr)
+  lab <- vapply(nm, function(v) { l <- attr(hdr[[v]], "label"); if (is.null(l)) "" else as.character(l) }, character(1))
+  txt <- tolower(gsub("[_ ]", ".", paste(nm, lab)))
+  keys <- list(fsu = TUS_COLS$fsu, hh = TUS_COLS$hh)
+  out <- list()
+  for (k in names(keys)) {
+    hit <- nm[norm_name(nm) %in% norm_name(keys[[k]])]
+    out[[k]] <- if (length(hit)) hit[1] else NA_character_
+  }
+  for (k in names(HH_PATTERNS)) {
+    hit <- nm[grepl(HH_PATTERNS[[k]], txt) & !nm %in% unlist(out)]
+    if (k == "umpce" && length(hit) > 1) hit <- hit[length(hit)]   # the calculated total comes last
+    out[[k]] <- if (length(hit)) hit[1] else NA_character_
+  }
+  unlist(out)
+}
+read_household_file <- function(path) {
+  stopifnot(file.exists(path))
+  if (grepl("\\.csv$", path, ignore.case = TRUE)) {
+    h <- data.table::fread(path)
+    hdr <- as.data.frame(h[0])
+  } else {
+    hdr <- haven::read_dta(path, n_max = 5)
+    h <- data.table::as.data.table(haven::read_dta(path))
+  }
+  col <- resolve_hh_columns(hdr)
+  list(data = h, col = col)
+}
+merge_household_file <- function(dt, path) {
+  hh <- read_household_file(path)
+  col <- hh$col
+  if (anyNA(col[c("fsu", "hh")])) stop("Household file: cannot find FSU and household number columns. Columns: ",
+                                       paste(names(hh$data), collapse = ", "))
+  found <- col[!is.na(col)]
+  sub <- hh$data[, unname(found), with = FALSE]
+  data.table::setnames(sub, unname(found), names(found))
+  for (v in setdiff(names(sub), c("fsu", "hh"))) sub[, (v) := as_num(get(v))]
+  sub[, `:=`(fsu = as_num(fsu), hh = as_num(hh))]
+  sub <- unique(sub, by = c("fsu", "hh"))
+  already <- intersect(setdiff(names(sub), c("fsu", "hh")), names(dt))
+  if (length(already)) sub[, (already) := NULL]
+  dt <- merge(dt, sub, by = c("fsu", "hh"), all.x = TRUE, sort = FALSE)
+  data.table::setattr(dt, "hh_cols", col)
+  dt
+}
+
 # ---- Main builder ------------------------------------------------------------
-build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
+build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED, hh_dta = TUS_HH_DTA,
                         hh_sample_frac = 1, seed = 20240101, verbose = TRUE) {
   stopifnot(file.exists(dta))
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -107,6 +175,12 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
     else dt[, (v) := as_num(get(v))]
   }
 
+  hh_cols <- NULL
+  if (nzchar(hh_dta) && file.exists(hh_dta)) {
+    dt <- merge_household_file(dt, hh_dta)
+    hh_cols <- attr(dt, "hh_cols")
+    say("Merged household file %s", basename(hh_dta))
+  }
   dt[, hh_id := paste(fsu, hh, sep = "_")]
   if (hh_sample_frac < 1) {
     set.seed(seed)
@@ -124,18 +198,24 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
   } else {
     dt[, is_major := major == CODE$major_minor["major"]]
   }
-  dt[, is_minor := !is_major]
+  # Roster-only rows (members with no diary, e.g. children under 6, non-respondents) have
+  # no activity code and a missing major flag. They carry roster attributes only.
+  dt[, has_act := !is.na(act3)]
+  dt[is.na(is_major), is_major := FALSE]
+  dt[, is_minor := has_act & !is_major]
 
   # ---- Validation ----------------------------------------------------------------
-  V <- list(file = basename(dta), synthetic = TUS_SYNTHETIC,
+  V <- list(file = basename(dta), household_file = if (is.null(hh_cols)) "NONE" else basename(hh_dta),
+            household_columns = hh_cols, synthetic = TUS_SYNTHETIC,
             built = format(Sys.time()), columns_found = found,
             columns_missing = names(col)[is.na(col)],
             n_rows = nrow(dt), n_persons = uniqueN(dt$pid),
             n_households = uniqueN(dt$hh_id), n_fsu = uniqueN(dt$fsu),
             major_flag_values = major_vals,
-            share_rows_minor = mean(dt$is_minor))
+            n_rows_roster_only = sum(!dt$has_act),
+            share_rows_minor = mean(dt$is_minor[dt$has_act]))
   bad_codes <- setdiff(unique(dt$act3), as.integer(names(icatus_labels)))
-  V$invalid_act3_codes <- bad_codes
+  V$invalid_act3_codes <- bad_codes[!is.na(bad_codes)]
   if ("act2" %in% names(dt)) {
     V$act2_matches_act3_prefix <- mean(floor(dt$act3 / 10) == dt$act2, na.rm = TRUE)
   }
@@ -152,6 +232,8 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
   V$share_persons_weight_varies <- mean(wsd$s > 1e-8, na.rm = TRUE)
 
   # ---- Minutes by category: major activities -------------------------------------
+  diar <- unique(dt[has_act == TRUE, pid])
+  pdy[, has_diary := pid %in% diar]
   agg <- dt[is_major == TRUE, .(m = sum(time, na.rm = TRUE), n = .N), by = .(pid, act3)]
   cats <- names(ACT)
   for (k in cats) {
@@ -162,8 +244,11 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
   tot <- agg[, .(day_total = sum(m), n_episodes = sum(n)), by = pid]
   pdy[tot, on = "pid", `:=`(day_total = i.day_total, n_episodes = i.n_episodes)]
   pdy[is.na(day_total), `:=`(day_total = 0, n_episodes = 0)]
-  V$share_diaries_1440 <- mean(abs(pdy$day_total - 1440) < 1e-6)
-  V$day_total_quantiles <- quantile(pdy$day_total, c(0, .01, .5, .99, 1))
+  V$n_diarists <- sum(pdy$has_diary)
+  V$n_roster_only <- sum(!pdy$has_diary)
+  V$n_roster_only_age6plus <- sum(!pdy$has_diary & pdy$age >= 6, na.rm = TRUE)
+  V$share_diaries_1440 <- mean(abs(pdy$day_total[pdy$has_diary] - 1440) < 1e-6)
+  V$day_total_quantiles <- quantile(pdy$day_total[pdy$has_diary], c(0, .01, .5, .99, 1))
 
   # ---- Secondary (minor) activities ----------------------------------------------
   sec_cats <- c("care_child", "care_dep_adult", "unpaid_care", "unpaid_domestic",
@@ -236,6 +321,13 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
   }
   rm(dt, agg, agg2); invisible(gc())
 
+  # Members without a diary have no time-use outcomes: set them to NA so that spouse and
+  # household aggregates never treat a missing diary as zero minutes.
+  tu_cols <- intersect(c(names(ACT), "day_total", "n_episodes", "sec_total", "sec_episodes",
+                         grep("^sec_", names(pdy), value = TRUE), "min_multiple_slots",
+                         "min_simult_slots", "min_inside_home", "min_paidstatus_care"), names(pdy))
+  for (k in unique(tu_cols)) pdy[has_diary == FALSE, (k) := NA_real_]
+
   # ---- Code scheme (principal activity status, fuels) ----------------------------
   det <- detect_code_scheme(if ("pas" %in% names(pdy)) pdy$pas else NULL,
                             if ("cooking" %in% names(pdy)) pdy$cooking else NULL)
@@ -299,9 +391,19 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
                                    levels = c("Others", "OBC", "SC", "ST"))]
   }
 
+  # Household characteristics absent from the files supplied: keep the columns (all NA) so
+  # downstream code fails with a clear message, or drops them from control sets, never crashes.
+  miss_hh <- setdiff(c("religion", "social_group", "umpce", "cooking", "lighting", "washing", "sweeping",
+                       "special_care", "caregiver", "land", "dwelling"), names(pdy))
+  for (k in miss_hh) pdy[, (k) := NA_real_]
+  if (!"religion_f" %in% names(pdy)) pdy[, religion_f := factor(NA_character_, levels = c("Hindu", "Muslim", "Christian", "Sikh", "Other"))]
+  if (!"social_group_f" %in% names(pdy)) pdy[, social_group_f := factor(NA_character_, levels = c("Others", "OBC", "SC", "ST"))]
+  V$household_vars_missing <- miss_hh
+
   # ---- Household composition (from every diarist in the household) ---------------
   hhc <- pdy[, .(
-    hh_n_diarists   = .N,
+    hh_n_diarists   = sum(has_diary),
+    hh_n_roster     = .N,
     hh_n_6_14       = sum(age >= 6 & age <= 14),
     hh_n_15_17      = sum(age >= 15 & age <= 17),
     hh_n_60plus     = sum(age >= 60),
@@ -326,13 +428,14 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
     u6 <- pdy[, .(v = sum(age < 6)), by = hh_id]
     pdy[u6, on = "hh_id", hh_n_under6 := i.v]
     V$under6_method <- "direct count (file contains members under 6)"
+    V$share_hh_negative_under6_residual <- NA_real_
   } else {
     pdy[, hh_n_under6 := NA_real_]
     V$under6_method <- "UNAVAILABLE: no household-size column and no members under 6"
   }
   pdy[, has_under6 := as.integer(hh_n_under6 > 0)]
-  if (!"hh_size" %in% names(pdy)) pdy[, hh_size := hh_n_diarists]
-  if ("umpce" %in% names(pdy)) pdy[, mpce := umpce / hh_size]
+  if (!"hh_size" %in% names(pdy)) pdy[, hh_size := hh_n_roster]   # roster members of all ages
+  pdy[, mpce := umpce / hh_size]
 
   # ---- Relationship-based structure ------------------------------------------------
   if ("rel" %in% names(pdy)) {
@@ -390,7 +493,7 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
     # Own children aged 6-17 observed in the diary file, with sex:
     #   head/spouse -> married + unmarried children of head (rel 3, 5)
     #   child's spouse / married child, if the only such couple -> grandchildren (rel 6)
-    kids <- pdy[age <= 17, .(hh_id, rel, female, age)]
+    kids <- pdy[age >= 6 & age <= 17, .(hh_id, rel, female, age)]
     k_head <- kids[rel %in% R[c("married_child", "unmarried_child")],
                    .(k_n = .N, k_sons = sum(female == 0), k_daus = sum(female == 1),
                      k_youngest = min(age)), by = hh_id]
@@ -421,8 +524,12 @@ build_panel <- function(dta = TUS_DTA, out_dir = TUS_DERIVED,
             "g_youngest", "one_child_couple") := NULL]
   }
 
+  # ---- Keep diarists only (household composition above used the full roster) --------
+  pdy <- pdy[has_diary == TRUE]
+
   # ---- Consumption quintile (weighted, all-India, per-capita) -----------------------
-  if ("mpce" %in% names(pdy)) {
+  pdy[, mpce_quintile := factor(NA_character_, levels = paste0("Q", 1:5))]
+  if (any(!is.na(pdy$mpce))) {
     hhq <- unique(pdy[!is.na(mpce), .(hh_id, mpce, w = weight * hh_size)], by = "hh_id")
     br <- wquantile(hhq$mpce, hhq$w, probs = seq(0, 1, 0.2))
     br[1] <- -Inf; br[6] <- Inf
@@ -461,7 +568,8 @@ wquantile <- function(x, w, probs) {
 # Load the cached panel, rebuilding when the microdata file is newer.
 load_panel <- function(rebuild = FALSE) {
   f <- file.path(TUS_DERIVED, "person_day.rds")
-  if (rebuild || !file.exists(f) || (file.exists(TUS_DTA) && file.mtime(TUS_DTA) > file.mtime(f))) {
+  newer <- function(x) nzchar(x) && file.exists(x) && file.mtime(x) > file.mtime(f)
+  if (rebuild || !file.exists(f) || newer(TUS_DTA) || newer(TUS_HH_DTA)) {
     if (!file.exists(TUS_DTA)) {
       stop("Microdata not found at ", TUS_DTA,
            ". Set TUS_DTA, or TUS_SYNTHETIC=1 to test on synthetic data.")
