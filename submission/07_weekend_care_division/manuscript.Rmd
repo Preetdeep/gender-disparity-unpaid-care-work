@@ -42,10 +42,17 @@ A[, `:=`(sex = droplevels(sex),
          dom_misc = dom_petcare + dom_travel + dom_other,
          care_adult = care_dep_adult + care_nondep_adult + care_other,
          school_kid = as.integer(hh_n_6_14 > 0))]
-if (has(A, "edu_tier")) A[, graduate := as.integer(edu_tier == "Graduate and above")]
-if (has(A, "mpce")) A[, lmpce := log(pmax(mpce, 1))]
-if (has(A, "social_group_f")) A[, scst := as.integer(social_group_f %in% c("SC", "ST"))]
-if (has(A, "religion_f")) A[, muslim := as.integer(religion_f == "Muslim")]
+if (has(A, "edu_tier")) A[, `:=`(graduate = as.integer(edu_tier == "Graduate and above"),
+                                  low_edu = as.integer(edu_tier == "Not literate / below primary"))]
+# Roster-based SES proxies (the 2024 person file has no consumption, caste or religion)
+if (has(A, "head_edu_tier")) A[, head_grad := as.integer(head_edu_tier == "Graduate and above")]
+if (has(A, "hh_max_edu_tier")) A[, hh_max_grad := as.integer(hh_max_edu_tier == "Graduate and above")]
+A[, never_married := as.integer(marital == CODE$marital["never_married"])]
+# Type of day (1 normal, 2 other): not pre-determined, used only as a robustness restriction
+if (has(A, "type_day")) A[, other_day := as.integer(type_day != CODE$type_of_day["normal"])]
+# District x sub-round cells for the balance tests
+has_dsr <- has(A, "dist_id") && has(A, "sub_round")
+if (has_dsr) A[, dist_sr := paste(dist_id, sub_round, sep = "_")]
 A[, wife_emp := fifelse(female == 0, as.numeric(spouse_employed), NA_real_)]
 A[, mgrp := fcase(female == 0 & pas_group == "Regular wage/salaried", "Regular salaried",
                   female == 0 & pas_group == "Casual labour", "Casual labour",
@@ -56,12 +63,16 @@ A[, mgrp := fcase(female == 0 & pas_group == "Regular wage/salaried", "Regular s
 A[, `:=`(sun_reg = sunday * regular, sat_reg = saturday * regular)]
 
 # ---- Specification ----
-CV <- c("i(age_band)", "i(edu_tier)", "married", "urban", "i(mpce_quintile)",
-        "hh_size", "hh_n_under6", "hh_n_6_14", "hh_n_60plus")
-FE_V <- c("state", "sub_round")
+SES_V <- c("i(head_edu_tier)", "i(hh_max_edu_tier)", "hh_any_regular", "hh_n_employed")
+CV <- c("i(age_band)", "i(edu_tier)", "married", "urban",
+        "hh_size", "hh_n_under6", "hh_n_6_14", "hh_n_60plus", SES_V)
+FE_V <- c("dist_id", "sub_round")      # fe() falls back to state if dist_id is absent
 cfor <- function(d) ctrl(d, CV)
 fes  <- function(d) fe(d, FE_V)
-fe_used <- FE_V[vapply(FE_V, function(v) has(A, v) && uniqueN(na.omit(A[[v]])) > 1, logical(1))]
+fe_used <- c(if (has(A, "dist_id")) "dist_id" else "state",
+             if (has(A, "sub_round") && uniqueN(na.omit(A$sub_round)) > 1) "sub_round")
+has_sr <- "sub_round" %in% fe_used
+fe_txt <- paste0(if (fe_used[1] == "dist_id") "district" else "state", iff(has_sr, " and survey sub-round (quarter)", ""))
 
 rf <- function(y, d, rhs = cfor(d), f = fes(d)) {
   m <- reg(as.formula(paste(y, "~ sunday + saturday +", rhs, f)), d)
@@ -89,14 +100,17 @@ days_all <- day_share(A); days_mr <- day_share(MR)
 hh_same_day <- pd[, uniqueN(dow), by = hh_id][, mean(V1 == 1)]
 fsu_vary <- A[, uniqueN(dow), by = fsu][, mean(V1 > 1)]
 
-bal_lab <- c(age = "Age", female = "Female", married = "Married", urban = "Urban",
-             hh_size = "Household size", hh_n_under6 = "Members under 6",
+bal_lab <- c(age = "Age", female = "Female", married = "Currently married", never_married = "Never married",
+             graduate = "Graduate or above", low_edu = "Not literate or below primary",
+             urban = "Urban (sector)", hh_size = "Household size (all ages)", hh_n_under6 = "Members under 6",
              hh_n_6_14 = "Members aged 6--14", hh_n_60plus = "Members aged 60+",
-             graduate = "Graduate or above", lmpce = "Log monthly per-capita expenditure",
-             scst = "Scheduled Caste or Tribe", muslim = "Muslim",
+             head_grad = "Head is a graduate", hh_max_grad = "Any member 15+ a graduate",
+             hh_any_regular = "Any member regular salaried", hh_n_employed = "Members employed (usual status)",
              employed = "Employed (usual status)", regular = "Regular salaried (usual status)")
-bal_lab <- bal_lab[names(bal_lab) %in% names(A)]
-FEb <- fes(A)
+bal_lab <- bal_lab[vapply(names(bal_lab), function(v) has(A, v), logical(1))]
+# Balance tests compare diaries within district x sub-round cells when both exist.
+FEb <- if (has_dsr) fe(A, "dist_sr") else fes(A)
+bal_fe_txt <- iff(has_dsr, "district-by-sub-round", fe_txt)
 bal_one <- function(v, d) {
   m  <- reg(as.formula(paste(v, "~ sunday + saturday", FEb)), d)
   md <- reg(as.formula(paste(v, "~ i(dow)", FEb)), d)
@@ -108,18 +122,26 @@ bal_one <- function(v, d) {
 bal <- rbindlist(lapply(names(bal_lab), bal_one, d = A))
 joint_test <- function(d, vars, dep) {
   vars <- vars[vapply(vars, function(v) uniqueN(na.omit(d[[v]])) > 1, logical(1))]
-  m <- reg(as.formula(paste(dep, "~", paste(vars, collapse = " + "), fes(d))), d)
+  m <- reg(as.formula(paste(dep, "~", paste(vars, collapse = " + "), FEb)), d)
   w <- tryCatch(wald(m, keep = paste0("^(", paste(vars, collapse = "|"), ")$"), print = FALSE),
                 error = function(e) NULL)
   if (is.null(w)) list(stat = NA, p = NA) else list(stat = w$stat, p = w$p)
 }
 jt_sun_all <- joint_test(A, names(bal_lab), "sunday")
 jt_sat_all <- joint_test(A, names(bal_lab), "saturday")
-jt_sun_mr  <- joint_test(MR, setdiff(names(bal_lab), c("female", "employed", "regular")), "sunday")
+jt_sun_mr  <- joint_test(MR, setdiff(names(bal_lab), c("female", "employed", "regular", "hh_any_regular")), "sunday")
 bal_ok <- isTRUE(jt_sun_all$p > 0.05) && isTRUE(jt_sun_mr$p > 0.05)
 n_bal_sig <- sum(bal$sun_p < 0.05, na.rm = TRUE)
 k_proxy_sun <- if (has(MR, "proxy_report")) rf("proxy_report", MR, rhs = "1")$sun else list(est = NA, se = NA, p = NA)
 k_proxy_sat <- if (has(MR, "proxy_report")) rf("proxy_report", MR, rhs = "1")$sat else list(est = NA, se = NA, p = NA)
+# Type of day: is a Sunday diary more often an "other" (non-routine) day?
+has_td <- has(MR, "type_day")
+k_other_sun <- if (has_td) rf("other_day", MR, rhs = "1")$sun else list(est = NA, se = NA, p = NA)
+other_wk_mr <- if (has_td) wmean(MR[sunday == 0 & saturday == 0]$other_day, MR[sunday == 0 & saturday == 0]$weight) else NA
+other_sun_mr <- if (has_td) wmean(MR[sunday == 1]$other_day, MR[sunday == 1]$weight) else NA
+# Diaries by weekday (unweighted counts)
+n_by_day <- A[, .N, by = dow_f][match(names(CODE$day_of_week), as.character(dow_f))]$N
+n_by_day_all <- pd[, .N, by = dow_f][match(names(CODE$day_of_week), as.character(dow_f))]$N
 
 # ---- Descriptives ----
 dmean <- function(d, y, cond) wmean(d[cond][[y]], d[cond]$weight)
@@ -223,7 +245,8 @@ gamma_zero <- if (isTRUE(k_fs$est < 0)) k_rf_unp$est else NA  # direct effect at
 
 # ---- Heterogeneity among regular salaried men ----
 het_def <- list(has_under6 = "Child under 6 in household", school_kid = "Child aged 6--14 in household",
-                urban = "Urban", wife_emp = "Wife employed (usual status)")
+                urban = "Urban", head_grad = "Household head a graduate",
+                wife_emp = "Wife employed (usual status)")
 het_def <- het_def[vapply(names(het_def), function(v) has(MR, v), logical(1))]
 HET <- rbindlist(lapply(names(het_def), function(v) {
   d <- MR[!is.na(get(v))]
@@ -261,8 +284,8 @@ W0[, `:=`(unpaid = unpaid_domestic + unpaid_care,
           h_reg = as.integer(h_pas == "Regular wage/salaried"),
           h_nw = as.integer(h_pas %in% c("Unemployed", "Domestic duties", "Other not working")))]
 W0[, `:=`(sun_h = sunday * h_reg, sat_h = saturday * h_reg)]
-CW <- c("i(age_band)", "i(edu_tier)", "urban", "i(mpce_quintile)", "hh_size",
-        "hh_n_under6", "hh_n_6_14", "hh_n_60plus", "employed")
+CW <- c("i(age_band)", "i(edu_tier)", "urban", "hh_size",
+        "hh_n_under6", "hh_n_6_14", "hh_n_60plus", "employed", SES_V)
 Wv <- W0[h_reg == 1]
 cW <- ctrl(Wv, CW); FEw <- fes(Wv)
 rfw <- function(y, d = Wv) rf(y, d, rhs = ctrl(d, CW), f = fes(d))$sun
@@ -302,7 +325,11 @@ rob_specs <- list(
   "No controls (fixed effects only)" = list(d = MR, rhs = "1", f = FEr),
   "Adds proxy-report indicator" = if (has(MR, "proxy_report")) list(d = MR, rhs = paste(cM, "+ proxy_report"), f = FEr),
   "Self-reported diaries only" = if (has(MR, "proxy_report")) list(d = MR[proxy_report == 0], rhs = cfor(MR[proxy_report == 0]), f = FEr),
-  "FSU fixed effects" = list(d = MR, rhs = cM, f = fe(MR, "fsu")),
+  "State instead of district fixed effects" = list(d = MR, rhs = cM, f = fe(MR, c("state", "sub_round"))),
+  "District-by-sub-round fixed effects" = if (has_dsr) list(d = MR, rhs = cM, f = fe(MR, "dist_sr")),
+  "FSU fixed effects" = list(d = MR, rhs = cM, f = fe(MR, c("fsu", "sub_round"))),
+  "Normal days only (type of day)" = if (has_td) list(d = MR[type_day == CODE$type_of_day["normal"]],
+                                                     rhs = cfor(MR[type_day == CODE$type_of_day["normal"]]), f = FEr),
   "Sunday against Monday--Friday only" = list(d = MR[saturday == 0], rhs = cM, f = FEr),
   "Married men only" = list(d = MR[married == 1], rhs = cfor(MR[married == 1]), f = FEr),
   "Unweighted" = list(d = MR, rhs = cM, f = FEr, unw = TRUE))
@@ -325,7 +352,7 @@ rob_stable <- isTRUE(all(abs(ROB$unp - unp_share) < 1.96 * k_iv_unp$se, na.rm = 
 share_reg <- A[female == 0 & employed == 1, wmean(regular, weight)]
 n_mr <- nrow(MR); n_wv <- nrow(Wv); n_men <- nrow(MEN)
 KD <- pd[age >= 6 & age <= 14 & pas_group == "Student"]
-k_kid_learn <- rf("learning", KD, rhs = ctrl(KD, c("female", "urban", "hh_size", "i(mpce_quintile)")))$sun
+k_kid_learn <- rf("learning", KD, rhs = ctrl(KD, c("female", "urban", "hh_size", "i(head_edu_tier)", "i(hh_max_edu_tier)")))$sun
 kid_learn_wk <- dmean(KD, "learning", KD$sunday == 0 & KD$saturday == 0)
 iv_both_ft <- ivm("free_time", MR, inst = "sunday + saturday", exo = "1")
 k_both_ft <- shr(iv_both_ft); fstat_both <- fsF(iv_both)
@@ -338,7 +365,7 @@ unp_wk_w <- dmean(Wv, "unpaid", Wv$sunday == 0 & Wv$saturday == 0)
 ```
 
 \begin{abstract}
-When men work fewer paid hours, do they take on unpaid work, or do they rest? Comparisons across men confound working time with selection into jobs and households. I use variation in men's paid work from the day of the week of the diary, which I test for balance on pre-determined characteristics. India's Time Use Survey 2024 records each household member's diary for the day before the interview, and interviews are spread across the week, so the diary day varies across otherwise similar households. `r iff(fs_neg, paste0("For regular salaried men, a Sunday diary reduces paid work by ", f0(abs(k_fs$est)), " minutes (SE ", f1(k_fs$se), ")."), paste0("For regular salaried men, a Sunday diary changes paid work by ", f0(k_fs$est), " minutes (SE ", f1(k_fs$se), "), so the design lacks a reliable first stage."))` Using the Sunday diary as an instrument for paid work, of every 100 minutes of paid work forgone, `r s100x(k_iv_unp)` go to unpaid domestic and care work, `r s100x(k_iv_ft)` to free time and `r s100x(k_iv_sl)` to sleep. `r iff(placebo_clean, "Among men without paid work, whose working day Sunday leaves unchanged, unpaid work does not change detectably on Sundays, which supports the exclusion restriction.", paste0("Among men without paid work, unpaid work also changes on Sundays; netting this direct Sunday effect out leaves ", s100x(k_did_unp), " minutes of unpaid work per 100 forgone."))` Wives of regular salaried men do `r diff_txt(k_w_unp)` unpaid work on the household's Sunday, and the wife-minus-husband gap in unpaid work, `r f0(gap_wk)` minutes on weekdays, is `r diff_txt(k_gap, "larger", "smaller")` on Sundays. `r iff(pass, "A substantial part of the time men are released from paid work flows into unpaid work, so shorter working hours could shift some unpaid work towards men.", "Men's time released from paid work flows mostly into leisure and rest, which bounds what shorter working hours alone can do for the gender division of unpaid work.")`
+When men work fewer paid hours, do they take on unpaid work, or do they rest? Comparisons across men confound working time with selection into jobs and households. I use variation in men's paid work from the day of the week of the diary. India's Time Use Survey 2024 records each household member's diary for the day before the interview, and interviews are spread across the week, so the diary day varies across households within the same district and quarter. `r iff(bal_ok, "The pre-determined characteristics recorded in the file are balanced across diary days within district and quarter, consistent with, though not proof of, as-good-as-random assignment.", "Some pre-determined characteristics recorded in the file are not balanced across diary days, so the design relies on conditioning on them and on district and quarter fixed effects.")` `r iff(fs_neg, paste0("For regular salaried men, a Sunday diary reduces paid work by ", f0(abs(k_fs$est)), " minutes (SE ", f1(k_fs$se), ")."), paste0("For regular salaried men, a Sunday diary changes paid work by ", f0(k_fs$est), " minutes (SE ", f1(k_fs$se), "), so the design lacks a reliable first stage."))` Using the Sunday diary as an instrument for paid work, of every 100 minutes of paid work forgone, `r s100x(k_iv_unp)` go to unpaid domestic and care work, `r s100x(k_iv_ft)` to free time and `r s100x(k_iv_sl)` to sleep. `r iff(placebo_clean, "Among men without paid work, whose working day Sunday leaves unchanged, unpaid work does not change detectably on Sundays, which supports the exclusion restriction.", paste0("Among men without paid work, unpaid work also changes on Sundays; netting this direct Sunday effect out leaves ", s100x(k_did_unp), " minutes of unpaid work per 100 forgone."))` Wives of regular salaried men do `r diff_txt(k_w_unp)` unpaid work on the household's Sunday, and the wife-minus-husband gap in unpaid work, `r f0(gap_wk)` minutes on weekdays, is `r diff_txt(k_gap, "larger", "smaller")` on Sundays. `r iff(pass, "A substantial part of the time men are released from paid work flows into unpaid work, so shorter working hours could shift some unpaid work towards men.", "Men's time released from paid work flows mostly into leisure and rest, which bounds what shorter working hours alone can do for the gender division of unpaid work.")`
 \keywords{weekend, working time, unpaid work, gender, time use, instrumental variables, India}
 \jel{J22, J16, D13}
 \end{abstract}
@@ -351,17 +378,17 @@ Women in India do far more unpaid domestic and care work than men, and men do fa
 
 The question is hard to answer with a cross-section. Men who work fewer hours differ from men who work more in their jobs, health, wealth, family structure and attitudes, and each of these also predicts how much unpaid work they do. Evidence from economic shocks that cut men's working time, such as recessions, job loss and the COVID-19 lockdowns, shows that some of the released time goes to home production [@aguiar2013recession; @gough2011unemployment; @sevilla2020baby; @farre2022gender]. But these shocks also cut income, raise uncertainty and, in the case of lockdowns, close schools and keep every household member at home, so they do not isolate the effect of time itself.
 
-This paper uses a cleaner and more ordinary source of variation: the day of the week. India's Time Use Survey (TUS) 2024 asks each household member aged six and over to report their activities for the 24 hours preceding the interview [@nso2025tus]. Interviews are spread over the week, so whether a household's diary falls on a Sunday, a Saturday or a weekday is determined by when the investigator visits, not by what the household does that day. For regular salaried men, most of whom have a fixed weekly day off, a Sunday diary removes most of a working day. The diary day is therefore a quasi-random shock to these men's paid work that leaves their income, job and household unchanged. Weekend comparisons have a long history in time-use research [@hamermesh2002timing; @jenkins2005nobody; @craig2014weekend]. What the TUS design adds is that the diary day is assigned by the survey calendar rather than chosen by the respondent, which makes it possible to use the weekend as an instrument.
+This paper uses a cleaner and more ordinary source of variation: the day of the week. India's Time Use Survey (TUS) 2024 asks each household member aged six and over to report their activities for the 24 hours preceding the interview [@nso2025tus]. Interviews are spread over the week, so whether a household's diary falls on a Sunday, a Saturday or a weekday is set by when the investigator visits. For regular salaried men, most of whom have a fixed weekly day off, a Sunday diary removes most of a working day. If the visit schedule is unrelated to households' characteristics within a district and quarter, the diary day is a shock to these men's paid work that leaves their income, job and household unchanged. This is an assumption, which I test on the pre-determined characteristics the file records. Weekend comparisons have a long history in time-use research [@hamermesh2002timing; @jenkins2005nobody; @craig2014weekend]. What the TUS design adds is that the diary day is assigned by the survey calendar rather than chosen by the respondent, which makes it possible to use the weekend as an instrument.
 
 I use the Sunday diary as an instrument for regular salaried men's paid work and estimate how a forgone minute of paid work is reallocated across every other activity. Because every diary sums to 1,440 minutes, the instrumental-variables (IV) coefficients for the non-work activities sum to one, and each is the share of a forgone paid-work minute that goes to that activity. The sample contains `r fn(n_mr)` diaries of regular salaried men aged 20 to 59. `r iff(fs_neg, paste0("A Sunday diary reduces their paid work by ", diff_txt(list(est = -abs(k_fs$est), se = k_fs$se), "", "", 0), "from a weekday mean of ", f0(fs_wk_mr), " minutes, and the share with no paid work at all is ", pct(zero_sun_mr), " on Sundays against ", pct(zero_wk_mr), " on weekdays."), paste0("A Sunday diary changes their paid work by ", est_se(k_fs), ", which is not a usable first stage."))` `r iff(very_strong_fs, paste0("The first-stage F statistic is ", f0(fstat), ", far above the threshold at which conventional IV inference is reliable [@lee2022valid]."), iff(strong_fs, paste0("The first-stage F statistic is ", f0(fstat), ", above conventional thresholds but below the level at which conventional t-tests need no adjustment [@lee2022valid]."), paste0("The first-stage F statistic is ", f1(fstat), ", so the IV estimates should be read with caution [@andrews2019weak].")))`
 
-Four findings stand out. First, of every 100 minutes of paid work forgone on Sunday, `r s100x(k_iv_unp)` go to unpaid domestic and care work, `r s100x(k_iv_ft)` to free time (socialising, leisure, media and sport) and `r s100x(k_iv_sl)` to sleep. The unpaid-work share is `r iff(sig_unp, "positive and statistically significant", "not statistically distinguishable from zero at the 5% level")`, and it is `r iff(unp_below_rest, "smaller", "larger")` than the combined share that goes to free time and sleep. Second, the unpaid work that men do take on is concentrated in particular tasks: the largest share goes to `r tolower(task_y[top_task])`. Third, several tests support the exclusion restriction that Sunday affects men's unpaid work only through their paid work. Pre-determined characteristics are balanced across diary days (joint p = `r f2(jt_sun_all$p)`). `r iff(placebo_clean, "Among men without paid work, for whom Sunday changes nothing at work, unpaid work does not change detectably on Sundays.", "Among men without paid work, unpaid work does change on Sundays, which points to a direct effect of the day; I net it out with a difference-in-reduced-forms IV.")` The net estimate is `r s100x(k_did_unp)` minutes per 100. Fourth, wives of regular salaried men do `r diff_txt(k_w_unp)` unpaid work on the household's Sunday, and the wife-minus-husband gap in unpaid work is `r diff_txt(k_gap, "larger", "smaller")` on Sundays than its weekday level of `r f0(gap_wk)` minutes.
+Four findings stand out. First, of every 100 minutes of paid work forgone on Sunday, `r s100x(k_iv_unp)` go to unpaid domestic and care work, `r s100x(k_iv_ft)` to free time (socialising, leisure, media and sport) and `r s100x(k_iv_sl)` to sleep. The unpaid-work share is `r iff(sig_unp, "positive and statistically significant", "not statistically distinguishable from zero at the 5% level")`, and it is `r iff(unp_below_rest, "smaller", "larger")` than the combined share that goes to free time and sleep. Second, the unpaid work that men do take on is concentrated in particular tasks: the largest share goes to `r tolower(task_y[top_task])`. Third, several tests support the exclusion restriction that Sunday affects men's unpaid work only through their paid work. `r iff(bal_ok, paste0("Pre-determined characteristics are balanced across diary days within district and quarter (joint p = ", f2(jt_sun_all$p), ")."), paste0("Pre-determined characteristics are only partly balanced across diary days (joint p = ", f2(jt_sun_all$p), " for all persons and ", f2(jt_sun_mr$p), " for regular salaried men), so conditioning on them matters."))` `r iff(placebo_clean, "Among men without paid work, for whom Sunday changes nothing at work, unpaid work does not change detectably on Sundays.", "Among men without paid work, unpaid work does change on Sundays, which points to a direct effect of the day; I net it out with a difference-in-reduced-forms IV.")` The net estimate is `r s100x(k_did_unp)` minutes per 100. Fourth, wives of regular salaried men do `r diff_txt(k_w_unp)` unpaid work on the household's Sunday, and the wife-minus-husband gap in unpaid work is `r diff_txt(k_gap, "larger", "smaller")` on Sundays than its weekday level of `r f0(gap_wk)` minutes.
 
 The paper makes three contributions. It provides a quasi-experimental estimate of the marginal allocation of men's paid-work time in a low-income, high-gap setting, whereas the causal studies of working time and housework reviewed below are from high-income countries [@goux2014worktime; @kawaguchi2013gift; @patnaik2019reserving]. It shows how a common feature of time-use survey design, the "yesterday" diary combined with interviews spread over the week, can be used for identification, with a set of falsification tests that other surveys with the same design can reproduce. And it links the husband's response to the wife's response within the same couple on the same day, which speaks directly to whether shorter working time redistributes unpaid work or only adds leisure.
 
-The rest of the paper proceeds as follows. Section 2 reviews the literature. Section 3 sets out a simple framework. Section 4 describes the data and Section 5 the design. Section 6 presents the results, Section 7 discusses interpretation and policy, and Section 8 concludes.
+The rest of the paper proceeds as follows. Section \ref{sec:lit} reviews the literature. Section \ref{sec:framework} sets out a simple framework. Section \ref{sec:data} describes the data and Section \ref{sec:strategy} the design. Section \ref{sec:results} presents the results, Section \ref{sec:discussion} discusses interpretation and policy, and Section \ref{sec:conclusion} concludes.
 
-# Related literature
+# Related literature {#sec:lit}
 
 ## Total work, time availability and the division of unpaid work
 
@@ -395,7 +422,7 @@ The weekend therefore has two distinct roles. It releases time, and it synchroni
 
 India's gender gap in unpaid work is large and persistent. It is documented in the 1998--99 pilot time-use survey [@hirway2011understanding], the TUS 2019 [@nso2020tus] and the TUS 2024 [@nso2025tus]. The gap coexists with low and stagnant female labour force participation [@klasen2015stagnation; @afridi2018married; @chatterjee2018indian; @fletcher2017women]. Social norms about women's work outside the home are a central explanation [@jayachandran2021social], and interventions that change women's control over earnings can shift both labour supply and norms [@field2021account]. Norms about men's unpaid work have received less attention. Experimental evidence from other settings shows that men can misperceive the norms held by their peers [@bursztyn2020misperceived], which suggests that men's unpaid work may respond to the visibility of other men's behaviour as well as to time. This paper asks the prior question: whether, when the constraint of paid work is lifted for a day, Indian men use the time for unpaid work at all.
 
-# A simple framework
+# A simple framework {#sec:framework}
 
 Let a man's day of $T = 1{,}440$ minutes be divided into paid work $h$ and $K$ other activities $a_1, \ldots, a_K$, so that $h + \sum_k a_k = T$. On a working day, $h$ is set largely by the employer. On a day off, $h$ falls by $\Delta h < 0$ for reasons unrelated to the man's preferences that day. The time constraint implies
 
@@ -405,19 +432,21 @@ Each term $s_k = \Delta a_k / (-\Delta h)$ is the share of a forgone paid-work m
 
 The wife's response is informative about how spouses' time interacts. If spouses' unpaid work is substitutable, the wife's unpaid work falls when the husband's rises, and the within-couple gap narrows by more than the husband's increase. If spouses value joint leisure [@hamermesh2002timing; @goux2014worktime], the wife's free time rises on the husband's day off and her unpaid work may fall even when his does not rise. If the household's demand for unpaid work rises on Sundays, because children are at home or because weekly tasks are done on the day off, both spouses' unpaid work rises. The data distinguish these cases by the joint sign pattern of the wife's unpaid work, her free time and the husband's unpaid work.
 
-Two features of a day off differ from a permanent reduction in working time. A day off is anticipated and recurs weekly, so tasks that can be postponed, such as shopping or repairs, may be moved to it from other days. This intertemporal reallocation would make the Sunday share of unpaid work larger than the share under a permanent reduction. A day off is also a common holiday for children and many other workers. This synchronisation would make leisure more valuable on Sundays than on a day off taken alone, and the Sunday share of leisure larger than under a staggered reduction. Section 7 returns to these points.
+Two features of a day off differ from a permanent reduction in working time. A day off is anticipated and recurs weekly, so tasks that can be postponed, such as shopping or repairs, may be moved to it from other days. This intertemporal reallocation would make the Sunday share of unpaid work larger than the share under a permanent reduction. A day off is also a common holiday for children and many other workers. This synchronisation would make leisure more valuable on Sundays than on a day off taken alone, and the Sunday share of leisure larger than under a staggered reduction. Section \ref{sec:discussion} returns to these points.
 
-# Data
+# Data {#sec:data}
 
 ## The Time Use Survey 2024
 
 The TUS 2024 was conducted by the National Statistics Office from January to December 2024 [@nso2025tus]. It covers a nationally representative sample of households, and every member aged six and over reports their activities in 30-minute slots for the 24 hours from 4 a.m. on the day before the interview. Activities are coded to the International Classification of Activities for Time-Use Statistics 2016 [@un2016icatus]. The analysis uses every activity record (`r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries in `r fn(V$n_households)` households), aggregated to one row per person-day. Minutes are computed from major activities, so every diary sums to 1,440 minutes (Appendix Table \ref{tab:validation}). All estimates use the survey weights and cluster standard errors on the first-stage unit (FSU), the primary sampling unit [@abadie2023cluster; @cameron2015practitioner; @solon2015weighting].
 
+`r data_disclosure(V)` For this paper the missing household items matter mainly as controls and balance checks: the design does not need them, but I cannot test balance on consumption, caste or religion. Besides the roster, the file records for each diary its day of the week, the survey sub-round (quarter) in which the household was visited, the district, whether the respondent described the day as a "normal" or an "other" day, and the serial number of the household member who reported the diary, from which I identify proxy-reported diaries. Each member's own diary day is recorded, so spouses' diary days can be compared directly.
+
 The outcome categories follow the ICATUS divisions: employment and related activities (paid work, including work-related travel and commuting); production of goods for own final use; unpaid domestic services; unpaid caregiving for household members; volunteer and other unpaid work; learning; socialising, community participation and religious practice; culture, leisure, mass media and sport; and self-care and maintenance, which includes sleep. "Unpaid work" is the sum of unpaid domestic services and unpaid care, the SDG 5.4.1 definition. "Free time" is the sum of socialising and leisure. Unpaid domestic work is split into its ICATUS sub-divisions to study which tasks men take on.
 
 ## Samples
 
-The main sample is men aged 20 to 59 whose usual principal activity status is regular wage or salaried employment, who make up `r pct(share_reg)` of employed men in this age range. They are the group for whom the weekly day off is most clearly set by the employer. Indian labour law requires a weekly holiday for factory workers, by default on the first day of the week (Factories Act, 1948, Section 52). Figure \ref{fig:fig-byday} shows how paid work varies by diary day in the data. Placebo samples are men of the same age who are casual labourers, self-employed, students, or not in paid work (unemployed, attending to domestic duties, or otherwise out of the labour force). The couple sample links wives aged 20 to 59 to their husbands through the household roster (head and spouse, or married child and child's spouse). In `r pct(share_same_day)` of linked couples both spouses' diaries refer to the same day; I keep these couples, of whom `r fn(n_wv)` have a regular salaried husband.
+The main sample is men aged 20 to 59 whose usual principal activity status is regular wage or salaried employment, who make up `r pct(share_reg)` of employed men in this age range. They are the group for whom the weekly day off is most clearly set by the employer. Indian labour law requires a weekly holiday for factory workers, by default on the first day of the week (Factories Act, 1948, Section 52). Figure \ref{fig:fig-byday} shows how paid work varies by diary day in the data. Placebo samples are men of the same age who are casual labourers, self-employed, students, or not in paid work (unemployed, attending to domestic duties, or otherwise out of the labour force). The couple sample links wives aged 20 to 59 to their husbands through the household roster (head and spouse, or married child and child's spouse). In `r pct(share_same_day)` of linked couples both spouses' diaries refer to the same day; I keep these couples, of whom `r fn(n_wv)` have a regular salaried husband, so that both spouses' outcomes refer to the same day.
 
 ```{r tab-desc}
 dsc_y <- c(employment = "Paid work", unpaid_domestic = "Unpaid domestic services", unpaid_care = "Unpaid care",
@@ -439,13 +468,13 @@ tab(dd, caption = paste0("Minutes per day by diary day: regular salaried men 20-
 
 Table \ref{tab:desc} shows the raw contrast. Regular salaried men work `r f0(fs_wk_mr)` paid minutes on an average weekday and do `r f0(unp_wk_mr)` minutes of unpaid work; their wives do `r f0(unp_wk_w)` minutes of unpaid work. The columns for Sunday show how both spouses' days change when the husband's working day is removed.
 
-# Empirical strategy
+# Empirical strategy {#sec:strategy}
 
 ## Assignment of the diary day
 
-The diary refers to the day before the interview, and the interview date is set by the investigator's schedule within the FSU. If that schedule is unrelated to households' characteristics, conditional on location and survey period, the diary day is as good as randomly assigned. Two features of the data make this plausible. Diary days are spread evenly over the week (Appendix Table \ref{tab:days}): the weighted share of diaries on each day lies between `r pct(min(days_all, na.rm = TRUE))` and `r pct(max(days_all, na.rm = TRUE))`. The diary day also varies within FSUs: in `r pct(fsu_vary)` of FSUs, sampled households report on more than one day. Within households, `r pct(hh_same_day)` of households have all members' diaries on the same day, so the diary day is in practice a household-level assignment.
+The diary refers to the day before the interview, and the interview date is set by the investigator's schedule within the FSU. If that schedule is unrelated to households' characteristics, conditional on district and survey sub-round, the diary day is as good as randomly assigned. This cannot be verified directly, but two features of the data are consistent with it. Diary days are spread evenly over the week (Appendix Table \ref{tab:days}): each day of the week has between `r fn(min(n_by_day_all, na.rm = TRUE))` and `r fn(max(n_by_day_all, na.rm = TRUE))` diaries, and the weighted share of diaries of persons aged 20 to 59 on each day lies between `r pct(min(days_all, na.rm = TRUE))` and `r pct(max(days_all, na.rm = TRUE))`. The diary day also varies within FSUs: in `r pct(fsu_vary)` of FSUs, sampled households report on more than one day. Within households, `r pct(hh_same_day)` of households have all members' diaries on the same day, so the diary day is in practice a household-level assignment.
 
-The main threat to assignment is that investigators might find some households at home only on particular days. Households in which the man works on weekdays might be interviewed disproportionately on Mondays (diary day Sunday) or on Sundays (diary day Saturday), for example. Table \ref{tab:balance} tests this by regressing pre-determined characteristics on Sunday and Saturday indicators, with state`r iff("sub_round" %in% fe_used, " and survey sub-round", "")` fixed effects, and reports a joint test of all six day-of-week indicators for each characteristic, and a joint test of all characteristics in a regression of the Sunday indicator on them.
+The main threat to assignment is that investigators might find some households at home only on particular days. Households in which the man works on weekdays might be interviewed disproportionately on Mondays (diary day Sunday) or on Sundays (diary day Saturday), for example. Table \ref{tab:balance} tests this by regressing pre-determined characteristics on Sunday and Saturday indicators with `r bal_fe_txt` fixed effects, so that diaries are compared only with others from the same district and quarter. It reports a joint test of all six day-of-week indicators for each characteristic, and a joint test of all characteristics in a regression of the Sunday indicator on them. The characteristics are those the person-level file records: age, sex, education, marital status, household size and composition (including children under six from the roster), sector, and the roster-based socioeconomic proxies (the head's education, the highest education in the household, whether any member is regular salaried and the number of employed members). Usual activity status refers to the past year and does not depend on the diary day.
 
 ## Instrumental variables
 
@@ -453,7 +482,7 @@ For regular salaried men I estimate
 
 $$ y_i = \theta\, h_i + \beta\, Sat_i + X_i'\gamma + \mu_{s} + u_i, \qquad h_i = \pi\, Sun_i + \rho\, Sat_i + X_i'\delta + \mu_{s} + v_i, $$
 
-where $h_i$ is minutes of paid work, $y_i$ is minutes in another activity, $Sun_i$ and $Sat_i$ indicate the diary day, $X_i$ contains age band, education, marital status, urban residence, consumption quintile, household size and the numbers of household members under 6, aged 6 to 14 and aged 60 or over, and $\mu_s$ are state`r iff("sub_round" %in% fe_used, " and sub-round", "")` fixed effects. Saturday enters as a control, so the instrument contrasts Sunday with Monday to Friday. The share of a forgone paid-work minute allocated to activity $y$ is $s_y = -\theta$. Because the outcomes partition the day, the estimated shares across the eight non-employment ICATUS divisions sum to exactly one (here, `r f2(share_sum)`).
+where $h_i$ is minutes of paid work, $y_i$ is minutes in another activity, $Sun_i$ and $Sat_i$ indicate the diary day, $X_i$ contains age band, education, marital status, urban residence, household size, the numbers of household members under 6, aged 6 to 14 and aged 60 or over, and the socioeconomic proxies (head's education, highest education in the household, any regular salaried member, number of employed members), and $\mu_s$ are `r fe_txt` fixed effects. District fixed effects absorb local differences in income, caste composition, infrastructure and market days that the file does not measure; sub-round fixed effects absorb seasonality, including the agricultural calendar and the timing of festivals. Saturday enters as a control, so the instrument contrasts Sunday with Monday to Friday. The share of a forgone paid-work minute allocated to activity $y$ is $s_y = -\theta$. Because the outcomes partition the day, the estimated shares across the eight non-employment ICATUS divisions sum to exactly one (here, `r f2(share_sum)`).
 
 Under monotonicity, the IV estimate is a local average effect for compliers [@imbens1994late; @angrist2009mostly]: regular salaried men who work on weekdays and not on Sundays. Men who work every day, and men who would not have worked that weekday anyway, do not contribute. This is the population of interest for a policy that shortens the standard working week of salaried employees.
 
@@ -469,7 +498,7 @@ I test this in three ways. The falsification test estimates the Sunday effect on
 
 Casual labourers and the self-employed are not clean placebos: Sunday can reduce their paid work too, but less predictably. Their first stages show how specific the weekly day off is to salaried employment. The Saturday indicator serves as a second instrument. Many salaried men work a full or half day on Saturdays, so Saturday is a weaker but distinct shock, and the comparison of Saturday and Sunday IV estimates tests whether the allocation of released time depends on which day is released.
 
-# Results
+# Results {#sec:results}
 
 ## Balance
 
@@ -484,12 +513,12 @@ bt <- rbind(bt, data.frame(Characteristic = c("Joint test, all characteristics (
                            Saturday = c(f2(jt_sat_all$p), ""), SE = "", `p, all days` = "", check.names = FALSE))
 tab(bt, caption = paste0("Balance of pre-determined characteristics by diary day", syn_note()), label = "balance",
     align = c("l", rep("r", 5)),
-    notes = paste0("Persons 20--59 (", fn(nrow(A)), " diaries). Each row regresses the characteristic on Sunday and Saturday indicators (Monday to Friday omitted) with state", iff("sub_round" %in% fe_used, " and sub-round", ""), " fixed effects. 'p, all days' is the p-value of a joint Wald test that all six day-of-week indicators are zero. The joint tests regress the Sunday (Saturday) indicator on all listed characteristics and test that their coefficients are jointly zero. FSU-clustered SEs. * p<0.10, ** p<0.05, *** p<0.01."))
+    notes = paste0("Persons 20--59 (", fn(nrow(A)), " diaries). Each row regresses the characteristic on Sunday and Saturday indicators (Monday to Friday omitted) with ", bal_fe_txt, " fixed effects. 'p, all days' is the p-value of a joint Wald test that all six day-of-week indicators are zero. The joint tests regress the Sunday (Saturday) indicator on all listed characteristics and test that their coefficients are jointly zero. FSU-clustered SEs. * p<0.10, ** p<0.05, *** p<0.01."))
 ```
 
-Table \ref{tab:balance} `r iff(bal_ok, "supports quasi-random assignment.", "supports quasi-random assignment only in part.")` Of `r length(bal_lab)` characteristics, `r n_bal_sig` `r iff(n_bal_sig == 1, "differs", "differ")` between Sunday and weekday diaries at the 5% level, against `r f1(0.05 * length(bal_lab))` expected by chance. The joint test that all characteristics are unrelated to a Sunday diary has p = `r f2(jt_sun_all$p)` for all persons and p = `r f2(jt_sun_mr$p)` among regular salaried men. `r iff(bal_ok, "Neither rejects, so the characteristics that predict unpaid work are not associated with the diary day.", "At least one rejects at the 5% level, so the controls and the robustness checks with FSU fixed effects carry more weight than they would under clean assignment.")` All estimates condition on these characteristics.
+Table \ref{tab:balance} `r iff(bal_ok, "is consistent with as-good-as-random assignment of the diary day within district and quarter.", "supports as-good-as-random assignment only in part.")` Of `r length(bal_lab)` characteristics, `r n_bal_sig` `r iff(n_bal_sig == 1, "differs", "differ")` between Sunday and weekday diaries at the 5% level, against `r f1(0.05 * length(bal_lab))` expected by chance. The joint test that all characteristics are unrelated to a Sunday diary has p = `r f2(jt_sun_all$p)` for all persons and p = `r f2(jt_sun_mr$p)` among regular salaried men. `r iff(bal_ok, "Neither rejects, so the observed characteristics that predict unpaid work are not associated with the diary day. Balance on unobserved characteristics, including consumption, caste and religion, which the file does not record, cannot be tested.", "At least one rejects at the 5% level, so the controls and the robustness checks with FSU fixed effects carry more weight than they would under clean assignment.")` All estimates condition on these characteristics.
 
-The design does predict one feature that is not pre-determined: who reports the diary. A Sunday diary is collected on a Monday, when salaried men are more likely to be at work. Among regular salaried men, a diary is `r diff_pp(k_proxy_sun, "more", "less")` likely to have been reported by another household member when it refers to a Sunday, and `r diff_pp(k_proxy_sat, "more", "less")` likely when it refers to a Saturday, which is collected on a Sunday. Proxy reporting is therefore an outcome of the design rather than a control. I exclude it from the main specification and show results with it as a control and for self-reported diaries only.
+The design does predict one feature that is not pre-determined: who reports the diary. A Sunday diary is collected on a Monday, when salaried men are more likely to be at work. Among regular salaried men, a diary is `r diff_pp(k_proxy_sun, "more", "less")` likely to have been reported by another household member when it refers to a Sunday, and `r diff_pp(k_proxy_sat, "more", "less")` likely when it refers to a Saturday, which is collected on a Sunday. Proxy reporting is therefore an outcome of the design rather than a control. I exclude it from the main specification and show results with it as a control and for self-reported diaries only. `r iff(has_td, paste0("The type of day is not pre-determined either. Among regular salaried men, ", pct(other_wk_mr), " of weekday diaries and ", pct(other_sun_mr), " of Sunday diaries are described as an \"other\" rather than a normal day (Sunday difference ", diff_pp(k_other_sun), "). If weekly days off are classed as other days, restricting to normal days removes part of the variation the design uses; I therefore report it only as a robustness check."), "")`
 
 ## Paid work by diary day
 
@@ -535,7 +564,7 @@ tt <- data.frame(Task = unname(task_y[TK$y]), `Weekday mean` = f1(TK$wk),
                  `Per 100 min forgone` = f1(100 * TK$sh), `SE ` = f1(100 * TK$sh_se), check.names = FALSE)
 tab(tt, caption = paste0("Unpaid tasks taken on when paid work is released: regular salaried men 20--59", syn_note()),
     label = "tasks", align = c("l", rep("r", 5)),
-    notes = "Reduced-form Sunday coefficients and 2SLS shares (minus the coefficient on paid work instrumented by Sunday, times 100) for ICATUS sub-divisions of unpaid domestic services and unpaid care. '--' marks tasks with no variation in the sample. Controls and fixed effects as in Table 3. FSU-clustered SEs. * p<0.10, ** p<0.05, *** p<0.01.")
+    notes = "Reduced-form Sunday coefficients and 2SLS shares (minus the coefficient on paid work instrumented by Sunday, times 100) for ICATUS sub-divisions of unpaid domestic services and unpaid care. '--' marks tasks with no variation in the sample. Controls and fixed effects as in the baseline allocation table. FSU-clustered SEs. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
 Table \ref{tab:tasks} splits unpaid work into tasks. The largest share of the released time that goes to unpaid work is spent on `r tolower(task_y[top_task])` (`r f1(100 * TK[y == top_task]$sh)` minutes per 100). Routine, traditionally female tasks (food preparation, cleaning and the care of textiles) together absorb `r f1(100 * core_share)` minutes per 100, against `r f1(100 * male_share)` for shopping, repairs and household management, tasks that are more often shared or done by men [@hook2010gender]. `r iff(isTRUE(male_share > core_share), "The response is thus concentrated in tasks that can be batched into a weekly day off and that do not displace the wife's daily routine.", "The response is thus not confined to the tasks men already do.")` The share of men doing any unpaid work, `r pct(part_wk)` on weekdays, is `r diff_pp(k_part)` on Sundays, so `r iff(is_sig(k_part), "part of the response is on the extensive margin", "the response is mostly on the intensive margin, among men who already do some unpaid work")`.
@@ -614,7 +643,7 @@ tab(ht, caption = paste0("Heterogeneity in the allocation of released time: regu
     notes = "IV estimates within subgroups (SE in parentheses). 'p, difference' tests equality of the unpaid-work share across the two subgroups in a pooled model that interacts paid work, the Sunday instrument, the Saturday control and a subgroup indicator. Wife employed is defined for married men with a linked spouse. FSU-clustered SEs.")
 ```
 
-Table \ref{tab:het} reports the allocation separately by household and location. Time availability predicts the largest unpaid-work response where the demand for unpaid work is largest, in households with young children. Among regular salaried men with a child under six in the household, the unpaid-work share is `r s100x(hk("Child under 6 in household", "Yes"))` minutes per 100, against `r s100x(hk("Child under 6 in household", "No"))` without. With a school-age child it is `r s100x(hk("Child aged 6--14 in household", "Yes"))`, against `r s100x(hk("Child aged 6--14 in household", "No"))`. In urban areas it is `r s100x(hk("Urban", "Yes"))`, against `r s100x(hk("Urban", "No"))` in rural areas. `r iff(length(het_sig) > 0, paste0("The difference is statistically significant at the 5% level for: ", paste(tolower(het_sig), collapse = "; "), "."), "None of these differences is statistically significant at the 5% level, so the allocation of released time appears similar across household types and locations.")`
+Table \ref{tab:het} reports the allocation separately by household and location. Time availability predicts the largest unpaid-work response where the demand for unpaid work is largest, in households with young children. Among regular salaried men with a child under six in the household, the unpaid-work share is `r s100x(hk("Child under 6 in household", "Yes"))` minutes per 100, against `r s100x(hk("Child under 6 in household", "No"))` without. With a school-age child it is `r s100x(hk("Child aged 6--14 in household", "Yes"))`, against `r s100x(hk("Child aged 6--14 in household", "No"))`. In urban areas it is `r s100x(hk("Urban", "Yes"))`, against `r s100x(hk("Urban", "No"))` in rural areas. `r iff("head_grad" %in% names(het_def), paste0("With consumption unavailable, I use the head's education as a socioeconomic proxy: where the household head is a graduate the share is ", s100x(hk("Household head a graduate", "Yes")), ", against ", s100x(hk("Household head a graduate", "No")), " otherwise."), "")` `r iff(length(het_sig) > 0, paste0("The difference is statistically significant at the 5% level for: ", paste(tolower(het_sig), collapse = "; "), "."), "None of these differences is statistically significant at the 5% level; the data do not detect differences in the allocation of released time across these household types and locations, which is not the same as showing that the allocation is the same.")`
 
 ## Wives and couples
 
@@ -645,12 +674,12 @@ rt <- data.frame(Specification = ROB$spec, `First stage` = paste0(f0(ROB$fs), " 
                  N = fn(ROB$n), check.names = FALSE)
 tab(rt, caption = paste0("Robustness of the allocation estimates: regular salaried men 20--59", syn_note()),
     label = "rob", align = c("l", rep("r", 5)),
-    notes = "IV estimates (SE in parentheses) of minutes of unpaid work and free time per 100 minutes of paid work forgone, instrumented by a Sunday diary. FSU fixed effects compare diaries within the same village or urban block; FSUs with a single diary drop out. FSU-clustered SEs.")
+    notes = paste0("IV estimates (SE in parentheses) of minutes of unpaid work and free time per 100 minutes of paid work forgone, instrumented by a Sunday diary. Baseline: ", fe_txt, " fixed effects. FSU fixed effects compare diaries within the same village or urban block; FSUs with a single diary drop out. Normal days only keeps diaries the respondent described as a normal day. FSU-clustered SEs."))
 ```
 
-Table \ref{tab:rob} varies the specification. The checks drop all controls, which should matter little under random assignment; replace state fixed effects with FSU fixed effects, which compare households in the same village or urban block interviewed on different days and absorb local differences in interview schedules; control for proxy reporting or keep only self-reported diaries, because diaries reported by another household member may understate men's unpaid work [@lee2005husbands]; drop Saturday diaries, so that Sunday is compared only with Monday to Friday; restrict to married men; and drop the survey weights [@solon2015weighting]. Across the `r nrow(ROB)` specifications the unpaid-work share ranges from `r f1(100 * rob_range[1])` to `r f1(100 * rob_range[2])` minutes per 100. `r iff(rob_stable, "Every estimate lies within the 95% confidence interval of the baseline, so the conclusions do not depend on these choices.", "At least one estimate lies outside the 95% confidence interval of the baseline, so the conclusions are sensitive to specification and the baseline should be read with that in mind.")`
+Table \ref{tab:rob} varies the specification. The checks drop all controls, which should matter little under random assignment; replace district fixed effects with coarser state fixed effects, with district-by-sub-round fixed effects, which compare households in the same district and quarter, or with FSU fixed effects, which compare households in the same village or urban block interviewed on different days and absorb local differences in interview schedules; control for proxy reporting or keep only self-reported diaries, because diaries reported by another household member may understate men's unpaid work [@lee2005husbands]; drop Saturday diaries, so that Sunday is compared only with Monday to Friday; restrict to married men; `r iff(has_td, "keep only diaries that the respondent described as a normal day, which removes festivals, illness and other unusual days (and possibly some weekly days off); ", "")`and drop the survey weights [@solon2015weighting]. Across the `r nrow(ROB)` specifications the unpaid-work share ranges from `r f1(100 * rob_range[1])` to `r f1(100 * rob_range[2])` minutes per 100. `r iff(rob_stable, "Every estimate lies within the 95% confidence interval of the baseline, so the conclusions do not depend on these choices.", "At least one estimate lies outside the 95% confidence interval of the baseline, so the conclusions are sensitive to specification and the baseline should be read with that in mind.")`
 
-# Discussion
+# Discussion {#sec:discussion}
 
 ## What the Sunday estimate measures
 
@@ -672,11 +701,11 @@ Diaries reported by another household member may understate men's unpaid work [@
 
 ## Limitations
 
-The exclusion restriction cannot be proven. The falsification test and the difference-in-reduced-forms estimator address the most obvious direct channels, but they rely on men not in paid work being comparable to salaried men in how Sunday affects their unpaid work, and these men are a small, selected group. The diary covers a single day per person, so the comparison is across people interviewed on different days, not within a person's week [@frazis2012think]. Wives' time use is observed on the same day as the husband's, but the measure of joint free time is an upper bound, because the analysis panel holds daily totals rather than the timing of episodes. Finally, the survey does not record whether a respondent's employer gives Sunday off, so the first stage is estimated rather than known.
+The exclusion restriction cannot be proven. The falsification test and the difference-in-reduced-forms estimator address the most obvious direct channels, but they rely on men not in paid work being comparable to salaried men in how Sunday affects their unpaid work, and these men are a small, selected group. The diary covers a single day per person, so the comparison is across people interviewed on different days, not within a person's week [@frazis2012think]. Wives' time use is observed on the same day as the husband's, but the measure of joint free time is an upper bound, because the analysis panel holds daily totals rather than the timing of episodes. The survey does not record whether a respondent's employer gives Sunday off, so the first stage is estimated rather than known. Finally, the person-level file lacks the household questionnaire, so religion, caste, consumption expenditure, cooking fuel, the mode of laundry and sweeping, special-care needs, land and dwelling are unavailable. I cannot control for them, test balance on them or study heterogeneity by them; district and sub-round fixed effects and the roster-based socioeconomic proxies absorb some, but not all, of this variation, and balance on these unobserved characteristics is assumed rather than shown.
 
-# Conclusion
+# Conclusion {#sec:conclusion}
 
-The weekly day off is a recurring experiment in men's time. India's Time Use Survey 2024, by recording the day before the interview for households interviewed across the week, turns it into a quasi-random shock to regular salaried men's paid work. `r iff(sig_unp, paste0("These men allocate ", s100(k_iv_unp), " of every 100 minutes released from paid work to unpaid domestic and care work, a statistically significant share,"), paste0("These men allocate ", s100(k_iv_unp), " of every 100 minutes released from paid work to unpaid domestic and care work, a share not statistically distinguishable from zero,"))` and `r s100(k_iv_ft)` to free time and `r s100(k_iv_sl)` to sleep. `r iff(gap_down, "Their wives' unpaid work responds enough that the within-couple gap narrows on Sundays.", "The within-couple gap in unpaid work does not narrow detectably on Sundays.")` `r iff(pass, "Time availability is a real constraint on men's unpaid work, and working-time policy can be part of a strategy for a more equal division.", "Time availability is not the main constraint on men's unpaid work, and working-time policy alone is unlikely to change the division of unpaid work in India.")` The same design is available in any time-use survey that records "yesterday" and spreads interviews across the week, and applying it elsewhere would show whether this conclusion is specific to India.
+The weekly day off is a recurring experiment in men's time. India's Time Use Survey 2024 records the day before the interview for households interviewed across the week, which turns it into a shock to regular salaried men's paid work that `r iff(bal_ok, "is balanced on observed pre-determined characteristics within district and quarter", "is only partly balanced on observed pre-determined characteristics, so the estimates condition on them")`. `r iff(sig_unp, paste0("These men allocate ", s100(k_iv_unp), " of every 100 minutes released from paid work to unpaid domestic and care work, a statistically significant share,"), paste0("These men allocate ", s100(k_iv_unp), " of every 100 minutes released from paid work to unpaid domestic and care work, a share not statistically distinguishable from zero,"))` and `r s100(k_iv_ft)` to free time and `r s100(k_iv_sl)` to sleep. `r iff(gap_down, "Their wives' unpaid work responds enough that the within-couple gap narrows on Sundays.", "The within-couple gap in unpaid work does not narrow detectably on Sundays.")` `r iff(pass, "Time availability is a real constraint on men's unpaid work, and working-time policy can be part of a strategy for a more equal division.", "Time availability is not the main constraint on men's unpaid work, and working-time policy alone is unlikely to change the division of unpaid work in India.")` The same design is available in any time-use survey that records "yesterday" and spreads interviews across the week, and applying it elsewhere would show whether this conclusion is specific to India.
 
 \newpage
 
@@ -691,10 +720,11 @@ The weekly day off is a recurring experiment in men's time. India's Time Use Sur
 # Appendix {-}
 
 ```{r tab-days}
-dy <- data.frame(Day = names(CODE$day_of_week), `All persons 20--59` = pct(days_all), `Regular salaried men 20--59` = pct(days_mr),
-                 check.names = FALSE)
-tab(dy, caption = paste0("Distribution of diary days", syn_note()), label = "days", align = c("l", "r", "r"),
-    notes = "Survey-weighted share of diaries by the day of the week the diary refers to (the day before the interview).")
+dy <- data.frame(Day = names(CODE$day_of_week), `Diaries, all ages` = fn(n_by_day_all),
+                 `Diaries, 20--59` = fn(n_by_day), `Share, all persons 20--59` = pct(days_all),
+                 `Share, regular salaried men 20--59` = pct(days_mr), check.names = FALSE)
+tab(dy, caption = paste0("Distribution of diary days", syn_note()), label = "days", align = c("l", "r", "r", "r", "r"),
+    notes = "Diaries: unweighted counts of person-day diaries. Shares: survey-weighted share of diaries by the day of the week the diary refers to (the day before the interview).")
 ```
 
 ```{r tab-validation}

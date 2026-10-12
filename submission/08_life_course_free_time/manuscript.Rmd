@@ -22,7 +22,11 @@ TUS_ROOT <- normalizePath("../..")
 source(file.path(TUS_ROOT, "R", "setup.R"))
 pd <- load_panel()
 V  <- panel_validation(pd)
-require_cols(pd, c("marital", "hh_n_under6", "pas", "mpce", "religious", "commuting"), "Paper 08")
+# The 2024 person-level file has no household questionnaire (no consumption, caste, religion);
+# this paper uses roster-based socioeconomic proxies instead (R/build_panel.R).
+require_cols(pd, c("marital", "hh_n_under6", "pas", "religious", "commuting", "edu_tier",
+                   "hh_max_edu_tier", "hh_any_regular", "state"), "Paper 08")
+N_DIARY <- if (!is.null(V$n_diarists)) V$n_diarists else nrow(pd)   # V$n_persons also counts roster-only members
 ```
 
 ```{r watermark, results="asis"}
@@ -62,8 +66,32 @@ A[, `:=`(
   free_norel = free_time - religious,
   worker     = as.integer(pas %in% PAS$employed),
   pensioner  = as.integer(pas %in% PAS$pensioner),
-  sector_f   = factor(fifelse(urban == 1, "Urban", "Rural"), levels = c("Rural", "Urban"))
+  sector_f   = factor(fifelse(urban == 1, "Urban", "Rural"), levels = c("Rural", "Urban")),
+  # Socioeconomic proxies (no consumption in the file): highest education among members 15+,
+  # any member whose usual status is regular wage/salaried, and own usual activity status.
+  reg_f      = factor(fifelse(hh_any_regular == 1, "Regular salaried member", "No regular salaried member"),
+                      levels = c("No regular salaried member", "Regular salaried member")),
+  emp_type   = factor(fcase(pas_group %in% c("Self-employed"), "Self-employed",
+                            pas_group %in% c("Unpaid family helper"), "Unpaid family helper",
+                            pas_group %in% c("Regular wage/salaried"), "Regular wage/salaried",
+                            pas_group %in% c("Casual labour"), "Casual labour",
+                            pas_group %in% c("Domestic duties"), "Domestic duties",
+                            !is.na(pas_group), "Student, unemployed or other"),
+                      levels = c("Self-employed", "Unpaid family helper", "Regular wage/salaried",
+                                 "Casual labour", "Domestic duties", "Student, unemployed or other")),
+  state_f    = factor(state)
 )]
+# Fixed effects: district (default of fe()), diary day of week, and sub-round (quarter) where recorded.
+FE_VARS <- c("dist_id", "dow", "sub_round")
+fe_used <- function(d) {
+  f <- trimws(sub("^\\|", "", fe(d, FE_VARS)))
+  if (!nzchar(f)) return(character(0))
+  trimws(strsplit(f, "\\+")[[1]])
+}
+fe_names <- c(dist_id = "district", state = "state", dow = "day-of-week", sub_round = "sub-round (quarter)")
+fe_txt <- local({ u <- fe_names[fe_used(A)]; if (!length(u)) "no" else if (length(u) == 1) u
+                  else paste0(paste(u[-length(u)], collapse = ", "), " and ", u[length(u)]) })
+has_subround <- "sub_round" %in% fe_used(A)
 
 # Free time accompanied by secondary unpaid work (major free-time episode with a
 # minor domestic or care record inside it), from the slot-pair file.
@@ -83,18 +111,14 @@ if (have_pairs) {
 med_ft  <- wquantile(A$free_time, A$weight, 0.5)
 med_fn  <- wquantile(A$free_norel, A$weight, 0.5)
 med_tw  <- wquantile(A$total_work, A$weight, 0.5)
-pm      <- pd[!is.na(mpce) & !is.na(weight)]
-med_mp  <- wquantile(pm$mpce, pm$weight, 0.5)
 z60 <- 0.6 * med_ft; z50 <- 0.5 * med_ft
 A[, `:=`(
   tp50       = as.integer(free_time < z50),
   tp60       = as.integer(free_time < z60),
   fgt1       = pmax(0, (z60 - free_time) / z60),
   tp60_norel = as.integer(free_norel < 0.6 * med_fn),
-  longwork   = as.integer(total_work > 1.5 * med_tw),
-  cpoor      = as.integer(mpce < 0.6 * med_mp)
+  longwork   = as.integer(total_work > 1.5 * med_tw)
 )]
-A[, `:=`(tp_and_cp = tp60 * cpoor, tp_only = tp60 * (1L - cpoor), cp_only = (1L - tp60) * cpoor)]
 
 # Gap convention throughout: women minus men.
 gwm <- function(d, y) est_gap(d, y, "sex", "Men", "Women")
@@ -184,13 +208,24 @@ comp_same_sign <- isTRUE(sign(kt["comp"]) == sign(kt["within"]))
 ```
 
 ```{r heterogeneity}
-DIMS <- c(stage = "Family stage", edu_tier = "Education", mpce_quintile = "Consumption quintile",
-          social_group_f = "Social group", religion_f = "Religion", sector_f = "Sector")
-DIMS <- DIMS[names(DIMS) %in% names(A)]
-ctrl_all <- c(stage = "i(stage)", edu_tier = "i(edu_tier)", mpce_quintile = "i(mpce_quintile)",
-              social_group_f = "i(social_group_f)", religion_f = "i(religion_f)", sector_f = "urban")
-FE <- fe(A)
+# Caste and religion are not in the 2024 person-level file, so they cannot be dimensions here.
+DIMS <- c(stage = "Family stage", edu_tier = "Own education", hh_max_edu_tier = "Household's highest education",
+          reg_f = "Regular salaried member in household", emp_type = "Own usual activity status",
+          sector_f = "Sector", state_f = "State")
+DIMS <- DIMS[names(DIMS) %in% names(A) & vapply(names(DIMS), function(v) uniqueN(na.omit(A[[v]])) > 1, logical(1))]
+# State main effects are absorbed by the district fixed effects, so state enters only through its interaction.
+ctrl_all <- c(stage = "i(stage)", edu_tier = "i(edu_tier)", hh_max_edu_tier = "i(hh_max_edu_tier)",
+              reg_f = "i(reg_f)", emp_type = "i(emp_type)", sector_f = "urban")
+ctrl_all <- ctrl_all[names(ctrl_all) %in% names(DIMS)]
+FE <- fe(A, FE_VARS)
 wsd <- function(g, p) { ok <- !is.na(g) & !is.na(p); p <- p[ok] / sum(p[ok]); g <- g[ok]; sqrt(sum(p * (g - sum(p * g))^2)) }
+# Weighted SD net of sampling noise: the weighted variance of the estimates minus the weighted mean squared SE
+# (floored at zero). Dimensions with many small levels (states) show raw dispersion that is partly noise.
+wsd_net <- function(g, se, p) {
+  ok <- !is.na(g) & !is.na(se) & !is.na(p); if (sum(ok) < 2) return(NA_real_)
+  p <- p[ok] / sum(p[ok]); g <- g[ok]; se <- se[ok]
+  sqrt(max(0, sum(p * (g - sum(p * g))^2) - sum(p * se^2)))
+}
 
 het_dim <- function(dv) {
   lev <- levels(droplevels(as.factor(A[[dv]])))
@@ -216,12 +251,23 @@ het_dim <- function(dv) {
 H <- rbindlist(lapply(names(DIMS), het_dim))
 D <- H[, .(range_raw = diff(range(raw, na.rm = TRUE)), sd_raw = wsd(raw, w),
            range_cond = if (all(is.na(cond))) NA_real_ else diff(range(cond, na.rm = TRUE)),
-           sd_cond = if (all(is.na(cond))) NA_real_ else wsd(cond, w)), by = dim]
-sd_stage <- D[dim == "stage"]$sd_cond
-sd_other_max <- max(D[dim != "stage"]$sd_cond, na.rm = TRUE)
-dim_other_max <- D[dim != "stage"][which.max(sd_cond)]$dim
+           sd_cond = if (all(is.na(cond))) NA_real_ else wsd(cond, w),
+           sd_net = wsd_net(cond, cond_se, w)), by = dim]
+# The comparison uses the noise-corrected conditional SD, so that a dimension with many small cells
+# (36 states) does not look more dispersed only because its level estimates are noisier.
+sd_stage <- D[dim == "stage"]$sd_net
+sd_other_max <- suppressWarnings(max(D[dim != "stage"]$sd_net, na.rm = TRUE))
+dim_other_max <- D[dim != "stage"][which.max(sd_net)]$dim
+if (!length(dim_other_max)) dim_other_max <- names(DIMS)[2]
 stage_dominates <- isTRUE(sd_stage > sd_other_max)
+stage_dominates_cond <- isTRUE(D[dim == "stage"]$sd_cond > max(D[dim != "stage"]$sd_cond, na.rm = TRUE))
 stage_dominates_raw <- isTRUE(D[dim == "stage"]$sd_raw > max(D[dim != "stage"]$sd_raw, na.rm = TRUE))
+n_states_het <- H[dim == "state_f", .N]
+state_sd_net <- D[dim == "state_f"]$sd_net; if (!length(state_sd_net)) state_sd_net <- NA_real_
+state_range <- H[dim == "state_f"]; state_range <- if (nrow(state_range)) range(state_range$cond, na.rm = TRUE) else c(NA, NA)
+# Text for the comparison set.
+dims_other_txt <- local({ x <- tolower(DIMS[names(DIMS) != "stage"])
+  if (length(x) > 1) paste0(paste(x[-length(x)], collapse = ", "), " or ", x[length(x)]) else x })
 base_rhs <- ctrl(A, c("female", ctrl_all, "hh_size", "proxy_report"))
 base_gap <- coef_of(reg(as.formula(paste("free_time ~", base_rhs, FE)), A), "female")
 ```
@@ -231,28 +277,52 @@ pov_lab <- c(tp50 = "Free time below 50% of median",
              tp60 = "Free time below 60% of median",
              fgt1 = "Free-time poverty gap index, 60% line (x 100)",
              tp60_norel = "Free time excl. religious practice below 60% of its median",
-             longwork = "Total work above 1.5 times the median",
-             cpoor = "Consumption-poor (MPCE below 60% of median)",
-             tp_and_cp = "Time-poor and consumption-poor",
-             tp_only = "Time-poor only",
-             cp_only = "Consumption-poor only")
+             longwork = "Total work above 1.5 times the median")
 PV <- rbindlist(lapply(names(pov_lab), function(v) {
   m <- mean_by_sex(A, v); e <- gwm(A, v)
   data.table(v = v, Measure = pov_lab[[v]], Men = m["Men"], Women = m["Women"],
              est = e$est, se = e$se, p = e$p)
 }))
-g_both  <- gwm(A, "tp_and_cp"); g_cp <- gwm(A, "cpoor"); g_fgt <- gwm(A, "fgt1")
-g_pn    <- gwm(A, "tp60_norel")
-# Is time poverty concentrated among the consumption-poor?
-tp_by_cp <- function(sx) {
-  d <- A[sex == sx & !is.na(cpoor)]
-  e <- est_gap(d, "tp60", "cpoor", 0, 1)   # consumption-poor minus non-poor
-  e
-}
-tpcp_w <- tp_by_cp("Women"); tpcp_m <- tp_by_cp("Men")
-tp_poor_less_w <- is_neg(tpcp_w)
-tp_poor_more_w <- is_pos(tpcp_w)
+g_fgt <- gwm(A, "fgt1")
+g_pn  <- gwm(A, "tp60_norel")
 pov_gap_both_lines <- is_pos(g_p50) && is_pos(g_p60)
+
+# ---- Time poverty by socioeconomic position and sector (replaces the time x consumption cross,
+# which needs consumption; the 2024 person-level file has none) ----
+SES_DIMS <- c(hh_max_edu_tier = "Household's highest education", reg_f = "Regular salaried member",
+              sector_f = "Sector")
+SP <- rbindlist(lapply(names(SES_DIMS), function(dv) {
+  lev <- levels(droplevels(as.factor(A[[dv]])))
+  rbindlist(lapply(lev, function(lv) {
+    dd <- A[as.character(A[[dv]]) == lv]
+    m <- mean_by_sex(dd, "tp60"); e <- gwm(dd, "tp60")
+    ml <- mean_by_sex(dd, "longwork"); el <- gwm(dd, "longwork")
+    data.table(dim = dv, level = lv, Men = m["Men"], Women = m["Women"], est = e$est, se = e$se, p = e$p,
+               lw_m = ml["Men"], lw_w = ml["Women"], lw_est = el$est, lw_se = el$se, lw_p = el$p)
+  }))
+}))
+# Gradients among women and men: top minus bottom household education tier, regular member minus none,
+# urban minus rural (est_gap returns b minus a).
+edu_lev <- levels(droplevels(A$hh_max_edu_tier))
+ses_grad <- function(sx, y = "tp60") {
+  d <- A[sex == sx]
+  list(edu = est_gap(d, y, "hh_max_edu_tier", edu_lev[1], edu_lev[length(edu_lev)]),
+       reg = est_gap(d, y, "hh_any_regular", 0, 1),
+       urb = est_gap(d, y, "urban", 0, 1))
+}
+sg_w <- ses_grad("Women"); sg_m <- ses_grad("Men")
+# Conditional version for women: all three proxies together, with family stage, own education,
+# household size, proxy report and fixed effects.
+AW <- A[sex == "Women"]
+m_tp_w <- reg(as.formula(paste("tp60 ~", ctrl(AW, c("i(hh_max_edu_tier)", "hh_any_regular", "urban", "i(stage)",
+                                                   "i(edu_tier)", "hh_size", "proxy_report")), fe(AW, FE_VARS))), AW)
+c_reg_w <- coef_of(m_tp_w, "hh_any_regular")
+c_edu_w <- coef_of(m_tp_w, paste0("hh_max_edu_tier::", edu_lev[length(edu_lev)]))
+ses_poor_w  <- is_neg(sg_w$edu) || is_neg(sg_w$reg)     # time poverty LOWER in better-off households
+ses_rich_w  <- is_pos(sg_w$edu) || is_pos(sg_w$reg)     # time poverty HIGHER in better-off households
+ses_mixed_w <- ses_poor_w && ses_rich_w
+gap_by_ses_sig <- SP[!is.na(est), mean(est > 0 & p < 0.05)]
+gap_pos_every_ses <- isTRUE(gap_by_ses_sig == 1)
 ```
 
 ```{r retirement}
@@ -265,9 +335,10 @@ ret_out <- c(free_time = "Free time", free_norel = "Free time excl. religious pr
              mass_media = "Mass media", employment = "Employment",
              unpaid_total = "Unpaid domestic and care work", total_work = "Total work",
              sleep = "Sleep")
-rc <- ctrl(R, c("i(age)", "urban", "i(edu_tier)", "i(mpce_quintile)", "i(social_group_f)",
-                "i(religion_f)", "hh_size", "proxy_report"))
-FEr <- fe(R)
+# No consumption, caste or religion in the file: the household's highest education is the SES control.
+# hh_any_regular is not used here because a regular-wage worker's own status sets it (mechanical).
+rc <- ctrl(R, c("i(age)", "urban", "i(edu_tier)", "i(hh_max_edu_tier)", "hh_size", "proxy_report"))
+FEr <- fe(R, FE_VARS)
 ret_fit <- function(y, sx) {
   d <- R[sex == sx]
   if (d[pensioner == 1, .N] < 10 || d[pensioner == 0, .N] < 10) return(list(est = NA, se = NA, p = NA))
@@ -312,9 +383,9 @@ g_comm_c <- gwm(Wk[commuting > 0], "commuting")
 g_comm_u <- gwm(Wk[urban == 1], "commuting")
 g_comm_r <- gwm(Wk[urban == 0], "commuting")
 g_ft_wk  <- gwm(Wk, "free_time")
-cc <- ctrl(Wk, c("paid_work", "i(age_band)", "urban", "i(edu_tier)", "i(mpce_quintile)", "i(stage)",
-                 "i(social_group_f)", "hh_size", "proxy_report"))
-FEw <- fe(Wk)
+cc <- ctrl(Wk, c("paid_work", "i(age_band)", "urban", "i(edu_tier)", "i(hh_max_edu_tier)", "i(stage)",
+                 "i(emp_type)", "hh_size", "proxy_report"))
+FEw <- fe(Wk, FE_VARS)
 cm_fit <- function(sx) coef_of(reg(as.formula(paste("free_time ~ commuting +", cc, FEw)), Wk[sex == sx]), "commuting")
 b_cm_m <- cm_fit("Men"); b_cm_w <- cm_fit("Women")
 b_cm_x <- coef_of(reg(as.formula(paste("free_time ~ commuting * female +", cc, FEw)), Wk), "commuting:female")
