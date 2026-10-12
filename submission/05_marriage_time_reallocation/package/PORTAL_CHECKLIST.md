@@ -21,6 +21,6 @@
 - [ ] Confirm the manuscript is not published, forthcoming or under review elsewhere
 - [ ] Conflict of interest: none. Funding: none
 - [ ] Data availability: TUS 2024 microdata, MoSPI (microdata.gov.in, catalog 236). Anonymised files: "Code available from the author on request; will be made public on acceptance." (GitHub link only on the non-anonymised title page)
-- [ ] AI-use disclosure: generative AI tools (Claude, Anthropic; and other AI assistants) assisted with writing and debugging analysis code, checking references, and drafting and editing text; the author verified all analyses, results, and text
+- [ ] AI-use disclosure: generative AI tools (Claude, Anthropic) assisted with writing and debugging analysis code, checking references, and drafting and editing text; the author verified all analyses, results, and text
 - [ ] Suggested reviewers: none unless the portal requires them
 - [ ] Funding: none. Conflicts: none. Suggested reviewers: none unless required. Pre-registration: not publicly pre-registered. No self-citations.

@@ -238,3 +238,27 @@ diff_pp <- function(e, more = "higher", less = "lower", digits = 1) {
   paste0(.fmt(100 * abs(e$est), digits), " percentage points (SE ", .fmt(100 * e$se, digits), ") ",
          more_less(e$est, more, less))
 }
+
+# ---- Supplement helpers ---------------------------------------------------------
+# Compress a vector of 3-digit codes into ranges, e.g. 311-319, 442.
+code_ranges <- function(x) {
+  x <- sort(unique(as.integer(x))); if (!length(x)) return("")
+  br <- c(0, which(diff(x) != 1), length(x))
+  paste(sapply(seq_len(length(br) - 1), function(i) {
+    a <- x[br[i] + 1]; b <- x[br[i + 1]]; if (a == b) a else paste0(a, "--", b) }), collapse = ", ")
+}
+# ICATUS 2016 mapping for the categories a paper uses (names of ACT).
+codes_table <- function(cats, labels = cats) {
+  data.frame(Category = labels,
+             `ICATUS 2016 codes` = sapply(cats, function(k) code_ranges(ACT[[k]])),
+             check.names = FALSE, row.names = NULL)
+}
+# From the roster to the analysed diaries (all numbers from the build).
+diary_flow_table <- function(pd) {
+  V <- panel_validation(pd)
+  data.frame(Step = c("Persons aged 6+ on the household roster", "Without diary records in the file",
+                      "Diaries (person-days)", "Diaries not summing to exactly 1,440 minutes",
+                      "Third-gender diaries (excluded from women-men comparisons)", "Diaries of women and men"),
+             N = c(fn(V$n_roster_6plus), fn(V$n_roster_only_age6plus), fn(V$n_diarists),
+                   fn(V$n_diaries_not1440), fn(V$n_third_gender), fn(V$n_analysed)))
+}

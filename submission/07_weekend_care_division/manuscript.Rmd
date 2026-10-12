@@ -2,7 +2,7 @@
 title: "What Men Do with a Day Off: Sundays, Paid Work, and the Gendered Division of Unpaid Work in India"
 params:
   blind: false
-author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. Generative AI tools (Claude, Anthropic; and other AI assistants) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content. No funding. No conflicts of interest. All errors are mine.}"`'
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content. No funding. No conflicts of interest. All errors are mine.}"`'
 date: "`r format(Sys.Date(), '%B %Y')`"
 output:
   pdf_document:
@@ -691,6 +691,16 @@ The Time Use Survey 2024 unit-level data are distributed by the National Statist
 \appendix
 
 # Appendix {-}
+
+```{r tab-flow}
+tab(diary_flow_table(pd), caption = "From the household roster to the analysed diaries", label = "flow", align = c("l", "r"),
+    notes = "All counts are computed from the microdata at knit time. Persons without diary records appear only on the household roster.")
+```
+
+```{r tab-codes}
+tab(codes_table(c("paid_work","work_travel","ownuse_goods","dom_food","dom_cleaning","dom_textiles","dom_shopping","unpaid_domestic","care_child","care_dep_adult","unpaid_care","learning","free_time","sleep"), c("Employment","Employment-related travel","Own-use production of goods","Food and meals","Cleaning and upkeep","Care of textiles","Shopping","Unpaid domestic services (division 3)","Childcare","Care of dependent adults","Unpaid caregiving (division 4)","Learning","Free time (divisions 7 and 8)","Sleep")), caption = "Activity categories and ICATUS 2016 codes", label = "codes", align = c("l", "l"),
+    notes = "Minutes are summed over major activities in the person-day diary. Codes are three-digit ICATUS 2016 codes as recorded in the survey.")
+```
 
 ```{r tab-days}
 dy <- data.frame(Day = names(CODE$day_of_week), `All persons 20--59` = pct(days_all), `Regular salaried men 20--59` = pct(days_mr),
