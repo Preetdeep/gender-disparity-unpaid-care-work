@@ -11,10 +11,11 @@
 ## Portal fields
 - [ ] Article type: Article
 - [ ] Title, abstract, keywords (son preference; child time use; siblings; domestic work; gender norms; India)
-- [ ] Author: name, affiliation (independent researcher), ORCID 0000-0003-3721-7548, email; country
+- [ ] Author: name, affiliation (Independent Researcher, New Delhi, India; IIM Sambalpur only if an institution is forced), ORCID 0000-0003-3721-7548, email; country
 - [ ] Separate title page with author details (anonymised review)
 - [ ] Disclosure statement: no conflicts. Funding: none
-- [ ] Data availability statement: MoSPI TUS 2024 (microdata.gov.in, catalog 236); code on GitHub (**remove the GitHub link from anything reviewers see if it identifies the author**)
-- [ ] AI-use declaration per T&F policy (AI tools used for code checking and language editing; not listed as an author)
+- [ ] Data availability statement: MoSPI TUS 2024 (microdata.gov.in, catalog 236). Anonymised files: "Code available from the author on request; will be made public on acceptance." (GitHub link only on the non-anonymised title page)
+- [ ] AI-use declaration: generative AI used only to improve language
 - [ ] Confirm the paper is not under review elsewhere
 - [ ] Upload the supplement as "Supplemental online material"
+- [ ] Funding: none. Conflicts: none. Suggested reviewers: none unless required. Pre-registration: not publicly pre-registered. No self-citations.

@@ -17,9 +17,10 @@
 ## Portal fields
 - [ ] Article type: Article (full-length)
 - [ ] Title, structured abstract, up to 6 keywords: marriage; time use; unpaid work; gender; patrilocality; India
-- [ ] Author: Preet Deep Singh, independent researcher, ORCID 0000-0003-3721-7548, preetdeepsingh111@gmail.com
+- [ ] Author: Preet Deep Singh, Independent Researcher, New Delhi, India, ORCID 0000-0003-3721-7548, preetds@iima.ac.in
 - [ ] Confirm the manuscript is not published, forthcoming or under review elsewhere
 - [ ] Conflict of interest: none. Funding: none
-- [ ] Data availability: TUS 2024 microdata, MoSPI (microdata.gov.in, catalog 236); code on GitHub
-- [ ] AI-use disclosure per Wiley policy
-- [ ] Suggested or opposed reviewers (optional): **Doc to decide**
+- [ ] Data availability: TUS 2024 microdata, MoSPI (microdata.gov.in, catalog 236). Anonymised files: "Code available from the author on request; will be made public on acceptance." (GitHub link only on the non-anonymised title page)
+- [ ] AI-use disclosure: generative AI used only to improve language
+- [ ] Suggested reviewers: none unless the portal requires them
+- [ ] Funding: none. Conflicts: none. Suggested reviewers: none unless required. Pre-registration: not publicly pre-registered. No self-citations.
