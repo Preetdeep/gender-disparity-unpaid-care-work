@@ -1,0 +1,32 @@
+List of 31
+ $ file                             : chr "TimeUse106PER.dta"
+ $ household_file                   : chr "tus106hh.dta"
+ $ household_columns                : Named chr [1:14] "FSU_Serial_No" "Sample_HH_No" "Household_Size" "Religion" "Social_Group" "Land_Possessed" "Monthly_Exp_E_Total" "Energy_Cooking" "Energy_Lighting" "Clothes_Washing_Type" ...
+ $ synthetic                        : logi FALSE
+ $ built                            : chr "2026-10-12 07:35:12"
+ $ columns_found                    : Named chr [1:28] "FSU_Serial_No" "Sample_HH_No" "Person_Serial_No" "Gender" "Age" "Activity_Code_3Digit" "time_spent" "Weight" "Major_Activity_Flag" "Activity_Code_2Digit" ...
+ $ columns_missing                  : chr [1:12] "religion" "social_group" "hh_size" "umpce" "cooking" "lighting" "washing" "sweeping" "special_care" "caregiver" ...
+ $ n_rows                           : int 10211478
+ $ n_persons                        : int 533719
+ $ n_households                     : int 139487
+ $ n_fsu                            : int 9969
+ $ major_flag_values                : num [1:2] 1 2
+ $ n_rows_roster_only               : int 83262
+ $ share_rows_minor                 : num 0.175
+ $ invalid_act3_codes               : num(0) 
+ $ act2_matches_act3_prefix         : num 1
+ $ share_persons_weight_varies      : num 0
+ $ n_diarists                       : int 450457
+ $ n_roster_only                    : int 83262
+ $ n_roster_only_age6plus           : int 3735
+ $ share_diaries_1440               : num 1
+ $ day_total_quantiles              : Named num [1:5] 0 1440 1440 1440 1440
+ $ share_minor_rows_matched_to_major: num 1
+ $ code_scheme                      : chr "nso"
+ $ code_scheme_evidence             : Named int [1:4] 7 0 4 0
+ $ code_scheme_note                 : chr "detected from marker codes"
+ $ household_vars_missing           : chr(0) 
+ $ min_age_in_file                  : num 0
+ $ under6_method                    : chr "direct count (file contains members under 6)"
+ $ share_hh_negative_under6_residual: num NA
+ $ share_married_with_linked_spouse : num 0.885
