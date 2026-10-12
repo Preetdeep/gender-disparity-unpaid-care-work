@@ -14,3 +14,7 @@
 **Ethics:** Secondary analysis of anonymised official survey microdata; no human-subjects contact.
 **Use of AI tools:** AI-assisted tools were used for code checking, reference verification and language editing. The author designed the study, checked all analyses and takes full responsibility for the content.
 **Acknowledgements:** I thank the National Statistics Office for access to the microdata.
+
+**Biographical note (≈60 words, for the portal; Doc to confirm):** Preet Deep Singh is an independent researcher working on gender, time use and household economics in India. His research uses large-scale official survey microdata, including India's Time Use Surveys, to study unpaid work, care and the allocation of time within households.
+
+**JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (3–6):** care work; eldercare; disability; long-term care; gender; time use
