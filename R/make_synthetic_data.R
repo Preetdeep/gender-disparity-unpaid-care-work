@@ -32,6 +32,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     land_possessed = sample(c(1:8, 10:12, 99), n_hh, TRUE)
   )
   hh[, Sample_HH_No := seq_len(.N), by = FSU_Serial_No]
+  hh[, Sub_Round := ((FSU_Serial_No %% 4) + 1)]          # quarter, constant within FSU
   hh[, Day_of_Week := sample(1:7, .N, TRUE)]
   hh[, Weight := round(runif(.N, 500, 5000), 2)]
   hh[, care_giver_available := ifelse(special_care_needed == 1, sample(1:2, .N, TRUE, c(.9, .1)), NA)]
@@ -50,7 +51,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
       p[[length(p) + 1]] <- mk_person(5, sample(1:2, 1), a, if (a >= 21) sample(1:2, 1, prob = c(.6, .4)) else 1)
     }
     if (ha < 50 && runif(1) < .25) for (k in seq_len(sample(1:2, 1)))
-      p[[length(p) + 1]] <- mk_person(7, k, ha + sample(22:30, 1), sample(2:3, 1))
+      p[[length(p) + 1]] <- mk_person(7, k, min(95, ha + sample(22:40, 1)), sample(2:3, 1))
     if (ha >= 55 && runif(1) < .4) {
       p[[length(p) + 1]] <- mk_person(3, 1, ha - 27, 2)
       p[[length(p) + 1]] <- mk_person(4, 2, ha - 30, 2)
@@ -113,6 +114,7 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     if (!kid && runif(1) < .04) put(431, 1, 4, 44)
     if (runif(1) < .08) put(832, 1, 3, 10)
     if (runif(1) < .3) put(741, 1, 3, 10)
+    if (r$age >= 80 || r$Principal_Activity_Status %in% c(65, 95)) put(941, sample(1:3, 1), 4, 44)
     put(850, sample(0:2, 1), 20, 40)
     s
   }
@@ -152,7 +154,9 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
     Enterprise_Type = fifelse(Activity_Code_3Digit %/% 100 == 1, sample(c(1, 3, 5, 8), .N, TRUE), NA_real_),
     Gender = sex, Age = age, Marital_Status = mar, Relationship_to_Head = rel
   )]
-  keep <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No", "Sector", "State", "District",
+  out[, Type_of_Day := fifelse(is.na(Activity_Code_3Digit), NA_real_, fifelse(Day_of_Week == 7 & runif(.N) < .2, 2, 1))]
+  out[, Type_of_Day := Type_of_Day[1], by = .(FSU_Serial_No, Sample_HH_No, Person_Serial_No)]
+  keep <- c("FSU_Serial_No", "Sample_HH_No", "Person_Serial_No", "Sector", "State", "District", "Sub_Round", "Type_of_Day",
             "Gender", "Age", "Marital_Status", "Highest_Education", "Principal_Activity_Status",
             "Relationship_to_Head", "Household_Size", "Religion", "Social_Group",
             "umpce_item10", "primary_energy_cooking", "type_of_washing", "type_of_sweeping",
