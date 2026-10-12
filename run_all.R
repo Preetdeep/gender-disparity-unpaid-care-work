@@ -10,7 +10,9 @@
 # =============================================================================
 TUS_ROOT <- normalizePath(".")
 source(file.path(TUS_ROOT, "R", "setup.R"))
-args <- commandArgs(trailingOnly = TRUE)
+# Select papers either on the command line (Rscript run_all.R 04 07) or, in RStudio,
+# by setting PAPERS <- c("04", "07") before source("run_all.R").
+args <- if (exists("PAPERS")) as.character(PAPERS) else commandArgs(trailingOnly = TRUE)
 
 if (TUS_SYNTHETIC && !file.exists(TUS_DTA)) {
   source(file.path(TUS_ROOT, "R", "make_synthetic_data.R"))
@@ -36,4 +38,8 @@ status <- sapply(papers, function(p) {
   message(sprintf("%-40s %s", basename(p), if (ok) "OK" else "FAILED"))
   ok
 })
-if (!all(status)) quit(status = 1)
+failed <- basename(papers)[!status]
+if (length(failed)) {
+  message("\nFAILED: ", paste(failed, collapse = ", "), "\nSee the messages above for the cause.")
+  if (!interactive()) quit(status = 1)         # never quit an RStudio session
+} else message("\nAll papers built.")

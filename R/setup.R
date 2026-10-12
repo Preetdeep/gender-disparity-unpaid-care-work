@@ -39,6 +39,7 @@ TUS_DTA <- if (TUS_SYNTHETIC) {
 } else {
   Sys.getenv("TUS_DTA", file.path(TUS_ROOT, "data", "TimeUse106PER.dta"))
 }
+TUS_HH_DTA <- Sys.getenv("TUS_HH_DTA", "")   # optional household-characteristics file (Block 4)
 TUS_DERIVED <- file.path(TUS_ROOT, "data", if (TUS_SYNTHETIC) "synthetic" else "derived")
 
 source(file.path(TUS_ROOT, "R", "codes.R"))

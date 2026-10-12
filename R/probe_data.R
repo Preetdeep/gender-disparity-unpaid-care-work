@@ -90,5 +90,21 @@ if (!is.null(col)) {
   }
   say("Survey year field present: %s", any(grepl("year", names(hdr), ignore.case = TRUE)))
 }
+# ---- Optional household file ----------------------------------------------------
+if (nzchar(TUS_HH_DTA) && file.exists(TUS_HH_DTA)) {
+  say("\n\n== HOUSEHOLD FILE: %s (%.2f GB) ==", basename(TUS_HH_DTA), file.size(TUS_HH_DTA) / 1e9)
+  hh <- read_household_file(TUS_HH_DTA)
+  hdrh <- if (grepl("\\.csv$", TUS_HH_DTA, ignore.case = TRUE)) as.data.frame(hh$data[0]) else haven::read_dta(TUS_HH_DTA, n_max = 5)
+  say("Columns: %d   Rows: %s", ncol(hdrh), format(nrow(hh$data), big.mark = ","))
+  for (v in names(hdrh)) { lab <- attr(hdrh[[v]], "label"); say("%-34s %-10s %s", v, class(hdrh[[v]])[1], if (is.null(lab)) "" else lab) }
+  say("\nMatched concepts:")
+  for (k in names(hh$col)) say("%-14s -> %s", k, ifelse(is.na(hh$col[k]), "(not found)", hh$col[k]))
+  for (k in c("hh_size", "religion", "social_group", "cooking", "lighting", "washing", "sweeping", "special_care", "caregiver", "dwelling")) {
+    v <- hh$col[k]; if (!is.na(v)) say("%s (%s):\n%s", k, v, tbl(hh$data[[v]], 15))
+  }
+  v <- hh$col["umpce"]
+  if (!is.na(v)) say("umpce (%s): summary\n%s", v, paste(utils::capture.output(print(summary(as_num(hh$data[[v]])))), collapse = "\n"))
+} else say("\n\nNo household file supplied (TUS_HH_DTA is empty). Household characteristics are NOT in the person file.")
+
 f <- file.path(TUS_ROOT, "docs", "probe_report.txt")
 writeLines(out, f); cat(out, sep = "\n"); message("\nWritten to ", f)

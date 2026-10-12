@@ -72,7 +72,9 @@ TUS_SYNTHETIC=1 Rscript run_all.R            # watermarked PDFs in data/syntheti
 TUS_DTA=/path/to/TimeUse106PER.dta Rscript R/probe_data.R    # writes docs/probe_report.txt
 ```
 
-**5. Run on the real data:**
+**5. Household characteristics.** The person-level `.dta` of the 2024 release has **no** household variables (religion, caste, household size, consumption, cooking fuel, laundry, sweeping, special-care need, caregiver). They are in a separate household-level file. Set `TUS_HH_DTA` to it (`.dta` or `.csv`); columns are matched by name and label and the probe prints what matched. Without it, Papers 01 and 03 cannot run and the others run without consumption, caste and religion controls.
+
+**6. Run on the real data:**
 
 ```bash
 TUS_DTA=/path/to/TimeUse106PER.dta Rscript run_all.R        # all eight papers

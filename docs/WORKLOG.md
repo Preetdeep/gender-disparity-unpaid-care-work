@@ -278,3 +278,14 @@ Citations: all [@key] resolve in all 8 papers, and refs_local.bib is in YAML in 
   `CODE$religion` code 7 = Zoroastrian and 9 = others in the xlsx.
 - Deferred shared-code requests (agents have local workarounds): tab() notes escaping, lincom(), likely(), split water_fuel into 241/242,
   recipient flag, mother link for children, ctrl() support for two-argument i().
+
+## Lead: facts from the real 2024 file (probe, Oct 2026)
+- Survey_Year = 2024. 10,211,478 activity records, 9,969 FSUs, 139,487 households, 533,719 roster persons (454,192 aged 6+).
+- The file contains ROSTER-ONLY rows (members with no diary: children under 6 and some non-respondents). They have NA activity code and
+  NA major flag. build_panel() keeps them only to build household composition, sets their time-use columns to NA, and drops them from the
+  saved panel (`has_diary`). Under-6 members are counted directly (min age 0). `hh_size` = roster members of all ages when absent.
+- Major flag: 1 = major, 2 = minor, NA = roster-only. Informant_Serial_No exists (proxy_report available).
+- Codes: official-dictionary ("nso") scheme detected for principal activity status.
+- NOT in the person file: religion, social group, household size, consumption, cooking, lighting, washing, sweeping, dwelling, special-care
+  need, caregiver, land. They are Block 4 (household file). Without the household file, Papers 01 and 03 stop (require_cols) and
+  05, 06, 08 must tolerate absent consumption/caste/religion. Placeholders (all-NA columns) are created so code never crashes on a missing name.

@@ -160,6 +160,17 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
             "Multiple_Activity_Flag", "Simultaneous_Activity_Flag", "Major_Activity_Flag",
             "Location_of_Activity", "Unpaid_Paid_Status", "Enterprise_Type",
             "Activity_Code_2Digit", "Activity_Code_3Digit")
+  # Roster-only rows, as in the real file: members under 6 have no diary (activity fields NA).
+  ro <- pp[age < 6]
+  ro[, `:=`(Gender = sex, Age = age, Marital_Status = mar, Relationship_to_Head = rel,
+            Principal_Activity_Status = NA_real_, Highest_Education = NA_real_)]
+  out <- rbind(out, ro, fill = TRUE)
+  if (identical(Sys.getenv("TUS_SYNTH_HH"), "0")) {
+    # Mimic the real 2024 file: Block 4 household characteristics are not in the person file.
+    keep <- setdiff(keep, c("Religion", "Social_Group", "Household_Size", "umpce_item10", "primary_energy_cooking",
+                            "type_of_washing", "type_of_sweeping", "special_care_needed", "care_giver_available",
+                            "land_possessed"))
+  }
   res <- out[, ..keep]
   # Recode to the official-dictionary scheme unless TUS_SYNTH_SCHEME=legacy_txt.
   if (!identical(Sys.getenv("TUS_SYNTH_SCHEME"), "legacy_txt")) {
@@ -167,7 +178,8 @@ make_synthetic <- function(n_hh = 4000, seed = 7) {
                  "62" = 92, "63" = 93, "64" = 94, "65" = 95, "66" = 97)
     cook_map <- c("1" = 1, "2" = 1, "3" = 4, "4" = 6, "5" = 5, "6" = 2, "7" = 7, "8" = 11, "9" = 19)
     res[, Principal_Activity_Status := unname(pas_map[as.character(Principal_Activity_Status)])]
-    res[, primary_energy_cooking := unname(cook_map[as.character(primary_energy_cooking)])]
+    if ("primary_energy_cooking" %in% names(res))
+      res[, primary_energy_cooking := unname(cook_map[as.character(primary_energy_cooking)])]
   }
   res
 }
