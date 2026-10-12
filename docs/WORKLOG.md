@@ -353,3 +353,15 @@ Citations: all [@key] resolve in all 8 papers, and refs_local.bib is in YAML in 
     full roster, so roster-only (non-diarist) recipients can enter the adult-need measure.
   - helpers.R: `lincom()` and an `and_list()`/`say_est()` NA-safe list formatter.
   - Synthetic generator: add some members 80+ and some receiving-care (941-949) episodes so markers (b) and (c) are exercised in knits.
+
+### Paper 08 (life course free time): 2024-file revision, 2026-10-12
+- Progress: removed every use of mpce, mpce_quintile, social_group_f, religion_f (require_cols, poverty lines, het dims, retirement and commuting controls, all text/notes, SUBMISSION.md). Time x consumption poverty cross replaced by time poverty (60% headcount, long hours) by household's highest education, regular salaried OTHER member, and sector, with women's gradients raw and conditional (Table povses). Heterogeneity dims now: stage, own education, hh_max_edu_tier, regular salaried other member, own activity status (pas_group collapsed), sector, state (by code). Dispersion comparison now uses a noise-corrected weighted SD (variance of level gaps minus mean squared SE) so 36 state cells are not "dispersed" by noise; also reported without own activity status (an outcome of stage/gender norms). Levels with <30 men or women get no gap. FE = dist_id + dow + sub_round (FE_VARS; text built from what fe() keeps). `data_disclosure(V)` in Data + limitations paragraph (consumption, caste, religion). State-level gaps in own two-column appendix table. Kept: Kitagawa + bootstrap, poverty-line sensitivity, retirement, commuting, free-time quality. Knits clean on synthetic (25 pp); forced-iff copy knit and deleted.
+- New common errors:
+  - Conditional level gaps from `i(x, female)` for a level with (almost) no men (e.g. "Domestic duties", "Unpaid family helper") are not gaps: the interaction absorbs the level effect and prints a large "conditional gap" while the raw gap is not estimable. Require a minimum count of each sex per level.
+  - Comparing the SD of level-specific gaps across dimensions with very different numbers of levels (36 states vs 2 sectors) mostly compares sampling noise. Subtract the mean squared SE (or test) before ranking dimensions.
+  - Under the district FE default, `i(state)` as a control or main effect is absorbed; state heterogeneity must enter only as `i(state, female)`.
+  - `\ref{}` inside an R string in inline code needs `"\\ref{...}"`; in a Python-scripted edit that is four backslashes in a non-raw string.
+- Requests for shared code (not blocking):
+  - A state-code -> state name / region map in `R/codes.R` (the xlsx has none); 08 reports states by code and cannot form regions.
+  - `hh_any_regular_oth` (excluding the person) in build_panel.R; 08 builds `reg_oth` locally (same as 02's request).
+  - `fe_label()` helper (same as 04's request); 08 defines `fe_txt` locally.
