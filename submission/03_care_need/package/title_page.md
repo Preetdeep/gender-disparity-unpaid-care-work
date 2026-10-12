@@ -20,3 +20,10 @@
 **Biographical note (for the portal):** Preet Deep Singh is an independent researcher working on gender, time use and household economics in India. His research uses large-scale official survey microdata, including India's Time Use Surveys, to study unpaid work, care and the allocation of time within households.
 
 **JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (exactly 6):** care work; eldercare; long-term care; gender; time use; India
+
+**Highlights:**
+- In Indian households where a member needs special care, women provide about three-quarters of dependent-adult care minutes (76%); where a child under six is present, 80% of childcare.
+- A household care need is associated with 37 more minutes a day of adult care for women and 16 for men (Time Use Survey 2024, 2,641 care-need households).
+- Where the care recipient is aged 60 or above, daughters-in-law provide more care minutes (27%) than sons (17%).
+- Associations between care need and women's paid work are small and inconsistent in sign.
+- People aged 60 and above provide 27% of dependent-adult care, much of it spousal.
