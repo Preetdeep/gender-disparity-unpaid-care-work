@@ -33,7 +33,7 @@ Every manuscript must include `r data_disclosure(V)` in its Data section, so rea
 
 | Paper | Decision |
 |---|---|
-| 01 Outsourcing / technology | Original design impossible (no fuel, laundry or sweeping mode). Redesign chosen from the probe's feasibility counts: (a) paid domestic workers' own time, the "double day" of women who do others' housework (ICATUS 136, enterprise type 8, NIC 97), or (b) the gendered time cost of fetching water and fuel (ICATUS 241-242), with district fixed effects and seasonality. |
+| 01 Water and fuel collection | Original technology design impossible (no fuel, laundry or sweeping mode); retired to `defunct/legacy_papers/`. Rebuilt on diary codes 241 and 242: burden by sex and age, within-household allocation (household FE, position of daughters-in-law), and seasonal displacement (rural sub-round 2 within district, reduced form and 2SLS with first-stage F, agricultural-seasonality checks). Target *World Development*. |
 | 02 Grandmothers | Keep. Drop consumption, caste and religion controls; use the SES proxies and district fixed effects. Drop `special_care`; use `hh_n_recipients`. |
 | 03 Care need | Keep with need redefined: probable care recipients from the roster and diaries (above), members 80+, children under 6. Caregiver-availability analyses are removed. |
 | 04 Secondary care | Keep. SES proxies replace consumption. |

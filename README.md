@@ -14,7 +14,7 @@ Each folder holds `manuscript.Rmd` and `SUBMISSION.md`, which gives the target j
 
 | # | Paper | Question | Target journal | Fallbacks |
 |---|---|---|---|---|
-| 01 | [Water and Fuel Collection](submission/01_water_fuel_collection) | Who fetches water and gathers fuel, how households allocate the burden, and what seasonal rises in collection displace from women's and girls' days | ***World Development*** | J. Development Studies; Feminist Economics; Water Resources and Economics |
+| 01 | [Carrying the Household](submission/01_water_fuel_collection) | Who fetches water and gathers fuel, how households allocate the burden, and what seasonal rises in collection displace from women's and girls' days | ***World Development*** | J. Development Studies; Feminist Economics; Water Resources and Economics |
 | 02 | [Co-resident Grandmothers](submission/02_grandparent_care) | Do grandmothers in three-generation households substitute for mothers' childcare, or add constraints? Diaries for both generations | ***Journal of Population Economics*** | Demography; Population and Development Review; Feminist Economics |
 | 03 | [Who Cares When Care Is Needed?](submission/03_care_need) | The gender division of childcare and dependent-adult care in households that need each, with need built from the roster and the diaries | ***Feminist Economics*** | Population and Development Review; J. Aging & Social Policy; Ageing & Society |
 | 04 | [The Care Hidden in the Margins](submission/04_multitasking_secondary_care) | How much women's work is missed by single-activity accounting: secondary childcare, eating while working, leisure shared with care | ***Review of Economics of the Household*** | Feminist Economics; J. Time Use Research; Social Indicators Research |
