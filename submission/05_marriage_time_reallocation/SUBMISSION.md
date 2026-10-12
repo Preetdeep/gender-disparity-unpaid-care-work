@@ -1,4 +1,4 @@
-# Paper 05: Where Do the Minutes Come From?
+# Paper 05: Married and Never-Married Days
 
 **Target journal:** *Journal of Marriage and Family* (JMF). It is the leading journal on marriage and the household division of labour (South and Spitze 1994; Gupta 1999; Lee and Waite 2005; Nomaguchi and Bianchi 2004).
 **Fallbacks:** *Demographic Research*, *Population Studies*, *Review of Economics of the Household*.
@@ -35,11 +35,11 @@ Structured abstract (Objective, Background, Method, Results, Conclusion; about 2
 
 > Dear Editor,
 >
-> I submit "Where Do the Minutes Come From? Marriage and the Reallocation of Women's and Men's Days in India" for consideration in *Journal of Marriage and Family*.
+> I submit "Married and Never-Married Days: Marriage, Gender and the Full Time Budget in India" for consideration in *Journal of Marriage and Family*.
 >
 > Studies of marriage and time use usually examine one outcome at a time: housework, sleep, social life or exercise. Because a day has exactly 1,440 minutes, the gains and losses must add to zero. Using India's Time Use Survey 2024, I decompose the married versus never-married difference for women and men aged 20 to 39 across all activity divisions. I treat selection into marriage with an age restriction, reweighting, bias-adjusted estimates and an age gradient; compare daughters-in-law in joint households with wives in households without a parent generation; and use linked spouses' diaries to study the within-couple division of unpaid work by wives' employment, relative education and the spousal age gap.
 >
-> The manuscript is original and not under review elsewhere. Replication code is public; the microdata are available from the National Statistics Office, Government of India.
+> The manuscript is original and not under review elsewhere. Code is available from the author on request and will be made public on acceptance; the microdata are available from the National Statistics Office, Government of India.
 >
 > Sincerely,
 > Preet Deep Singh

@@ -1,6 +1,6 @@
 # Title page
 
-**Title:** Where Do the Minutes Come From? Marriage and the Reallocation of Women's and Men's Days in India
+**Title:** Married and Never-Married Days: Marriage, Gender and the Full Time Budget in India
 
 **Target journal:** *Journal of Marriage and Family*
 
