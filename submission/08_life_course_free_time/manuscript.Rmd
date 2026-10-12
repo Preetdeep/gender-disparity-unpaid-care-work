@@ -760,7 +760,7 @@ tab(data.frame(Dimension = Hp$Dimension, Level = Hp$level, N = fn(Hp$n),
                `Conditional gap` = paste0(f1(Hp$cond), " (", f1(Hp$cond_se), ")"), check.names = FALSE),
     caption = paste0("Women-minus-men free-time gap by level of each dimension, minutes per day", syn_note()),
     label = "het", align = c("l", "l", "r", "r", "r"),
-    notes = paste0("Raw: survey-weighted difference in means within the level. Conditional: coefficient on the level-by-woman interaction in a model that also includes the level main effects, the other dimensions, household size, proxy report, and ", fe_txt, " fixed effects. State-level gaps are in Table \\ref{tab:hetstate}. FSU-clustered SEs in parentheses."))
+    notes = paste0("Raw: survey-weighted difference in means within the level. Conditional: coefficient on the level-by-woman interaction in a model that also includes the level main effects, the other dimensions, household size, proxy report, and ", fe_txt, " fixed effects. State-level gaps are in the next table. FSU-clustered SEs in parentheses."))
 ```
 
 ```{r tab-het-state, eval = "state_f" %in% names(DIMS)}
@@ -774,5 +774,5 @@ L <- half(seq_len(hh)); Rr <- half(setdiff(seq_len(nrow(Hs)), seq_len(hh)))
 if (nrow(Rr) < nrow(L)) Rr[nrow(L), ] <- ""
 tab(cbind(L, Rr), caption = paste0("Women-minus-men free-time gap by state, minutes per day", syn_note()),
     label = "hetstate", align = rep(c("l", "r", "r", "r"), 2),
-    notes = paste0("States are identified by the code in the unit-level file, which carries no dictionary of names. Raw: survey-weighted difference in means within the state. Conditional: coefficient on the state-by-woman interaction in the model described in Table \\ref{tab:het} (state main effects are absorbed by the ", fe_txt, " fixed effects). FSU-clustered SEs in parentheses."))
+    notes = paste0("States are identified by the code in the unit-level file, which carries no dictionary of names. Raw: survey-weighted difference in means within the state. Conditional: coefficient on the state-by-woman interaction in the model of the previous table (state main effects are absorbed by the ", fe_txt, " fixed effects). FSU-clustered SEs in parentheses."))
 ```
