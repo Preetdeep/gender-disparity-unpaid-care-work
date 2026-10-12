@@ -25,6 +25,8 @@ TUS_ROOT <- normalizePath("../..")
 source(file.path(TUS_ROOT, "R", "setup.R"))
 pd <- load_panel()
 V  <- panel_validation(pd)
+# Diaries = person-days in the panel (V$n_persons also counts roster-only members without a diary)
+n_diaries <- if (!is.null(V$n_diarists)) V$n_diarists else nrow(pd)
 require_cols(pd, c("marital", "rel", "spouse_pid", "edu_tier", "employed"), "Paper 05")
 ```
 
@@ -398,7 +400,7 @@ ag_dir <- iff(is_pos(k_ag), "larger", iff(is_neg(k_ag), "smaller", "unrelated"))
 
 \textbf{Background:} Studies of marriage and time use usually examine one outcome at a time, yet a day has 1,440 minutes, so gains and losses across activities must sum to zero.
 
-\textbf{Method:} Using all `r fn(V$n_persons)` diaries of India's Time Use Survey 2024, I compare `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine exhaustive activity divisions, net of single-year age, own education, urban residence, district and diary day. Selection into marriage is addressed by restricting to ages 20 to 26, reweighting and bias adjustment. `r fn(nrow(C))` linked couples provide within-household comparisons.
+\textbf{Method:} Using all `r fn(n_diaries)` diaries of India's Time Use Survey 2024, I compare `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine exhaustive activity divisions, net of single-year age, own education, urban residence, district and diary day. Selection into marriage is addressed by restricting to ages 20 to 26, reweighting and bias adjustment. `r fn(nrow(C))` linked couples provide within-household comparisons.
 
 \textbf{Results:} Married women reported `r mins(k_uw)` of unpaid domestic and care work per day than never-married women; for men the difference was `r mins(k_um)`. `r iff(tot_neg > 0, paste0("The largest offsetting reduction for women was in ", src_name(1), " (", src_min(1), " minutes)."), "No other division fell detectably.")` Wives did `r mins(k_cg)` of unpaid work than their husbands, and their share of the couple's unpaid work was `r pctx(csh$est, 0)`. `r iff(is_sig(k_dil$unpaid), paste0("Daughters-in-law of the household head did ", mins(k_dil$unpaid), " of unpaid work than wives in households without a parent generation."), "Unpaid work did not differ detectably between daughters-in-law of the head and wives in households without a parent generation.")`
 
@@ -473,9 +475,9 @@ The theories above make overlapping predictions about the size of the marriage g
 
 ## Data
 
-The Time Use Survey 2024, conducted by India's National Statistics Office from January to December 2024, records the activities of every household member aged six and above over the 24 hours from 4:00 a.m. on the day before the interview [@nso2025tus]. Activities are coded to the three-digit level of ICATUS 2016 [@un2016icatus]. Where activities overlap, the survey flags one as the major activity. I use every activity record (`r fn(V$n_rows)` records from `r fn(V$n_persons)` diaries in `r fn(V$n_households)` households) and aggregate major activities to the person-day, so each diary partitions 1,440 minutes; `r pct(V$share_diaries_1440)` of diaries do so exactly. Some diaries are reported by another household member; I control for proxy reporting and drop proxy diaries in a robustness check. All estimates use the survey multipliers, and standard errors are clustered on the first-stage unit, the primary sampling unit [@abadie2023cluster; @solon2015weighting].
+The Time Use Survey 2024, conducted by India's National Statistics Office from January to December 2024, records the activities of every household member aged six and above over the 24 hours from 4:00 a.m. on the day before the interview [@nso2025tus]. Activities are coded to the three-digit level of ICATUS 2016 [@un2016icatus]. Where activities overlap, the survey flags one as the major activity. I use every activity record (`r fn(V$n_rows)` records from `r fn(n_diaries)` diaries in `r fn(V$n_households)` households) and aggregate major activities to the person-day, so each diary partitions 1,440 minutes; `r pct(V$share_diaries_1440)` of diaries do so exactly. Some diaries are reported by another household member; I control for proxy reporting and drop proxy diaries in a robustness check. All estimates use the survey multipliers, and standard errors are clustered on the first-stage unit, the primary sampling unit [@abadie2023cluster; @solon2015weighting].
 
-`r data_disclosure(V)` For this paper, the missing items matter in two ways. I cannot control for caste or religion, both of which are associated with age at marriage, women's seclusion and the division of domestic work, and I cannot use household consumption as a measure of economic status. District fixed effects (`r if (is.na(n_dist)) "--" else fn(n_dist)` districts in the main sample) absorb differences in these characteristics between districts, but not within them. The roster-based socioeconomic proxies raise a further problem, discussed under Measures: they describe the household in which a person lives at the time of the survey, which for most women is not the household in which they grew up.
+`r data_disclosure(V)` For this paper, the missing items matter in two ways. I cannot control for caste or religion, both of which are associated with age at marriage, women's seclusion and the division of domestic work, and I cannot use household consumption as a measure of economic status. The district fixed effects (`r if (is.na(n_dist)) "--" else fn(n_dist)` districts in the main sample) remove differences in these characteristics between districts, but not within them. The roster-based socioeconomic proxies raise a further problem, discussed under Measures: they describe the household in which a person lives at the time of the survey, which for most women is not the household in which they grew up.
 
 ## Samples
 
