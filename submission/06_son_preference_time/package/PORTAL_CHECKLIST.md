@@ -4,7 +4,7 @@
 **Status:** NOT submitted. Doc must approve and submit.
 
 ## Files
-- `manuscript_anonymised.pdf`: anonymised main text. 9,897 words including references and tables (typical JDS range 8,000–10,000 inclusive of references; Doc should re-confirm on the live instructions page, which blocked automated fetch). Unstructured abstract 149 words (limit 200).
+- `manuscript_anonymised.pdf`: anonymised main text. about 9,950 words including references and tables (main text; heterogeneity and mothers tables in the supplement) (typical JDS range 8,000–10,000 inclusive of references; Doc should re-confirm on the live instructions page, which blocked automated fetch). Unstructured abstract 149 words (limit 200).
 - `online_supplement.pdf`: appendix tables (S1–).
 - `title_page.md`, `cover_letter.md`.
 
