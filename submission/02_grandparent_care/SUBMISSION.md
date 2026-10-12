@@ -9,15 +9,21 @@ Same-day diaries for mothers and the grandparents who live with them separate th
 
 ## Analyses in the manuscript
 
-Mothers' full-day time use; childcare by every provider and adult-total childcare (no mechanical mother+grandmother sum); the older generation's own trade-offs (grandmothers vs grandfathers, a young grandchild present); gradients by grandmother age (<60 / 60+), grandmother employment, and grandmother vs grandfather; heterogeneity by generation, urban/rural, education and number of under-6s; a placebo on mothers whose youngest child is 6-14; robustness (sole married woman, head-level only, linked husband, self-report, other adult women, household size, generation control, unweighted, any grandparent, extensive margin, Oster).
+Mothers' full-day time use; childcare by every provider and adult-total childcare (no mechanical mother+grandmother sum); the older generation's own trade-offs (grandmothers vs grandfathers, a young grandchild present); gradients by grandmother age (<60 / 60+), grandmother employment, and grandmother vs grandfather; heterogeneity by generation, urban/rural, education and number of under-6s; a placebo on mothers whose youngest child is 6-14; robustness (sole married woman, head-level only, linked husband, self-report, other adult women, household size, generation control, diary-based care recipients, unrestricted regular-employment proxy, state instead of district FE, unweighted, any grandparent, extensive margin, Oster).
+
+## Data constraints (real 2024 file)
+
+The only file is the person-level `TimeUse106PER.dta` (10,211,478 activity records, 139,487 households, 454,192 persons aged 6+). It has no household questionnaire (Block 4): no consumption, caste, religion, special-care need, caregiver availability, fuel, laundry/sweeping mode, land or dwelling. The paper therefore uses: SES proxies (`head_edu_tier`, `hh_max_edu_tier`, and a regular-salaried indicator for members other than the mother and her linked grandparents, built in the Rmd from `pas`); roster-based need (other members with usual status "disabled", `hh_n_80plus`), with `hh_n_recipients` (roster or diary) in a robustness row; district fixed effects (`dist_id`), day-of-week and sub-round fixed effects. Under-6 children are counted directly from the roster. The Data section prints `data_disclosure(V)`, and the limitations state the missing consumption, caste and religion controls.
 
 ## Before submitting
 
 - [ ] Real-data run: `TUS_DTA=/path/TimeUse106PER.dta Rscript run_all.R 02`.
-- [ ] Check `validation.txt`: `under6_method` must be the household-size residual, and `share_hh_negative_under6_residual` should be about 0. If not, the household-size column is mis-mapped.
+- [ ] Check `validation.txt`: `under6_method` must be "direct count (file contains members under 6)", `household_file` = "NONE", `n_roster_only_age6plus` small, and `n_districts` plausible for an all-India sample (several hundred). The Data section prints these through `data_disclosure(V)`.
+- [ ] Check that `sub_round` is in the panel (the main specification then includes sub-round FE and the strategy text says so automatically).
+- [ ] Check the share of mothers' households with `hh_n_80plus > 0` and other disabled members; if almost none, say so in the text.
 - [ ] Check the appendix sample-construction table: how many head-level women were excluded as likely grandmothers, and how many junior-level mothers have no grandmother. The junior-level heterogeneity row is reported only if both cells have at least 30 mothers. Otherwise the text says why it is not estimable.
-- [ ] Check that the self-links count is 0 and the link-consistency share is 100% (Section 4.3 prints both).
-- [ ] `employed` depends on the PAS code scheme (shared-code issue in WORKLOG). Re-knit after the lead's CODE fix.
+- [ ] Check that the self-links count is 0 and the link-consistency share is 100% (the "Identifying grandparents" subsection prints both).
+- [ ] `employed`, the regular-employment proxy and the disability need count depend on the PAS code scheme; the probe detected the official ("nso") scheme. Confirm `validation$code_scheme == "nso"`.
 - [ ] Read every iff() branch once on real data: the abstract, introduction, discussion and conclusion choose their wording from the estimates.
 - [ ] Choose the title from the sign of the headline result. The current title is a question.
 - [ ] Optional strengthening: an instrument for co-residence (for example grandparent mortality by state and age, or the husband's birth order if the roster ever records it).
