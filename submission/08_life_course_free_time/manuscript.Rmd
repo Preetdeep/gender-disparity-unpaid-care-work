@@ -68,9 +68,7 @@ A[, `:=`(
   pensioner  = as.integer(pas %in% PAS$pensioner),
   sector_f   = factor(fifelse(urban == 1, "Urban", "Rural"), levels = c("Rural", "Urban")),
   # Socioeconomic proxies (no consumption in the file): highest education among members 15+,
-  # any member whose usual status is regular wage/salaried, and own usual activity status.
-  reg_f      = factor(fifelse(hh_any_regular == 1, "Regular salaried member", "No regular salaried member"),
-                      levels = c("No regular salaried member", "Regular salaried member")),
+  # another member whose usual status is regular wage/salaried (reg_oth, below), and own usual activity status.
   emp_type   = factor(fcase(pas_group %in% c("Self-employed"), "Self-employed",
                             pas_group %in% c("Unpaid family helper"), "Unpaid family helper",
                             pas_group %in% c("Regular wage/salaried"), "Regular wage/salaried",
@@ -81,6 +79,12 @@ A[, `:=`(
                                  "Casual labour", "Domestic duties", "Student, unemployed or other")),
   state_f    = factor(state)
 )]
+# hh_any_regular counts the person too, so for a regular-wage worker it is set by their own job. Use
+# "any OTHER diarist in the household is regular wage/salaried" instead (own status enters via emp_type).
+nreg <- pd[, .(nr = sum(pas %in% CODE$pas_regular, na.rm = TRUE)), by = hh_id]
+A[nreg, on = "hh_id", reg_oth := as.integer(i.nr - as.integer(pas %in% CODE$pas_regular) > 0)]
+A[, reg_f := factor(fifelse(reg_oth == 1, "Regular salaried other member", "No regular salaried other member"),
+                    levels = c("No regular salaried other member", "Regular salaried other member"))]
 # Fixed effects: district (default of fe()), diary day of week, and sub-round (quarter) where recorded.
 FE_VARS <- c("dist_id", "dow", "sub_round")
 fe_used <- function(d) {
@@ -210,7 +214,7 @@ comp_same_sign <- isTRUE(sign(kt["comp"]) == sign(kt["within"]))
 ```{r heterogeneity}
 # Caste and religion are not in the 2024 person-level file, so they cannot be dimensions here.
 DIMS <- c(stage = "Family stage", edu_tier = "Own education", hh_max_edu_tier = "Household's highest education",
-          reg_f = "Regular salaried member in household", emp_type = "Own usual activity status",
+          reg_f = "Regular salaried other member in household", emp_type = "Own usual activity status",
           sector_f = "Sector", state_f = "State")
 DIMS <- DIMS[names(DIMS) %in% names(A) & vapply(names(DIMS), function(v) uniqueN(na.omit(A[[v]])) > 1, logical(1))]
 # State main effects are absorbed by the district fixed effects, so state enters only through its interaction.
@@ -227,23 +231,27 @@ wsd_net <- function(g, se, p) {
   sqrt(max(0, sum(p * (g - sum(p * g))^2) - sum(p * se^2)))
 }
 
+MIN_CELL <- 30   # minimum persons of each sex in a level for a level-specific gap
 het_dim <- function(dv) {
   lev <- levels(droplevels(as.factor(A[[dv]])))
   raw <- rbindlist(lapply(lev, function(lv) {
     dd <- A[as.character(A[[dv]]) == lv]
     e <- gwm(dd, "free_time")
-    data.table(level = lv, raw = e$est, raw_se = e$se, w = sum(dd$weight), n = nrow(dd))
+    data.table(level = lv, raw = e$est, raw_se = e$se, w = sum(dd$weight), n = nrow(dd),
+               n_min_sex = min(dd[sex == "Men", .N], dd[sex == "Women", .N]))
   }))
   # ctrl() cannot parse the two-argument i(); build the interaction terms directly.
   rhs <- paste0("i(", dv, ", female) + i(", dv, ") + ",
                 ctrl(A, c(ctrl_all[names(ctrl_all) != dv], "hh_size", "proxy_report")))
   m <- reg(as.formula(paste("free_time ~", rhs, FE)), A)
+  raw[n_min_sex < MIN_CELL, `:=`(raw = NA_real_, raw_se = NA_real_)]
   raw[, `:=`(cond = NA_real_, cond_se = NA_real_)]
   if (!is.null(m)) {
     ct <- coeftable(m)
     for (i in seq_len(nrow(raw))) {
       nm <- paste0(dv, "::", raw$level[i], ":female")
-      if (nm %in% rownames(ct)) raw[i, `:=`(cond = ct[nm, 1], cond_se = ct[nm, 2])]
+      # A level with (almost) no men or no women identifies no gap: the interaction would absorb the level effect.
+      if (nm %in% rownames(ct) && raw$n_min_sex[i] >= MIN_CELL) raw[i, `:=`(cond = ct[nm, 1], cond_se = ct[nm, 2])]
     }
   }
   raw[, dim := dv][]
@@ -294,7 +302,7 @@ pov_gap_both_lines <- is_pos(g_p50) && is_pos(g_p60)
 
 # ---- Time poverty by socioeconomic position and sector (replaces the time x consumption cross,
 # which needs consumption; the 2024 person-level file has none) ----
-SES_DIMS <- c(hh_max_edu_tier = "Household's highest education", reg_f = "Regular salaried member",
+SES_DIMS <- c(hh_max_edu_tier = "Household's highest education", reg_f = "Regular salaried other member",
               sector_f = "Sector")
 SP <- rbindlist(lapply(names(SES_DIMS), function(dv) {
   lev <- levels(droplevels(as.factor(A[[dv]])))
@@ -312,24 +320,24 @@ edu_lev <- levels(droplevels(A$hh_max_edu_tier))
 ses_grad <- function(sx, y = "tp60") {
   d <- A[sex == sx]
   list(edu = est_gap(d, y, "hh_max_edu_tier", edu_lev[1], edu_lev[length(edu_lev)]),
-       reg = est_gap(d, y, "hh_any_regular", 0, 1),
+       reg = est_gap(d, y, "reg_oth", 0, 1),
        urb = est_gap(d, y, "urban", 0, 1))
 }
 sg_w <- ses_grad("Women"); sg_m <- ses_grad("Men")
 # Conditional version for women: all three proxies together, with family stage, own education,
 # household size, proxy report and fixed effects.
 AW <- A[sex == "Women"]
-m_tp_w <- reg(as.formula(paste("tp60 ~", ctrl(AW, c("i(hh_max_edu_tier)", "hh_any_regular", "urban", "i(stage)",
-                                                   "i(edu_tier)", "hh_size", "proxy_report")), fe(AW, FE_VARS))), AW)
-c_reg_w <- coef_of(m_tp_w, "hh_any_regular")
+m_tp_w <- reg(as.formula(paste("tp60 ~", ctrl(AW, c("i(hh_max_edu_tier)", "reg_oth", "urban", "i(stage)",
+                                                   "i(edu_tier)", "i(emp_type)", "hh_size", "proxy_report")), fe(AW, FE_VARS))), AW)
+c_reg_w <- coef_of(m_tp_w, "reg_oth")
 c_edu_w <- coef_of(m_tp_w, paste0("hh_max_edu_tier::", edu_lev[length(edu_lev)]))
 ses_poor_w  <- is_neg(sg_w$edu) || is_neg(sg_w$reg)     # time poverty LOWER in better-off households
 ses_rich_w  <- is_pos(sg_w$edu) || is_pos(sg_w$reg)     # time poverty HIGHER in better-off households
 ses_mixed_w <- ses_poor_w && ses_rich_w
 gap_by_ses_sig <- SP[!is.na(est), mean(est > 0 & p < 0.05)]
 gap_pos_every_ses <- isTRUE(gap_by_ses_sig == 1)
-ses_pos <- c(if (is_pos(sg_w$edu)) "a member with the top education tier", if (is_pos(sg_w$reg)) "a regular salaried member")
-ses_neg <- c(if (is_neg(sg_w$edu)) "a member with the top education tier", if (is_neg(sg_w$reg)) "a regular salaried member")
+ses_pos <- c(if (is_pos(sg_w$edu)) "a member with the top education tier", if (is_pos(sg_w$reg)) "another member in regular salaried employment")
+ses_neg <- c(if (is_neg(sg_w$edu)) "a member with the top education tier", if (is_neg(sg_w$reg)) "another member in regular salaried employment")
 ses_pos_txt <- paste(ses_pos, collapse = " or "); ses_neg_txt <- paste(ses_neg, collapse = " or ")
 ses_sentence <- if (ses_mixed_w) {
   paste0("Women in households with ", ses_neg_txt, " are less often time-poor, but women in households with ",
@@ -352,7 +360,8 @@ ret_out <- c(free_time = "Free time", free_norel = "Free time excl. religious pr
              unpaid_total = "Unpaid domestic and care work", total_work = "Total work",
              sleep = "Sleep")
 # No consumption, caste or religion in the file: the household's highest education is the SES control.
-# hh_any_regular is not used here because a regular-wage worker's own status sets it (mechanical).
+# Regular salaried employment in the household is not used here: a worker's own regular job sets
+# hh_any_regular, and reg_oth would compare pensioners with workers on their spouses' jobs.
 rc <- ctrl(R, c("i(age)", "urban", "i(edu_tier)", "i(hh_max_edu_tier)", "hh_size", "proxy_report"))
 FEr <- fe(R, FE_VARS)
 ret_fit <- function(y, sx) {
@@ -450,7 +459,7 @@ In high-income countries, a large literature has documented how leisure is distr
 
 A single national average hides when in life the gap is incurred. A young unmarried woman, a mother of a toddler and a grandmother live very different days, and so do their male counterparts. If the gap is concentrated in a few family stages, policy that targets women by household economic status alone will reach the wrong people at the wrong time. This paper describes the free-time gap over the life course using all `r fn(N_DIARY)` diaries in India's Time Use Survey 2024 [@nso2025tus]. I define seven family stages from age, marital status and household composition. Free time is the sum of ICATUS 2016 divisions 7 and 8: socialising, community participation, religious practice, culture, leisure, mass media and sports [@un2016icatus].
 
-The analysis has six parts. First, I estimate the gender gap in free time and in total work by family stage. Second, a Kitagawa decomposition separates the national gap into a within-stage component and a component due to men and women being distributed differently across stages [@kitagawa1955components]. Third, I measure time poverty with a relative free-time line at 50% and 60% of the median, with its poverty-gap index, and with a long-hours line on total work, and I show how time poverty varies with household socioeconomic position and sector. The two-dimensional time-and-income measures of @burchardt2008time and @merz2014time cannot be computed, because the 2024 unit-level file contains no income or consumption. Fourth, I report every main result with and without religious practice in free time, because whether worship is discretionary is contested. Fifth, I compare the conditional dispersion of the gap across family stages with its dispersion across socioeconomic position and location: own education, the household's highest education, whether a household member holds a regular salaried job, own usual activity status, sector and state. The file does not record caste or religion, so these two dimensions of social position, central to stratification in India, cannot be examined here. Sixth, I examine two transitions that the life-course literature emphasises: retirement, by comparing pensioners with workers aged 55 to 70, and the journey to work, by measuring commuting among the employed.
+The analysis has six parts. First, I estimate the gender gap in free time and in total work by family stage. Second, a Kitagawa decomposition separates the national gap into a within-stage component and a component due to men and women being distributed differently across stages [@kitagawa1955components]. Third, I measure time poverty with a relative free-time line at 50% and 60% of the median, with its poverty-gap index, and with a long-hours line on total work, and I show how time poverty varies with household socioeconomic position and sector. The two-dimensional time-and-income measures of @burchardt2008time and @merz2014time cannot be computed, because the 2024 unit-level file contains no income or consumption. Fourth, I report every main result with and without religious practice in free time, because whether worship is discretionary is contested. Fifth, I compare the conditional dispersion of the gap across family stages with its dispersion across socioeconomic position and location: own education, the household's highest education, whether another household member holds a regular salaried job, own usual activity status, sector and state. The file does not record caste or religion, so these two dimensions of social position, central to stratification in India, cannot be examined here. Sixth, I examine two transitions that the life-course literature emphasises: retirement, by comparing pensioners with workers aged 55 to 70, and the journey to work, by measuring commuting among the employed.
 
 The headline findings are as follows. Women have `r diff_txt(g_ft)` free time than men, and do `r diff_txt(g_tw)` total work. In point estimates, the gap is widest for persons "`r tolower(worst_stage)`" (`r est_se(gst[stage == worst_stage])`) and narrowest for "`r tolower(best_stage)`" (`r est_se(gst[stage == best_stage])`). Of the national gap of `r f1(k_total)` minutes, `r f1(kt["within"])` minutes (bootstrap SE `r f1(kse[1])`) arise within stages and `r f1(kt["comp"])` minutes (SE `r f1(kse[2])`) from stage composition. `r iff(stage_dominates, 'Net of sampling noise, the conditional gap is more dispersed across family stages than across any socioeconomic or geographic dimension the file records, so life-course position organises the gender gap in leisure more than socioeconomic position does.', paste0('Net of sampling noise, the conditional gap is at least as dispersed across ', tolower(DIMS[[dim_other_max]]), ' as across family stages, so socioeconomic position or location shapes the gap as much as life-course position does.'))` Women are `r diff_pp(g_p60, "more", "less")` likely than men to be time-poor at the 60% line, and `r diff_pp(g_p50, "more", "less")` at the 50% line. `r ses_sentence`
 
@@ -496,7 +505,7 @@ Time-use surveys in the Global South have expanded rapidly, and they show that m
 
 The Time Use Survey 2024 was fielded by the National Statistics Office between January and December 2024 [@nso2025tus]. Members aged six and above in each sampled household reported their activities over the 24 hours from 4 a.m. on the day before the interview, in 30-minute slots following the design of the 2019 round, with each activity coded to the ICATUS 2016 three-digit classification [@un2016icatus]. Each slot can hold several activities, one of which is flagged as the major activity. I use every activity record (`r fn(V$n_rows)` records, `r fn(N_DIARY)` diaries, `r fn(V$n_households)` households in `r fn(V$n_fsu)` first-stage units). Major activities are summed to the person-day, so each diary sums to 1,440 minutes (`r pct(V$share_diaries_1440)` of diaries do). Minor activity records are used only to measure secondary activities during free time. Table \ref{tab:validation} in the appendix summarises the construction checks.
 
-`r data_disclosure(V)` Three analyses are therefore not possible in this paper: the joint time-and-consumption poverty measure, gradients of the free-time gap by consumption, and any comparison by caste or religion. Socioeconomic position is measured by the household proxies above and by the person's own education and usual activity status. Every regression includes `r fe_txt` fixed effects.
+`r data_disclosure(V)` Three analyses are therefore not possible in this paper: the joint time-and-consumption poverty measure, gradients of the free-time gap by consumption, and any comparison by caste or religion. This paper refines the regular-salaried proxy to members other than the person, because a regular-wage worker's own job would otherwise set it; socioeconomic position is then measured by these household proxies and by the person's own education and usual activity status. Every regression includes `r fe_txt` fixed effects.
 
 The analysis sample is the `r fn(n_A0)` men and women aged 15 and above. `r iff(n_nostage > 0, paste0('A further ', fn(n_nostage), ' married persons below 60 whose number of children under six cannot be determined from the roster are excluded, leaving ', fn(nrow(A)), ' persons.'), paste0('Every person can be assigned to a family stage, so the sample is ', fn(nrow(A)), ' persons.'))` All estimates use the survey multipliers.
 
@@ -523,7 +532,7 @@ Children under six do not keep diaries`r iff(grepl("^direct", V$under6_method), 
 
 ## Poverty lines
 
-The relative time-poverty lines are 50% and 60% of the weighted median of free time among persons 15 and above (`r f0(med_ft)` minutes, so the lines are `r f0(z50)` and `r f0(z60)` minutes). At the 60% line I also report the poverty gap index, the mean of the proportional shortfall below the line [@foster1984class]. The line for free time excluding religious practice is 60% of its own median (`r f0(med_fn)` minutes). The long-hours line follows the logic of @bardasi2010working: total work above 1.5 times its median (`r f0(med_tw)` minutes). The file has no consumption expenditure, so no consumption-poverty line is drawn and the two-dimensional measure is not computed. Instead I tabulate the 60% free-time headcount and the long-hours rate by the household's highest education tier among members aged 15 and above, by whether any member's usual status is regular wage or salaried employment, and by sector, and estimate the socioeconomic gradients of women's time poverty with and without controls.
+The relative time-poverty lines are 50% and 60% of the weighted median of free time among persons 15 and above (`r f0(med_ft)` minutes, so the lines are `r f0(z50)` and `r f0(z60)` minutes). At the 60% line I also report the poverty gap index, the mean of the proportional shortfall below the line [@foster1984class]. The line for free time excluding religious practice is 60% of its own median (`r f0(med_fn)` minutes). The long-hours line follows the logic of @bardasi2010working: total work above 1.5 times its median (`r f0(med_tw)` minutes). The file has no consumption expenditure, so no consumption-poverty line is drawn and the two-dimensional measure is not computed. Instead I tabulate the 60% free-time headcount and the long-hours rate by the household's highest education tier among members aged 15 and above, by whether any other member's usual status is regular wage or salaried employment, and by sector, and estimate the socioeconomic gradients of women's time poverty with and without controls.
 
 # Methods
 
@@ -535,7 +544,7 @@ $$
 $$
 The within-stage component is the gap that would remain if men and women were distributed identically across stages. The composition component arises because, for example, women marry younger than men and are more often widowed. The symmetric weights avoid the index-number problem of choosing men or women as the reference, which arises in the regression-based analogue [@oaxaca1973male; @blinder1973wage]. Standard errors for the two components come from `r B` bootstrap replications that resample first-stage units.
 
-**Heterogeneity.** For each dimension $D$ (family stage, own education, the household's highest education among members 15+, whether any household member is in regular wage or salaried employment, own usual activity status, sector and state) I estimate
+**Heterogeneity.** For each dimension $D$ (family stage, own education, the household's highest education among members 15+, whether any other household member is in regular wage or salaried employment, own usual activity status, sector and state) I estimate
 $$
 F_i = \sum_{d} \gamma_d\, \mathbf{1}[D_i = d]\times W_i + \sum_d \alpha_d\,\mathbf{1}[D_i=d] + X_i'\beta + \mu_{s(i)} + \tau_{t(i)} + \varepsilon_i,
 $$
@@ -633,10 +642,10 @@ tab(data.frame(Dimension = spt$Dimension, Level = spt$level, Men = pct(spt$Men),
     caption = paste0("Time poverty by household socioeconomic position and sector", syn_note()), label = "povses",
     align = c("l", "l", "r", "r", "r", "r", "r"),
     notes = paste0("Persons 15+. Men and Women: share with free time below 60% of the median (", f0(z60),
-                   " minutes). Long hours: total work above 1.5 times the median. Gaps are women minus men in percentage points. Household's highest education is the highest tier among members aged 15+. Regular salaried member: any member whose usual principal status is regular wage or salaried employment. The file has no consumption, caste or religion. Survey-weighted; FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+                   " minutes). Long hours: total work above 1.5 times the median. Gaps are women minus men in percentage points. Household's highest education is the highest tier among members aged 15+. Regular salaried other member: any member other than the person whose usual principal status is regular wage or salaried employment. The file has no consumption, caste or religion. Survey-weighted; FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
 ```
 
-The file has no consumption, so the joint time-and-consumption measure cannot be computed. Table \ref{tab:povses} shows instead how time poverty varies with household socioeconomic position and sector. Among women, the 60% headcount in households whose most educated member is in the tier "`r tolower(edu_lev[length(edu_lev)])`" is `r diff_pp(sg_w$edu, "higher", "lower")` than in households whose most educated member is in the tier "`r tolower(edu_lev[1])`"; among men it is `r diff_pp(sg_m$edu, "higher", "lower")`. Women in households with a regular salaried member have a headcount `r diff_pp(sg_w$reg, "higher", "lower")` than other women (men: `r diff_pp(sg_m$reg, "higher", "lower")`), and urban women have a headcount `r diff_pp(sg_w$urb, "higher", "lower")` than rural women. `r iff(!is.na(c_reg_w$est) && !is.na(c_edu_w$est), paste0("Holding family stage, own education, sector, household size and the fixed effects constant, a regular salaried member is associated with a headcount ", diff_pp(c_reg_w, "higher", "lower"), " for women, and the top household education tier with a headcount ", diff_pp(c_edu_w, "higher", "lower"), " than the bottom tier."), "")` `r ses_sentence` `r iff(gap_pos_every_ses, "Women are significantly more often time-poor than men in every socioeconomic group and in both sectors.", "The gender gap in time poverty is not significantly positive in every socioeconomic group and sector.")` These proxies describe a household's position, not its resources: a regular salaried job or a graduate in the household indicates higher and more stable income, but households with the same proxies can differ widely in consumption.
+The file has no consumption, so the joint time-and-consumption measure cannot be computed. Table \ref{tab:povses} shows instead how time poverty varies with household socioeconomic position and sector. Among women, the 60% headcount in households whose most educated member is in the tier "`r tolower(edu_lev[length(edu_lev)])`" is `r diff_pp(sg_w$edu, "higher", "lower")` than in households whose most educated member is in the tier "`r tolower(edu_lev[1])`"; among men it is `r diff_pp(sg_m$edu, "higher", "lower")`. Women in households with another member in regular salaried employment have a headcount `r diff_pp(sg_w$reg, "higher", "lower")` than other women (men: `r diff_pp(sg_m$reg, "higher", "lower")`), and urban women have a headcount `r diff_pp(sg_w$urb, "higher", "lower")` than rural women. `r iff(!is.na(c_reg_w$est) && !is.na(c_edu_w$est), paste0("Holding family stage, own education and activity status, sector, household size and the fixed effects constant, another regular salaried member is associated with a headcount ", diff_pp(c_reg_w, "higher", "lower"), " for women, and the top household education tier with a headcount ", diff_pp(c_edu_w, "higher", "lower"), " than the bottom tier."), "")` `r ses_sentence` `r iff(gap_pos_every_ses, "Women are significantly more often time-poor than men in every socioeconomic group and in both sectors.", "The gender gap in time poverty is not significantly positive in every socioeconomic group and sector.")` These proxies describe a household's position, not its resources: a regular salaried job or a graduate in the household indicates higher and more stable income, but households with the same proxies can differ widely in consumption.
 
 ```{r fig-pov-stage, fig.cap = paste0("Time-poverty headcount by family stage, sex and poverty line", syn_note()), fig.height = 3.8}
 PS <- A[, .(p50 = wmean(tp50, weight), p60 = wmean(tp60, weight)), by = .(stage, sex)]
@@ -740,7 +749,7 @@ Fourth, retirement and commuting show how transitions in and around paid work re
 
 The design is a single cross-section. Stages are positions occupied by different people, not transitions experienced by the same people, so cohort differences are confounded with life-course differences. The single diary day records one day per person; it estimates group means without bias but overstates the dispersion of individual time use, which matters for headcount measures of time poverty [@frazis2012think]. Free time is defined by activity, so it includes activities that some respondents experience as obligations and excludes leisure taken while doing something else. No measure of experienced well-being is available, so the paper cannot say whether the minutes women lose are minutes they would have enjoyed [@kahneman2004drm]. Children under six are counted from the household roster, at the household level, so a stage does not identify a person's own children. Finally, the dispersion comparison across dimensions depends on how finely each dimension is divided, even after the correction for sampling noise.
 
-The unit-level file lacks the household questionnaire, so the paper has no measure of household consumption, caste or religion. Three analyses that the literatures on time poverty and social stratification call for are therefore not possible: a joint time-and-consumption poverty measure, including the time-adjusted income poverty line of @zacharias2012why; gradients of the free-time gap and of time poverty by consumption; and comparisons by caste and religion. The socioeconomic proxies are coarse. They indicate economic position without measuring resources, the household's highest education and a regular salaried member partly reflect the person's own education and job, and households with the same proxies can differ widely in consumption. District fixed effects absorb differences in income, caste composition and infrastructure between districts, but not within them, so if time-poor women were concentrated in particular castes or religious communities within districts, this paper could not detect it. Merging the household-level file would close these gaps.
+The unit-level file lacks the household questionnaire, so the paper has no measure of household consumption, caste or religion. Three analyses that the literatures on time poverty and social stratification call for are therefore not possible: a joint time-and-consumption poverty measure, including the time-adjusted income poverty line of @zacharias2012why; gradients of the free-time gap and of time poverty by consumption; and comparisons by caste and religion. The socioeconomic proxies are coarse. They indicate economic position without measuring resources, the household's highest education partly reflects the person's own education, and households with the same proxies can differ widely in consumption. District fixed effects absorb differences in income, caste composition and infrastructure between districts, but not within them, so if time-poor women were concentrated in particular castes or religious communities within districts, this paper could not detect it. Merging the household-level file would close these gaps.
 
 # Conclusion
 
@@ -759,7 +768,9 @@ Using every diary in India's Time Use Survey 2024, this paper has traced the gen
 # Appendix {-}
 
 ```{r tab-validation}
-tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+vt <- validation_table(pd)
+if (!is.null(V$n_roster_only)) vt <- rbind(vt[1:2, ], data.frame(Check = "Roster members without a diary", Value = fn(V$n_roster_only)), vt[-(1:2), ])
+tab(vt, caption = "Construction and validation of the person-day panel", label = "validation",
     align = c("l", "r"), notes = "All activity records are used; no row sampling.")
 ```
 
@@ -772,7 +783,7 @@ tab(data.frame(Dimension = Hp$Dimension, Level = Hp$level, N = fn(Hp$n),
                `Conditional gap` = paste0(f1(Hp$cond), " (", f1(Hp$cond_se), ")"), check.names = FALSE),
     caption = paste0("Women-minus-men free-time gap by level of each dimension, minutes per day", syn_note()),
     label = "het", align = c("l", "l", "r", "r", "r"),
-    notes = paste0("Raw: survey-weighted difference in means within the level. Conditional: coefficient on the level-by-woman interaction in a model that also includes the level main effects, the other dimensions, household size, proxy report, and ", fe_txt, " fixed effects. State-level gaps are in the next table. FSU-clustered SEs in parentheses."))
+    notes = paste0("Raw: survey-weighted difference in means within the level. Gaps are not reported (--) for levels with fewer than ", MIN_CELL, " men or women. Conditional: coefficient on the level-by-woman interaction in a model that also includes the level main effects, the other dimensions, household size, proxy report, and ", fe_txt, " fixed effects. State-level gaps are in the next table. FSU-clustered SEs in parentheses."))
 ```
 
 ```{r tab-het-state, eval = "state_f" %in% names(DIMS)}

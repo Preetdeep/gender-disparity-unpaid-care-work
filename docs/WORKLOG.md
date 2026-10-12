@@ -329,3 +329,27 @@ Citations: all [@key] resolve in all 8 papers, and refs_local.bib is in YAML in 
   - `validation_table()` labels `V$n_persons` "Person-days (diaries)", but it now includes roster-only members; use `V$n_diarists`.
   - `data_disclosure()`: the household-items list omits "caregiver availability" (STRATEGY lists it); minor.
   - Optional: `hh_n_employed_other` (excluding the person) in build_panel.R.
+
+### Paper 03 (care need) -- redesign for the real 2024 file, Oct 2026
+- Progress: need rebuilt from roster + diaries (no special_care/caregiver in the file). Child need = hh_n_under6 > 0. Adult need, counted
+  over members OTHER than the person: (a) member 15+ with pas in CODE$pas_disabled, (b) member 15+ with receiving_care > 0 (941-949),
+  (c) member 80+ (hh_n_80plus); (a)|(b) = probable recipient; combined = (a)|(b)|(c). New "markers compared" table (households, share,
+  women's share, men/women response, employment) and cost table with the three markers entered jointly; Oster bias-adjusted betas.
+  Caregiver-availability analyses removed; consumption/caste/religion controls replaced by head_edu_tier, hh_max_edu_tier,
+  hh_any_regular + district FE (+ dow, sub_round if present). data_disclosure(V) in Data; limitations paragraph on need from
+  diaries/roster. Knits clean on synthetic data (24 pp; anonymised build 23 pp, no identifying text; alternative iff branches forced).
+- New common errors:
+  - A household-level need flag (`hh_n_recipients > 0`, `hh_n_80plus > 0`) is TRUE for the recipient or the 80+ person themself. In
+    person-level regressions use "another member" (`hh_n_80plus - (age >= 80) > 0`), or a lone 80+ carer is coded as "needing care".
+  - The diary-based recipient flag (receiving care, 941-949) is partly the outcome: when household members report the same diary day,
+    a recorded receipt of care implies someone gave care. Report status- and age-based markers separately; do not headline (b) alone.
+  - `hh_n_recipients`/`care_recipient` include children 6-14 (receiving medical care is common). For "adult-care need" restrict
+    recipients to ages 15+ (care for 6-14 is coded as childcare). This can only be done for diarists; roster-only recipients drop out.
+  - "No woman present" should exclude the woman who is the source of need (e.g. an 80+ mother): use women 15-79 who are not recipients.
+  - Synthetic data have no members aged 80+ and receiving_care == 0 everywhere, so (b)/(c) are constant there. Sentences listing several
+    estimates printed "not estimable and not estimable"; list only estimable items (paper 03 local `say_est()`/`say_pct()`).
+- Requests for shared code (not blocking; worked around locally):
+  - build_panel.R: save split recipient flags (`recip_disabled`, `recip_received`) and household counts of recipients aged 15+ over the
+    full roster, so roster-only (non-diarist) recipients can enter the adult-need measure.
+  - helpers.R: `lincom()` and an `and_list()`/`say_est()` NA-safe list formatter.
+  - Synthetic generator: add some members 80+ and some receiving-care (941-949) episodes so markers (b) and (c) are exercised in knits.
