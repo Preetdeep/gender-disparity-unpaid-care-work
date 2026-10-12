@@ -156,7 +156,7 @@ validation_table <- function(pd) {
               "Diaries summing to 1,440 minutes", "Records flagged minor (secondary)",
               "Persons with varying weight", "Invalid activity codes",
               "Married persons with linked spouse", "Under-6 count method"),
-    Value = c(fn(V$n_rows), fn(V$n_persons), fn(V$n_households), fn(V$n_fsu),
+    Value = c(fn(V$n_rows), fn(if (is.null(V$n_diarists)) V$n_persons else V$n_diarists), fn(V$n_households), fn(V$n_fsu),
               pct(V$share_diaries_1440), pct(V$share_rows_minor),
               pct(V$share_persons_weight_varies, 2),
               if (length(V$invalid_act3_codes)) paste(V$invalid_act3_codes, collapse = ", ") else "None",
@@ -246,7 +246,7 @@ diff_pp <- function(e, more = "higher", less = "lower", digits = 1) {
 data_disclosure <- function(V) {
   hh <- if (identical(V$household_file, "NONE") || is.null(V$household_file)) {
     paste0("The unit-level file does not contain the household questionnaire items (religion, social group, ",
-           "consumption expenditure, cooking fuel, the mode of laundry and sweeping, special-care need, land and dwelling). ",
+           "consumption expenditure, cooking fuel, the mode of laundry and sweeping, special-care need, caregiver availability, land and dwelling). ",
            "I therefore do not use them. Socioeconomic status is proxied by the household head's education, the highest ",
            "education among members aged 15 and above, and whether any member's usual status is regular wage or salaried ",
            "employment. District fixed effects absorb local differences in income, caste composition and infrastructure.")

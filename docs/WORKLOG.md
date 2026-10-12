@@ -317,3 +317,15 @@ Citations: all [@key] resolve in all 8 papers, and refs_local.bib is in YAML in 
 - Common error: `type_day` "other" may include weekly days off (the 2024 xlsx only says "normal routine day" vs "other day"). In weekend/day-of-week designs, a normal-days-only restriction may remove the treatment itself; report it as robustness and test Sunday's effect on `type_day` instead of controlling for it.
 - Common error: `hh_any_regular` is identically 1 among regular salaried persons; ctrl() drops it there, but a hand-written joint balance test must drop it too.
 - Shared-code requests (not blocking): (1) synthetic generator: add `Sub_Round` (constant within FSU) and `Type_of_Day` so knit tests exercise these paths; (2) `fe()`: accept interacted FE such as `dist_id^sub_round` (it checks names literally; 07 builds `dist_sr` locally).
+
+### Paper 05 (marriage), 2024-file adaptation, Oct 2026
+- Progress: removed every use of religion_f, social_group_f, mpce_quintile (controls, DFL logit, balance rows SC/ST and Muslim, couple and widowhood controls, all text and table notes). Baseline = own education + urban + proxy report; FE = dist_id + sub_round + dow + age (FE_VARS) everywhere, incl. sex-interacted FE in the pooled model. SES proxies (head_edu_tier, hh_max_edu_tier, hh_any_regular, employed members other than self) only in extended robustness rows, with the reason given in Measures (they partly describe the marital household). DFL on age, state, own edu, urban. New rows: SES proxies; + hh_size and 60+; state instead of district FE. Same-day couple check (dow == spouse_dow, from the panel). `r data_disclosure(V)` in Data plus a limitations paragraph on caste, religion, consumption. Knits: blinded, unblinded and forced-iff builds (24 pp each), no ??/NA.
+- New common errors:
+  - `V$n_persons` counts ALL roster persons in the 2024 build (incl. roster-only under-6 members), so "N diaries" from it overstates diaries. Use `V$n_diarists` (or nrow(pd)).
+  - `hh_n_employed` includes the respondent; as a control for her own time use it is partly the outcome. Use `hh_n_employed - employed`.
+  - Household SES proxies are post-treatment for any marriage/migration/household-formation comparison (the head changes at marriage). Do not put them in baseline controls or propensity models for such designs.
+  - A temp test copy (zz_*.Rmd) made inside the paper folder was swept into the lead's checkpoint commit 4ec8a90. Paper 05 has deleted it again (shows as D); lead: commit the deletion. Agents: put temp copies outside the repo, or delete them before checkpoints.
+- Requests for shared code:
+  - `validation_table()` labels `V$n_persons` "Person-days (diaries)", but it now includes roster-only members; use `V$n_diarists`.
+  - `data_disclosure()`: the household-items list omits "caregiver availability" (STRATEGY lists it); minor.
+  - Optional: `hh_n_employed_other` (excluding the person) in build_panel.R.
