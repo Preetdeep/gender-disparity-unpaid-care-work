@@ -714,6 +714,10 @@ The weekly day off is a recurring experiment in men's time. India's Time Use Sur
 
 The Time Use Survey 2024 unit-level data are distributed by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India (microdata.gov.in, catalogue 236), to registered users. Code available from the author on request; will be made public on acceptance.
 
+# Declaration of generative AI use {-}
+
+Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
+
 # References {-}
 
 ::: {#refs}
