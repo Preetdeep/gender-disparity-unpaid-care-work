@@ -553,7 +553,7 @@ tab(stab, caption = paste0("Women: married minus never-married under alternative
 
 Reweighting leans on a small number of never-married women who resemble the married: the effective sample of never-married women falls to `r fn(ess_nm_w)` from `r fn(n_nm_w)`. Trimming observations with propensities outside [0.05, 0.95] gives an unpaid-work difference of `r est_se(trim_res$t05$k)` (effective never-married sample `r fn(trim_res$t05$ess)`), and outside [0.10, 0.90] `r est_se(trim_res$t10$k)` (`r fn(trim_res$t10$ess)`) [@crump2009dealing]. The learning and employment coefficients move more across these weightings (learning `r f1(trim_res$t05$lrn$est)` and `r f1(trim_res$t10$lrn$est)`; employment `r f1(trim_res$t05$emp$est)` and `r f1(trim_res$t10$emp$est)`), so the reweighted estimates for those divisions are imprecise guides. Figure \ref{fig:fig-overlap} in the online supplement shows the overlap of propensity scores.
 
-Table \ref{tab:selection} reports four checks for women. Among women aged 20 to 26, the unpaid-work coefficient is `r est_se(k_of(m26W$unpaid))`, against `r est_se(k_uw)` in the baseline. After reweighting, the never-married resemble the married on observed characteristics: the largest absolute standardised difference across the covariates in Appendix Table \ref{tab:balance} is `r f2(max_sd_after)`, and Appendix Table \ref{tab:oster} reports the coefficient-stability calculation in full. The reweighted, regression-adjusted coefficient is `r est_se(k_of(mrW$unpaid))` (without controls, `r est_se(k_rw_raw)`). Reweighting concentrates weight on the never-married women who most resemble the married, so the effective sample of never-married women falls from `r fn(n_nm_w)` to about `r fn(ess_nm_w)`, and `r pct(cap_w, 1)` of the weighted never-married have propensities above the cap. The bias-adjusted coefficient on unpaid work is `r f1(bstar_u)` minutes. `r iff(isTRUE(dstar_u > 1), paste0("Selection on unobservables would have to be ", f1(dstar_u), " times as strong as selection on observables to explain away the unpaid-work difference."), iff(isTRUE(dstar_u < 0), paste0("The breakdown value is negative (", f2(dstar_u), "): adding the observed controls moves the coefficient away from zero, so unobserved selection in the same direction as observed selection would enlarge rather than remove the difference."), iff(!is.na(dstar_u), paste0("The breakdown value is ", f2(dstar_u), ", so selection on unobservables weaker than selection on observables could explain the unpaid-work difference; the estimate should be read as an upper bound on any causal effect."), "The breakdown value is not estimable in these data.")))`
+Table \ref{tab:selection} reports four checks for women. Among women aged 20 to 26, the unpaid-work coefficient is `r est_se(k_of(m26W$unpaid))`, against `r est_se(k_uw)` in the baseline. After reweighting, the never-married resemble the married on observed characteristics: the largest absolute standardised difference across the covariates in Table \ref{tab:balance} in the online supplement is `r f2(max_sd_after)`, and Table \ref{tab:oster} in the online supplement reports the coefficient-stability calculation in full. The reweighted, regression-adjusted coefficient is `r est_se(k_of(mrW$unpaid))` (without controls, `r est_se(k_rw_raw)`). Reweighting concentrates weight on the never-married women who most resemble the married, so the effective sample of never-married women falls from `r fn(n_nm_w)` to about `r fn(ess_nm_w)`, and `r pct(cap_w, 1)` of the weighted never-married have propensities above the cap. The bias-adjusted coefficient on unpaid work is `r f1(bstar_u)` minutes. `r iff(isTRUE(dstar_u > 1), paste0("Selection on unobservables would have to be ", f1(dstar_u), " times as strong as selection on observables to explain away the unpaid-work difference."), iff(isTRUE(dstar_u < 0), paste0("The breakdown value is negative (", f2(dstar_u), "): adding the observed controls moves the coefficient away from zero, so unobserved selection in the same direction as observed selection would enlarge rather than remove the difference."), iff(!is.na(dstar_u), paste0("The breakdown value is ", f2(dstar_u), ", so selection on unobservables weaker than selection on observables could explain the unpaid-work difference; the estimate should be read as an upper bound on any causal effect."), "The breakdown value is not estimable in these data.")))`
 
 
 Figure \ref{fig:fig-agegrad} shows the unpaid-work gap by age band. Among women, the coefficient is `r f2(g_first$est)` minutes (SE `r f2(g_first$se)`) at ages 20 to 22, where `r pct(g_first$nm_share, 0)` are never married, and `r est_se(as.list(g_last[, .(est, se)]))` at ages 35 to 39, where `r pct(g_last$nm_share, 0)` are. `r iff(isTRUE(g_last$est > g_first$est + 1.96 * sqrt(g_first$se^2 + g_last$se^2)), "The gap is larger where the never-married are more selected, so part of the pooled estimate may reflect selection; the youngest bands give the more conservative estimates.", "The gap does not grow significantly as the never-married become rarer, which is not what strong positive selection of the never-married on unpaid-work preferences would produce.")` Comparisons at older ages also mix the association with marriage and the accumulation of children, which the survey links to mothers only partly.
@@ -639,6 +639,52 @@ ggplot(fd, aes(b, cat, fill = sex)) +
 ```
 
 
+```{r tab-residence}
+rl <- c(nuclear = "No parent generation", head_old = "Parent generation present", junior = "Daughter-in-law / son")
+short_lab <- c(employment = "Employment", ownuse_goods = "Own-use goods", unpaid_domestic = "Domestic services",
+               unpaid_care = "Caregiving", volunteer = "Volunteering", learning = "Learning",
+               social_all = "Social, community, religion", leisure_all = "Leisure, media, sport",
+               selfcare_all = "Self-care", sleep = "\\quad of which: sleep", unpaid = "Unpaid work")
+rtab <- data.frame(Activity = unname(short_lab[outs_res]),
+                   sapply(names(rl), function(l) sapply(outs_res, function(y) cell(kr(rW, y, l)))),
+                   sapply(names(rl), function(l) sapply(outs_res, function(y) cell(kr(rM, y, l)))),
+                   check.names = FALSE)
+names(rtab) <- c("Activity", "No parent gen.", "Parent gen.", "Daughter-in-law", "No parent gen.", "Parent gen.", "Married son")
+kableExtra::add_header_above(tab(rtab, caption = paste0("Married minus never-married by residence type, minutes per day, ages 20--39", syn_note()),
+    label = "residence", align = c("l", rep("r", 6)), escape = FALSE,
+    notes = "Each married residence type is compared with never-married persons of the same sex. ``No parent gen.'': head or head's spouse, no parent or parent-in-law of the head in the household. ``Parent gen.'': head or head's spouse with a parent or parent-in-law of the head present. ``Daughter-in-law'': roster code 4 (women); ``Married son'': roster code 3 (men). Controls and fixed effects as in the baseline decomposition. FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01."), c(" " = 1, "Women" = 3, "Men" = 3))
+```
+
+
+```{r fig-overlap, fig.cap = "Estimated propensity of being married, women aged 20--39, by marital status (survey-weighted densities)", fig.height = 3.2, fig.width = 6}
+if (!is.null(Wr)) {
+  op <- par(mar = c(4, 4, 1, 1))
+  d1 <- density(Wr[married == 1]$ps, weights = Wr[married == 1]$w0 / sum(Wr[married == 1]$w0), from = 0, to = 1)
+  d0 <- density(Wr[married == 0]$ps, weights = Wr[married == 0]$w0 / sum(Wr[married == 0]$w0), from = 0, to = 1)
+  plot(d1, main = "", xlab = "Propensity score", ylab = "Density", ylim = c(0, max(d1$y, d0$y)), lwd = 2)
+  lines(d0, lty = 2, lwd = 2)
+  legend("topleft", c("Married", "Never married"), lty = c(1, 2), lwd = 2, bty = "n")
+  par(op)
+}
+```
+
+
+```{r tab-balance}
+if (!is.null(bal)) tab(bal, caption = paste0("Covariate balance before and after reweighting, women aged 20--39", syn_note()), label = "balance",
+                       align = c("l", rep("r", 5)),
+                       notes = "Weighted means. Standardised difference: difference in means divided by the square root of the average of the two group variances. Reweighting uses DiNardo-Fortin-Lemieux odds weights (see the selection table in the main text).")
+```
+
+
+```{r tab-oster}
+otab <- data.frame(Outcome = unname(ost_lab[rownames(ost)]), `Uncontrolled` = f1(ost$b0), `Controlled` = f1(ost$b1),
+                   `Bias-adjusted` = f1(ost$bstar), `Breakdown delta` = f2(ost$dstar), check.names = FALSE)
+tab(otab, caption = paste0("Coefficient stability for women: married minus never-married, minutes per day", syn_note()), label = "oster",
+    align = c("l", "r", "r", "r", "r"),
+    notes = "Uncontrolled: regression on the married indicator only. Controlled: baseline model. Bias-adjusted and breakdown delta as in the selection table (Oster 2019, R-max = 1.3 times the controlled R-squared).")
+```
+
+
 ```{r fig-agegrad, fig.cap = paste0("Married minus never-married unpaid minutes per day by age band, with 95\\% confidence intervals. Labels give the weighted share never married in each band.", syn_note()), fig.height = 3.2}
 gt <- copy(grad_tab)
 gt[, `:=`(band = factor(band, levels = names(bands)), sex = factor(sex, levels = c("Women", "Men")))]
@@ -679,60 +725,20 @@ tab(rb, caption = paste0("Married minus never-married unpaid minutes per day: ro
 ```
 
 
-```{r tab-residence}
-rl <- c(nuclear = "No parent generation", head_old = "Parent generation present", junior = "Daughter-in-law / son")
-short_lab <- c(employment = "Employment", ownuse_goods = "Own-use goods", unpaid_domestic = "Domestic services",
-               unpaid_care = "Caregiving", volunteer = "Volunteering", learning = "Learning",
-               social_all = "Social, community, religion", leisure_all = "Leisure, media, sport",
-               selfcare_all = "Self-care", sleep = "\\quad of which: sleep", unpaid = "Unpaid work")
-rtab <- data.frame(Activity = unname(short_lab[outs_res]),
-                   sapply(names(rl), function(l) sapply(outs_res, function(y) cell(kr(rW, y, l)))),
-                   sapply(names(rl), function(l) sapply(outs_res, function(y) cell(kr(rM, y, l)))),
-                   check.names = FALSE)
-names(rtab) <- c("Activity", "No parent gen.", "Parent gen.", "Daughter-in-law", "No parent gen.", "Parent gen.", "Married son")
-kableExtra::add_header_above(tab(rtab, caption = paste0("Married minus never-married by residence type, minutes per day, ages 20--39", syn_note()),
-    label = "residence", align = c("l", rep("r", 6)), escape = FALSE,
-    notes = "Each married residence type is compared with never-married persons of the same sex. ``No parent gen.'': head or head's spouse, no parent or parent-in-law of the head in the household. ``Parent gen.'': head or head's spouse with a parent or parent-in-law of the head present. ``Daughter-in-law'': roster code 4 (women); ``Married son'': roster code 3 (men). Controls and fixed effects as in the baseline decomposition. FSU-clustered SEs in parentheses. * p<0.10, ** p<0.05, *** p<0.01."), c(" " = 1, "Women" = 3, "Men" = 3))
-```
-
-
 ```{r tab-flow}
 tab(diary_flow_table(pd), caption = "From the household roster to the analysed diaries", label = "flow", align = c("l", "r"),
     notes = "All counts are computed from the microdata at knit time. Persons without diary records appear only on the household roster.")
 ```
+
 
 ```{r tab-codes}
 tab(codes_table(c("paid_work","work_travel","ownuse_goods","dom_food","dom_cleaning","dom_textiles","dom_shopping","unpaid_domestic","care_child","care_dep_adult","unpaid_care","learning","free_time","sleep"), c("Employment","Employment-related travel","Own-use production of goods","Food and meals","Cleaning and upkeep","Care of textiles","Shopping","Unpaid domestic services (division 3)","Childcare","Care of dependent adults","Unpaid caregiving (division 4)","Learning","Free time (divisions 7 and 8)","Sleep")), caption = "Activity categories and ICATUS 2016 codes", label = "codes", align = c("l", "l"),
     notes = "Minutes are summed over major activities in the person-day diary. Codes are three-digit ICATUS 2016 codes as recorded in the survey.")
 ```
 
-```{r fig-overlap, fig.cap = "Estimated propensity of being married, women aged 20--39, by marital status (survey-weighted densities)", fig.height = 3.2, fig.width = 6}
-if (!is.null(Wr)) {
-  op <- par(mar = c(4, 4, 1, 1))
-  d1 <- density(Wr[married == 1]$ps, weights = Wr[married == 1]$w0 / sum(Wr[married == 1]$w0), from = 0, to = 1)
-  d0 <- density(Wr[married == 0]$ps, weights = Wr[married == 0]$w0 / sum(Wr[married == 0]$w0), from = 0, to = 1)
-  plot(d1, main = "", xlab = "Propensity score", ylab = "Density", ylim = c(0, max(d1$y, d0$y)), lwd = 2)
-  lines(d0, lty = 2, lwd = 2)
-  legend("topleft", c("Married", "Never married"), lty = c(1, 2), lwd = 2, bty = "n")
-  par(op)
-}
-```
-
-```{r tab-balance}
-if (!is.null(bal)) tab(bal, caption = paste0("Covariate balance before and after reweighting, women aged 20--39", syn_note()), label = "balance",
-                       align = c("l", rep("r", 5)),
-                       notes = "Weighted means. Standardised difference: difference in means divided by the square root of the average of the two group variances. Reweighting uses DiNardo-Fortin-Lemieux odds weights (see the selection table in the main text).")
-```
-
-```{r tab-oster}
-otab <- data.frame(Outcome = unname(ost_lab[rownames(ost)]), `Uncontrolled` = f1(ost$b0), `Controlled` = f1(ost$b1),
-                   `Bias-adjusted` = f1(ost$bstar), `Breakdown delta` = f2(ost$dstar), check.names = FALSE)
-tab(otab, caption = paste0("Coefficient stability for women: married minus never-married, minutes per day", syn_note()), label = "oster",
-    align = c("l", "r", "r", "r", "r"),
-    notes = "Uncontrolled: regression on the married indicator only. Controlled: baseline model. Bias-adjusted and breakdown delta as in the selection table (Oster 2019, R-max = 1.3 times the controlled R-squared).")
-```
 
 ```{r tab-validation}
 tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
     align = c("l", "r"), notes = "All activity records are used; no row sampling.")
 ```
+
