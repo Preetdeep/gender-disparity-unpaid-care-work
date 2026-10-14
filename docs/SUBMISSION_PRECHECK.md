@@ -1,0 +1,10 @@
+# Submission pre-check (14 Oct 2026, after JBV desk rejection)
+
+Measured on the anonymised package PDFs on branch gresearcher-realdata. Word counts from tools/build_package.sh (main PDF, including references and tables).
+
+| Paper | Journal | Limit (official) | Spacing / format rule | Abstract rule | Keywords / JEL | Anonymised MS | Measured: pages / spacing / words / abstract | Fit (1-10) | Recent comparable articles (2024-26) | Flags |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 03 | Feminist Economics | 10,000 words incl. refs, tables, notes | No double-spacing rule; standard T&F | ≤150 words, plus highlights | 5-6 keywords; JEL codes required | Yes (double-anonymous) | single / 9,940 / 132 | 8 | Time-use and unpaid care papers on India and the Global South (e.g. care-work valuation, intra-household time allocation) | OK; highlights in title_page.md |
+| 05 | Journal of Marriage and Family | ≤35 pages, 12pt, double-spaced, references excluded (style guide) | 12pt Times, double-spaced; Word file | Structured (Objective/Background/Method/Results/Conclusion), ~200-225 words | 4-6 keywords; no JEL | Yes | 36 pp total (text and tables p.1-25; references from p.26) / double / 8,772 / 213 | 7 | Mostly US/European family sociology: marriage, housework division, union transitions | **Fit <8**: little India or time-use work in JMF. **SSRN preprint "Marriage Increases Women's Unpaid Care Work by 44%..." overlaps**; disclose it in the cover letter and check anonymity. Docx in Times |
+| 06 | Journal of Development Studies | 10,000 words incl. everything | No rule | ≤150 words | Keywords; JEL optional | Yes | single / 9,990 / 150 | 8 | Development papers on gender, labour and time use in South Asia | **9,990 words, tight**; abstract exactly at limit |
+| 07 | Journal of Time Use Research | ~10,000 words (guide) | No rule | ≤150 words | Keywords; JEL optional | Yes | single / 9,821 / 144 | 9 | JTUR recently published an India TUS 2019 paper; methods-oriented time-use papers | OK |
