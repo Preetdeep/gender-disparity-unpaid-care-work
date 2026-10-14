@@ -378,8 +378,6 @@ ag_dir <- iff(is_pos(k_ag), "larger", iff(is_neg(k_ag), "smaller", "unrelated"))
 \keywords{marriage, time use, unpaid work, gender, patrilocality, India}
 \end{abstract}
 
-\newpage
-
 # Introduction
 
 Marriage is closely tied to how time is used. In diary studies from high-income countries, married women do more housework than women in other living arrangements, and the gender gap in housework is largest among the married [@south1994housework; @shelton1996division]. Men's housework, in contrast, falls or stays flat when they enter a union [@gupta1999transitions; @baxter2008life]. Explanations range from specialisation within the household [@becker1985human; @becker1991treatise] and bargaining over the division of labour [@manser1980marriage; @lundberg1993separate] to the performance of gender in everyday interaction [@west1987doing; @brines1994economic; @akerlof2000identity].
@@ -605,8 +603,6 @@ The main limitation is the comparison group. Married and never-married women dif
 ## Conclusion
 
 Married and never-married Indian women spend the day very differently. `r iff(h1_supported, "Married women do far more unpaid domestic and care work, a difference with no counterpart among men.", "Its association with unpaid work differs between women and men.")` A time-budget decomposition shows which activities differ alongside that work, and the household roster shows how the change depends on whether a young wife joins her husband's parents' household and on her standing relative to her husband. Policies that aim to raise married women's employment, such as childcare, safe transport or flexible work, operate within this budget. They are more likely to succeed if they also reduce the unpaid domestic and care work that accompanies marriage and motherhood, since that work competes with women's paid work, learning, leisure or sleep.
-
-\newpage
 
 # Declaration of generative AI use {-}
 
