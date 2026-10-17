@@ -5,7 +5,7 @@
 
 ## Version for the Journal of Population Economics
 - American spelling ("labor", "coresident", "aging"); numbered headings, two levels; tables inline; no "Insert Table" markers.
-- Abstract of 150 words or fewer (the journal-specific remark overrides the general 150 to 250 range), non-technical, with the innovation and contribution.
+- Abstract of exactly 150 words (satisfies both the general 150 to 250 range and the journal-specific 150 maximum), non-technical, with the innovation and contribution.
 - Keywords cut to six; JEL codes cut to three (D13, J13, J22).
 - Springer Basic author-date references with full author lists and DOI links (`springer-basic-author-date.csl`).
 - "Statements and Declarations" before the references; supplement cited as "Online Resource 1" (`ESM_1.pdf`).

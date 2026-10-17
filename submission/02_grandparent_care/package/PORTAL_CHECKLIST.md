@@ -7,7 +7,7 @@
 ## Rules read on the guidelines page (17 Oct 2026) and how the files meet them
 | Rule | Source wording | This package |
 |---|---|---|
-| Abstract | General rule 150 to 250 words, **but** the journal-specific remark says a maximum of 150 words, non-technical, stating the innovation and contribution | __ABSTRACT_WORDS__ words, no subheadings, no undefined abbreviations, no references |
+| Abstract | General rule 150 to 250 words, **but** the journal-specific remark says a maximum of 150 words, non-technical, stating the innovation and contribution | 150 words, no subheadings, no undefined abbreviations, no references |
 | Keywords | 4 to 6 | 6 |
 | JEL codes | "Only a number of three" | D13, J13, J22 |
 | Text file | Word (.docx or .doc) with all editable source files; plain font such as 10-point Times; automatic page numbers; no field functions; tables with the table function; at most three heading levels | `manuscript_anonymised.docx`: Times New Roman 11 pt, 1.5 spacing, footer page numbers, Word tables, two heading levels (LaTeX source is not required; LaTeX is allowed for mathematical content) |
@@ -20,10 +20,10 @@
 | AI use | Generative-AI use documented in the Methods; copy-editing help needs no declaration | In the Methods and in `title_page.md` |
 | Acknowledgments | Separate section on the title page; should thank the anonymous referees | `title_page.md` |
 | Reviewer suggestions | Not accepted; requests to exclude reviewers are accepted | none given |
-| Word limit | None found | Main text about __BODY_WORDS__ words |
+| Word limit | None found | Main text about 7,000 (6,984 in the docx, excluding tables; about 7,680 with table text) words |
 
 ## Differences from the summary Roo wrote
-1. **Abstract:** the page gives two rules. The general one is 150 to 250 words, but the journal-specific remark says a maximum of 150 words, so I used 150 or fewer. If the portal enforces 150 to 250, the abstract is still accepted by a 150-word cap only if it has at least 150 words, so check the counter.
+1. **Abstract:** the page gives two rules. The general one is 150 to 250 words, but the journal-specific remark says a maximum of 150 words. Exactly 150 words satisfies both, so the abstract has exactly 150 words (checked on the real-data build). Check the portal counter.
 2. The page does not say the review is anonymized or single-blind, and it asks for author names and affiliation on supplementary files. The manuscript is anonymized anyway.
 3. Footnotes: allowed, with restrictions (above), as Roo said.
 4. Spelling is not stated. Titles on the journal's recent-articles list use American forms ("labor", "behaviors", "aging"), and a 2026 article on coresident grandparents writes "coresident", so the manuscript uses American spelling.
@@ -37,7 +37,15 @@
 - `cover_letter.md`: draft cover letter.
 
 ## Counts (real-data build, 17 Oct 2026)
-__COUNTS__
+Real-data build counts (built 17 Oct 2026 on the Mac from the real TUS 2024 data held outside the repo; panel `data/derived/person_day.rds`, not committed):
+
+- Abstract: 150 words (counted in `main.tex`).
+- Main text, Introduction to Conclusion (docx, paragraphs only, headings and table captions included, tables excluded): 6,984 words. Table cell text adds about 698 words, so about 7,680 with tables.
+- Statements and Declarations: 91 words. References: about 1,030 words. No word limit applies.
+- Manuscript PDF (11 pt, 1.5 line spacing, 1 inch margins, with inline tables and references): 21 pages.
+- Manuscript docx (Times New Roman 11 pt, 1.5 spacing, page numbers in the footer, tables single-spaced at 9 pt): 23 pages when rendered in LibreOffice; not opened in Word, so Word may differ by a page.
+- Online Resource 1 (ESM_1.pdf): 2 pages; built from `tools/build_package.sh 02`.
+- Key numbers checked against the earlier PDF: 49,992 mothers; 36% live with a grandmother; mothers' childcare -2.1 min/day (SE 1.3, CI -4.6 to 0.4); paid work -0.4 (CI -3.8 to 3.0); grandmothers' childcare 85.9 min/day; household total +88.6. All match.
 
 ## Fields the portal asks for
 - [ ] Article type: Original paper

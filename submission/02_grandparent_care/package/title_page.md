@@ -9,7 +9,7 @@
 **ORCID:** 0000-0003-3721-7548
 **Postal address (optional; Springer publishes it if given):** J-7/86, Third Floor, Rajouri Garden, New Delhi 110027, India (as on the other title pages in this repository; Doc to confirm or leave out). For unaffiliated authors Springer records only city and country.
 
-**Abstract (150 words maximum, non-technical, states the innovation and contribution):** see the manuscript. Keywords (4 to 6): grandparents; childcare; three-generation households; patrilocality; time use; India.
+**Abstract (150 words, non-technical, states the innovation and contribution):** see the manuscript. Keywords (4 to 6): grandparents; childcare; three-generation households; patrilocality; time use; India.
 **JEL classification (three codes):** D13, J13, J22 (J16 dropped from the earlier four).
 
 **Acknowledgments** (separate section on the title page; the journal asks that they thank the anonymous referees): I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. *At acceptance, add:* I am grateful to the anonymous referees for their helpful comments.
