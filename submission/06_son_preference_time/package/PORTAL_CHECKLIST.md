@@ -4,9 +4,9 @@
 **Status:** NOT submitted. Doc must approve and submit.
 
 ## Files
-- `manuscript_anonymised.pdf`: anonymised main text. 9,633 words including references and tables, 23 pages (main text; heterogeneity and mothers tables in the supplement) (typical JDS range 8,000–10,000 inclusive of references; Doc should re-confirm on the live instructions page, which blocked automated fetch). Unstructured abstract 150 words (limit 200). JDS review is single-anonymous, so the author-identified PDF `manuscript_with_author_details.pdf` is also provided.
+- `manuscript_anonymised.pdf`: anonymised main text. 9,637 words including references and tables, 23 pages (main text; heterogeneity and mothers tables in the supplement) (typical JDS range 8,000–10,000 inclusive of references; Doc should re-confirm on the live instructions page, which blocked automated fetch). Unstructured abstract 150 words (limit 200). JDS review is single-anonymous, so the author-identified PDF `manuscript_with_author_details.pdf` is also provided.
 - `online_supplement.pdf`: appendix tables (S1–).
-- `figures/`: both figures as separate files: vector EPS and PDF (colour line graphics; vector files are resolution-independent, so they meet the 1200 dpi line-art, 600 dpi greyscale and 300 dpi colour requirements), plus 600 dpi TIFF (LZW) and PNG.
+- `figures/`: **primary figure upload = vector EPS (Figure1_time_reallocation.eps, Figure2_gap_by_age.eps), with the same figures as vector PDF.** Vector files are resolution-independent, so they meet JDS's 1200 dpi line-art, 600 dpi greyscale and 300 dpi colour rules. The figures are colour vector graphics (points, lines, error bars). Raster fallbacks if the portal insists: `_1200dpi.tif` (line-art resolution), 600 dpi `.tif` and `.png`.
 - `latex_source.zip`: LaTeX source (main.tex, supplement.tex, figures, README), rebuilt from the current sources; upload as "LaTeX Source Files".
 - `title_page.md`, `cover_letter.md`.
 

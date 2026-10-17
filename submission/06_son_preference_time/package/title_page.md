@@ -13,7 +13,7 @@
 **Funding:** None.
 **Conflicts of interest:** None.
 **Data availability:** Unit-level data from the Time Use Survey (January–December 2024), National Statistics Office, MoSPI, Government of India (microdata.gov.in, catalog 236), available to registered users. Code available from the author on request; will be made public on acceptance.
-**Word count:** about 9,950 words including references, notes and tables.
+**Word count:** 9,637 words including references and tables (23 pages).
 **Ethics:** Secondary analysis of anonymised official survey microdata; no human-subjects contact.
 **Use of AI tools:** Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
 **Acknowledgements:** I thank the National Statistics Office for access to the microdata.
