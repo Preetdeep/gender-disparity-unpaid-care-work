@@ -34,9 +34,10 @@ DATA (NOT INCLUDED)
   obtain the files and which records and variables were used.
 
 HOW TO RUN
-  1. With the real data (after downloading it from the NSO portal):
-       TUS_DTA=/path/to/TimeUse106PER.dta Rscript run_05.R
-     Optional: TUS_HH_DTA=/path/to/household-file.dta if household characteristics are in a separate file.
+  1. With the real data (after downloading it from the NSO portal and converting it to Stata format, see
+     meta_information.txt, section 1). Both files are needed: the person-level file carries no household
+     characteristics (religion, caste, household size, consumption), which are in the household-level file:
+       TUS_DTA=/path/to/TimeUse106PER.dta TUS_HH_DTA=/path/to/tus106hh.dta Rscript run_05.R
   2. Smoke test without the restricted data (numbers are meaningless, outputs are watermarked):
        TUS_SYNTHETIC=1 Rscript run_05.R
   Run time: a few minutes for the real data on a laptop with 16 GB of memory. Tables 1-4 and the

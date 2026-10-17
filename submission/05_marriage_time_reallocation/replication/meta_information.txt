@@ -10,10 +10,14 @@ Paper: "Married and Never-Married Days: Marriage, Gender and the Full Time Budge
    Licence:    Use is governed by the portal's terms of use for registered users. Redistribution of the
                unit-level files is not permitted, so none are included in this archive.
    Files used: (a) the person-level activity file (TimeUse106PER.dta in our copy): one row per activity
-               episode of each household member, with the household roster fields for members without a
-               diary; (b) the household file (tus106hh.dta in our copy), used for household
-               characteristics (religion, social group, household size, consumption expenditure).
-               File names on the portal may differ; the code resolves columns by name (see R/build_panel.R).
+               episode of each household member, with the roster fields for members without a diary;
+               (b) the household-level file (tus106hh.dta in our copy; Level 03 of the release), which
+               carries religion, social group, household size and consumption expenditure. The release is
+               distributed in Nesstar format with a DDI file; we converted it to Stata with the open-source
+               Python tool nesstar-converter (pip install nesstar-converter; "nesstar-converter convert
+               <file>.Nesstar <ddi>.xml <outdir> --formats stata"), using the DDI exported from the portal
+               page for catalog 236. File names on the portal may differ; the code resolves columns by name
+               and label (R/build_panel.R, HH_PATTERNS).
 
 2. Records used (all computed from the data at run time, see panel_validation() in R/build_panel.R)
    Activity records (rows) used:                 10,211,478   (all rows; none sampled)
