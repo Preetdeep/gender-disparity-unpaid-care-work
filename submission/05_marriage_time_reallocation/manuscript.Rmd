@@ -405,17 +405,17 @@ ag_dir <- iff(is_pos(k_ag), "larger", iff(is_neg(k_ag), "smaller", "unrelated"))
 ```
 
 \begin{abstract}
-\textbf{BACKGROUND} Marriage reshapes the day for Indian women, most of whom move into the husband's household. Studies usually examine one outcome at a time, such as housework or sleep, yet a day's activities sum to 1,440 minutes, so more unpaid work must come at the expense of other activities.
+\textbf{BACKGROUND} Marriage reshapes the day for Indian women, most of whom move into the husband's household. Studies usually examine one outcome at a time, such as housework or sleep, yet a day's activities sum to 1,440 minutes, so more unpaid work must displace other activities.
 
 \textbf{OBJECTIVE} The study asks which activities differ alongside married women's higher unpaid work, and how the division varies within couples and with co-residence with parents-in-law.
 
-\textbf{METHODS} Using all `r fn(V$n_diarists)` diaries of the Time Use Survey 2024 of India's National Statistics Office, the study compares `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine activity divisions. Selection is addressed by age restriction, reweighting and bias adjustment; `r fn(nrow(C))` linked couples give within-household comparisons.
+\textbf{METHODS} Using all `r fn(V$n_diarists)` diaries of India's Time Use Survey 2024, the study compares `r fn(nrow(W))` married and never-married women and `r fn(nrow(M))` men aged 20 to 39 across nine activity divisions. Selection is addressed by age restriction, reweighting and bias adjustment; `r fn(nrow(C))` linked couples give within-household comparisons.
 
 \textbf{RESULTS} Married women reported `r mins_ci(k_uw)` of unpaid domestic and care work than never-married women; for men the difference was `r mins(k_um)`. `r if (!is.null(mrW)) paste0("Reweighted, it was ", f0(k_of(mrW[['unpaid']])$est), "; bias-adjusted, ", f0(bstar_u), ". ") else ""`Wives did `r mins(k_cg)` of unpaid work than their husbands, and their share of the couple's unpaid work was `r pctx(csh$est, 0)`. `r iff(is_sig(k_dil$unpaid), paste0("Daughters-in-law of the head did ", mins(k_dil$unpaid), " of unpaid work than wives without a parent generation."), "Co-residence with parents-in-law made no detectable difference.")`
 
 \textbf{CONCLUSIONS} `r iff(h1_supported, paste0("Marital status divides women's days far more than men's; married women's additional unpaid work coincides mainly with less ", iff(specialisation, "paid work and learning", "free time and self-care"), ", and much of it accompanies motherhood rather than marriage alone."), "A full time-budget accounting shows how the day is reorganized at marriage, even where the gendered gap is not precisely estimated.")`
 
-\textbf{CONTRIBUTION} The study replaces separate estimates of marriage ``penalties'' with one time-budget decomposition whose components must sum to zero. It combines selection checks, residence-type comparisons and linked-spouse diaries in a single analysis of the 2024 Time Use Survey of India.
+\textbf{CONTRIBUTION} The study replaces separate estimates of marriage ``penalties'' with one time-budget decomposition whose components sum to zero, combining selection checks, residence-type comparisons and linked-spouse diaries.
 \keywords{marriage, time use, unpaid work, gender, patrilocality, India}
 \end{abstract}
 
@@ -651,7 +651,9 @@ Generative AI tools (Claude, Anthropic) were used to assist with writing and deb
 
 # Data and code availability {-}
 
-The Time Use Survey 2024 unit-level data are distributed by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India (microdata.gov.in, catalog 236), to registered users. Code available from the author on request; will be made public on acceptance.
+*Data.* The analysis uses the unit-level data of India's Time Use Survey 2024, produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India. The files are available to registered users of the Ministry's microdata portal (microdata.gov.in, catalog 236) under its terms of use, which do not permit redistribution, so the data are not deposited with this submission. A separate data meta-information file states where and how to obtain the data and under what conditions, how many records and which variables were used, and describes the variables. A generator for a synthetic data set with the same structure is included so that the code can be run without the restricted files.
+
+*Code.* All analysis code (R) is provided in a replication archive submitted with this manuscript, with a readme listing each file and the software versions used. The code is available from the author on request and will be made public on acceptance.
 
 # References {-}
 

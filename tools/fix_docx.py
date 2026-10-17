@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post-process the JMF Word file: 1-inch margins, centred page numbers (from page 1), Times New Roman 12pt, double spacing."""
+"""Post-process the Word file for Demographic Research: 1-inch margins, NO page numbers/headers/footers, anonymous metadata, tables single-spaced."""
 import sys
 from docx import Document
 from docx.shared import Inches, Pt
@@ -9,21 +9,15 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 d = Document(sys.argv[1])
 for sec in d.sections:
     sec.left_margin = sec.right_margin = sec.top_margin = sec.bottom_margin = Inches(1)
-    sec.footer_distance = Inches(0.5)
+    # Demographic Research: no page numbers, headers or footers (the editorial office adds them).
     sec.different_first_page_header_footer = False
-    f = sec.footer; f.is_linked_to_previous = False
-    p = f.paragraphs[0] if f.paragraphs else f.add_paragraph()
-    for r in list(p.runs): r._r.getparent().remove(r._r)
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.line_spacing = 1.0
-    run = p.add_run()
-    for t, txt in (('begin', None), (None, 'PAGE'), ('end', None)):
-        if t:
-            e = OxmlElement('w:fldChar'); e.set(qn('w:fldCharType'), t)
-        else:
-            e = OxmlElement('w:instrText'); e.set(qn('xml:space'), 'preserve'); e.text = txt
-        run._r.append(e)
-    run.font.name = 'Times New Roman'; run.font.size = Pt(12)
+    for part in (sec.header, sec.footer, sec.first_page_header, sec.first_page_footer, sec.even_page_header, sec.even_page_footer):
+        part.is_linked_to_previous = True       # removes the header/footer definition from the section
+    for tag in ('w:headerReference', 'w:footerReference'):
+        for e in sec._sectPr.findall(qn(tag)): sec._sectPr.remove(e)
+# double-blind: no author metadata in the file properties
+cp = d.core_properties
+cp.author = ''; cp.last_modified_by = ''; cp.title = 'Manuscript anonymized for review'; cp.comments = ''; cp.keywords = ''
 d.save(sys.argv[1])
 
 # Tables: single-spaced (JMF presents full tables single-spaced on one page), autofit to the text width

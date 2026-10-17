@@ -1,0 +1,74 @@
+DATA META-INFORMATION
+Paper: "Married and Never-Married Days: Marriage, Gender and the Full Time Budget in India, 2024"
+
+1. Source, access and licence
+   Survey:     Time Use Survey (TUS) 2024, January-December 2024, India.
+   Producer:   National Statistics Office (NSO), Ministry of Statistics and Programme Implementation
+               (MoSPI), Government of India.
+   Where:      MoSPI microdata portal, https://microdata.gov.in (catalog entry 236). Registration on the
+               portal is required; our copies of the files are in Stata (.dta) format.
+   Licence:    Use is governed by the portal's terms of use for registered users. Redistribution of the
+               unit-level files is not permitted, so none are included in this archive.
+   Files used: (a) the person-level activity file (TimeUse106PER.dta in our copy): one row per activity
+               episode of each household member, with the household roster fields for members without a
+               diary; (b) the household file (tus106hh.dta in our copy), used for household
+               characteristics (religion, social group, household size, consumption expenditure).
+               File names on the portal may differ; the code resolves columns by name (see R/build_panel.R).
+
+2. Records used (all computed from the data at run time, see panel_validation() in R/build_panel.R)
+   Activity records (rows) used:                 10,211,478   (all rows; none sampled)
+   Persons on the roster:                           533,719
+   Persons with a diary (person-days) in the file:  450,457
+   Households:                                      139,487
+   First-stage units (FSUs, the clustering unit):     9,969
+   Diaries of third-gender respondents (excluded from the women/men comparisons): 49
+   Analysis sample for the paper:
+     Women aged 20-39, never married or currently married:  88,337 diaries
+     Men aged 20-39, never married or currently married:    87,364 diaries
+     Linked couples (wife aged 20-59 with linked spouse diary): 106,858
+     Widowed vs married, ages 50-79: sample size is computed in the widowhood chunk of analysis_05.R
+   Person-day construction: minutes come from major activities only; all but 5 of the 450,457 diaries
+   sum to exactly 1,440 minutes.
+
+3. Variables used (raw name in the activity file -> meaning)
+   Identifiers and design
+     FSU_Serial_No         first-stage unit (primary sampling unit); standard errors are clustered on it
+     Sample_HH_No          household serial number within the FSU
+     Person_Serial_No      person serial number within the household
+     Weight                survey multiplier used as the estimation weight
+     State, Sector         state/UT code; urban-rural sector
+     Day_of_Week, Type_of_Day   diary day of week; whether the diary day was normal
+     Informant_Serial_No   respondent who reported the diary (own diary vs proxy report)
+   Person characteristics
+     Gender, Age           sex (1 male, 2 female, 3 third gender, per the survey dictionary); age in years
+     Marital_Status        never married, currently married, widowed, divorced/separated
+     Highest_Education     recoded to four tiers: not literate / below primary; primary / middle;
+                           secondary / higher secondary; graduate and above (R/codes.R)
+     Principal_Activity_Status   usual principal status; used for "employed" and "student"
+     Relation_to_Head      relationship to household head (codes used: head, spouse of head, married
+                           child of head, spouse of married child, parent of head)
+   Household characteristics (household file or merged columns)
+     Religion, Social_Group, Household_Size, consumption expenditure (quintiles of monthly per-capita)
+   Activity episode
+     Activity_Code_3Digit  ICATUS 2016 three-digit code, grouped into the nine ICATUS divisions and the
+                           sub-activities (sleep, socializing, exercise and sport, religious practice,
+                           mass media) in R/codes.R
+     time_spent            minutes in the episode
+     Major_Activity_Flag   1 = major activity, 2 = minor (only major activities are summed)
+   Derived person-day variables used in the paper (constructed in R/build_panel.R)
+     employment, ownuse_goods, unpaid_domestic, unpaid_care, volunteer, learning, social_all,
+     leisure_all, selfcare_all (minutes per day in the nine divisions); sleep, socialising,
+     exercise_sport, religious, mass_media (sub-rows); unpaid_total; married; edu_tier; urban;
+     proxy_report; hh_n_parent_gen, hh_n_under6, hh_n_60plus (household composition from the roster);
+     spouse_* variables (linked spouse's age, education, employment, minutes), built from the roster.
+   Basic description of the main outcome variables (weighted means, women/men aged 20-39) is in
+   Table 1 of the paper.
+
+4. Small sample data set
+   The restricted data cannot be shared. sample_data/sample_synthetic_activity_records.csv is FAKE
+   (generated by R/make_synthetic_data.R, seed 7) and only shows the column layout.
+
+5. Other data in the archive
+   submission/_common/tus_2019_2024_compare.csv contains aggregate coefficients (no unit records) from
+   the same harmonised specification applied to Time Use Survey 2019 (NSO, MoSPI), used for the 2019
+   vs 2024 sentence in the Data section.
