@@ -2,7 +2,7 @@
 title: "Married and Never-Married Days: Marriage, Gender and the Full Time Budget in India, 2024"
 params:
   blind: true
-author: '`r if (isTRUE(params$blind)) "Manuscript anonymized for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content. No funding. No conflicts of interest. All errors are mine.}"`'
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymized for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. Generative AI tools (Claude, Anthropic, and other tools) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content. No funding. No conflicts of interest. All errors are mine.}"`'
 output:
   pdf_document:
     number_sections: false
@@ -647,7 +647,7 @@ Married and never-married Indian women spend the day very differently. `r iff(h1
 
 # Declaration of generative AI use {-}
 
-Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
+Generative AI tools (Claude, Anthropic, and other tools) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
 
 # Data and code availability {-}
 
