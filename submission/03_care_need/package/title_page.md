@@ -17,7 +17,7 @@
 **Use of AI tools:** Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
 **Acknowledgements:** I thank the National Statistics Office for access to the microdata.
 
-**Biographical note (for the portal, 80 words):** Preet Deep Singh is an independent researcher based in New Delhi, India. He holds a PhD from the Indian Institute of Management Ahmedabad and studied at Delhi University. He has taught at the Indian Institute of Management Sambalpur, the Indian Institute of Technology Kanpur, the Indian Institute of Technology Bombay and the Indian Institute of Technology Delhi, and has worked with the government. He is a qualified Company Secretary. His research focuses on gender, time use and labour in India.
+**Biographical note (for the portal, 62 words):** Dr Preet Deep Singh is an independent researcher based in New Delhi, India. He holds a PhD from the Indian Institute of Management Ahmedabad and studied at Delhi University. He has taught at the Indian Institute of Management Sambalpur, the Indian Institute of Technology Kanpur. He is a qualified Company Secretary. His research focuses on gender, time use and labour in India.
 
 **JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (exactly 6):** care work; eldercare; long-term care; gender; time use; India
 
