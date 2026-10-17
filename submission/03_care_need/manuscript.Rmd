@@ -26,11 +26,20 @@ source(file.path(TUS_ROOT, "R", "setup.R"))
 pd <- load_panel()
 V  <- panel_validation(pd)
 require_cols(pd, c("special_care", "caregiver", "hh_n_under6", "rel", "pas"), "Paper 03")
-# Feminist Economics style: "percent" in running text (tables keep %).
+# Feminist Economics style: "percent" in running text (tables keep %); numbers under 100 spelled out in prose.
+.numword <- function(n) {
+  ones <- c("zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen",
+            "fourteen","fifteen","sixteen","seventeen","eighteen","nineteen")
+  tens <- c("", "", "twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety")
+  if (n < 20) return(ones[n + 1])
+  if (n %% 10 == 0) return(tens[n %/% 10 + 1])
+  paste0(tens[n %/% 10 + 1], "-", ones[n %% 10 + 1])
+}
 .inl <- knitr::knit_hooks$get("inline")
 knitr::knit_hooks$set(inline = function(x) {
   x <- .inl(x)
   if (is.character(x)) x <- gsub("([0-9])\\\\?%", "\\1 percent", x)
+  if (is.character(x) && length(x) == 1 && grepl("^[0-9]{1,2}$", x)) x <- .numword(as.integer(x))
   x
 })
 ```
@@ -300,7 +309,7 @@ Population averages of care time mix the gender division of care with difference
 
 # Introduction {#sec:s1}
 
-Care for people who cannot fully look after themselves is the core of the unpaid economy [@folbre1994pays; @folbre2006measuring; @addati2018care]. Its largest component in most countries is childcare, and the time-use literature has studied parental care intensively [@sayer2004parents; @craig2011share; @folbre2005measure]. Care of sick, frail and disabled adults has received much less attention, especially outside high-income countries, even though demand for it is rising fastest. India's population aged 60 and above is growing faster than the population as a whole, co-residence with adult children remains the dominant living arrangement for older Indians, and a substantial share of them report difficulty with basic activities of daily living [@iips2020lasi; @unfpa2023ageing]. Public and market provision of long-term care is still developing [@unfpa2023ageing; @who2015ageing], so most of this care is provided inside the household, by its members, without pay.
+Care for people who cannot fully look after themselves is the core of the unpaid economy [@folbre1994pays; @folbre2006measuring; Addati, Cattaneo, Esquivel, and Valarino -@addati2018care]. Its largest component in most countries is childcare, and the time-use literature has studied parental care intensively [@sayer2004parents; @craig2011share; Folbre, Yoon, Finnoff, and Fuligni -@folbre2005measure]. Care of sick, frail and disabled adults has received much less attention, especially outside high-income countries, even though demand for it is rising fastest. India's population aged 60 and above is growing faster than the population as a whole, co-residence with adult children remains the dominant living arrangement for older Indians, and a substantial share of them report difficulty with basic activities of daily living [International Institute for Population Sciences, National Programme for Health Care of Elderly, Harvard T. H. Chan School of Public Health, and University of Southern California -@iips2020lasi; @unfpa2023ageing]. Public and market provision of long-term care is still developing [@unfpa2023ageing; @who2015ageing], so most of this care is provided inside the household, by its members, without pay.
 
 This paper asks a question that the Indian evidence has rarely addressed directly: *when a household needs care, who in it provides that care, and at what cost?* Population-wide comparisons of care time by sex [@hirway2011understanding; @nso2020tus] confound two things: the gender division of care within households that need it, and differences between men and women in whether they live in such a household. A man who records no care because no one in his household needs it and a man who records none while his wife nurses his mother both contribute zero to the male average. The same averaging hides the cost of care. Because only a minority of households need adult care on any day, its effect on women's paid work and leisure is diluted when the comparison is made across all households.
 
@@ -374,7 +383,7 @@ The Time Use Survey (TUS) 2024 was conducted by India's National Statistics Offi
 
 Childcare is ICATUS 411--419 (physical care, medical care, teaching, talking and reading, playing, minding, and arrangements with schools and childcare providers) plus accompanying own children (442). Dependent-adult care is 421--429 (help with activities of daily living, medical care, administration, emotional support, passive care, and arrangements with care providers) plus accompanying dependent adults (443). Help to non-dependent adult household members (431--439) is excluded from both. Because the recipient of special care may be a child aged 5 to 17, care for whom is coded as childcare, I also report results for all caregiving in ICATUS Division 4.
 
-The person who needs special care also keeps a diary. Including recipients among potential carers would bias the estimates: recipients do little care and little paid work because of the condition that makes them need care, so a household's need would appear to reduce women's employment partly through the employment of the women who need care. The survey does not identify the recipient. I flag as *probable recipients* members whose usual principal activity status is "not able to work owing to disability" and members who record receiving personal or medical care from others on the diary day (ICATUS 941--949). In `r pct(pr_recip_flag, 0)` of households with a special-care need at least one member is flagged. Probable recipients are excluded from all person-level analyzes of carers. The flag is deliberately broad: it also removes some people who visited a doctor, which makes the carer sample slightly more selected towards healthy members but does not affect the household-level shares of care, to which recipients contribute almost nothing.
+The person who needs special care also keeps a diary. Including recipients among potential carers would bias the estimates: recipients do little care and little paid work because of the condition that makes them need care, so a household's need would appear to reduce women's employment partly through the employment of the women who need care. The survey does not identify the recipient. I flag as *probable recipients* members whose usual principal activity status is "not able to work owing to disability" and members who record receiving personal or medical care from others on the diary day (ICATUS 941--949). In `r pct(pr_recip_flag, 0)` of households with a special-care need at least one member is flagged. Probable recipients are excluded from all person-level analyzes of carers. The flag is deliberately broad: it also removes some people who visited a doctor, which makes the carer sample slightly more selected toward healthy members but does not affect the household-level shares of care, to which recipients contribute almost nothing.
 
 ## Samples
 
@@ -562,7 +571,7 @@ The results bear on the competing accounts in the conceptual framework. `r iff(d
 
 The design is a single cross-section, and the estimates are conditional associations. Households in which someone needs care differ in age structure, income and health in ways the controls capture only partly, and families may arrange co-residence according to who is able to care, which would make the carers observed in need households more care-oriented than other women. The direction of this bias for the employment estimates is ambiguous: women with weaker labor-market attachment may be selected as carers, which overstates the cost of care, while households may avoid assigning care to women with good jobs, which understates the cost for women in general.
 
-The need measure is coarse. It records neither severity nor type nor the identity of the recipient, and it covers any member aged five and above. The probable-recipient flag is an approximation: it misses recipients who work and did not receive care on the diary day, and it includes members who received medical care for minor conditions. The caregiver-availability question is the household's own judgement and may be answered differently by households with similar capacity.
+The need measure is coarse. It records neither severity nor type nor the identity of the recipient, and it covers any member aged five and above. The probable-recipient flag is an approximation: it misses recipients who work and did not receive care on the diary day, and it includes members who received medical care for minor conditions. The caregiver-availability question is the household's own judgment and may be answered differently by households with similar capacity.
 
 A single diary day understates the share of people who ever provide care and overstates its intensity among those who report it [@frazis2012think]. Primary-activity minutes understate supervisory and simultaneous care [@folbre2006measuring; @floro1995women]. The responsibility of being on call for a frail relative, which constrains women's options for paid work outside the home, is not measured at all. The estimates should therefore be read as lower bounds on the time constrained by care.
 
@@ -598,7 +607,7 @@ Generative AI tools (Claude, Anthropic) were used to assist with writing and deb
 
 # Data and code availability {-}
 
-The Time Use Survey 2024 unit-level data are distributed by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India (microdata.gov.in, catalogue 236), to registered users. Code available from the author on request; will be made public on acceptance.
+The Time Use Survey 2024 unit-level data are distributed by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India (microdata.gov.in, catalog 236), to registered users. Code available from the author on request; will be made public on acceptance.
 
 # References {-}
 

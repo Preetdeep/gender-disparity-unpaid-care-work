@@ -4,7 +4,7 @@
 
 **Target journal:** *Feminist Economics*
 
-**Author:** Preet Deep Singh, Independent Researcher, New Delhi, India (where an institution is required: IIM Sambalpur)
+**Author:** Preet Deep Singh, Independent Researcher, New Delhi, India
 **Postal address:** J-7/86, Third Floor, Rajouri Garden, New Delhi 110027, India
 **Phone:** +91 9873371859
 **ORCID:** 0000-0003-3721-7548
