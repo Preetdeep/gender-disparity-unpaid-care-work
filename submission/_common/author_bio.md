@@ -1,6 +1,6 @@
 # Author biography (reusable for portals)
 
-Third person; 62 words (limit 40-100). Title page and portal fields only; never in an anonymised manuscript. Text supplied by Doc, used exactly. Note: Feminist Economics asks for American spelling ('labour' would be 'labor').
+Third person; 62 words (limit 40-100). Title page and portal fields only; never in an anonymised manuscript. Text supplied by Doc, used exactly. Note: the Feminist Economics copy (submission/03_care_need/package/title_page.md) uses "labor" for American spelling; all other wording is identical to this text.
 
 **Affiliation line:** Independent Researcher, New Delhi, India
 
