@@ -4,7 +4,8 @@
 **Status:** NOT submitted. Doc must approve and submit.
 
 ## Files
-- `manuscript_anonymised.pdf`: double-anonymized main text, 12pt, double-spaced, ragged right, no hyphenation; 39 pages; 8,786 words including references, plus 748 words in the four table files (about 9,535 in all; limit 10,000). Abstract 132 words (limit 150). Tables and the figure are not embedded; positions are marked in the text.
+- `manuscript_anonymised.pdf`: double-anonymized main text, 12pt, double-spaced, ragged right, no hyphenation; 39 pages; 8,798 words including references, plus 748 words in the four table files (about 9,535 in all; limit 10,000). Abstract 132 words (limit 150). Tables and the figure are not embedded; positions are marked in the text.
+- Citations: author names are listed in full for works with up to three authors; "et al." is used only for four or more (style file `chicago-author-date-fe.csl`).
 - `exhibits/`: Table1–Table4.pdf and one Figure1.pdf (greyscale), each its own upload; captions are listed after the references.
 - `online_supplement.pdf`: appendix (Tables S1–).
 - `title_page.md`: name, affiliation (Independent Researcher, New Delhi, India), ORCID, email, 62-word bio, JEL codes, keywords, declarations.

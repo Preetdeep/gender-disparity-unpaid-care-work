@@ -15,6 +15,7 @@ fontsize: 12pt
 linestretch: 2
 geometry: margin=1in
 bibliography: [../references.bib, refs_local.bib]
+csl: chicago-author-date-fe.csl
 link-citations: true
 ---
 
