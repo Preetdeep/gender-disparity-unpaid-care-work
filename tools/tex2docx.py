@@ -15,4 +15,9 @@ for f in set(re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}',s)):
     if os.path.exists(pdf):
         subprocess.run(['pdftoppm','-png','-r','200','-singlefile',pdf,pdf[:-4]])
         s=s.replace('{'+f+'}','{'+pdf[:-4]+'.png}')
+# Literal supplement numbers for cross-references to the online supplement (xr labels S-...)
+aux=os.path.join(os.path.dirname(os.path.abspath(src)),'supplement.aux')
+if os.path.exists(aux):
+    lab=dict(re.findall(r'\\newlabel\{([^}]+)\}\{\{([^}]*)\}',open(aux).read()))
+    s=re.sub(r'\\ref\{S-([^}]+)\}',lambda m:lab.get(m.group(1),m.group(0)),s)
 open(dst,'w').write(s)

@@ -39,7 +39,7 @@ if [ "$NN" = "03" ]; then  # Feminist Economics: exhibits as separate files, pos
 fi
 if [ "$NN" = "05" ]; then  # JMF Word file: Times New Roman 12pt, double-spaced
   PD=$(command -v pandoc || ls /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/*/pandoc | head -1)
-  python3 $ROOT/tools/tex2docx.py main.tex m2.tex && $PD m2.tex --reference-doc $ROOT/tools/jmf_reference.docx -o $PK/manuscript_anonymised.docx
+  python3 $ROOT/tools/tex2docx.py main.tex m2.tex && $PD m2.tex --reference-doc $ROOT/tools/jmf_reference.docx -o $PK/manuscript_anonymised.docx && python3 $ROOT/tools/fix_docx.py $PK/manuscript_anonymised.docx
 fi
 MW=$(pdftotext main.pdf - 2>/dev/null | wc -w || echo NA)
 echo "$NN main_pdf_words_incl_refs_tables=$MW refs_unresolved=$(grep -c 'undefined' main.log)"
