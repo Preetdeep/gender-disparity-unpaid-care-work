@@ -4,14 +4,14 @@
 **Status:** NOT submitted. Doc must approve and submit.
 
 ## Files
-- `manuscript_anonymised.docx`: **upload this** (JMF requires Microsoft Word). Tables are editable Word tables embedded in the text; figures are PNG.
-- `manuscript_anonymised.pdf`: same content in JMF layout (12 pt, double-spaced, 1-inch margins) for checking. About 24 pages before references (limit about 35 excluding references). No footnotes. Structured abstract (Objective/Background/Method/Results/Conclusion) of about 215 words plus labels (guideline 200–225), third person.
-- `online_supplement.pdf`: appendix tables S1–.
-- `title_page.md`, `cover_letter.md`.
+- `manuscript_anonymised.docx`: **upload this** (JMF requires Microsoft Word). Times New Roman 12 pt, double-spaced, 1-inch margins, page numbers; tables are editable Word tables (single-spaced, as JMF presents tables) embedded in the text; figures are PNG. Supplement references are written out literally (Figure S1, Table S2, and so on). The docx measures 33 pages in LibreOffice (limit 35); re-check the count in Word.
+- `manuscript_anonymised.pdf`: same content in JMF layout (12 pt, double-spaced, 1-inch margins) for checking. 33 pages in all, references included (limit about 35 excluding references). 8,169 words including references and tables. No footnotes. Structured abstract (Objective/Background/Method/Results/Conclusion) of 213 words, third person (guideline 200-225). American spelling.
+- `online_supplement.pdf`: appendix tables S1-.
+- `title_page.md`, `cover_letter.md` (the cover letter discloses the SSRN preprint, abstract 5677063; the anonymised manuscript does not mention it).
 
 ## Before upload (Doc / quick manual pass in Word)
-- [ ] Set the font to Times New Roman 12 pt, double spacing and ragged right in Word (pandoc's default style is Calibri/Cambria)
-- [ ] Add page numbers starting at 1 on the title page; JMF wants the title page as page 1 of a separate file
+- [ ] Open the docx once in Word and confirm the page count (33 in LibreOffice) and that tables fit the page
+- [ ] JMF wants the title page as page 1 of a separate file; the anonymised file carries no author details
 - [ ] Tables: at most two decimals (the current tables use one)
 
 ## Portal fields

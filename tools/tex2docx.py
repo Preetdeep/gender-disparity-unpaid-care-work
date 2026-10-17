@@ -15,6 +15,27 @@ for f in set(re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}',s)):
     if os.path.exists(pdf):
         subprocess.run(['pdftoppm','-png','-r','200','-singlefile',pdf,pdf[:-4]])
         s=s.replace('{'+f+'}','{'+pdf[:-4]+'.png}')
+# Citeproc citations: \citeproc{ref-key}{Author, year} -> literal "Author, year" (pandoc's LaTeX reader would drop them, leaving "(; )")
+def _citeproc(t):
+    out=[];i=0;tag='\\citeproc{'
+    while True:
+        j=t.find(tag,i)
+        if j<0: out.append(t[i:]); break
+        out.append(t[i:j]); k=j+len(tag)
+        while t[k]!='}': k+=1
+        k+=1
+        if t[k]!='{': out.append(t[j:k]); i=k; continue
+        d=0;m=k
+        while True:
+            if t[m]=='{': d+=1
+            elif t[m]=='}':
+                d-=1
+                if d==0: break
+            m+=1
+        out.append(t[k+1:m]); i=m+1
+    return ''.join(out)
+_i=s.find('\\begin{document}')
+s=s[:_i]+_citeproc(s[_i:]) if _i>=0 else _citeproc(s)
 # Literal supplement numbers for cross-references to the online supplement (xr labels S-...)
 aux=os.path.join(os.path.dirname(os.path.abspath(src)),'supplement.aux')
 if os.path.exists(aux):
