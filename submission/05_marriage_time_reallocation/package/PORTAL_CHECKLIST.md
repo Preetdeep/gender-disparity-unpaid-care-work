@@ -4,8 +4,8 @@
 **Status:** NOT submitted. Doc must approve and submit.
 
 ## Files
-- `manuscript_anonymised.docx`: **upload this** (JMF requires Microsoft Word). Times New Roman 12 pt, double-spaced, 1-inch margins, page numbers; tables are editable Word tables (single-spaced, as JMF presents tables) embedded in the text; figures are PNG. Supplement references are written out literally (Figure S1, Table S2, and so on). The docx measures 33 pages in LibreOffice (limit 35); re-check the count in Word.
-- `manuscript_anonymised.pdf`: same content in JMF layout (12 pt, double-spaced, 1-inch margins) for checking. 33 pages in all, references included (limit about 35 excluding references). 8,169 words including references and tables. No footnotes. Structured abstract (Objective/Background/Method/Results/Conclusion) of 213 words, third person (guideline 200-225). American spelling.
+- `manuscript_anonymised.docx`: **upload this** (JMF requires Microsoft Word). Times New Roman 12 pt, double-spaced, 1-inch margins, page numbers; tables are editable Word tables (single-spaced, as JMF presents tables) embedded in the text. The Word file contains no figures: all figures are in the online supplement (`online_supplement.pdf`). Supplement references are written out literally (Figure S1, Table S2, and so on). The docx measures 33 pages in LibreOffice (limit 35); re-check the count in Word.
+- `manuscript_anonymised.pdf`: same content in JMF layout (12 pt, double-spaced, 1-inch margins) for checking. 33 pages in all, references included (limit about 35 excluding references). 8,169 words including references and tables. No footnotes. Structured abstract (Objective/Background/Method/Results/Conclusion) of 211 words (206 without the section labels), third person (guideline 200-225). American spelling.
 - `online_supplement.pdf`: appendix tables S1-.
 - `title_page.md`, `cover_letter.md` (the cover letter discloses the SSRN preprint, abstract 5677063; the anonymised manuscript does not mention it).
 

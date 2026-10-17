@@ -409,7 +409,7 @@ The second family treats housework as a way of performing gender [@west1987doing
 
 ## The time budget as a whole
 
-Time-budget research has long argued that activities should be studied together because the day is fixed [@juster1991allocation; @gershuny2000changing; @robinson1997time]. @burda2013total show that in rich countries men and women do roughly the same total amount of paid and unpaid work, while in poorer countries women do more. Marriage could therefore raise women's total work, or it could shift work from the market to the home with little change in total work. Only a full accounting distinguishes the two.
+Time-budget research has long argued that activities should be studied together because the day is fixed [@juster1991allocation; @gershuny2000changing; @robinson1997time]. @burda2013total show that in rich countries men and women do roughly the same total amount of paid and unpaid work, whereas in poorer countries women do more. Marriage could therefore raise women's total work, or it could shift work from the market to the home with little change in total work. Only a full accounting distinguishes the two.
 
 Marriage may reshape social life too, as a "greedy" institution [@coser1974greedy]; married Americans have fewer ties to kin, friends and neighbors than the never-married [@sarkisian2016singlehood].
 
@@ -457,7 +457,7 @@ The outcomes are minutes per day in the nine ICATUS divisions: employment and re
 
 Marital status and relationship to the household head come from the roster. For married women, I distinguish three residence types: (a) the woman is the head or the head's wife and no parent or parent-in-law of the head lives in the household ("no parent generation"), (b) she is the head or the head's wife and a parent or parent-in-law of the head is present, and (c) she is the daughter-in-law of the head (roster code 4). Among married women aged 20 to 39, these groups account for `r pct(sh_res[["nuclear"]], 0)`, `r pct(sh_res[["head_old"]], 0)` and `r pct(sh_res[["junior"]], 0)` respectively; the remaining `r pct(sh_res[["other"]], 0)` hold other positions (for example, a married daughter of the head). For men, the junior category is a married son of the head (code 3). Type (c) is the clearest indicator of patrilocal co-residence. Type (b) mixes households in which the parent generation is the husband's and households in which it is the wife's, because the roster records the relation to the head only.
 
-Covariates are single-year age, education (four tiers), urban residence, caste group (Scheduled Tribe, Scheduled Caste, Other Backward Class, other), religion, state, day of the week and proxy reporting. The baseline model does not control for household size, older household members or consumption. These are partly consequences of marriage, since at marriage a woman usually moves into a different and often larger household, and controlling for them would remove part of the association I want to measure. They enter an extended specification as a robustness check.
+Covariates are single-year age, education (four tiers), urban residence, caste group (Scheduled Tribe, Scheduled Caste, Other Backward Class, other), religion, state, day of the week and proxy reporting. The baseline model does not control for household size, older household members or consumption. These are partly consequences of marriage, because at marriage a woman usually moves into a different and often larger household, and controlling for them would remove part of the association I want to measure. They enter an extended specification as a robustness check.
 
 ## Analytic strategy
 
@@ -583,7 +583,7 @@ In households where the wife is the daughter-in-law of the head, the wife--husba
 ## Widowhood at older ages
 
 
-Table \ref{tab:widow} applies the same accounting to the end of marriage. Widowed women do `r diff_txt(k_wid_uw)` unpaid work than married women of the same age, and widowed men `r diff_txt(k_wid_um)` than married men. This comparison is also selective, since widowhood is related to the spouse's health, to poverty and to the age gap between spouses, and many widowed Indians live with adult children. It shows which activities differ when a spouse is no longer present, not what widowhood causes.
+Table \ref{tab:widow} applies the same accounting to the end of marriage. Widowed women do `r diff_txt(k_wid_uw)` unpaid work than married women of the same age, and widowed men `r diff_txt(k_wid_um)` than married men. This comparison is also selective, because widowhood is related to the spouse's health, to poverty and to the age gap between spouses, and many widowed Indians live with adult children. It shows which activities differ when a spouse is no longer present, not what widowhood causes.
 
 ## Robustness
 
@@ -602,7 +602,7 @@ The main limitation is the comparison group. Married and never-married women dif
 
 ## Conclusion
 
-Married and never-married Indian women spend the day very differently. `r iff(h1_supported, "Married women do far more unpaid domestic and care work, a difference with no counterpart among men.", "Its association with unpaid work differs between women and men.")` A time-budget decomposition shows which activities differ alongside that work, and the household roster shows how the change depends on whether a young wife joins her husband's parents' household and on her standing relative to her husband. Policies that aim to raise married women's employment, such as childcare, safe transport or flexible work, operate within this budget. They are more likely to succeed if they also reduce the unpaid domestic and care work that accompanies marriage and motherhood, since that work competes with women's paid work, learning, leisure or sleep.
+Married and never-married Indian women spend the day very differently. `r iff(h1_supported, "Married women do far more unpaid domestic and care work, a difference with no counterpart among men.", "Its association with unpaid work differs between women and men.")` A time-budget decomposition shows which activities differ alongside that work, and the household roster shows how the change depends on whether a young wife joins her husband's parents' household and on her standing relative to her husband. Policies that aim to raise married women's employment, such as childcare, safe transport or flexible work, operate within this budget. They are more likely to succeed if they also reduce the unpaid domestic and care work that accompanies marriage and motherhood, because that work competes with women's paid work, learning, leisure or sleep.
 
 # Declaration of generative AI use {-}
 
