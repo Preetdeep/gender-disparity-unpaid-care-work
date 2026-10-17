@@ -10,6 +10,7 @@
 **ORCID:** 0000-0003-3721-7548
 **Email (corresponding):** preetds@iima.ac.in
 
+**Author contributions (CRediT):** Preet Deep Singh (sole author): Conceptualization; Data curation; Formal analysis; Investigation; Methodology; Project administration; Resources; Software; Supervision; Validation; Visualization; Writing – original draft; Writing – review & editing. Funding acquisition: not applicable (no funding). Generative AI tools assisted as stated under use of AI tools below; the author is responsible for all content.
 **Funding:** None.
 **Conflicts of interest:** None.
 **Data availability:** Unit-level data from the Time Use Survey (January–December 2024), National Statistics Office, MoSPI, Government of India (microdata.gov.in, catalog 236), available to registered users. Code available from the author on request; will be made public on acceptance.
