@@ -1,0 +1,19 @@
+# Title page
+
+**Title:** What Men Do with a Day Off: Sundays, Paid Work, and the Gendered Division of Unpaid Work in India
+
+**Target journal:** *Journal of Time Use Research*
+
+**Author:** Preet Deep Singh, Independent Researcher, New Delhi, India (where an institution is required: IIM Sambalpur)
+**Postal address:** J-7/86, Third Floor, Rajouri Garden, New Delhi 110027, India
+**Phone:** +91 9873371859
+**ORCID:** 0000-0003-3721-7548
+**Email (corresponding):** preetds@iima.ac.in
+
+**Author contributions (CRediT):** Preet Deep Singh (sole author): Conceptualization; Data curation; Formal analysis; Investigation; Methodology; Project administration; Resources; Software; Supervision; Validation; Visualization; Writing – original draft; Writing – review & editing. Funding acquisition: not applicable (no funding). Generative AI tools assisted as stated under use of AI tools below; the author is responsible for all content.
+**Funding:** None.
+**Conflicts of interest:** None.
+**Data availability:** Unit-level data from the Time Use Survey (January–December 2024), National Statistics Office, MoSPI, Government of India (microdata.gov.in, catalog 236), available to registered users. Code available from the author on request; will be made public on acceptance.
+**Ethics:** Secondary analysis of anonymised official survey microdata; no human-subjects contact.
+**Use of AI tools:** Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
+**Acknowledgements:** I thank the National Statistics Office for access to the microdata.

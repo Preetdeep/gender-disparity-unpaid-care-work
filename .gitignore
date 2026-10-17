@@ -47,3 +47,5 @@ Thumbs.db
 *.fdb_latexmk
 submission/**/*_files/
 submission/**/*.html
+
+!submission/_common/preamble.tex

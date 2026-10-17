@@ -577,6 +577,15 @@ load_panel <- function(rebuild = FALSE) {
     build_panel()
   }
   pd <- readRDS(f)
+  # Third-gender persons (Gender == 3, about 60 diarists) stay in household composition
+  # counts (built before this point) but are excluded from every women-vs-men analysis.
+  if ("gender" %in% names(pd)) {
+    keep_attr <- attributes(pd)[setdiff(names(attributes(pd)), c("names", "row.names", "class", ".internal.selfref"))]
+    n3 <- sum(pd$gender %in% 3)
+    pd <- pd[!(gender %in% 3)]
+    for (a in names(keep_attr)) data.table::setattr(pd, a, keep_attr[[a]])
+    data.table::setattr(pd, "n_third_gender_excluded", n3)
+  }
   sc <- attr(pd, "validation")$code_scheme
   if (!is.null(sc)) apply_code_scheme(sc)       # restore the scheme detected at build time
   pd
@@ -587,4 +596,14 @@ load_pairs <- function() {
   if (file.exists(f)) readRDS(f) else NULL
 }
 
-panel_validation <- function(pd) attr(pd, "validation")
+panel_validation <- function(pd) {
+  V <- attr(pd, "validation")
+  if (is.null(V)) return(V)
+  # Derived counts used in the data sections (all computed from the build, not assumed).
+  V$n_diaries_not1440 <- as.integer(round(V$n_diarists * (1 - V$share_diaries_1440)))
+  V$n_roster_6plus <- V$n_diarists + V$n_roster_only_age6plus
+  n3 <- attr(pd, "n_third_gender_excluded")
+  V$n_third_gender <- if (is.null(n3)) 0L else n3
+  V$n_analysed <- V$n_diarists - V$n_third_gender
+  V
+}

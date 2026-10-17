@@ -1,0 +1,14 @@
+Dear Editors,
+
+I submit "Grandmothers' care and mothers' time: coresident grandmothers in India" for consideration as an original paper in the *Journal of Population Economics*.
+
+Studies of grandparental childcare mostly infer substitution from mothers' employment, and the cost to the grandmothers themselves is rarely measured outside high-income countries. India's Time Use Survey 2024 records a 24-hour diary for every household member aged six and above, so the paper observes the same day for both generations. It compares 49,992 married mothers aged 18 to 49 with a child under six (36% of whom live with a grandmother) with the women and men aged 45 to 80 in the generation above them. A further contribution is a set of relationship-based rules for assigning grandmothers and young children in rosters that record no parent identifiers, which matters in the patrilocal households where most three-generation arrangements occur.
+
+Grandmothers living with a young grandchild report much more childcare and less domestic work, free time and sleep than other older women, so family care is a substantial transfer of time with a cost to those who give it. The pooled association of a coresident grandmother with mothers' own childcare or paid work is small and not robust across specifications, and it differs by the grandmother's age and employment and by household arrangement. I state plainly that the estimates are conditional associations and that the data do not establish that grandmothers relieve mothers. I believe the paper fits the journal's interest in the family, ageing and the allocation of time across generations; a recent paper in the journal on coresident grandparents and maternal employment in the United States (Bansak, Dziadula and Zavodny 2026) addresses the same channel in a different setting.
+
+The manuscript is original, is not under review elsewhere, and has no preprint [Doc to confirm]. It has no funding and no competing interests, and the data-availability, ethics and AI-use statements are in the manuscript. Claude and other AI tools helped with code, reference checks and drafting; I verified all content and take full responsibility for it. The manuscript is anonymized; the title page is supplied separately.
+
+Sincerely,
+Dr Preet Deep Singh
+Independent Researcher, New Delhi, India
+preetds@iima.ac.in · ORCID 0000-0003-3721-7548
