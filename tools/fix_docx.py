@@ -48,3 +48,8 @@ for name in ('Abstract', 'Abstract Title', 'Author', 'Date', 'Title'):
     except KeyError:
         pass
 d.save(sys.argv[1])
+
+# Number the table captions ("Table 1: ...") so they match the in-text citations (Demographic Research: captions in the text file)
+sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
+from number_captions_docx import number_captions
+number_captions(sys.argv[1])
