@@ -1,37 +1,55 @@
-# Ageing & Society: submission checklist
+# Journal of Population Economics: submission checklist
 
-**Portal:** ScholarOne Manuscripts, linked from https://www.cambridge.org/core/journals/ageing-and-society/information/author-instructions (create or use an account; an ORCID is required)
+**Portal:** Springer Nature editorial system, linked from https://link.springer.com/journal/148/submission-guidelines ("Submit manuscript").
 **Status:** NOT submitted. Doc must approve, type his own passwords and submit.
-**Fees:** none to submit. Do NOT choose Gold open access (APC US$3,655 / £2,610) unless Doc decides to; colour figures in print are charged (the paper has none in the main text).
+**Fees:** no submission fee was found on the guidelines page. Open Choice (open access) is optional and carries an APC; the page points to Springer Compact agreements and the journal's open-access page. Do not choose it unless Doc decides to.
 
-## Journal rules checked (Cambridge pages fetched 17 Oct 2026)
-- Length 6,000 to 8,000 words, excluding the title page, abstract, keywords, references and supplementary material. Abstract at most 300 words, no subheadings.
-- **British English** (the manuscript uses it throughout, with "per cent").
-- Unnumbered sections; first-level headings bold sentence case, second-level italic sentence case; no bold in running text; numbers one to ten in words; no footnotes; no appendices (the appendix tables and figures sit in the online supplement).
-- At most ten tables and figures: the manuscript has eight tables, all at the end on separate pages with "< Insert Table N about here >" markers.
-- References: author–date, all authors named in the list, "et al." in text for three or more authors, non-elided page ranges, DOIs where available (`ageing-and-society.csl` is set up this way).
-- Double-anonymised review: the anonymised file has no names, no acknowledgements and no self-identifying text. The title page is uploaded separately.
-- Declarations at the back (ethical statement, funding, competing interests); AI-use statement is in the Methods.
+## Rules read on the guidelines page (17 Oct 2026) and how the files meet them
+| Rule | Source wording | This package |
+|---|---|---|
+| Abstract | General rule 150 to 250 words, **but** the journal-specific remark says a maximum of 150 words, non-technical, stating the innovation and contribution | __ABSTRACT_WORDS__ words, no subheadings, no undefined abbreviations, no references |
+| Keywords | 4 to 6 | 6 |
+| JEL codes | "Only a number of three" | D13, J13, J22 |
+| Text file | Word (.docx or .doc) with all editable source files; plain font such as 10-point Times; automatic page numbers; no field functions; tables with the table function; at most three heading levels | `manuscript_anonymised.docx`: Times New Roman 11 pt, 1.5 spacing, footer page numbers, Word tables, two heading levels (LaTeX source is not required; LaTeX is allowed for mathematical content) |
+| Citations | Name and year in parentheses | Springer Basic author-date style (`springer-basic-author-date.csl`) |
+| Reference list | Alphabetized by first author, then (two authors) co-author, then date; DOIs as full links; journal names abbreviated per ISSN LTWA, **or full titles if unsure** | Full titles used; DOIs as https://doi.org links where the bibliography has one; all authors named |
+| Footnotes | Allowed; never only a citation and never bibliographic details; footnotes instead of endnotes | None used |
+| Tables and figures | Numbered, cited in order, captions in the text file | 8 tables inline in the text; figures are in the supplement |
+| Supplement | PDF, cited in the text as "Online Resource", named ESM_1.pdf; each file should carry article title, journal, author names, affiliation and email | `ESM_1.pdf`, cited as Online Resource 1. It has the anonymized title only: see "To decide" below |
+| Declarations | Heading "Statements and Declarations" before the references with Funding, Competing interests, Ethics, Data availability; submissions without them are returned as incomplete | Included in the manuscript |
+| AI use | Generative-AI use documented in the Methods; copy-editing help needs no declaration | In the Methods and in `title_page.md` |
+| Acknowledgments | Separate section on the title page; should thank the anonymous referees | `title_page.md` |
+| Reviewer suggestions | Not accepted; requests to exclude reviewers are accepted | none given |
+| Word limit | None found | Main text about __BODY_WORDS__ words |
+
+## Differences from the summary Roo wrote
+1. **Abstract:** the page gives two rules. The general one is 150 to 250 words, but the journal-specific remark says a maximum of 150 words, so I used 150 or fewer. If the portal enforces 150 to 250, the abstract is still accepted by a 150-word cap only if it has at least 150 words, so check the counter.
+2. The page does not say the review is anonymized or single-blind, and it asks for author names and affiliation on supplementary files. The manuscript is anonymized anyway.
+3. Footnotes: allowed, with restrictions (above), as Roo said.
+4. Spelling is not stated. Titles on the journal's recent-articles list use American forms ("labor", "behaviors", "aging"), and a 2026 article on coresident grandparents writes "coresident", so the manuscript uses American spelling.
+5. Springer abbreviates journal names in the reference list; full titles are allowed "if unsure".
+6. Springer also asks authors to check whether cited discussion papers have since been published. The reference list was checked against published versions for the entries marked in `refs_local.bib`, but not re-checked for this submission.
 
 ## Files in this folder
-- `manuscript_anonymised.pdf`: complete text without the title page, for double-anonymised review (**built on Doc's Mac with the real data; see Build status below**).
-- `online_supplement.pdf`: supplementary figures and tables S1 onwards.
-- `title_page.md`: names, affiliation, postal and email address, ORCID, declarations (upload as the separate title page).
+- `manuscript_anonymised.pdf` and `manuscript_anonymised.docx`: complete text, no author, no acknowledgments (build: `tools/build_package.sh 02` then `submission/02_grandparent_care/build_docx.sh`).
+- `ESM_1.pdf`: Online Resource 1 (Figs S1, S2; Tables S1, S2).
+- `title_page.md`: names, affiliation, email, ORCID, acknowledgments, declarations, AI statement (upload as the title page).
 - `cover_letter.md`: draft cover letter.
 
-## Fields the portal asks for
-- [ ] Article type: Original Article (research paper)
-- [ ] Title; abstract (paste from the PDF, at most 300 words)
-- [ ] Keywords: grandparents; childcare; three-generation households; patrilocality; time use; older women; India
-- [ ] Author: Dr Preet Deep Singh, Independent Researcher, New Delhi, India, preetds@iima.ac.in, ORCID 0000-0003-3721-7548
-- [ ] Postal address (journal requires one): confirm the address in `title_page.md`
-- [ ] Funding: none. Competing interests: none. Ethics: secondary analysis of anonymised official data
-- [ ] AI-use declaration: the journal wants tool name and version, dates of use, access route and a full description. **Doc must supply the version numbers and dates; they are not recorded in the repository.**
-- [ ] Preprints or working papers: confirm none exists (the journal asks for any to be acknowledged)
-- [ ] Data availability: Time Use Survey 2024 microdata, Ministry of Statistics and Programme Implementation; code on acceptance
-- [ ] Upload the supplement as supplementary material; upload the title page as a separate file (not visible to reviewers)
-- [ ] Suggested reviewers: optional; none proposed
+## Counts (real-data build, 17 Oct 2026)
+__COUNTS__
 
-## Build status
-- Words (main text from the Introduction to the Conclusion, excluding abstract, keywords, references and tables): about 6,250 in the layout test (limit 6,000 to 8,000); abstract about 265 words (limit 300). **Confirm both figures, and the page count, on the real-data build.**
-- Not yet verified on real data: the household-size cross-check sentence in the Methods (it prints only when the household file carries both variables); the conditional wording in the Results and Discussion, which follows the estimates and should be read once on the built PDF.
+## Fields the portal asks for
+- [ ] Article type: Original paper
+- [ ] Title; abstract (paste from the PDF); keywords; JEL codes D13, J13, J22
+- [ ] Author: Dr Preet Deep Singh, Independent Researcher, New Delhi, India, preetds@iima.ac.in, ORCID 0000-0003-3721-7548
+- [ ] Funding: none. Competing interests: none
+- [ ] Data availability statement (required)
+- [ ] AI-use declaration: add tool versions and dates if asked (not recorded in the repository)
+- [ ] Preprint or working paper: confirm none exists
+- [ ] Upload the title page and `ESM_1.pdf` as supplementary material
+- [ ] Reviewer suggestions: none; exclusions: none
+
+## To decide
+- Springer asks that each supplementary file carry the article title, journal, author names, affiliation and email. `ESM_1.pdf` is anonymized, so if the portal is single-blind, Doc can add that header before uploading.
+- Optional: Open Choice (APC) or a Springer Compact agreement.

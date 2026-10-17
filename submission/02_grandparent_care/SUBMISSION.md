@@ -1,25 +1,28 @@
 # Paper 02: Grandmothers' care and mothers' time
 
-**Target journal (revised 17 Oct 2026):** *Ageing & Society* (Cambridge University Press; no submission fee; double-anonymised; British English; 6,000 to 8,000 words; abstract at most 300 words). Previous targets (Demographic Research, Journal of Population Economics) are superseded.
-**Fee-free alternatives:** *Journal of Family Issues*, *Journal of Population Economics* (subscription route).
+**Target journal (17 Oct 2026):** *Journal of Population Economics* (Springer; ABDC A*), after an earlier preparation for *Ageing & Society* (British English, 6,000 to 8,000 words, abstract up to 300 words). Guidelines: https://link.springer.com/journal/148/submission-guidelines. Details, counts and differences from the first summary are in `package/PORTAL_CHECKLIST.md`.
+**Fallbacks:** *Ageing & Society* (not in the ABDC list; the earlier version is in git history, commit 6c0cccf), *Journal of Family Issues*.
 
-## What changed in this revision (wording only; no result number changed)
-- "Precisely estimated null" removed. The pooled childcare and employment estimates are described as fragile, with confidence intervals; the robustness range is soft-coded.
-- Claims of "no significant difference" that the standard errors contradicted (food and meals, free time, sleep, secondary childcare, employment status) now follow the estimates and confidence intervals.
-- The placebo is described as not fully clean.
-- Section 4 and Section 8.3 now say the under-six count is a direct count of roster members (the data file contains members under six). The old text said "household size minus diarists" and printed a stray dash. Appendix Table 9 was right on this point. Table 9's "diaries summing to 1,440 minutes: 100.0%" was rounding; it now reads "not summing to 1,440 minutes: 5 of 450,457".
-- Framing moved towards the grandmothers' side; new title.
-- Significance stars removed; confidence intervals in text and tables. British spelling, unnumbered sections, tables at the end, eight tables in the main text, figures and the two appendix tables in the online supplement.
-- Anonymised: the build with `blind=TRUE` has no author, ORCID, email or repository link.
+## Version for the Journal of Population Economics
+- American spelling ("labor", "coresident", "aging"); numbered headings, two levels; tables inline; no "Insert Table" markers.
+- Abstract of 150 words or fewer (the journal-specific remark overrides the general 150 to 250 range), non-technical, with the innovation and contribution.
+- Keywords cut to six; JEL codes cut to three (D13, J13, J22).
+- Springer Basic author-date references with full author lists and DOI links (`springer-basic-author-date.csl`).
+- "Statements and Declarations" before the references; supplement cited as "Online Resource 1" (`ESM_1.pdf`).
+- Added a citation to Bansak, Dziadula and Zavodny (2026, Journal of Population Economics 39:26, https://doi.org/10.1007/s00148-026-01170-2), a coresident-grandparent paper from the same journal, verified on the publisher page.
+- Word file built with `submission/02_grandparent_care/build_docx.sh` (Times New Roman 11 pt, page numbers, Word tables).
+- No result number changed. Wording stays neutral about government and Amazon.
 
-## Open points for the author and Roo (substantive, not wording)
-- The pooled grandmother indicator is closely tied to the household arrangement (junior level or head level), and the pooled estimate averages subgroup estimates of different sign. A specification within arrangement, or by grandmother age and employment, would give a stronger headline than the pooled null.
+## Earlier wording changes (kept)
+- "Precisely estimated null" removed; pooled estimates described as fragile, with confidence intervals; claims the standard errors contradicted rewritten; placebo described as not fully clean.
+- Under-six count described as a direct count of roster members; Table 9's diary row reads "not summing to 1,440 minutes: 5 of 450,457".
+
+## Open points (substantive, not wording)
+- The pooled grandmother indicator is closely tied to household arrangement, and the pooled estimate averages subgroup estimates of different sign. A specification within arrangement, or by grandmother age and employment, might give a stronger headline.
 - The placebo is not clean for domestic work.
 
 ## Before submitting
-- [ ] Build on the Mac with the real data (`tools/build_package.sh 02`), keeping the data outside the repository; check the page count, the main-text word count (6,000 to 8,000) and the abstract (at most 300 words).
-- [ ] Read the built PDF once for the conditional wording and for any stray dash or "NA".
-- [ ] AI-use declaration: add tool versions and dates.
+- [ ] Check the real-data PDF and docx once for the conditional wording and for any stray dash or "NA".
+- [ ] AI-use declaration: add tool versions and dates if asked.
 - [ ] Confirm that no preprint exists.
-- [ ] Check `refs_local.bib` entries against the published versions.
 - [ ] Follow `package/PORTAL_CHECKLIST.md`.
