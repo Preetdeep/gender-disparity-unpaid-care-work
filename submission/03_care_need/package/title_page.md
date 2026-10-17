@@ -17,7 +17,7 @@
 **Use of AI tools:** Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
 **Acknowledgements:** I thank the National Statistics Office for access to the microdata.
 
-**Biographical note (for the portal):** Preet Deep Singh is an independent researcher working on gender, time use and household economics in India. His research uses large-scale official survey microdata, including India's Time Use Surveys, to study unpaid work, care and the allocation of time within households.
+**Biographical note (for the portal, 59 words):** Preet Deep Singh is an independent researcher based in New Delhi, India. He previously taught at the Indian Institute of Management Sambalpur (IIM Sambalpur). His work focuses on gender, time use and labour in India. His research uses official survey microdata, including India's Time Use Survey 2024, to study unpaid work, care and the allocation of time within households.
 
 **JEL codes:** J14, J16, J22 (journal allows 1–3). **Keywords (exactly 6):** care work; eldercare; long-term care; gender; time use; India
 

@@ -10,7 +10,7 @@ output:
     keep_tex: true
     fig_caption: true
     includes:
-      in_header: ../_common/preamble.tex
+      in_header: [../_common/preamble.tex, fe_format.tex]
 fontsize: 12pt
 linestretch: 2
 geometry: margin=1in
@@ -310,8 +310,6 @@ Five results stand out. First, in households that need each type of care, women 
 
 The paper contributes to three literatures. For feminist economics of care, it measures care conditional on need, which separates the gender division of care from household demography, and it uses the survey's own assessment of caregiver availability, a direct if coarse measure of the household's care capacity [@folbre2006measuring; @razavi2007political; @addati2018care]. For the economics of informal caregiving, which comes mostly from Europe and North America [@lilly2007labor; @heitmueller2007chicken; @vanhoutven2013informal; @bauer2015impacts], it provides diary-based evidence from a setting where co-residence is the norm, formal care is scarce, and women's attachment to paid work is already weak. For the study of gender and family structure in India, it documents how patrilocal residence and the expectation that daughters-in-law serve their husband's parents translate into minutes of care [@dyson1983kinship; @kandiyoti1988bargaining; @lamb2000white; @jayachandran2015roots].
 
-The rest of the paper is organized as follows. Section \ref{sec:s2} reviews the theory and measurement of care and the evidence on informal adult care. Section \ref{sec:s3} sets out a conceptual framework and the questions it implies. Section \ref{sec:s4} describes the data and the construction of need, care and carers. Section \ref{sec:s5} presents the empirical approach, Section \ref{sec:s6} the results, and Section \ref{sec:s7} discusses interpretation, limitations and policy.
-
 # Care, need and gender: theory and evidence {#sec:s2}
 
 ## Care as work, responsibility and relationship
@@ -526,11 +524,13 @@ pl <- rbind(cbind(lc_adult, care = "Dependent-adult care\n(households with a mem
             cbind(lc_child, care = "Childcare\n(households with a child under six)"))
 pl[, `:=`(lo = pmax(est - 1.96 * se, 0), hi = est + 1.96 * se,
           group = factor(group, levels = levels(pd$age_lc)))]
-ggplot(pl, aes(group, est, color = sex, group = sex)) +
-  geom_line() + geom_point(size = 1.6) +
+ggplot(pl, aes(group, est, color = sex, linetype = sex, shape = sex, group = sex)) +
+  geom_line() + geom_point(size = 1.8) +
   geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.15, na.rm = TRUE) +
   facet_wrap(~ care, scales = "free_y") +
-  scale_colour_manual(values = SEX_COLS, name = NULL) +
+  scale_colour_manual(values = c("grey10", "grey50"), name = NULL) +
+  scale_linetype_manual(values = c("solid", "dashed"), name = NULL) +
+  scale_shape_manual(values = c(16, 17), name = NULL) +
   labs(x = "Age of carer", y = "Minutes per day")
 ```
 
@@ -583,6 +583,14 @@ Long-term care has entered India's policy agenda mainly through the health syste
 Conditioning on need changes how care in India looks. In households that need care, women provide `r pct(sh_child, 0)` of childcare minutes and `r pct(sh_adult, 0)` of dependent-adult care minutes`r iff(women_dominate, ", so the gender gap in care is not a gap in exposure", "")`. For working-age women, a member who needs special care is associated with `r diff_txt(c_emp)` time in paid work and `r diff_txt(c_ft)` free time. `r iff(wives_dil_main, "Adult care is provided mainly by wives and daughters-in-law", "Adult care is spread across household positions")`, and people aged 60 and above provide `r pct(sh_min_60, 0)` of it. As the population ages, this form of care will grow. `r iff(women_dominate, "Without public provision and a redistribution of care between men and women, most of it will be supplied by women's time.", "How it is divided between women, men and public provision will shape women's paid work and free time.")`
 
 \newpage
+
+# Funding {-}
+
+The author received no funding for this research.
+
+# Competing interests {-}
+
+The author declares no competing interests.
 
 # Declaration of generative AI use {-}
 

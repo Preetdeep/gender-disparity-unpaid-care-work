@@ -33,7 +33,9 @@ if [ "$NN" = "03" ]; then  # Feminist Economics: exhibits as separate files, pos
   python3 $ROOT/tools/separate_floats.py main.tex exhibits >/dev/null
   for f in supplement main supplement main; do xelatex -interaction=nonstopmode $f.tex >/dev/null 2>&1 || true; done
   (cd exhibits && for t in *.tex; do xelatex -interaction=nonstopmode $t >/dev/null 2>&1 || true; done)
-  mkdir -p $PK/exhibits && cp exhibits/*.pdf $PK/exhibits/ && cp main.pdf $PK/manuscript_anonymised.pdf
+  rm -rf $PK/exhibits && mkdir -p $PK/exhibits && cp exhibits/Table*.pdf $PK/exhibits/ && cp main.pdf $PK/manuscript_anonymised.pdf
+  # one clearly named Figure 1 upload file: the figure itself (vector PDF, no caption); caption is in the caption list
+  cp manuscript_files/figure-latex/fig-lifecourse-1.pdf $PK/exhibits/Figure1.pdf
 fi
 if [ "$NN" = "05" ]; then  # JMF Word file: Times New Roman 12pt, double-spaced
   PD=$(command -v pandoc || ls /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/*/pandoc | head -1)
