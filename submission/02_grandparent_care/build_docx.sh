@@ -8,5 +8,15 @@ cd $B
 python3 $ROOT/tools/tex2docx.py main.tex m2.tex
 $PD m2.tex --reference-doc $ROOT/tools/jmf_reference.docx -o $PK/manuscript_anonymised.docx
 python3 $P/docx_postprocess.py $PK/manuscript_anonymised.docx
+# Online Resource 1 cites main-text tables (Fig. S1, S2 captions): rebuild it with the cross-references to main.aux
+python3 - <<'PY'
+s = open('supplement.tex').read()
+if 'externaldocument{main}' not in s:
+    s = s.replace('\\documentclass', '\\RequirePackage{xr}\n\\documentclass', 1).replace('\\begin{document}', '\\externaldocument{main}\n\\begin{document}', 1)
+    open('supplement.tex', 'w').write(s)
+PY
+xelatex -interaction=nonstopmode supplement.tex >/dev/null 2>&1 || true
+xelatex -interaction=nonstopmode supplement.tex >/dev/null 2>&1 || true
+cp supplement.pdf $PK/online_supplement.pdf
 cp $PK/online_supplement.pdf $PK/ESM_1.pdf && rm -f $PK/online_supplement.pdf
 echo "docx and ESM_1.pdf written to $PK"

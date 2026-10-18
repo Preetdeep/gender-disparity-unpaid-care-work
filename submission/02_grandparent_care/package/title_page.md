@@ -17,10 +17,10 @@
 **Statements and Declarations** (also printed in the manuscript before the references):
 - **Funding:** No funding was received for conducting this study.
 - **Competing interests:** The author has no relevant financial or non-financial interests to disclose.
-- **Ethics approval:** Secondary analysis of anonymized unit-level data released by the National Statistics Office; no contact with respondents; no ethics approval required.
+- **Ethics approval and consent to participate:** Secondary analysis of anonymized, publicly released unit-level microdata from the Time Use Survey 2024 of the Government of India's National Statistics Office; no contact with respondents, so ethics approval and consent to participate were not required; the survey agency obtained informed consent when it collected the data.
 - **Data availability:** Time Use Survey 2024 unit-level data from the Ministry of Statistics and Programme Implementation's microdata portal, under its terms of use. Analysis code to be made available on acceptance.
 - **Author contributions (CRediT):** Preet Deep Singh (sole author): conceptualization, data curation, formal analysis, investigation, methodology, software, visualization, writing (original draft, review and editing).
 
 **Use of AI tools (also stated in the Methods section, as Springer requires for generative AI use):** Claude and other AI tools helped with writing and checking analysis code, checking references and drafting text. The author verified all code, results, references and text and takes full responsibility for the content. *Tool versions and dates are not recorded in the repository: Doc to add them if the portal asks.*
 
-**Previous versions:** None to declare *(Doc to confirm that no working paper or preprint has been posted)*.
+**Previous versions:** An earlier version was posted as a preprint on SSRN: SSRN 6563021, "The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 April 2026. The submitted manuscript has a new title and framing. *This title page is a separate, non-anonymized file and must not be uploaded as part of the anonymized manuscript. Doc to confirm how the text and estimates differ from the preprint.*

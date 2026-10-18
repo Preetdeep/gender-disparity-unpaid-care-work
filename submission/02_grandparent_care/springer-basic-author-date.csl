@@ -189,6 +189,7 @@
               <text variable="publisher"/>
               <text variable="publisher-place"/>
             </group>
+            <text prefix="https://doi.org/" variable="DOI"/>
             <group>
               <choose>
                 <if match="any" variable="version">

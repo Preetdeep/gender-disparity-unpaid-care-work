@@ -49,7 +49,7 @@ for st in d.styles:
     except Exception:
         pass
 cp = d.core_properties
-cp.author = ''; cp.last_modified_by = ''; cp.title = 'Manuscript anonymized for review'; cp.comments = ''; cp.keywords = ''
+cp.author = ''; cp.last_modified_by = ''; cp.title = "Grandmothers' care and mothers' time: coresident grandmothers in India"; cp.comments = ''; cp.keywords = ''
 d.save(path)
 
 # Tables: single-spaced, 9 pt, autofit to text width
@@ -72,3 +72,28 @@ for t in d.tables:
                 p.paragraph_format.space_after = Pt(0); p.paragraph_format.space_before = Pt(0)
                 for r in p.runs: r.font.size = Pt(9)
 d.save(path)
+
+# Number the display equation: centered equation, right-aligned "(n)" (Word has no automatic number for pandoc's equation)
+from docx.enum.text import WD_TAB_ALIGNMENT
+M = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
+d = Document(path)
+n_eq = 0
+for p in d.paragraphs:
+    mp = p._p.findall('{%s}oMathPara' % M)
+    if len(mp) == 1 and not p.text.strip():
+        n_eq += 1
+        om = mp[0].find('{%s}oMath' % M)
+        p._p.remove(mp[0])
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(3.25), WD_TAB_ALIGNMENT.CENTER)
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(6.5), WD_TAB_ALIGNMENT.RIGHT)
+        p.add_run('\t')
+        p._p.append(om)
+        p.add_run('\t(%d)' % n_eq)
+d.save(path)
+print('numbered %d display equations' % n_eq)
+
+# Number the table captions ("Table 1: ...") so they match the in-text citations (shared tool, idempotent)
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools'))
+from number_captions_docx import number_captions
+print('numbered %d table captions' % number_captions(path))
