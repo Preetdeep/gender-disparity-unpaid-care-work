@@ -20,7 +20,7 @@
 | AI use | Generative-AI use documented in the Methods; copy-editing help needs no declaration | In the Methods and in `title_page.md` |
 | Acknowledgments | Separate section on the title page; should thank the anonymous referees | `title_page.md` |
 | Reviewer suggestions | Not accepted; requests to exclude reviewers are accepted | none given |
-| Word limit | None found | Main text about 7,000 words (7,002 in the docx, excluding tables; about 7,700 with table text) |
+| Word limit | None found | Main text about 7,000 words (7,008 in the docx, excluding tables; about 7,700 with table text) |
 
 ## Differences from the summary Roo wrote
 1. **Abstract:** the page gives two rules. The general one is 150 to 250 words, but the journal-specific remark says a maximum of 150 words. Exactly 150 words satisfies both, so the abstract has exactly 150 words (checked on the real-data build). Check the portal counter.
@@ -40,10 +40,10 @@
 Real-data build counts (rebuilt 18 Oct 2026 on the Mac from the real TUS 2024 data held outside the repo; panel `data/derived/person_day.rds`, not committed):
 
 - Abstract: 150 words (counted in `main.tex`).
-- Main text, Introduction to Conclusion (docx, paragraphs only, headings and table captions included, tables excluded): 7,002 words. Table cell text adds 698 words, so about 7,700 with tables.
+- Main text, Introduction to Conclusion (docx, paragraphs only, headings and table captions included, tables excluded): 7,008 words. Table cell text adds 698 words, so about 7,700 with tables.
 - Statements and Declarations: 122 words. References: about 1,040 words. No word limit applies.
 - Manuscript PDF (11 pt, 1.5 line spacing, 1 inch margins, with inline tables and references): 21 pages.
-- Manuscript docx (Times New Roman 11 pt, 1.5 spacing, page numbers in the footer, tables single-spaced at 9 pt): 23 pages when rendered in LibreOffice. LibreOffice on the build box has no Math module, so it does not draw the equations; the docx was not opened in Word, so Word may differ by a page and the equation and its number should be checked there.
+- Manuscript docx (Times New Roman 11 pt, 1.5 spacing, page numbers in the footer, tables single-spaced at 9 pt): 23 pages when rendered in LibreOffice (24 Oct rebuild). Headings are numbered 1 to 5.4 as in the PDF, and GM is a single variable in the equation (one "GM" run in the Word math). LibreOffice on the build box still did not draw the equation; the docx was not opened in Word, so Word may differ by a page and the equation and its number should be checked there.
 - Online Resource 1 (`ESM_1.pdf`): 2 pages; Figs S1 and S2 now cite Table 3 and Table 4 of the main text (no "Table ??").
 - Key numbers checked against the earlier PDF: 49,992 mothers; 36% live with a grandmother; mothers' childcare -2.1 min/day (SE 1.3, CI -4.6 to 0.4); paid work -0.4 (CI -3.8 to 3.0); grandmothers' childcare 85.9 min/day; household total +88.6; the abstract now says 79.5 minutes, as the text does. No result changed.
 - Tables 1, 2 and 4 show the employed share to three decimals (Table 2: -0.014, CI -0.023 to -0.004, matching the text's 1.4 percentage points).
