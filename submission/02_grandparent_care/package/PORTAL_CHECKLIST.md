@@ -55,7 +55,7 @@ Real-data build counts (rebuilt 18 Oct 2026 on the Mac from the real TUS 2024 da
 - [ ] Funding: none. Competing interests: none
 - [ ] Data availability statement (required)
 - [ ] AI-use declaration: add tool versions and dates if asked (not recorded in the repository)
-- [ ] Preprint or working paper: yes, SSRN 6563021 ("The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 Apr 2026). Disclosed in the cover letter and on the title page; tick the portal's preprint/previous-version box accordingly. The preprint has a different title, so an anonymized review is not fully protected from a web search; the journal's preprint policy was not checked
+- [ ] Preprint or working paper: yes, SSRN 6563021 ("The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 Apr 2026). Disclosed in the cover letter and on the title page; tick the portal's preprint/previous-version box accordingly. The preprint has a different title, so an anonymized review is not fully protected from a web search. Roo found no preprint clause on the JPopE page; Springer Nature allows preprints at any time and does not treat them as prior publication (not re-checked by me)
 - [ ] Upload the title page and `ESM_1.pdf` as supplementary material
 - [ ] Reviewer suggestions: none; exclusions: none
 

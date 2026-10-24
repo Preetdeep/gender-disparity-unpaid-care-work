@@ -24,5 +24,5 @@
 ## Before submitting
 - [ ] Check the real-data PDF and docx once for the conditional wording and for any stray dash or "NA".
 - [ ] AI-use declaration: add tool versions and dates if asked.
-- [x] Preprint disclosed: SSRN 6563021 ("The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 Apr 2026) is named in the cover letter and on the title page. Doc to confirm how the submitted text differs from it, and whether the journal's own preprint policy needs anything more (not checked on the Springer page).
+- [x] Preprint disclosed: SSRN 6563021 ("The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 Apr 2026) is named in the cover letter and on the title page. The cover letter states the differences (Doc: the submission updates the method, sharpens the perspective and rewrites the text). Roo found no preprint clause on the JPopE page; Springer Nature allows preprints and does not treat them as prior publication.
 - [ ] Follow `package/PORTAL_CHECKLIST.md`.

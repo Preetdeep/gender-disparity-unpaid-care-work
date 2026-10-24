@@ -6,7 +6,7 @@ ROOT=$(pwd); P=$ROOT/submission/02_grandparent_care; PK=$P/package; B=/tmp/build
 PD=$(command -v pandoc || ls /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/*/pandoc | head -1)
 cd $B
 python3 $ROOT/tools/tex2docx.py main.tex m2.tex
-$PD m2.tex --reference-doc $ROOT/tools/jmf_reference.docx -o $PK/manuscript_anonymised.docx
+$PD m2.tex --number-sections --reference-doc $ROOT/tools/jmf_reference.docx -o $PK/manuscript_anonymised.docx
 python3 $P/docx_postprocess.py $PK/manuscript_anonymised.docx
 # Online Resource 1 cites main-text tables (Fig. S1, S2 captions): rebuild it with the cross-references to main.aux
 python3 - <<'PY'
