@@ -20,7 +20,7 @@
 | AI use | Generative-AI use documented in the Methods; copy-editing help needs no declaration | In the Methods and in `title_page.md` |
 | Acknowledgments | Separate section on the title page; should thank the anonymous referees | `title_page.md` |
 | Reviewer suggestions | Not accepted; requests to exclude reviewers are accepted | none given |
-| Word limit | None found | Main text about 7,000 words (7,008 in the docx, excluding tables; about 7,700 with table text) |
+| Word limit | None found | Main text about 7,000 words (7,009 in the docx, excluding tables; about 7,700 with table text) |
 
 ## Differences from the summary Roo wrote
 1. **Abstract:** the page gives two rules. The general one is 150 to 250 words, but the journal-specific remark says a maximum of 150 words. Exactly 150 words satisfies both, so the abstract has exactly 150 words (checked on the real-data build). Check the portal counter.
@@ -40,7 +40,7 @@
 Real-data build counts (rebuilt 18 Oct 2026 on the Mac from the real TUS 2024 data held outside the repo; panel `data/derived/person_day.rds`, not committed):
 
 - Abstract: 150 words (counted in `main.tex`).
-- Main text, Introduction to Conclusion (docx, paragraphs only, headings and table captions included, tables excluded): 7,008 words. Table cell text adds 698 words, so about 7,700 with tables.
+- Main text, Introduction to Conclusion (docx, paragraphs only, headings and table captions included, tables excluded): 7,009 words. Table cell text adds 698 words, so about 7,700 with tables.
 - Statements and Declarations: 122 words. References: about 1,040 words. No word limit applies.
 - Manuscript PDF (11 pt, 1.5 line spacing, 1 inch margins, with inline tables and references): 21 pages.
 - Manuscript docx (Times New Roman 11 pt, 1.5 spacing, page numbers in the footer, tables single-spaced at 9 pt): 23 pages when rendered in LibreOffice (24 Oct rebuild). Headings are numbered 1 to 5.4 as in the PDF, and GM is a single variable in the equation (one "GM" run in the Word math). LibreOffice on the build box still did not draw the equation; the docx was not opened in Word, so Word may differ by a page and the equation and its number should be checked there.

@@ -2,7 +2,7 @@
 title: "Grandmothers' care and mothers' time: coresident grandmothers in India"
 params:
   blind: true
-author: '`r if (isTRUE(params$blind)) "" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. AI tools (Claude and others) helped with code, reference checks and drafting; the author verified everything and takes full responsibility.}"`'
+author: '`r if (isTRUE(params$blind)) "" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. AI tools (Claude (Anthropic) and others) helped with code, reference checks and drafting; the author verified everything and takes full responsibility.}"`'
 date: ""
 output:
   pdf_document:
@@ -439,7 +439,7 @@ The older generation's time is estimated on a separate sample of `r fn(n_ogw)` w
 
 ## Ethics, data availability and the use of AI tools
 
-The analysis uses anonymized unit-level data released by the National Statistics Office and involved no contact with respondents; no ethical review was required. The microdata are available from the Ministry's microdata portal subject to its terms of use; analysis code will be made available on acceptance. AI tools (Claude and other AI assistants) were used to help write and check analysis code, to check references and to draft text. The author reviewed and verified all code, results, references and text and takes full responsibility for the content.
+The analysis uses anonymized unit-level data released by the National Statistics Office and involved no contact with respondents; no ethical review was required. The microdata are available from the Ministry's microdata portal subject to its terms of use; analysis code will be made available on acceptance. AI tools (Claude (Anthropic) and other AI assistants) were used to help write and check analysis code, to check references and to draft text. The author reviewed and verified all code, results, references and text and takes full responsibility for the content.
 
 # Results
 
