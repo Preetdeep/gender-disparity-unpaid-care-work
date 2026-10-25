@@ -48,7 +48,7 @@ lv <- c("Self-employed", "Unpaid family helper", "Regular wage/salaried", "Casua
 
 ```{r abstract, results="asis"}
 cat("\\begin{abstract}\n\\noindent ",
-"Official labour force statistics record a steep rise in Indian women's employment after 2019. Time diaries show what that rise meant for how women spend the day. I compare India's nationally representative Time Use Surveys of 2019 and 2024 (", f0(NN), " diaries of persons aged 15 and over). After harmonising the two surveys, I decompose changes across the full 1,440-minute day. Women's mean time in employment rose by ", f(g("employment", "wd")), " minutes a day, almost entirely because more women worked on the diary day (", pc(pw("employment", "p_2019")), "\\% to ", pc(pw("employment", "p_2024")), "\\%); minutes per worker did not change. About ", f0(10 * sb("employment") / g("employment", "wd")), " in 10 of these minutes reflect a shift of women out of domestic duties and into self-employment and salaried work as their principal activity. Women's unpaid domestic and care work did not fall: less time cleaning was offset by more childcare, and the gender gap in unpaid work narrowed by only ", f(abs(g("unpaid_total", "gd"))), " minutes, to ", f0(g("unpaid_total", "gap24")), " minutes a day. Men's employment time rose about twice as much as women's, partly through a shift out of own-use production, so the gender gap in production work was unchanged. Reweighting the 2019 population to the 2024 composition enlarges rather than removes the rise in women's paid work. Gains in paid work were largest for women aged 35 to 59 and women with little schooling; women with secondary or higher education recorded more unpaid work and small paid-work gains. The new paid work has so far been added to women's days rather than redistributing their unpaid work.\n\\end{abstract}\n", sep = "")
+"Official labour force statistics record a steep rise in Indian women's employment after 2019. Time diaries show what that rise meant for women's days. I compare India's nationally representative Time Use Surveys of 2019 and 2024 (", f0(NN), " diaries of persons aged 15 and over). After harmonising the two surveys, I decompose changes across the full 1,440-minute day. Women's mean time in employment rose by ", f(g("employment", "wd")), " minutes a day, almost entirely because more women worked on the diary day (", pc(pw("employment", "p_2019")), "\\% to ", pc(pw("employment", "p_2024")), "\\%); minutes per worker did not change. About ", f0(10 * sb("employment") / g("employment", "wd")), " in 10 of these minutes reflect a shift of women out of domestic duties and into self-employment and salaried work as their principal activity. Women's unpaid domestic and care work did not fall: less time cleaning was offset by more childcare, and the gender gap in unpaid work narrowed by only ", f(abs(g("unpaid_total", "gd"))), " minutes, to ", f0(g("unpaid_total", "gap24")), " minutes a day. Men's employment time rose about twice as much, partly offset by less own-use production. Reweighting the 2019 population to the 2024 composition enlarges rather than removes the rise in women's paid work. Gains in paid work were largest for women aged 35 to 59 and women with little schooling. The new paid work has so far been added to women's days rather than redistributing their unpaid work.\n\\end{abstract}\n", sep = "")
 ```
 
 \keywords{time use; unpaid care work; female labour force participation; gender gaps; India; time diaries}
@@ -151,6 +151,8 @@ Because the 1,440 minutes of each diary are fully allocated, the changes across 
 **Status shift-share.** Women's mean minutes equal $\sum_k s_k \mu_k$, where $s_k$ is the share of women in usual principal activity status $k$ (self-employed, unpaid family helper, regular wage or salaried, casual labour, domestic duties, student, and other) and $\mu_k$ is mean minutes in that status. The change splits into a between-status part, $\sum_k \Delta s_k \bar\mu_k$, which captures movement of women across statuses, and a within-status part, $\sum_k \bar s_k \Delta \mu_k$, which captures changes in time use among women with the same status. Status is reported for the past year and the diary for one day, so the decomposition links the status-based and time-based measures of work.
 
 **Composition adjustment.** To ask whether changes in the population's composition explain the changes in time use, I reweight the 2019 sample to the 2024 distribution of observed characteristics [@dinardo1996; @fortin2011]. A weighted logit of the 2024 indicator on age group by sector, education by sector, marital status, household size, presence of a child under 6, state, within-year consumption quintile, sub-round and day of the week gives the predicted probability $\hat p(X)$. Each 2019 observation's weight is multiplied by $\hat p(X)/(1-\hat p(X))$ and scaled by the ratio of the year shares. The difference between the 2024 mean and the reweighted 2019 mean is the change holding these characteristics at their 2024 distribution. Status is not included, because it is an outcome of the same process. The effective sample size of the reweighted 2019 sample is `r pc(R$dfl_w$ess_ratio[1], 0)` percent of that with the original weights for women and `r pc(R$dfl_m$ess_ratio[1], 0)` percent for men, so the reweighting does not rest on a few observations.
+
+**Use of AI tools.** Claude (Anthropic) and other AI tools helped with code, reference checks and drafting; the author verified everything and takes full responsibility.
 
 # Results
 
@@ -338,17 +340,23 @@ Between 2019 and 2024, India's time-use surveys record a rise in women's paid wo
 
 \newpage
 
-# Declarations {-}
+# Acknowledgments {-}
 
-**Data availability.** The unit-level data of the Time Use Survey 2019 and the Time Use Survey 2024 are produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, and are available to registered users from the Ministry's microdata portal (catalogs 223 and 236) under its terms of use, which do not permit redistribution. The R code that builds the harmonised person-day files and produces every estimate, table and figure is available to the editor and reviewers on request and will be made public on acceptance.
+I thank the National Statistics Office for access to the microdata. Claude (Anthropic) and other AI tools helped with code, reference checks and drafting; the author verified everything and takes full responsibility.
 
-**Funding.** This research did not receive any specific grant from funding agencies in the public, commercial or not-for-profit sectors.
+# Statements {-}
 
-**Declaration of competing interest.** The author declares no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+**Data availability.** The unit-level data of the Time Use Survey 2019 and the Time Use Survey 2024 are produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, and are available to registered users from the Ministry's microdata portal (catalogs 223 and 236) under its terms of use, which do not permit redistribution, so the data cannot be deposited in a public repository. The R code that builds the harmonised person-day files and produces every estimate, table and figure is available to the editors and reviewers on request and will be deposited in a public repository on acceptance.
 
-**Declaration of generative AI and AI-assisted technologies in the manuscript preparation process.** Claude (Anthropic) and other AI tools helped with code, reference checks and drafting. The author verified everything and takes full responsibility for the content of the publication.
+**Funding.** No funding was received for this research.
 
-**Ethics.** The study is a secondary analysis of anonymised official survey microdata and involved no contact with human subjects.
+**Conflict of interest.** The author has no conflicts of interest to disclose.
+
+**Ethics approval.** The study is a secondary analysis of anonymised official survey microdata released for research use and involved no contact with human subjects; no ethics approval was required.
+
+**Participant consent.** Not applicable (no primary data collection).
+
+**Permission to reproduce material from other sources.** Not applicable; no previously published tables or figures are reproduced.
 
 \newpage
 
