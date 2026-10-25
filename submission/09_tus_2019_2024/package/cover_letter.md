@@ -10,7 +10,7 @@ Women's mean time in employment rose by 11.1 minutes a day (SE 1.3), almost enti
 
 I believe the paper suits Population and Development Review's interest in the relationship between population and social and economic change and in new statistics and their interpretation. It brings a whole-day, time-budget view to one of the most discussed changes in women's work in a large developing country, and its central finding, that new paid work has so far been added to women's days rather than redistributing their unpaid work, bears on how the rise in women's employment should be read.
 
-Previous work and overlap. No preprint or working-paper version of this manuscript exists. I have other papers based on India's Time Use Surveys; each asks a different question with a different design, sample and conclusions, and none duplicates this comparison of the 2019 and 2024 rounds. I can provide any of them to the editors on request.
+Previous work and overlap. No preprint or working-paper version of this manuscript exists. I have related working papers on SSRN that use only the 2024 Time Use Survey; each asks a different question with a different design, sample and conclusions. This manuscript differs from all of them because it compares the 2019 and 2024 rounds, which none of them does. I can provide any of them to the editors on request.
 
 Confirmation of authorship. I am the sole author. I meet all four ICMJE authorship criteria: I conceived and designed the study, built the data and carried out the analysis, drafted and revised the manuscript, approved this version, and accept accountability for all aspects of the work.
 
