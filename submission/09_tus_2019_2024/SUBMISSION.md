@@ -27,5 +27,5 @@
     Rscript -e "rmarkdown::render('manuscript.Rmd', params=list(blind=TRUE))"
 
 ## Before submission (Doc)
-- Approve text, cover letter and target. Submit via https://authors.wiley.com/journal/PADR (not done).
+- Approve text, cover letter and target. Submitted to PDR via Wiley, 25 Oct 2026; manuscript number pending. Abstract trimmed to 192 words for the 200-word limit (no numbers changed).
 - No microdata or .dta in the repo.
