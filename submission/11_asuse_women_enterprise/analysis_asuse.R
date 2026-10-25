@@ -2,14 +2,11 @@
 # Reads unit-level data kept OUTSIDE the repo and writes every estimate used in the
 # manuscript to an .rds file (also outside the repo). No numbers are typed by hand.
 #
-# Expected inputs (see SUBMISSION.md "Data"):
-#   ~/GResearcher_runs/data_raw/asuse2324/  asuse_2324_esu_l01.txt ... l16.txt (fixed width, MoSPI
-#                                           layout NSS_ASUSE_23_24_Layout_mult_post.xlsx), or the
-#                                           .csv files produced by MoSPI's txt2csv converter
-#   ~/GResearcher_runs/data_raw/nss73/      NSS 73rd round Sch. 2.34 unit data, either the NADA
-#                                           export (one file per block and semi-round, DDI names
-#                                           b2_q204, Weight_SC, ...) as .dta/.csv, or the fixed-width
-#                                           R73234SM?L?? files plus Data_Layout73234.xls (not yet coded)
+# Expected inputs (see SUBMISSION.md "Data"), as released on microdata.gov.in:
+#   ~/GResearcher_runs/data_raw/asuse2324/  ASUSE 2023-24 (catalog 238) CSV release, files
+#                                           "LEVEL - 02(Block 2).csv" etc. (levels 02, 03, 08, 09 used)
+#   ~/GResearcher_runs/data_raw/nss73/      NSS 73rd round Sch. 2.34 (catalog 139) CSV release, files
+#                                           "(Semi-Round-1)- Block 2.csv" etc. (Blocks 2, 7, 8 used)
 # Usage: Rscript analysis_asuse.R      (env ASUSE_RAW, NSS73_RAW, P11_OUT optional)
 suppressMessages(library(data.table)); if (requireNamespace("survey", quietly = TRUE)) suppressMessages(library(survey))
 options(survey.lonely.psu = "adjust")
@@ -23,64 +20,37 @@ ensure_cols <- function(E, items) { for (v in c("tot", "ft_f", "pt_f", "ft_m", "
   nm <- paste(v, i, sep = "_"); if (!nm %in% names(E)) set(E, j = nm, value = 0) }; E }
 
 # ---------------------------------------------------------------- ASUSE 2023-24
-# Byte positions from NSS_ASUSE_23_24_Layout_mult_post.xlsx (common key fields are identical
-# across levels; README: key = FSU 1-5, segment 25, SSS 26-27, establishment no. 28-29;
-# final weight = MLT/100).
-KEYPOS <- list(fsu = c(1, 5), sector = c(9, 9), nss_region = c(10, 12), district = c(13, 14),
-               stratum = c(15, 17), sub_stratum = c(18, 19), segment = c(25, 25), sss = c(26, 27), est = c(28, 29))
-L02 <- c(KEYPOS, list(i201 = c(32, 32), nic2 = c(33, 34), nic5 = c(35, 39), own = c(47, 47), edu = c(48, 48),
-  socgrp = c(50, 50), npi = c(53, 53), loc = c(56, 56), esttype = c(57, 57), nature = c(63, 63), months = c(64, 65),
-  hours = c(66, 67), internet = c(70, 70), registered = c(74, 74), mfg_service = c(87, 87), mfg_contract = c(88, 88),
-  mfg_contract_type = c(89, 89), mfg_equip = c(90, 90), svc_contract = c(91, 91), svc_contract_type = c(92, 92),
-  mult = c(94, 103)))
-L03 <- c(KEYPOS, list(refp = c(46, 46), mult = c(55, 64)))
-L08 <- c(KEYPOS, list(item = c(32, 34), value = c(35, 46), mult = c(47, 56)))
-L09 <- c(KEYPOS, list(item = c(32, 34), ft_m = c(35, 39), ft_f = c(40, 44), ft_t = c(45, 49), pt_m = c(50, 54),
-  pt_f = c(55, 59), pt_t = c(60, 64), tot = c(65, 69), mult = c(70, 79)))
-CSVNAME <- c(fsu = "fsu", sector = "sector", nss_region = "nss_region", district = "district", stratum = "stratum",
-  sub_stratum = "sub_stratum", segment = "segment", sss = "SSS_no", est = "est_no", i201 = "item_201",
-  nic2 = "item_202_a", nic5 = "item_202_b", own = "item_204", edu = "item_205", socgrp = "item_207", npi = "item_209",
-  loc = "item_212", esttype = "item_213", nature = "item_216", months = "item_217", hours = "item_218",
-  internet = "item_223", registered = "item_227", mfg_service = "item_238", mfg_contract = "item_239",
-  mfg_contract_type = "item_240", mfg_equip = "item_241", svc_contract = "item_242", svc_contract_type = "item_243",
-  refp = "item_265", item = "item_no_08", value = "value_08", mult = "mult")
-
-read_level <- function(dir, lv, pos) {
-  ftxt <- list.files(dir, sprintf("asuse_2324_esu_l%02d\\.txt$", lv), full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
-  fcsv <- list.files(dir, sprintf("asuse_2324_esu_l%02d\\.csv$", lv), full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
-  if (length(ftxt)) {
-    x <- fread(ftxt[1], sep = "\n", header = FALSE, colClasses = "character", strip.white = FALSE, showProgress = FALSE)[[1]]
-    x <- sub("\r$", "", x)
-    d <- as.data.table(lapply(pos, function(p) trimws(substr(x, p[1], p[2]))))
-  } else if (length(fcsv)) {
-    d <- fread(fcsv[1], colClasses = "character", showProgress = FALSE)
-    nm <- CSVNAME; if (lv == 9) nm <- c(nm[setdiff(names(nm), c("item", "value"))], item = "item_no_09",
-      ft_m = "Workers_Full_time_male", ft_f = "Workers_Full_time_female", ft_t = "Workers_Full_time_transgender",
-      pt_m = "Workers_Part_time_male", pt_f = "Workers_Part_time_female", pt_t = "Workers_Part_time_transgender", tot = "Workers_Total")
-    keep <- intersect(names(pos), names(nm)); miss <- setdiff(names(pos), keep)
-    if (length(miss)) stop("CSV level ", lv, ": no mapping for ", paste(miss, collapse = ","))
-    d <- d[, nm[keep], with = FALSE]; setnames(d, keep)
-  } else stop("ASUSE 2023-24 level ", lv, " not found under ", dir)
-  d[, key := paste(fsu, segment, sss, est, sep = "_")]
+# MoSPI CSV release (one file per level, variable names as in the CSV header). All fields read as
+# character (README 5d). Final weight = MLT/100 (README 9). Establishment key = FSU, segment,
+# second-stage stratum, establishment serial no. (README; serial nos above 99 are alphabetic).
+read_level <- function(dir, lv) {
+  f <- list.files(dir, sprintf("^LEVEL - %02d.*\\.csv$", lv), full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+  if (!length(f)) stop("ASUSE 2023-24 level ", lv, " CSV not found under ", dir)
+  d <- fread(f[1], colClasses = "character", showProgress = FALSE)
+  sss <- intersect(c("second_stage_stratum_no", "second_stage_stratum"), names(d))[1]
+  d[, key := paste(fsu_serial_no, segment_no, get(sss), sample_est_no, sep = "_")]
   d
 }
 
 prep_asuse <- function(dir) {
-  b2 <- read_level(dir, 2, L02); b3 <- read_level(dir, 3, L03)[, .(key, refp = num(refp))]
-  b8 <- read_level(dir, 8, L08); b9 <- read_level(dir, 9, L09)
+  b2 <- read_level(dir, 2); b3 <- read_level(dir, 3)[, .(key, refp = num(ref_period_type))]
+  b8 <- read_level(dir, 8)[, .(key, item = item_no, value = value_rs)]
+  b9 <- read_level(dir, 9)[, .(key, item = item_no, ft_m = full_time_male, ft_f = full_time_female,
+                               pt_m = part_time_male, pt_f = part_time_female, tot = total_workers)]
   stopifnot(!anyDuplicated(b2$key))
-  E <- b2[, .(key, fsu, stratum = paste(nss_region, sector, stratum, sub_stratum, sep = "_"),
-    sector = as.integer(sector), state = as.integer(substr(nss_region, 1, 2)), nic2 = as.integer(nic2), nic5,
-    own = as.integer(own), loc = as.integer(loc), oae = as.integer(esttype) == 2L,   # ASUSE: HWE 1, OAE 2
-    nature = as.integer(nature), months = num(months), hours = num(hours), npi = as.integer(npi),
-    contract_any = (as.integer(mfg_contract) %in% 1L) | (as.integer(svc_contract) %in% 1L),
-    contract_type = fifelse(as.integer(mfg_contract) %in% 1L, as.integer(mfg_contract_type), as.integer(svc_contract_type)),
-    equip_by_contractor = as.integer(mfg_equip), internet = as.integer(internet) == 1L,
-    registered = as.integer(registered) == 1L, w = num(mult) / 100)]
+  E <- b2[, .(key, fsu = fsu_serial_no, stratum = paste(nss_region, sector, stratum, sub_stratum, sep = "_"),
+    sector = as.integer(sector), state = as.integer(substr(nss_region, 1, 2)), nic2 = as.integer(major_nic_2dig), nic5 = major_nic_5dig,
+    own = as.integer(ownership_type), loc = as.integer(location), oae = as.integer(est_type) == 2L,   # ASUSE: HWE 1, OAE 2
+    nature = as.integer(nature_of_operation), months = num(months_operated), hours = num(daily_work_hours), npi = as.integer(non_profit),
+    contract_any = (as.integer(contract_manuf_service) %in% 1L) | (as.integer(other_contract_services) %in% 1L),
+    contract_type = fifelse(as.integer(contract_manuf_service) %in% 1L, as.integer(contract_type), as.integer(other_contract_type)),
+    equip_by_contractor = as.integer(equipment_by_contractor), internet = as.integer(used_internet) == 1L,
+    registered = as.integer(registered) == 1L, w = num(mlt) / 100)]
   E <- merge(E, b3, by = "key", all.x = TRUE)
   g <- b8[item == "769", .(key, gva_m = num(value))]                     # GVA, reference period (item 769)
   E <- merge(E, g, by = "key", all.x = TRUE)
-  # README C: annual GVA = item 769 x m; m = 12 perennial (216 = 1, 265 != 4), item 217 otherwise, 1 if 265 = 4
+  # annual GVA = item 769 x m; m = 12 perennial (nature 1), months operated otherwise, 1 if the
+  # reference period is the accounting year (265 = 4). Reproduces the factsheet GVA exactly (VAL).
   E[, m := fifelse(refp %in% 4, 1, fifelse(nature %in% 1, 12, months))]
   E[, gva_y := gva_m * m]
   E[, gva_month := fifelse(refp %in% 4, gva_m / pmax(months, 1), gva_m)]  # per month of operation
@@ -101,7 +71,7 @@ find_block <- function(dir, sr, blk) {
   f <- list.files(dir, full.names = TRUE, recursive = TRUE)
   f <- f[grepl("\\.(dta|csv|sav)$", f, ignore.case = TRUE)]
   pat_sr <- sprintf("(semi.?round.?%d|sm%d|sr%d)", sr, sr, sr)
-  pat_b <- sprintf("block.?%s([^0-9p]|$)", blk)
+  pat_b <- sprintf("block\\s*%s\\s*(\\.|$)", blk)
   hit <- f[grepl(pat_sr, basename(f), ignore.case = TRUE) & grepl(pat_b, basename(f), ignore.case = TRUE)]
   if (!length(hit)) stop("NSS 73: semi-round ", sr, " block ", blk, " not found under ", dir,
                          ". Rename files to contain e.g. 'Semi-Round-1' and 'Block 2'.")
@@ -139,9 +109,9 @@ prep_nss73 <- function(dir) {
     W <- dcast(wk[item %in% c("801", "802", "803", "804", "805", "809")], key ~ item, value.var = c("tot", "ft_f", "pt_f", "ft_m", "pt_m"), fill = 0)
     E <- ensure_cols(merge(E, W, by = "key", all.x = TRUE), c("801", "802", "803", "804", "805", "809"))
     for (v in grep("^(tot|ft_|pt_)", names(E), value = TRUE)) set(E, which(is.na(E[[v]])), v, 0)
-    E[, `:=`(workers = tot_809, owners = tot_801, hired = tot_802 + tot_803, unpaid_family = tot_804,
+    E[, `:=`(workers = tot_809, owners = tot_801, hired = tot_802 + tot_803, unpaid_family = tot_804,   # 804 = helper/apprentice in NSS 73
              fem_workers = ft_f_809 + pt_f_809)]
-    E[, market := !is.na(gva_m)]
+    E[, market := !(npi %in% 1L) & !(nic5 %in% "70100")]   # KI 3.9.2: market producers (non-market have no GVA)
     out[[sr]] <- E
   }
   E <- rbindlist(out, fill = TRUE); E[, year := 2015L]; E
@@ -156,15 +126,27 @@ D <- rbind(N[, ..keep], A[, ..keep])
 stopifnot(!anyNA(D$w), !anyNA(D$own))
 
 # ---------------------------------------------------------------- validation against published tables
+# Published: ASUSE 2023-24 factsheet (Table 1 and key indicators; coverage excludes NIC 68108, README 4);
+# NSS 73rd round Key Indicators (KI) report, Statements and section 3.9. Female-owned share = female
+# proprietary establishments as a share of ALL establishments (this definition reproduces 26.2).
+A0 <- A[!(nic5 %in% "68108")]
 VAL <- list(
-  asuse_estab_crore = c(est = A[, sum(w)] / 1e7, pub = 7.34),
-  asuse_fem_prop_share = c(est = 100 * A[, sum(w * (own == 2)) / sum(w)], pub = 26.2),
-  asuse_gva_per_worker = c(est = A[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w * workers)], pub = 149742),
-  asuse_gva_per_estab  = c(est = A[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w)], pub = 245687),
+  asuse_estab_crore = c(est = A0[, sum(w)] / 1e7, pub = 7.33995),
+  asuse_workers_crore = c(est = A0[, sum(w * workers)] / 1e7, pub = 12.05998),
+  asuse_fem_prop_share = c(est = 100 * A0[, sum(w * (own == 2)) / sum(w)], pub = 26.2),
+  asuse_gva_total_crore = c(est = A0[market == TRUE, sum(w * gva_y, na.rm = TRUE)] / 1e7, pub = 1797278),
+  asuse_gva_per_worker = c(est = A0[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w * workers)], pub = 149742),
+  asuse_gva_per_estab  = c(est = A0[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w)], pub = 245687),
   nss73_ent_crore = c(est = N[, sum(w)] / 1e7, pub = 6.34),
   nss73_fem_prop_share = c(est = 100 * N[, sum(w * (own == 2)) / sum(w)], pub = 19.5),
+  nss73_fem_share_oae = c(est = 100 * N[oae == TRUE, sum(w * (own == 2)) / sum(w)], pub = 22.3),
+  nss73_fem_share_estab = c(est = 100 * N[oae == FALSE, sum(w * (own == 2)) / sum(w)], pub = 4.8),
+  nss73_gva_total_crore = c(est = N[market == TRUE, sum(w * gva_y, na.rm = TRUE)] / 1e7, pub = 1152338),
   nss73_gva_per_worker = c(est = N[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w * workers)], pub = 103744),
-  nss73_gva_total_crore = c(est = N[market == TRUE, sum(w * gva_y, na.rm = TRUE)] / 1e7, pub = 1152338))
+  nss73_gva_per_ent = c(est = N[market == TRUE, sum(w * gva_y, na.rm = TRUE) / sum(w)], pub = 181908))
+# alternative definition, reported for the record: female share of proprietary establishments only
+FEMDEF <- c(asuse_all = 100 * A0[, sum(w * (own == 2)) / sum(w)], asuse_proprietary = 100 * A0[own %in% 1:3, sum(w * (own == 2)) / sum(w)],
+            nss73_all = 100 * N[, sum(w * (own == 2)) / sum(w)], nss73_proprietary = 100 * N[own %in% 1:3, sum(w * (own == 2)) / sum(w)])
 VAL <- rbindlist(lapply(names(VAL), function(n) data.table(stat = n, est = VAL[[n]][["est"]], pub = VAL[[n]][["pub"]])))
 VAL[, pct_diff := 100 * (est / pub - 1)]
 print(VAL)
@@ -182,7 +164,8 @@ D[, cell := paste(bac, fifelse(home, "home", "outside"), fifelse(dep, "contract"
                   fifelse(sector == 1, "rural", "urban"), sep = " | ")]
 D[, gva_pw_m := fifelse(market & workers > 0, gva_month / workers, NA_real_)]
 
-RES <- list(val = VAL, run = Sys.time())
+RES <- list(val = VAL, femdef = FEMDEF, run = Sys.time(), nsample = D[, .N, by = year],
+            nraw = c(nss73 = nrow(N), asuse = nrow(A)))   # unweighted records in the released files
 tot <- D[, .(N = sum(w)), by = year]
 RES$totals <- merge(tot, D[own == 2, .(F = sum(w)), by = year], by = "year")[, share := 100 * F / N]
 
