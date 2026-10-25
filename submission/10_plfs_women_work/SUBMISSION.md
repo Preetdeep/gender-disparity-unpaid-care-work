@@ -4,7 +4,7 @@
 **Short title:** Counting more women's work in India (35 characters)
 **Target:** *Population Studies* (Taylor & Francis / Routledge, for the Population Investigation Committee), original article.
 
-- ABDC Journal Quality List: **A** (ISSN 0032-4728). Source is secondary (journalindexes.com, which reports A in the 2022 and 2025 lists); the ABDC primary list could not be opened from the box (abdc.edu.au has no searchable list, the IGIDR copy of the 2022 PDF timed out). **Check on the ABDC site before submitting.**
+- ABDC Journal Quality List: **A** (ISSN 0032-4728, FoR 3599), verified 25 Oct 2026 on the primary list: ABDC-JQL-2025-v3-210926.xlsx (https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx), A in both the 2025 and 2022 sheets.
 - Fees: Instructions for Authors (page updated 20 Aug 2026) state: "There are no submission fees, publication fees, or page charges for this journal, except where publishing Open Access." Open access is optional and not chosen. Source: https://www.tandfonline.com/action/authorSubmission?show=instructions&journalCode=rpst20 (read 25 Oct 2026).
 - Not used: Labour Economics (EUR 100 submission fee for non-members). Excluded by Doc: Demographic Research, J Population Economics, Feminist Economics, JDS, World Development, PDR, Venture Capital, JTUR, JBV Insights, J Sports Economics, Southern Economic Journal, RoEH, SIR, JMF.
 - **Overlap to resolve:** paper 09's SUBMISSION.md lists Population Studies as its first fallback after PDR. If paper 09 is rejected by PDR, choose a different fallback for it (for example Population Research and Policy Review) so the two papers do not go to the same journal at the same time.
@@ -47,3 +47,11 @@ Note: the final PDFs were built from the 25 Oct knit with two text edits applied
 - Approve text, cover letter and target; confirm the ABDC rating on the primary list.
 - Submit via the Routledge submission portal for Population Studies (not done).
 - No microdata, .rds or .dta in the repo.
+
+
+## Pre-submission review, 25 Oct 2026
+- Own review plus a Claude second read (15 flags; all spot-checked). Accepted: wording on survey framing and the 2022-23 note (Boxes 9 and 10 only), net-change wording in 4.3, seasons caveat in 4.4, item-missingness of the destination question computed in R, working-age (15-59) check in 4.6, state heterogeneity caveat in 4.7 (Kerala, Tamil Nadu, Delhi), annual WPR series from the NSO press note in the Discussion, ethics sentence in 3.1, fuller AI declaration. Rejected: new demographic section (out of scope; referee risk), changes to 84 per cent and 163,000 (correct from unrounded R output), NIC and NSO/NSSO wording (intentional).
+- Figure 2: hand-placed labels with leaders; Table A2 split into A2 (Panels A, B) and new Table A3 (state values). Duplicate figure captions removed (knit.R plot hook).
+- EPW references (jha2026, goldar2026, ara2025): no page numbers on EPW or Crossref; kept without pages, consistently.
+- Fees: none (T&F instructions, updated 20 Aug 2026), except optional OA / colour print.
+- **Pending: re-knit on the Mac (needs plfs10_results.rds) and rebuild PDFs; check Fig 2 labels, abstract <=150 words, word count in title_page.md.** PDFs in package/ predate these edits.

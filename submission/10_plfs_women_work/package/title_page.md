@@ -26,6 +26,6 @@
 
 **Ethics:** Secondary analysis of anonymized official survey microdata released for research use; no contact with human participants; no ethics approval was required.
 
-**Declaration of generative AI use:** Claude (Anthropic) was used to polish the language of the manuscript. Claude and other AI coding assistants helped write and check the analysis code and check the references under the author's direction. The author reviewed and verified all output and takes full responsibility for the content.
+**Declaration of generative AI use:** Claude (Anthropic) and other generative AI tools were used to help write and check the analysis code, check the references and draft and edit the text of the manuscript, under the author's direction. The author reviewed and verified all output, including every number, reference and statement, and takes full responsibility for the content.
 
 **CRediT author statement:** Preet Deep Singh: conceptualization, methodology, software, formal analysis, data curation, writing (original draft), writing (review and editing), visualization.
