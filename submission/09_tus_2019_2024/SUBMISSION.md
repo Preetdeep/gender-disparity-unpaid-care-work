@@ -11,7 +11,7 @@
 - Free Format first submission: any consistent reference style (APA kept); figures/tables with legends.
 - Double-anonymised: anonymised manuscript + separate title page with author details and statements (data availability, funding, conflict of interest, ethics approval, participant consent, permission to reproduce).
 - Wiley AI guidance: AI disclosure in Methods (code/analysis) and Acknowledgments (drafting).
-- Length: PDR papers typically 8,000–10,000 words; this one is about 7,200 words (main text incl. tables). Abstract 214 words (PDR states no abstract limit).
+- Length: PDR papers typically 8,000–10,000 words; this one is about 7,400 words (main text incl. tables and captions); 28 pp. Abstract 214 words (PDR states no abstract limit).
 - Cover letter must confirm authorship (ICMJE criteria): included.
 - No highlights (not required by PDR). Opposed reviewers optional: none.
 

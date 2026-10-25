@@ -332,7 +332,7 @@
   <macro name="author">
     <!-- Substitutes for missing authors: order prioritizes primary creators (e.g., composer, author) over secondary roles (e.g., editor, curator), with title as the final fallback. -->
     <names variable="composer">
-      <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+      <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
       <label form="short" prefix=" (" suffix=")" text-case="title"/>
       <substitute>
         <names variable="author"/>
@@ -342,24 +342,24 @@
           <if type="broadcast">
             <names variable="script-writer director">
               <!-- Actors/performers and producers [not executive] not cited in APA style. -->
-              <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+              <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
               <label prefix=" (" suffix=")" text-case="title"/>
             </names>
           </if>
         </choose>
         <names variable="director">
           <!-- For non-broadcast items, APA only cites directors and not writers. -->
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="guest host">
           <!-- TODO: Collapse variables when that becomes available. -->
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="producer">
           <!-- Producers not cited if there is a writer/director, but use if they are the principal creator. -->
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <choose>
@@ -375,11 +375,11 @@
           </else-if>
         </choose>
         <names variable="executive-producer">
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="series-creator">
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="editor-translator"/>
@@ -387,23 +387,23 @@
         <names variable="editor"/>
         <names variable="editorial-director"/>
         <names variable="compiler">
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <choose>
           <if match="any" type="event performance speech">
             <names variable="chair">
-              <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+              <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
               <label prefix=" (" suffix=")" text-case="title"/>
             </names>
             <names variable="organizer">
-              <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+              <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
               <label prefix=" (" suffix=")" text-case="title"/>
             </names>
           </if>
         </choose>
         <names variable="curator">
-          <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+          <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           <label prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="collection-editor"/>
@@ -429,7 +429,7 @@
         <else-if match="any" type="book musical_score pamphlet report standard">
           <names prefix="(" suffix=")" variable="contributor">
             <label form="verb" suffix=" "/>
-            <name and="symbol" delimiter-precedes-last="always" name-as-sort-order="all"/>
+            <name and="text" delimiter-precedes-last="always" name-as-sort-order="all"/>
           </names>
         </else-if>
       </choose>
@@ -445,7 +445,7 @@
           <!-- These variables indicate that the letter is retrievable by the reader. If not, use the APA in-text-only personal communication format. -->
           <if match="any" variable="archive archive-place container-title DOI number publisher references URL">
             <names variable="author">
-              <name and="symbol" form="short"/>
+              <name and="text" form="short"/>
               <substitute>
                 <text macro="title-and-descriptions-short"/>
               </substitute>
@@ -454,7 +454,7 @@
           <else>
             <group delimiter=", ">
               <names variable="author">
-                <name and="symbol"/>
+                <name and="text"/>
                 <substitute>
                   <text macro="title-and-descriptions-short"/>
                 </substitute>
@@ -466,7 +466,7 @@
       </else-if>
       <else>
         <names variable="composer">
-          <name and="symbol" form="short"/>
+          <name and="text" form="short"/>
           <substitute>
             <names variable="author"/>
             <names variable="illustrator"/>
@@ -1003,7 +1003,7 @@
       <choose>
         <if variable="title">
           <names variable="interviewer">
-            <name and="symbol"/>
+            <name and="text"/>
             <label form="short" prefix=", " text-case="title"/>
           </names>
         </if>
@@ -1013,24 +1013,24 @@
           <!-- print `container-title` on `post` or `webpage` in the same way as `publisher` -->
           <names variable="container-author">
             <label form="verb-short" suffix=" " text-case="title"/>
-            <name and="symbol"/>
+            <name and="text"/>
           </names>
           <names delimiter="; " variable="editor translator">
-            <name and="symbol"/>
+            <name and="text"/>
             <label form="short" prefix=", " text-case="title"/>
           </names>
           <names delimiter="; " variable="illustrator narrator">
-            <name and="symbol"/>
+            <name and="text"/>
             <label form="short" prefix=", " text-case="title"/>
           </names>
           <names delimiter="; " variable="compiler chair organizer curator series-creator executive-producer">
-            <name and="symbol"/>
+            <name and="text"/>
             <label prefix=", " text-case="title"/>
           </names>
         </if>
         <else>
           <names delimiter="; " variable="illustrator narrator">
-            <name and="symbol"/>
+            <name and="text"/>
             <label form="short" prefix=", " text-case="title"/>
           </names>
           <choose>
@@ -1038,21 +1038,21 @@
             <else-if variable="container-title">
               <!-- TODO: Check logic once processors start to automatically populate `editor-translator` -->
               <names delimiter="; " variable="translator">
-                <name and="symbol"/>
+                <name and="text"/>
                 <label form="short" prefix=", " text-case="title"/>
               </names>
             </else-if>
             <else>
               <names variable="container-author">
                 <label form="verb-short" suffix=" " text-case="title"/>
-                <name and="symbol"/>
+                <name and="text"/>
               </names>
               <names delimiter="; " variable="editor translator">
-                <name and="symbol"/>
+                <name and="text"/>
                 <label form="short" prefix=", " text-case="title"/>
               </names>
               <names delimiter="; " variable="compiler chair organizer curator series-creator executive-producer">
-                <name and="symbol"/>
+                <name and="text"/>
                 <label prefix=", " text-case="title"/>
               </names>
             </else>
@@ -1066,13 +1066,13 @@
       <choose>
         <if variable="title">
           <names delimiter="; " variable="interviewer">
-            <name and="symbol"/>
+            <name and="text"/>
             <label form="short" prefix=", " text-case="title"/>
           </names>
         </if>
       </choose>
       <names delimiter="; " variable="translator narrator">
-        <name and="symbol"/>
+        <name and="text"/>
         <label form="short" prefix=", " text-case="title"/>
       </names>
     </group>
@@ -1389,7 +1389,7 @@
               <if variable="interviewer">
                 <text form="verb" term="container-author"/>
                 <names variable="interviewer">
-                  <name and="symbol"/>
+                  <name and="text"/>
                 </names>
               </if>
             </choose>
@@ -1398,7 +1398,7 @@
         <else-if variable="interviewer">
           <names variable="interviewer">
             <label form="verb" suffix=" " text-case="capitalize-first"/>
-            <name and="symbol"/>
+            <name and="text"/>
           </names>
           <text text-case="capitalize-first" variable="medium"/>
         </else-if>
@@ -1411,7 +1411,7 @@
   <macro name="description-interview-short">
     <names variable="interviewer">
       <label form="verb" suffix=" " text-case="capitalize-first"/>
-      <name and="symbol" form="short"/>
+      <name and="text" form="short"/>
       <substitute>
         <text macro="description-format-short"/>
       </substitute>
@@ -1425,7 +1425,7 @@
             <text macro="description-format"/>
             <names variable="recipient">
               <label form="verb" suffix=" "/>
-              <name and="symbol" initialize="false"/>
+              <name and="text" initialize="false"/>
             </names>
           </group>
           <text macro="description-medium"/>
@@ -1443,7 +1443,7 @@
           <text macro="description-format-short"/>
           <names variable="recipient">
             <label form="verb" suffix=" "/>
-            <name and="symbol" form="short"/>
+            <name and="text" form="short"/>
           </names>
         </group>
       </if>
@@ -1492,7 +1492,7 @@
         </group>
         <names variable="reviewed-author">
           <label form="verb-short" suffix=" "/>
-          <name and="symbol"/>
+          <name and="text"/>
         </names>
       </group>
       <text macro="description-medium"/>
@@ -1571,7 +1571,7 @@
           </else>
         </choose>
         <names variable="author">
-          <name and="symbol"/>
+          <name and="text"/>
           <substitute>
             <names variable="performer"/>
           </substitute>
@@ -1679,22 +1679,22 @@
   <!-- Monographic source author -->
   <macro name="source-monographic-author">
     <names variable="container-author">
-      <name and="symbol"/>
+      <name and="text"/>
       <label prefix=" (" suffix=")" text-case="title"/>
       <substitute>
         <names variable="executive-producer"/>
         <names variable="series-creator"/>
         <names variable="editor-translator">
-          <name and="symbol"/>
+          <name and="text"/>
           <label form="short" prefix=" (" suffix=")" text-case="title"/>
         </names>
         <!-- TODO: Translator omitted on the assumption that editor-translators are uncommon for chapter citations. If needed, direct entry or automatic population of `editor-translator` can produce combined labels. -->
         <names delimiter="; " variable="editor">
-          <name and="symbol"/>
+          <name and="text"/>
           <label form="short" prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="editorial-director">
-          <name and="symbol"/>
+          <name and="text"/>
           <label form="short" prefix=" (" suffix=")" text-case="title"/>
         </names>
         <names variable="compiler"/>
@@ -1706,7 +1706,7 @@
         </choose>
         <names variable="curator"/>
         <names variable="collection-editor">
-          <name and="symbol"/>
+          <name and="text"/>
           <label form="short" prefix=" (" suffix=")" text-case="title"/>
         </names>
       </substitute>
@@ -2044,7 +2044,7 @@
           <!-- Use the 'verb' form of the hearing term to hold 'testimony of' -->
           <text form="verb" term="hearing"/>
           <names variable="author">
-            <name and="symbol" initialize="false"/>
+            <name and="text" initialize="false"/>
           </names>
         </if>
         <else-if match="any" type="bill legislation regulation">
