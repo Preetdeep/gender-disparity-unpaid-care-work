@@ -12,11 +12,11 @@
 ## Population Studies requirements applied
 | Requirement | Status |
 |---|---|
-| Main text up to 7,500 words | about 5,000 words (Introduction to Conclusion, excluding abstract, tables, captions, notes, references, appendix); about 6,100 with tables and captions |
-| Abstract up to 150 words | 135 words |
+| Main text up to 7,500 words | about 4,850 words (Introduction to Conclusion, excluding abstract, tables, captions, notes, references, appendix); about 6,250 with tables and captions |
+| Abstract up to 150 words | 149 words |
 | Up to 10 keywords | 6 |
 | Short title up to 45 characters | 35 |
-| Appendix at most 3 tables or figures | 2 tables (A1, A2) |
+| Appendix at most 3 tables or figures | 3 tables (A1, A2, A3) |
 | No footnotes except under tables | none in text |
 | British -ize spelling | yes ("per cent", -ize, single quotes) |
 | Double-anonymous: 'Manuscript-anonymous' and 'Manuscript-with author details' | manuscript_anonymised.pdf and manuscript_author.pdf |
@@ -27,7 +27,7 @@
 ## Files
 - `analysis.R` (reads PLFS first-visit CSVs, writes plfs10_results.rds outside the repo)
 - `manuscript.Rmd` (params: blind TRUE/FALSE), `refs_local.bib`, `apa.csl`, `preamble.inc`, `knit.R`, `build_pdf.sh`
-- `package/manuscript_anonymised.pdf`, `package/manuscript_author.pdf`, `package/title_page.md`, `package/cover_letter.md` (draft)
+- `package/manuscript_anonymised.pdf`, `package/manuscript_author.pdf`, `package/title_page.md`, `package/cover_letter.md`, `package/abstract.txt`, `package/keywords.txt`, `package/figure1.pdf`, `package/figure2.pdf`
 
 ## Build
     # on the Mac (R, data in ~/GResearcher_runs/data_raw/plfs2324 and plfs1718)
@@ -36,7 +36,6 @@
     # on a machine with pandoc >= 3 and xelatex
     bash build_pdf.sh                                      # package/manuscript_{anonymised,author}.pdf
 
-Note: the final PDFs were built from the 25 Oct knit with two text edits applied directly to the knitted Markdown (one merged citation sentence in the Introduction; "reproduced, to within rounding" in the Conclusion) and figures switched to Markdown images, because the Mac went offline before the re-knit. manuscript.Rmd and knit.R already contain these changes; a re-knit gives the same text.
 
 ## Checks done
 - Unit-level estimates reproduce 59 of 60 published headline values to one decimal (men's CWS LFPR 2017-18: 75.16 vs 75.1 published; stated in Table 1).
@@ -54,4 +53,5 @@ Note: the final PDFs were built from the 25 Oct knit with two text edits applied
 - Figure 2: hand-placed labels with leaders; Table A2 split into A2 (Panels A, B) and new Table A3 (state values). Duplicate figure captions removed (knit.R plot hook).
 - EPW references (jha2026, goldar2026, ara2025): no page numbers on EPW or Crossref; kept without pages, consistently.
 - Fees: none (T&F instructions, updated 20 Aug 2026), except optional OA / colour print.
-- **Pending: re-knit on the Mac (needs plfs10_results.rds) and rebuild PDFs; check Fig 2 labels, abstract <=150 words, word count in title_page.md.** PDFs in package/ predate these edits.
+- Rebuild, 25 Oct 2026: analysis.R re-run on the Mac (results identical to the earlier rds apart from the timestamp), manuscript re-knit on the Mac, PDFs built with pandoc 3.1 and xelatex. Fixed a LaTeX error in Table A3 ("Jammu & Kashmir" now "Jammu and Kashmir"). Checked: Figure 2 labels do not overlap; abstract 149 words; the destination-of-output missingness sentence reads "The question was answered for all of these workers" (0 per cent missing for women and men in R); abstract and text numbers match Tables 2, 4, 5, 6, 7, A2 and A3; anonymised PDF text and metadata carry no name, email, ORCID, GitHub link or identifying acknowledgement; no unresolved references. Word counts in title_page.md updated.
+- Status: ready for submission to Population Studies via the Routledge portal (not submitted).

@@ -373,7 +373,7 @@ kbl(A2, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
 ```
 
 ```{r tabA3, results="asis"}
-Bs <- B[order(-wpr)][, .(State = gsub("&", "\\\\&", name, fixed = TRUE), w = f(wpr), o = f(s_own), h = f(s_help), g = f(s_reg + s_cas))]
+Bs <- B[order(-wpr)][, .(State = gsub(" & ", " and ", name, fixed = TRUE), w = f(wpr), o = f(s_own), h = f(s_help), g = f(s_reg + s_cas))]
 kbl(Bs, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrr",
     col.names = c("State", "Worker-population ratio", "Own-account", "Unpaid helper", "Wage (regular and casual)"),
     caption = "Change in women's worker-population ratio and its components, 20 most populous states, 2017--18 to 2023--24 (percentage points)") |>

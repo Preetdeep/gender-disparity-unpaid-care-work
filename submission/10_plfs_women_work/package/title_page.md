@@ -12,7 +12,7 @@
 
 **Email (corresponding author):** preetds@iima.ac.in
 
-**Word count:** approximately 5,000 words of main text (Introduction to Conclusion, excluding abstract, tables, figure captions, notes, references and appendix); approximately 6,100 including tables and captions. Abstract: 135 words.
+**Word count:** approximately 4,850 words of main text (Introduction to Conclusion, excluding abstract, tables, figure captions, notes, references and appendix); approximately 6,250 including tables and figure captions. Abstract: 149 words.
 
 **Keywords:** women's employment; labour force participation; unpaid family workers; measurement of work; own-use production; India
 
