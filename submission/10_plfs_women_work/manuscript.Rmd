@@ -137,12 +137,12 @@ kbl(T1o, format = "latex", booktabs = TRUE, linesep = "", align = "llrrrr",
     caption = "Published and reproduced headline estimates, persons aged 15 and over, India (per cent)") |>
   add_header_above(c(" " = 2, "2017--18" = 2, "2023--24" = 2), escape = FALSE) |>
   kable_styling(latex_options = c("hold_position"), font_size = 10) |>
-  footnote(general = paste0("Published values from the NSO press note of 23 September 2024. Estimated values are computed from the unit-level data with the official weights. ", nexact, " of ", nval, " published values (including rural and urban values not shown) are reproduced exactly after rounding."), threeparttable = TRUE, escape = TRUE)
+  footnote(general_title = "", general = paste0("Published values from the NSO press note of 23 September 2024. Estimated values are computed from the unit-level data with the official weights. ", nexact, " of ", nval, " published values (including rural and urban values not shown) are reproduced exactly after rounding."), threeparttable = TRUE, escape = TRUE)
 ```
 
 ## Where the rise occurred
 
-Table 2 decomposes the change in the women's WPR. Nationally, own-account work and employers added `r f(w("s_own"))` points and unpaid helpers `r f(w("s_help"))` points, together `r f0(selfsh)` per cent of the rise of `r f(dW)` points. Regular wage employment added `r f(w("s_reg"))` points and casual labour `r f(w("s_cas"))` points. Agriculture accounts for `r f(w("ag"))` points, or `r sh(w("ag"), dW)` per cent. The rise in principal workers was `r f(w("ps"))` points; the share of women who are workers only in a subsidiary capacity rose almost five-fold, from `r f(w("ss", "y17"))` to `r f(w("ss", "y23"))` per cent, and accounts for `r sh(w("ss"), dW)` per cent of the rise.
+Table 2 and Figure 1 decompose the change in the women's WPR. Nationally, own-account work and employers added `r f(w("s_own"))` points and unpaid helpers `r f(w("s_help"))` points, together `r f0(selfsh)` per cent of the rise of `r f(dW)` points. Regular wage employment added `r f(w("s_reg"))` points and casual labour `r f(w("s_cas"))` points. Agriculture accounts for `r f(w("ag"))` points, or `r sh(w("ag"), dW)` per cent. The rise in principal workers was `r f(w("ps"))` points; the share of women who are workers only in a subsidiary capacity rose almost five-fold, from `r f(w("ss", "y17"))` to `r f(w("ss", "y23"))` per cent, and accounts for `r sh(w("ss"), dW)` per cent of the rise.
 
 The rise was concentrated in rural areas. Among rural women the WPR rose by `r f(w("wpr", s = "Rural"))` points, from `r f(w("wpr", "y17", "Rural"))` to `r f(w("wpr", "y23", "Rural"))` per cent. Unpaid helpers added `r f(w("s_help", s = "Rural"))` points, of which `r f(w("s_help_ss", s = "Rural"))` points were subsidiary-only helpers, and own-account workers added `r f(w("s_own", s = "Rural"))` points, of which `r f(w("s_own_ss", s = "Rural"))` were subsidiary-only. Subsidiary-only workers account for `r sh(w("ss", s = "Rural"), w("wpr", s = "Rural"))` per cent of the rural rise and agriculture for `r sh(w("ag", s = "Rural"), w("wpr", s = "Rural"))` per cent. Regular wage employment of rural women rose by `r f(w("s_reg", s = "Rural"))` points, and casual labour in a principal capacity did not change (`r f(w("s_cas_ps", s = "Rural"))` points).
 
@@ -165,7 +165,7 @@ kbl(T2, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
   pack_rows("By capacity", 6, 9, escape = FALSE, bold = FALSE, italic = TRUE) |>
   pack_rows("By industry", 10, 11, escape = FALSE, bold = FALSE, italic = TRUE) |>
   kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Usual status (ps+ss). Components in each panel sum to the worker-population ratio. Agriculture is NIC 2008 divisions 01--03. Standard errors account for the survey design.", threeparttable = TRUE)
+  footnote(general_title = "", general = "Usual status (ps+ss). Components in each panel sum to the worker-population ratio. Agriculture is NIC 2008 divisions 01--03. Standard errors account for the survey design.", threeparttable = TRUE)
 ```
 
 ```{r fig1, fig.cap = "Contributions to the change in women's worker-population ratio, 2017--18 to 2023--24, by status and capacity (percentage points)", fig.height = 3.6, fig.width = 7.5}
@@ -195,7 +195,7 @@ kbl(T3o, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrrrr",
     caption = "Women aged 15 and over by usual principal activity status (per cent)") |>
   add_header_above(c(" " = 1, "Rural" = 3, "Urban" = 3)) |>
   kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Principal status only; women in codes 92, 93, education and other categories may also be subsidiary workers. Columns sum to 100.", threeparttable = TRUE)
+  footnote(general_title = "", general = "Principal status only; women in codes 92, 93, education and other categories may also be subsidiary workers. Columns sum to 100.", threeparttable = TRUE)
 ```
 
 ## Intensity of work
@@ -218,7 +218,7 @@ kbl(T4, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
     caption = "Intensity of work among usual-status workers aged 15 and over") |>
   add_header_above(c(" " = 1, "Employed in reference week (%)" = 2, "Mean hours worked in week" = 2, "Worked under 20 hours (%)" = 2)) |>
   kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Hours actually worked in all economic activities in the seven days before the survey, including zero for workers who did not work in that week. Regular wage workers in a subsidiary capacity only are few and not shown.", threeparttable = TRUE)
+  footnote(general_title = "", general = "Hours actually worked in all economic activities in the seven days before the survey, including zero for workers who did not work in that week. Regular wage workers in a subsidiary capacity only are few and not shown.", threeparttable = TRUE)
 ```
 
 ## Production for the household's own use
@@ -243,7 +243,7 @@ kbl(T5, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
     caption = "Destination of output of self-employed workers in primary activities, and the worker-population ratio excluding production for own use, 2023--24 (per cent)") |>
   row_spec(4, hline_after = TRUE) |>
   kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Panel A: own-account workers, employers and unpaid helpers in NIC 2008 divisions 01--09, by capacity in which the activity is pursued; columns sum to 100. Panel B: worker-population ratio of persons aged 15 and over, after excluding self-employed workers in these divisions whose output was for own consumption only, or only or mainly. The question was not asked in 2017--18.", threeparttable = TRUE, escape = FALSE)
+  footnote(general_title = "", general = "Panel A: own-account workers, employers and unpaid helpers in NIC 2008 divisions 01--09, by capacity in which the activity is pursued; columns sum to 100. Panel B: worker-population ratio of persons aged 15 and over, after excluding self-employed workers in these divisions whose output was for own consumption only, or only or mainly. The question was not asked in 2017--18.", threeparttable = TRUE, escape = FALSE)
 ```
 
 ## Composition
@@ -257,7 +257,7 @@ kbl(T6, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
     col.names = c("", "Total change", "Composition", "Rates within cells"),
     caption = "Kitagawa decomposition of the change in women's worker-population ratio, 2017--18 to 2023--24 (percentage points)") |>
   kable_styling(latex_options = c("hold_position"), font_size = 10) |>
-  footnote(general = paste0("Cells: state by sector by age group by education by marital status (", f0(k("wpr", "ncell")), " cells present in both years). Women aged 15 and over."), threeparttable = TRUE)
+  footnote(general_title = "", general = paste0("Cells: state by sector by age group by education by marital status (", f0(k("wpr", "ncell")), " cells present in both years). Women aged 15 and over."), threeparttable = TRUE)
 ```
 
 ## Who and where
@@ -281,7 +281,7 @@ kb <- kbl(T7, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, a
 st <- c(1, head(idx, -1) + 1)
 for (i in seq_along(lv)) kb <- pack_rows(kb, glab[[names(lv)[i]]], st[i], idx[i], bold = FALSE, italic = TRUE)
 kb |> kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Usual status (ps+ss). Consumption quintiles are of monthly household consumption expenditure per person, within year and sector.", threeparttable = TRUE)
+  footnote(general_title = "", general = "Usual status (ps+ss). Consumption quintiles are of monthly household consumption expenditure per person, within year and sector.", threeparttable = TRUE)
 ```
 
 Across the `r nrow(B)` most populous states, the change in women's WPR ranged from `r f(bg("Andhra Pradesh"))` points in Andhra Pradesh and `r f(bg("Delhi"))` points in Delhi to `r f(bg("Jharkhand"))` points in Jharkhand and `r f(bg("Assam"))` points in Assam (Figure 2; Table A3 gives the state values). Across these states, the correlation between the change in the WPR and the change in the combined ratio of own-account workers and helpers is `r f2(R$st_cor)`. States differed in which of the two categories rose: in Jharkhand, Odisha and Madhya Pradesh it was mainly unpaid helpers, in Assam and West Bengal mainly own-account workers. Because self-employment accounts for most of the national rise, this correlation is partly mechanical. The exceptions are states with smaller rises in which wage work accounted for half or more of the change, such as Kerala, Tamil Nadu and Delhi (Table A3). Elsewhere the pattern of a rise concentrated in self-employment holds, so the national result does not reflect a few states with unusual estimates.
@@ -295,10 +295,10 @@ lab <- data.table(name = c("Assam", "Jharkhand", "Odisha", "Gujarat", "Bihar", "
                   dy = c(0, 0, 0, 0, 0, 0.4, 0, -2.4, -4.4, -1.4, 0, 0.6, -0.4, -0.6, 2.0, -0.5, 0.8, -1.4, 0, 0))
 F2 <- merge(F2, lab, by = "name", all.x = TRUE)
 F2[is.na(side), `:=`(side = "R", dy = 0)]
-F2[, lx := se + ifelse(side == "R", 0.8, -0.8)][, ly := wpr + dy][, hj := ifelse(side == "R", 0, 1)][, lead := abs(dy) >= 1]
+F2[, lx := se + ifelse(side == "R", 0.8, -0.8)][, ly := wpr + dy][, hj := ifelse(side == "R", 0, 1)][, lead := abs(dy) >= 1][, lname := gsub(" & ", " and ", name, fixed = TRUE)]
 ggplot(F2, aes(x = se, y = wpr)) + geom_abline(intercept = 0, slope = 1, linetype = "dashed", linewidth = 0.3) + geom_point(aes(size = pop / 1e6), shape = 21, fill = "grey60") +
   geom_segment(data = F2[lead == TRUE], aes(x = se, y = wpr, xend = lx, yend = ly), linewidth = 0.2, colour = "grey40") +
-  geom_label(aes(x = lx, y = ly, label = name, hjust = hj), size = 2.3, label.size = 0, label.padding = unit(0.05, "lines"), fill = "white") +
+  geom_label(aes(x = lx, y = ly, label = lname, hjust = hj), size = 2.3, label.size = 0, label.padding = unit(0.05, "lines"), fill = "white") +
   scale_size_area(max_size = 6, guide = "none") +
   labs(x = "Change in own-account plus helper ratio", y = "Change in worker-population ratio") + theme_bw(base_size = 9) + theme(panel.grid.minor = element_blank())
 ```
@@ -353,7 +353,7 @@ kbl(A1, format = "latex", booktabs = TRUE, linesep = "\\addlinespace", align = "
     caption = "Comparison of field instructions relevant to measuring women's work, PLFS 2017--18 and 2023--24") |>
   column_spec(1, width = "8.5cm") |> column_spec(2:3, width = "3.2cm") |>
   kable_styling(latex_options = c("hold_position"), font_size = 9) |>
-  footnote(general = "Source: Instructions to Field Staff, Volume I, for 2017--18 and 2023--24 (Chapter Three), and the note on updated instructions for 2023--24, which dates the clarifications in Boxes 9 and 10 to PLFS 2022--23.", threeparttable = TRUE)
+  footnote(general_title = "", general = "Source: Instructions to Field Staff, Volume I, for 2017--18 and 2023--24 (Chapter Three), and the note on updated instructions for 2023--24, which dates the clarifications in Boxes 9 and 10 to PLFS 2022--23.", threeparttable = TRUE)
 ```
 
 ```{r tabA2, results="asis"}
@@ -369,7 +369,7 @@ kbl(A2, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
     caption = "Robustness: alternative decomposition cells and working ages") |>
   row_spec(nrow(A2a), hline_after = TRUE) |>
   kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
-  footnote(general = "Panel A: change in women's WPR (all India, 15+, percentage points) decomposed with alternative cell definitions; unmatched is the population share in cells present in one year only. Panel B: usual status (ps+ss), per cent of women aged 15--59; change and its standard error in percentage points.", threeparttable = TRUE, escape = FALSE)
+  footnote(general_title = "", general = "Panel A: change in women's WPR (all India, 15+, percentage points) decomposed with alternative cell definitions; unmatched is the population share in cells present in one year only. Panel B: usual status (ps+ss), per cent of women aged 15--59; change and its standard error in percentage points.", threeparttable = TRUE, escape = FALSE)
 ```
 
 ```{r tabA3, results="asis"}
@@ -378,5 +378,5 @@ kbl(Bs, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align =
     col.names = c("State", "Worker-population ratio", "Own-account", "Unpaid helper", "Wage (regular and casual)"),
     caption = "Change in women's worker-population ratio and its components, 20 most populous states, 2017--18 to 2023--24 (percentage points)") |>
   kable_styling(latex_options = c("hold_position"), font_size = 9) |>
-  footnote(general = "Usual status (ps+ss), women aged 15 and over. States ordered by the change in the worker-population ratio; the three components sum to it. Jammu and Kashmir includes Ladakh.", threeparttable = TRUE, escape = FALSE)
+  footnote(general_title = "", general = "Usual status (ps+ss), women aged 15 and over. States ordered by the change in the worker-population ratio; the three components sum to it. Jammu and Kashmir includes Ladakh.", threeparttable = TRUE, escape = FALSE)
 ```
