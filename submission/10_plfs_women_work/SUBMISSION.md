@@ -56,3 +56,8 @@
 - Rebuild, 25 Oct 2026: analysis.R re-run on the Mac (results identical to the earlier rds apart from the timestamp), manuscript re-knit on the Mac, PDFs built with pandoc 3.1 and xelatex. Fixed a LaTeX error in Table A3 ("Jammu & Kashmir" now "Jammu and Kashmir"). Checked: Figure 2 labels do not overlap; abstract 149 words; the destination-of-output missingness sentence reads "The question was answered for all of these workers" (0 per cent missing for women and men in R); abstract and text numbers match Tables 2, 4, 5, 6, 7, A2 and A3; anonymised PDF text and metadata carry no name, email, ORCID, GitHub link or identifying acknowledgement; no unresolved references. Word counts in title_page.md updated.
 - Roo pre-submission check, 25 Oct 2026: Figure 1 now cited in 4.2; empty "Note:" labels removed under tables; Figure 2 label "Jammu and Kashmir". Rebuilt and rechecked (abstract 149 words, both figures cited, anonymised PDF clean, 0 "??").
 - Status: ready for submission to Population Studies via the Routledge portal (not submitted).
+
+## Submitted, 25 Oct 2026
+- Submitted to Population Studies (Taylor & Francis / Routledge portal) on 25 Oct 2026. T&F submission ID: 263216021.
+- Anonymised manuscript in the blind slot; author details in the title page only. No open access chosen, no charges.
+- Next: watch for editor screening; nothing to do until the journal responds.
