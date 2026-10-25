@@ -1,0 +1,366 @@
+---
+title: "Counting more women's work: unpaid helpers, subsidiary activity and the rise in women's employment in India, 2017--18 to 2023--24"
+params:
+  blind: true
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymized for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in.}"`'
+date: ""
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: preamble.inc
+fontsize: 12pt
+linestretch: 1.5
+geometry: margin=1in
+bibliography: refs_local.bib
+csl: apa.csl
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center", fig.pos = "H", out.width = "90%", dev = "pdf")
+suppressMessages({library(data.table); library(kableExtra); library(ggplot2)})
+RDS <- Sys.getenv("PLFS10_RDS", path.expand("~/GResearcher_runs/data_derived/plfs10/plfs10_results.rds"))
+R <- readRDS(RDS)
+f <- function(x, d = 1) { r <- round(x, d); r[r == 0] <- 0; formatC(r, format = "f", digits = d, big.mark = ",") }
+f0 <- function(x) f(x, 0)
+f2 <- function(x) f(x, 2)
+EW <- R$EW; EM <- R$EM
+w <- function(v, col = "d", s = "Total") EW[secl == s & var == v][[col]]
+m <- function(v, col = "d", s = "Total") EM[secl == s & var == v][[col]]
+ci <- function(est, se, d = 1) paste0("95 per cent CI ", f(est - 1.96 * se, d), " to ", f(est + 1.96 * se, d))
+sh <- function(num, den) f0(100 * num / den)
+dW <- w("wpr")
+V <- R$VAL; nval <- nrow(V); nexact <- V[diff == 0, .N]; vmiss <- V[diff != 0]
+NN <- R$N
+nw <- function(y, s) NN[year == y & secl == s & sexl == "Women"]$n
+npers <- function(y) R$n_persons[year == y]$N
+nhh <- function(y) R$n_hh[year == y]$V1
+nfsu <- function(y) R$n_fsu[year == y]$V1
+IW <- R$IW; iw <- function(y, g, col) IW[year == y & grp == g][[col]]
+HP <- R$HP; hp <- function(y, sx, s = "Total", col = "hrs_pc") HP[year == y & sexl == sx & secl == s][[col]]
+HS <- R$hpse; hs <- function(y, col) HS[year == y][[col]]
+OU <- R$OWNUSE; ou <- function(sx, s, col) OU[sexl == sx & secl == s][[col]]
+ET <- R$ECOt; et <- function(sx, e) ET[sexl == sx & eco == e]$pct
+EC <- R$ECO; ec <- function(sx, s, cp, e) { x <- EC[sexl == sx & secl == s & cap == cp]; 100 * sum(x[eco %in% e]$w) / sum(x$w) }
+PD <- R$PD; pd <- function(y, s, cat) PD[year == y & secl == s & pcat == cat]$pct
+SSP <- R$SSP; ssp <- function(y, s, cat) SSP[year == y & secl == s & pcat == cat]$pct
+K <- R$KIT; k <- function(v, col) K[var == v][[col]]
+K2 <- R$KIT2
+H <- R$HET; het <- function(g, lev, s = "Rural", v = "wpr", col = "d") H[group == g & level == lev & secl == s & variable == v][[col]]
+B <- R$big; bg <- function(nm, col = "wpr") B[name == nm][[col]]
+R15 <- R$R1559; r15 <- function(v, col = "d") R15[var == v][[col]]
+UR <- R$ur; urr <- function(y, sx, s = "Total") UR[year == y & sexl == sx & secl == s]$ur
+selfsh <- 100 * (w("s_own") + w("s_help")) / dW
+vlab <- c(LFPR = "LFPR in usual status", WPR = "WPR in usual status", UR = "unemployment rate in usual status", LFPR_CWS = "LFPR in current weekly status", WPR_CWS = "WPR in current weekly status")
+```
+
+```{r abstract, results="asis"}
+cat("\\begin{abstract}\n\\noindent ",
+"India's Periodic Labour Force Survey shows the worker-population ratio of women aged 15 and over rising from ", f(w("wpr", "y17")), " per cent in 2017--18 to ", f(w("wpr", "y23")), " per cent in 2023--24. Using the unit-level data for both years, I reproduce the published estimates and decompose this ", f(dW), "-point rise. Own-account work and unpaid help in household enterprises account for ", f0(selfsh), " per cent of it, agriculture for ", sh(w("ag"), dW), " per cent and women working only in a subsidiary capacity for ", sh(w("ss"), dW), " per cent. Changes in age, education, marital status and state composition explain none of it. Weekly hours worked per woman rose by ", f0(100 * (hs(2023, 'hrs') / hs(2017, 'hrs') - 1)), " per cent, half as fast as the ratio. In 2023--24, ", f0(et("Women", 1) + et("Women", 2)), " per cent of self-employed women in primary production produced mainly for household consumption. The rise is concentrated at the boundary of what surveys count as work.\n\\end{abstract}\n", sep = "")
+```
+
+\keywords{women's employment; labour force participation; unpaid family workers; measurement of work; own-use production; India}
+
+\newpage
+
+# Introduction
+
+For more than a decade, research on women's employment in India was about decline. Successive rounds of the National Sample Survey recorded falling participation of women in the labour force between 2004--05 and 2011--12, despite rapid economic growth, falling fertility and rising education [@klasen2015; @mehrotra2017; @andres2017; @afridi2018; @chatterjee2018; @desai2019]. The Periodic Labour Force Survey (PLFS), which replaced the quinquennial employment rounds in 2017--18, initially confirmed a low level: the worker-population ratio (WPR) of women aged 15 and over in usual status was `r f(w("wpr", "y17"))` per cent in 2017--18. Six years later, the same survey reported `r f(w("wpr", "y23"))` per cent, and the published series rose in every year in between [@nso2024pn].
+
+A rise of `r f(dW)` percentage points in six years is large, and it has prompted a debate about its meaning. Studies using the published tables and unit-level data show that the rise is concentrated among rural women and in self-employment [@ara2025]. One interpretation is that it reflects distress, with women entering low-productivity family work as household incomes came under pressure [@jha2026]; another is that additional family labour in agriculture is productive and therefore a positive development [@goldar2026]. A third possibility has received less systematic attention: that part of the rise reflects how much of women's existing activity is captured as work. Women's work in rural India is often part-time, seasonal, home-based and close to the line between production for the market, production for the household's own use and domestic work, and surveys are known to be sensitive to how such work is probed [@beneria1981; @langsten2008; @bardasi2011; @hirway2011; @deshpande2024].
+
+This paper does not try to choose between these interpretations directly. Instead, it provides the accounting that any interpretation needs. Using the unit-level data of PLFS 2017--18 and 2023--24, I first reproduce the published headline estimates for both years. I then decompose the change in women's WPR by status in employment, by whether women work in a principal or only in a subsidiary capacity, by industry and by rural and urban sector, with design-based standard errors. I trace where the new workers came from in terms of their principal activity, measure what the rise means in hours of work, use a new question in the 2023--24 survey on the destination of output to assess how much of the employment is production mainly for the household's own consumption, and test whether changes in population composition account for the rise.
+
+Five findings stand out. First, own-account work and unpaid help in household enterprises account for `r f0(selfsh)` per cent of the rise, and regular wage employment for `r sh(w("s_reg"), dW)` per cent. Second, `r sh(w("ss"), dW)` per cent of the rise consists of women whose principal activity is outside the labour force, typically domestic duties, and who are counted as workers because of a subsidiary economic activity of at least 30 days in the year; `r sh(w("ag"), dW)` per cent of the rise is in agriculture. Third, the rise is much smaller when measured in hours: the mean weekly hours worked per woman in the population rose by `r f0(100 * (hs(2023, 'hrs') / hs(2017, 'hrs') - 1))` per cent, against `r f0(100 * (w("wpr", "y23") / w("wpr", "y17") - 1))` per cent for the WPR, and the share of women workers who worked fewer than 20 hours in the reference week rose from `r f(iw(2017, "all:Total", "lt20"))` to `r f(iw(2023, "all:Total", "lt20"))` per cent. Fourth, in 2023--24, `r f0(et("Women", 1) + et("Women", 2))` per cent of self-employed women in primary production reported that their output was mainly for the household's own consumption; excluding such work, as the 2013 international standard on statistics of work would [@ilo2013], lowers the 2023--24 WPR of women from `r f(ou("Women", "Total", "wpr"))` to between `r f(ou("Women", "Total", "wpr_x12"))` and `r f(ou("Women", "Total", "wpr_x1"))` per cent. Fifth, a shift-share decomposition shows that changes in age, education, marital status, sector and state composition do not explain the rise; it occurred within these groups, and it was largest among rural women aged 35 to 59, women with little schooling and Scheduled Tribe women.
+
+I also document that the field instructions for the 2023--24 survey contain an explicit list prompting enumerators to probe for work in kitchen gardens, orchards, household poultry and dairy and free collection, and worked examples on when such activity makes a woman engaged in domestic duties a subsidiary worker [@nso2023man]. These were not in the 2017--18 instructions [@nso2016man], and the survey's own note dates them to 2022--23 [@nso2023note]. The definitions of work did not change, and the data cannot show how much the instructions contributed. The point is narrower: the categories in which the rise is concentrated are exactly those in which responses depend most on probing, so the rise should be read with that in mind.
+
+The paper contributes to three literatures. It adds a full accounting of the recent reversal to work on India's women's employment, which has largely studied the earlier decline [@klasen2015; @mehrotra2017; @afridi2018; @lahoti2016; @sarkar2019]. It adds an unusual large-scale case to the literature on the measurement of women's work [@beneria1981; @langsten2008; @bardasi2011], in which a large change in the measured rate is concentrated in the most measurement-sensitive categories. And it provides one of the first applications of the destination-of-output question in PLFS to assess the gap between the national definition of work and the 2013 international definition of employment. The analysis is descriptive. It does not attribute the change to any particular cause or policy.
+
+# Background
+
+## Women's work in India and its measurement
+
+Explanations of the earlier decline in women's participation emphasized rising household incomes and an income effect on women's labour supply, rising enrolment in education, the shortage of jobs considered suitable for women, social norms that restrict women's mobility, and changes in the structure of agricultural work [@klasen2015; @mehrotra2017; @afridi2018; @chatterjee2018; @jayachandran2021]. The cross-country literature on a U-shaped relation between development and women's participation also predicts that women withdraw from family farm work as household incomes rise and return to the labour force later, through wage employment in services [@goldin1994; @gaddis2014]. A rise in women's employment that comes mainly through self-employment in agriculture runs against both of these patterns, which is one reason the recent rise has been questioned [@ara2025; @jha2026].
+
+Measurement has been a concern throughout. Women's work in family farms and enterprises is often not reported as work unless respondents are asked about it specifically, and the answers depend on the wording of questions, on the reference period and on who answers [@beneria1981; @langsten2008; @bardasi2011]. In India, time-use data have long recorded more economic activity by women than labour force surveys [@hirway2011], and the distinction between work for income, expenditure-saving work for the household and unpaid domestic work is important for understanding women's work [@deshpande2024]. Earlier panel evidence also shows frequent movements of Indian women into and out of work [@sarkar2019], so the measured rate depends on how intermittent work is captured.
+
+## Concepts in the PLFS
+
+The PLFS classifies each person by usual activity status over the 365 days preceding the survey. The principal status is the activity on which a person spent a relatively long time. A person whose principal status is outside the labour force, such as domestic duties, is counted as a worker in a subsidiary capacity if she was engaged in an economic activity for at least 30 days in the year. The headline 'usual status (ps+ss)' measure counts both principal and subsidiary workers. Status in employment distinguishes own-account workers and employers, unpaid helpers in household enterprises, regular wage or salaried employees and casual labourers. A separate current weekly status classifies persons by their activity in the seven days before the survey, and the survey records the hours actually worked on each of those days.
+
+India's national definition of economic activity follows the System of National Accounts production boundary. It includes all production of primary goods, including free collection of uncultivated crops, firewood and fish, whether for sale or for the household's own consumption [@nso2016man; @nso2023man]. Two codes for persons outside the labour force are relevant: code 92 (attended domestic duties only) and code 93 (attended domestic duties and was also engaged in free collection of goods, sewing, tailoring or weaving for household use). A woman who does domestic work and also collects firewood or vegetables for the household is therefore recorded either as code 93 or, if the collection amounts to 30 days or more in the year, as a subsidiary own-account worker.
+
+The 2013 resolution of the International Conference of Labour Statisticians narrowed the definition of employment to work for pay or profit and classified the production of goods for the household's own final use as a separate form of work, 'own-use production work', outside employment [@ilo2013]. The PLFS continues to use the earlier, broader concept. In 2023--24, however, the survey asked self-employed persons in primary-sector activities whether their output was for own consumption only, mainly for own consumption, mainly for sale or entirely for sale. This question was not asked in 2017--18.
+
+## Changes in the field instructions
+
+The definitions above are the same in the field instructions for both survey years. The 2023--24 instructions add three elements that the 2017--18 instructions do not contain (Table A1). First, the list of examples of economic activities 'for which special care is needed', which enumerators are told to probe so that such activities are 'not omitted', has a new item: 'Working in kitchen garden, orchards, household poultry, dairy, free collection of fish, small game, wild fruits, vegetables, etc. for household consumption/sale' [@nso2023man]. Second, a new box of worked examples explains how to distinguish codes 92 and 93 from subsidiary self-employment. In one example, a woman whose main activity is domestic duties and who collects firewood for the household for an hour or two a day for at least 30 days in the year is to be recorded with principal status 92 and a subsidiary economic activity as an own-account worker, not as code 93. Third, a further box applies the same logic to the daily activity record of the current weekly status. The survey's note on updated instructions states that these clarifications were first provided for PLFS 2022--23 [@nso2023note]. They clarify rather than change the concepts, but they direct attention to the activities that are most likely to be under-reported among women.
+
+# Data and methods
+
+## Data
+
+I use the unit-level data of the first visit of PLFS 2017--18 and PLFS 2023--24, released by the National Statistics Office of the Ministry of Statistics and Programme Implementation. The first-visit schedules cover the rural and urban samples and are the basis of the official annual estimates in usual status. The files contain `r f0(npers(2017))` persons in `r f0(nhh(2017))` households and `r f0(nfsu(2017))` first-stage units in 2017--18, and `r f0(npers(2023))` persons in `r f0(nhh(2023))` households and `r f0(nfsu(2023))` first-stage units in 2023--24. The analysis sample is persons aged 15 and over: `r f0(nw(2017, "Rural") + nw(2017, "Urban"))` women in 2017--18 and `r f0(nw(2023, "Rural") + nw(2023, "Urban"))` women in 2023--24, with men used for comparison.
+
+Estimates use the survey multipliers as prescribed in the data documentation: the multiplier is divided by 100 when the sub-sample and the sub-round match and by 200 otherwise, and by the number of quarters to give annual estimates. Standard errors account for the stratified multistage design, with first-stage units within quarter as primary sampling units and the survey strata and sub-strata within state and sector as strata, using the survey package in R [@lumley2004]. Because the two years are independent samples, the standard error of a change is the square root of the sum of the two squared standard errors. I harmonize state codes across years by combining Jammu and Kashmir with Ladakh and Dadra and Nagar Haveli with Daman and Diu, so that both years refer to the same territories.
+
+## Definitions
+
+A person is a usual-status worker if her principal status is a work code (11--51), or if her principal status is not a work code and she reports a subsidiary economic activity with a work code. Workers are classified by the status of the principal activity for principal workers and of the subsidiary activity for subsidiary-only workers, into own-account workers and employers (codes 11--12), unpaid helpers (21), regular wage or salaried employees (31) and casual labourers (41, 51). Agriculture is NIC 2008 divisions 01--03. Weekly hours are the hours actually worked in all economic activities on the seven days before the survey. These are the official definitions, and with them the estimates reproduce the published figures (Section 4.1).
+
+## Decompositions
+
+Because the WPR is the sum of the shares of the population in each status, the change in the WPR is the exact sum of the changes in the status-specific ratios, and the same holds for the split into principal and subsidiary-only workers and into agriculture and other industries. To assess whether the rise reflects changes in the composition of the population, I use a Kitagawa decomposition [@kitagawa1955]. With cells $c$ defined by state, rural or urban sector, age group (15--24, 25--34, 35--44, 45--59, 60+), education (below primary, primary or middle, secondary or higher secondary, graduate or above) and marital status, the change in the WPR is
+
+$$\Delta W = \sum_c \bar r_c \, \Delta p_c + \sum_c \bar p_c \, \Delta r_c ,$$
+
+where $p_c$ is the population share of cell $c$, $r_c$ its WPR, and bars denote averages of the two years. The first term is the composition component and the second the rate component. Cells present in only one year (`r f(k("wpr", "unmatched_pop"), 2)` per cent of the population) are excluded from the decomposition and the shares are renormalized.
+
+# Results
+
+## Reproducing the official estimates
+
+The estimates from the unit-level data reproduce the published figures. For `r nval` published values (the LFPR, WPR and unemployment rate in usual status and the LFPR and WPR in current weekly status, for men and women, in rural areas, urban areas and the whole country, in both years), `r nexact` are identical after rounding to one decimal place and the remaining one (the `r paste0(vlab[vmiss$ind], " for ", tolower(vmiss$sexl), " in ", vmiss$year, "--", substr(vmiss$year + 1, 3, 4))`, published as `r f(vmiss$pub)` and estimated as `r f2(vmiss$est)`) differs by `r f2(abs(vmiss$est - vmiss$pub))` points. Table 1 shows the national values. The women's WPR rose from `r f(w("wpr", "y17"))` to `r f(w("wpr", "y23"))` per cent (`r ci(dW, w("wpr", "se_d"))`). Men's WPR rose by `r f(m("wpr"))` points, from `r f(m("wpr", "y17"))` to `r f(m("wpr", "y23"))` per cent. The women's unemployment rate fell from `r f(urr(2017, "Women"))` to `r f(urr(2023, "Women"))` per cent, so almost all of the rise in participation took the form of employment.
+
+```{r tab1, results="asis"}
+lab <- c(LFPR = "LFPR, usual status", WPR = "WPR, usual status", UR = "Unemployment rate, usual status", LFPR_CWS = "LFPR, current weekly status", WPR_CWS = "WPR, current weekly status")
+T1 <- V[secl == "Total"]
+T1 <- dcast(T1, ind + sexl ~ year, value.var = c("pub", "est"))
+T1[, ind := factor(ind, levels = names(lab))]; setorder(T1, ind, -sexl)
+T1o <- T1[, .(Indicator = lab[as.character(ind)], Sex = sexl, p17 = f(pub_2017), e17 = f(est_2017, 2), p23 = f(pub_2023), e23 = f(est_2023, 2))]
+kbl(T1o, format = "latex", booktabs = TRUE, linesep = "", align = "llrrrr",
+    col.names = c("Indicator", "Sex", "Published", "Estimated", "Published", "Estimated"),
+    caption = "Published and reproduced headline estimates, persons aged 15 and over, India (per cent)") |>
+  add_header_above(c(" " = 2, "2017--18" = 2, "2023--24" = 2), escape = FALSE) |>
+  kable_styling(latex_options = c("hold_position"), font_size = 10) |>
+  footnote(general = paste0("Published values from the NSO press note of 23 September 2024. Estimated values are computed from the unit-level data with the official weights. ", nexact, " of ", nval, " published values (including rural and urban values not shown) are reproduced exactly after rounding."), threeparttable = TRUE, escape = TRUE)
+```
+
+## Where the rise occurred
+
+Table 2 decomposes the change in the women's WPR. Nationally, own-account work and employers added `r f(w("s_own"))` points and unpaid helpers `r f(w("s_help"))` points, together `r f0(selfsh)` per cent of the rise of `r f(dW)` points. Regular wage employment added `r f(w("s_reg"))` points and casual labour `r f(w("s_cas"))` points. Agriculture accounts for `r f(w("ag"))` points, or `r sh(w("ag"), dW)` per cent. The rise in principal workers was `r f(w("ps"))` points; the share of women who are workers only in a subsidiary capacity rose almost five-fold, from `r f(w("ss", "y17"))` to `r f(w("ss", "y23"))` per cent, and accounts for `r sh(w("ss"), dW)` per cent of the rise.
+
+The rise was concentrated in rural areas. Among rural women the WPR rose by `r f(w("wpr", s = "Rural"))` points, from `r f(w("wpr", "y17", "Rural"))` to `r f(w("wpr", "y23", "Rural"))` per cent. Unpaid helpers added `r f(w("s_help", s = "Rural"))` points, of which `r f(w("s_help_ss", s = "Rural"))` points were subsidiary-only helpers, and own-account workers added `r f(w("s_own", s = "Rural"))` points, of which `r f(w("s_own_ss", s = "Rural"))` were subsidiary-only. Subsidiary-only workers account for `r sh(w("ss", s = "Rural"), w("wpr", s = "Rural"))` per cent of the rural rise and agriculture for `r sh(w("ag", s = "Rural"), w("wpr", s = "Rural"))` per cent. Regular wage employment of rural women rose by `r f(w("s_reg", s = "Rural"))` points, and casual labour in a principal capacity did not change (`r f(w("s_cas_ps", s = "Rural"))` points).
+
+Urban women's WPR rose by a smaller `r f(w("wpr", s = "Urban"))` points, and the composition was different: regular wage employment rose by `r f(w("s_reg", s = "Urban"))` points, own-account work by `r f(w("s_own", s = "Urban"))` points and unpaid help by `r f(w("s_help", s = "Urban"))` points, while casual labour fell slightly. Most of the urban rise was in principal status and outside agriculture.
+
+Men's employment changed in the same direction but on a much smaller scale. Men's WPR rose by `r f(m("wpr"))` points; unpaid help rose by `r f(m("s_help"))` points and subsidiary-only work by `r f(m("ss"))` points, from `r f(m("ss", "y17"))` to `r f(m("ss", "y23"))` per cent of men. The shift towards self-employment and subsidiary work therefore affected both sexes, but for women it was large enough to nearly double the measured employment rate.
+
+```{r tab2, results="asis"}
+rows <- c(wpr = "Worker-population ratio", s_own = "\\quad Own-account worker or employer", s_help = "\\quad Unpaid helper", s_reg = "\\quad Regular wage or salaried", s_cas = "\\quad Casual labour",
+          ps = "\\quad Principal status", ss = "\\quad Subsidiary status only",
+          s_own_ss = "\\quad\\quad Own-account, subsidiary only", s_help_ss = "\\quad\\quad Unpaid helper, subsidiary only",
+          ag = "\\quad Agriculture", nag = "\\quad Other industries")
+cell <- function(s, v) { x <- EW[secl == s & var == v]; c(f(x$y17), f(x$y23), paste0(f(x$d), " (", f2(x$se_d), ")")) }
+T2 <- rbindlist(lapply(names(rows), function(v) as.list(c(rows[[v]], cell("Rural", v), cell("Urban", v), cell("Total", v)))))
+kbl(T2, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrrrrrrr",
+    col.names = c("", rep(c("2017--18", "2023--24", "Change (SE)"), 3)),
+    caption = "Decomposition of the women's worker-population ratio by status, capacity and industry, women aged 15 and over (per cent of population)") |>
+  add_header_above(c(" " = 1, "Rural" = 3, "Urban" = 3, "All India" = 3)) |>
+  pack_rows("By status in employment", 2, 5, escape = FALSE, bold = FALSE, italic = TRUE) |>
+  pack_rows("By capacity", 6, 9, escape = FALSE, bold = FALSE, italic = TRUE) |>
+  pack_rows("By industry", 10, 11, escape = FALSE, bold = FALSE, italic = TRUE) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Usual status (ps+ss). Components in each panel sum to the worker-population ratio. Agriculture is NIC 2008 divisions 01--03. Standard errors account for the survey design.", threeparttable = TRUE)
+```
+
+```{r fig1, fig.cap = "Contributions to the change in women's worker-population ratio, 2017--18 to 2023--24, by status and capacity (percentage points)", fig.height = 3.6, fig.width = 7.5}
+cats <- c(s_own_ps = "Own-account, principal", s_own_ss = "Own-account, subsidiary", s_help_ps = "Helper, principal", s_help_ss = "Helper, subsidiary",
+          s_reg_ps = "Regular, principal", s_reg_ss = "Regular, subsidiary", s_cas_ps = "Casual, principal", s_cas_ss = "Casual, subsidiary")
+F1 <- EW[var %in% names(cats)][, cat := factor(cats[var], levels = rev(cats))]
+F1[, lo := d - 1.96 * se_d][, hi := d + 1.96 * se_d][, secl := factor(secl, levels = c("Rural", "Urban", "Total"), labels = c("Rural", "Urban", "All India"))]
+ggplot(F1, aes(x = d, y = cat)) + geom_col(fill = "grey45", width = 0.7) + geom_errorbar(aes(xmin = lo, xmax = hi), width = 0.25, orientation = "y") +
+  geom_vline(xintercept = 0, linewidth = 0.3) + facet_wrap(~secl, nrow = 1) + labs(x = "Change in percentage points", y = NULL) +
+  theme_bw(base_size = 9) + theme(panel.grid.minor = element_blank())
+```
+
+## From domestic duties to work
+
+The new workers came overwhelmingly from domestic duties. Table 3 shows the distribution of women by usual principal activity. Among rural women, the share whose principal activity was domestic duties only (code 92) fell from `r f(pd(2017, "Rural", "Domestic duties only"))` to `r f(pd(2023, "Rural", "Domestic duties only"))` per cent, while the share in domestic duties combined with free collection and similar activities for the household (code 93) was almost unchanged at `r f(pd(2023, "Rural", "Domestic duties and free collection"))` per cent. Principal-status unpaid helpers rose from `r f(pd(2017, "Rural", "Unpaid helper"))` to `r f(pd(2023, "Rural", "Unpaid helper"))` per cent and principal-status own-account workers from `r f(pd(2017, "Rural", "Own-account/employer"))` to `r f(pd(2023, "Rural", "Own-account/employer"))` per cent. Together, the principal-status work categories of rural women rose by `r f(w("ps", s = "Rural"))` points, close to the fall in the domestic-duties-only share. The shares in education and in other categories outside the labour force changed little. In urban areas, too, the domestic-duties-only share fell, from `r f(pd(2017, "Urban", "Domestic duties only"))` to `r f(pd(2023, "Urban", "Domestic duties only"))` per cent.
+
+The rise in subsidiary-only work took place within the domestic-duties categories, since subsidiary-only workers are, by construction, women whose principal activity is outside the labour force. In 2023--24, `r f(ssp(2023, "Rural", "Domestic duties only"))` per cent of rural subsidiary-only women workers had domestic duties only (code 92) as their principal status and `r f(ssp(2023, "Rural", "Domestic duties and free collection"))` per cent had code 93, proportions similar to 2017--18. What changed is the number of such women: the subsidiary-only WPR of rural women rose from `r f(w("ss", "y17", "Rural"))` to `r f(w("ss", "y23", "Rural"))` per cent. The rise in women's employment therefore consists to a large extent of women who are still mainly engaged in domestic duties but now report, or are recorded as having, a secondary economic activity.
+
+```{r tab3, results="asis"}
+ord <- c("Own-account/employer", "Unpaid helper", "Regular wage", "Casual labour", "Unemployed", "In education", "Domestic duties only", "Domestic duties and free collection", "Other not in labour force")
+T3 <- dcast(PD, pcat ~ secl + year, value.var = "pct")
+T3 <- T3[match(ord, pcat)]
+T3o <- T3[, .(Status = c("Own-account worker or employer", "Unpaid helper", "Regular wage or salaried", "Casual labour", "Unemployed", "Attending education", "Domestic duties only (92)", "Domestic duties and free collection etc. (93)", "Other, not in labour force"),
+              r17 = f(Rural_2017), r23 = f(Rural_2023), rd = f(Rural_2023 - Rural_2017), u17 = f(Urban_2017), u23 = f(Urban_2023), ud = f(Urban_2023 - Urban_2017))]
+kbl(T3o, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrrrr",
+    col.names = c("Usual principal activity status", "2017--18", "2023--24", "Change", "2017--18", "2023--24", "Change"),
+    caption = "Women aged 15 and over by usual principal activity status (per cent)") |>
+  add_header_above(c(" " = 1, "Rural" = 3, "Urban" = 3)) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Principal status only; women in codes 92, 93, education and other categories may also be subsidiary workers. Columns sum to 100.", threeparttable = TRUE)
+```
+
+## Intensity of work
+
+A worker in usual status may have worked very little in any given week. Table 4 reports, for women who are usual-status workers, the share who were employed in the reference week by current weekly status, mean hours actually worked in the week (including zero for those who did not work) and the share who worked fewer than 20 hours. Among all women workers, the share employed in the reference week fell from `r f(iw(2017, "all:Total", "share_cws"))` to `r f(iw(2023, "all:Total", "share_cws"))` per cent, mean weekly hours fell from `r f(iw(2017, "all:Total", "hours"))` to `r f(iw(2023, "all:Total", "hours"))`, and the share working fewer than 20 hours rose from `r f(iw(2017, "all:Total", "lt20"))` to `r f(iw(2023, "all:Total", "lt20"))` per cent.
+
+Part of the fall in average hours reflects the changed composition of workers. Subsidiary-only workers worked few hours in both years: subsidiary-only helpers averaged `r f(iw(2017, "help:Subsidiary only", "hours"))` hours in 2017--18 and `r f(iw(2023, "help:Subsidiary only", "hours"))` hours in 2023--24, and `r f0(iw(2023, "help:Subsidiary only", "lt20"))` per cent of them worked fewer than 20 hours in 2023--24. Their number rose several-fold. Hours also fell within the principal-status groups, by `r f(iw(2017, "help:Principal", "hours") - iw(2023, "help:Principal", "hours"))` hours for principal-status helpers and `r f(iw(2017, "own:Principal", "hours") - iw(2023, "own:Principal", "hours"))` hours for principal own-account workers.
+
+A summary measure that is not affected by where the line between workers and non-workers is drawn is the mean weekly hours of work per woman in the population. It rose from `r f2(hs(2017, "hrs"))` (SE `r f(hs(2017, "se.hw"), 3)`) to `r f2(hs(2023, "hrs"))` (SE `r f(hs(2023, "se.hw"), 3)`) hours, an increase of `r f0(100 * (hs(2023, 'hrs') / hs(2017, 'hrs') - 1))` per cent. The WPR rose by `r f0(100 * (w("wpr", "y23") / w("wpr", "y17") - 1))` per cent over the same period. In rural areas, hours per woman rose from `r f2(hp(2017, "Women", "Rural"))` to `r f2(hp(2023, "Women", "Rural"))`, and in urban areas from `r f2(hp(2017, "Women", "Urban"))` to `r f2(hp(2023, "Women", "Urban"))`. One caution is that weekly hours per worker also fell for men, from `r f(iw(2017, "men:Total", "hours"))` to `r f(iw(2023, "men:Total", "hours"))`, and hours per man in the population fell from `r f2(hp(2017, "Men"))` to `r f2(hp(2023, "Men"))`. Part of the fall in hours per worker may therefore reflect changes in how hours were reported rather than changes specific to women; if so, the increase in hours per woman is a lower bound. Even so, the rise in women's hours of work is about half the rise in the share of women counted as workers.
+
+```{r tab4, results="asis"}
+g4 <- c("all:Total" = "All women workers", "all:Rural" = "\\quad Rural", "all:Urban" = "\\quad Urban",
+        "own:Principal" = "Own-account, principal", "own:Subsidiary only" = "Own-account, subsidiary only",
+        "help:Principal" = "Unpaid helper, principal", "help:Subsidiary only" = "Unpaid helper, subsidiary only",
+        "reg:Principal" = "Regular wage, principal", "cas:Principal" = "Casual labour, principal", "cas:Subsidiary only" = "Casual labour, subsidiary only",
+        "men:Total" = "All men workers (comparison)")
+T4 <- rbindlist(lapply(names(g4), function(g) as.list(c(g4[[g]], f(iw(2017, g, "share_cws")), f(iw(2023, g, "share_cws")), f(iw(2017, g, "hours")), f(iw(2023, g, "hours")), f(iw(2017, g, "lt20")), f(iw(2023, g, "lt20"))))))
+kbl(T4, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrrrr",
+    col.names = c("", "2017--18", "2023--24", "2017--18", "2023--24", "2017--18", "2023--24"),
+    caption = "Intensity of work among usual-status workers aged 15 and over") |>
+  add_header_above(c(" " = 1, "Employed in reference week (%)" = 2, "Mean hours worked in week" = 2, "Worked under 20 hours (%)" = 2)) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Hours actually worked in all economic activities in the seven days before the survey, including zero for workers who did not work in that week. Regular wage workers in a subsidiary capacity only are few and not shown.", threeparttable = TRUE)
+```
+
+## Production for the household's own use
+
+The 2023--24 survey asked self-employed persons in primary-sector activities (NIC divisions 01--09) about the destination of their output. Among women own-account workers and helpers in these activities, `r f(et("Women", 1))` per cent reported that the output was for own consumption only, `r f(et("Women", 2))` per cent that it was mainly for own consumption with some sale, `r f(et("Women", 3))` per cent that it was mainly for sale and `r f(et("Women", 4))` per cent that it was entirely for sale (Table 5). The corresponding share for own consumption only or mainly was `r f(et("Men", 1) + et("Men", 2))` per cent among men. The question was answered by all relevant respondents. Production mainly for own use was most common among rural women working in a subsidiary capacity: `r f(ec("Women", "Rural", "Subsidiary only", 1:2))` per cent of them produced only or mainly for the household, compared with `r f(ec("Women", "Rural", "Principal", 1:2))` per cent of rural women working in a principal capacity.
+
+Under the 2013 international definition, production of goods intended mainly for the household's own final use is own-use production work, not employment [@ilo2013]. Table 5 shows how the 2023--24 WPR would change if such work were excluded. Excluding women whose output was for own consumption only lowers the women's WPR from `r f(ou("Women", "Total", "wpr"))` to `r f(ou("Women", "Total", "wpr_x1"))` per cent; also excluding those whose output was mainly for own consumption lowers it to `r f(ou("Women", "Total", "wpr_x12"))` per cent. For rural women, the corresponding values are `r f(ou("Women", "Rural", "wpr"))`, `r f(ou("Women", "Rural", "wpr_x1"))` and `r f(ou("Women", "Rural", "wpr_x12"))` per cent. These are approximations: the classification is by destination of output and applies only to self-employment in primary activities, and some excluded women may have other work that the survey does not record. They also cannot be compared with 2017--18, when the question was not asked. They show, however, that a substantial part of measured employment of women in 2023--24 is production mainly for the household, which most countries applying the 2013 standard would not count as employment.
+
+```{r tab5, results="asis"}
+eco_lab <- c("Own consumption only", "Mainly own consumption, some sale", "Mainly for sale", "Entirely for sale")
+d5 <- function(sx, s, cp) sapply(1:4, function(e) f(ec(sx, s, cp, e)))
+T5a <- data.table(Destination = eco_lab, wrp = d5("Women", "Rural", "Principal"), wrs = d5("Women", "Rural", "Subsidiary only"),
+                  wa = sapply(1:4, function(e) f(et("Women", e))), ma = sapply(1:4, function(e) f(et("Men", e))))
+T5b <- data.table(Destination = c("WPR as published definition", "Excluding own consumption only", "Excluding own consumption only or mainly"),
+                  wrp = c(f(ou("Women", "Rural", "wpr")), f(ou("Women", "Rural", "wpr_x1")), f(ou("Women", "Rural", "wpr_x12"))),
+                  wrs = c(f(ou("Women", "Urban", "wpr")), f(ou("Women", "Urban", "wpr_x1")), f(ou("Women", "Urban", "wpr_x12"))),
+                  wa = c(f(ou("Women", "Total", "wpr")), f(ou("Women", "Total", "wpr_x1")), f(ou("Women", "Total", "wpr_x12"))),
+                  ma = c(f(ou("Men", "Total", "wpr")), f(ou("Men", "Total", "wpr_x1")), f(ou("Men", "Total", "wpr_x12"))))
+T5 <- rbind(T5a, data.table(Destination = "\\textit{Panel B: WPR, 2023--24}", wrp = "\\textit{Women, rural}", wrs = "\\textit{Women, urban}", wa = "\\textit{Women, all}", ma = "\\textit{Men, all}"), T5b)
+kbl(T5, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrr",
+    col.names = c("\\textit{Panel A: destination of output}", "Women, rural, principal", "Women, rural, subsidiary only", "Women, all", "Men, all"),
+    caption = "Destination of output of self-employed workers in primary activities, and the worker-population ratio excluding production for own use, 2023--24 (per cent)") |>
+  row_spec(4, hline_after = TRUE) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Panel A: own-account workers, employers and unpaid helpers in NIC 2008 divisions 01--09, by capacity in which the activity is pursued; columns sum to 100. Panel B: worker-population ratio of persons aged 15 and over, after excluding self-employed workers in these divisions whose output was for own consumption only, or only or mainly. The question was not asked in 2017--18.", threeparttable = TRUE, escape = FALSE)
+```
+
+## Composition
+
+Women's employment varies strongly with age, education, marital status and place of residence, so part of the change in the WPR could reflect changes in the composition of the population between the two surveys. Table 6 shows that it does not. With `r f0(k("wpr", "ncell"))` cells defined by state, sector, age group, education and marital status, the composition component is `r f(k("wpr", "composition"), 2)` points and the rate component is `r f(k("wpr", "rates"), 2)` points. Composition slightly lowered the expected ratios of casual labour and unpaid help and slightly raised that of regular wage employment. The composition component is between `r f(min(K2$composition), 2)` and `r f(max(K2$composition), 2)` points for all sets of cells considered, including cells that add social group (Table A2). The rise in women's employment took place within groups of women, not through a shift towards groups with higher employment.
+
+```{r tab6, results="asis"}
+kl <- c(wpr = "Worker-population ratio", s_own = "\\quad Own-account worker or employer", s_help = "\\quad Unpaid helper", s_reg = "\\quad Regular wage or salaried", s_cas = "\\quad Casual labour")
+T6 <- K[, .(Component = kl[var], total = f(total, 2), composition = f(composition, 2), rates = f(rates, 2))]
+kbl(T6, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrr",
+    col.names = c("", "Total change", "Composition", "Rates within cells"),
+    caption = "Kitagawa decomposition of the change in women's worker-population ratio, 2017--18 to 2023--24 (percentage points)") |>
+  kable_styling(latex_options = c("hold_position"), font_size = 10) |>
+  footnote(general = paste0("Cells: state by sector by age group by education by marital status (", f0(k("wpr", "ncell")), " cells present in both years). Women aged 15 and over."), threeparttable = TRUE)
+```
+
+## Who and where
+
+The rise was broad-based but uneven (Table 7). Among rural women, the WPR rose by `r f(het("agegrp", "15-24"))` points for those aged 15--24 and by `r f(het("agegrp", "35-44"))` and `r f(het("agegrp", "45-59"))` points for those aged 35--44 and 45--59. It rose more for women with below-primary (`r f(het("edu4", "Below primary"))` points) or primary or middle schooling (`r f(het("edu4", "Primary or middle"))` points) than for graduates (`r f(het("edu4", "Graduate or above"))` points). It rose in every quintile of household consumption per person, least in the poorest (`r f(het("mpceq", "1"))` points) and by `r f(het("mpceq", "3"))` and `r f(het("mpceq", "5"))` points in the middle and richest quintiles. It rose most among Scheduled Tribe women, from `r f(het("socl", "Scheduled Tribe", col = "2017"))` to `r f(het("socl", "Scheduled Tribe", col = "2023"))` per cent. Among the youngest rural women, the rise came mostly through subsidiary work (`r f(het("agegrp", "15-24", v = "ss"))` of `r f(het("agegrp", "15-24"))` points). In urban areas the increases were smaller in every group.
+
+```{r tab7, results="asis"}
+glab <- c(agegrp = "Age group", edu4 = "Education", mpceq = "Household consumption quintile", socl = "Social group")
+lv <- list(agegrp = c("15-24", "25-34", "35-44", "45-59", "60+"), edu4 = c("Below primary", "Primary or middle", "Secondary or higher secondary", "Graduate or above"),
+           mpceq = as.character(1:5), socl = c("Scheduled Tribe", "Scheduled Caste", "Other Backward Class", "Others"))
+T7 <- rbindlist(lapply(names(lv), function(g) rbindlist(lapply(lv[[g]], function(l) {
+  r <- H[group == g & level == l & variable == "wpr"]
+  lab <- if (g == "mpceq") c("Q1 (poorest)", "Q2", "Q3", "Q4", "Q5 (richest)")[as.integer(l)] else gsub("-", "--", l)
+  list(Group = paste0("\\quad ", lab), r17 = f(r[secl == "Rural"][["2017"]]), r23 = f(r[secl == "Rural"][["2023"]]), rd = f(r[secl == "Rural"]$d),
+       u17 = f(r[secl == "Urban"][["2017"]]), u23 = f(r[secl == "Urban"][["2023"]]), ud = f(r[secl == "Urban"]$d)) }))))
+idx <- cumsum(sapply(lv, length))
+kb <- kbl(T7, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrrrr",
+    col.names = c("", "2017--18", "2023--24", "Change", "2017--18", "2023--24", "Change"),
+    caption = "Women's worker-population ratio by group, women aged 15 and over (per cent)") |>
+  add_header_above(c(" " = 1, "Rural" = 3, "Urban" = 3))
+st <- c(1, head(idx, -1) + 1)
+for (i in seq_along(lv)) kb <- pack_rows(kb, glab[[names(lv)[i]]], st[i], idx[i], bold = FALSE, italic = TRUE)
+kb |> kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Usual status (ps+ss). Consumption quintiles are of monthly household consumption expenditure per person, within year and sector.", threeparttable = TRUE)
+```
+
+Across the `r nrow(B)` most populous states, the change in women's WPR ranged from `r f(bg("Andhra Pradesh"))` points in Andhra Pradesh and `r f(bg("Delhi"))` points in Delhi to `r f(bg("Jharkhand"))` points in Jharkhand and `r f(bg("Assam"))` points in Assam (Figure 2; Table A2 gives the state values). Across these states, the correlation between the change in the WPR and the change in the combined ratio of own-account workers and helpers is `r f2(R$st_cor)`. States differed in which of the two categories rose: in Jharkhand, Odisha and Madhya Pradesh it was mainly unpaid helpers, in Assam and West Bengal mainly own-account workers. The national pattern of a rise concentrated in self-employment holds across most large states, so it does not reflect a few states with unusual estimates.
+
+```{r fig2, fig.cap = "Change in women's worker-population ratio and in the self-employed (own-account plus helper) ratio, 20 most populous states, 2017--18 to 2023--24 (percentage points)", fig.height = 4.2, fig.width = 6.2}
+F2 <- copy(B)[, se := s_own + s_help]
+ggplot(F2, aes(x = se, y = wpr)) + geom_abline(intercept = 0, slope = 1, linetype = "dashed", linewidth = 0.3) + geom_point(aes(size = pop / 1e6), shape = 21, fill = "grey60") +
+  geom_text(aes(label = name), size = 2.4, vjust = -1.1, check_overlap = TRUE) + scale_size_area(max_size = 6, guide = "none") +
+  labs(x = "Change in own-account plus helper ratio", y = "Change in worker-population ratio") + theme_bw(base_size = 9) + theme(panel.grid.minor = element_blank())
+```
+
+# Discussion
+
+The accounting establishes four facts about the measured rise in Indian women's employment between 2017--18 and 2023--24. It was a rise in self-employment, mostly in agriculture and mostly in rural areas. Nearly half of it consisted of women whose main activity remained domestic duties and who were counted as workers through a subsidiary activity. It amounted to a much smaller increase in hours of work than in the number of workers. And a large share of the self-employment of women in primary production in 2023--24 was production mainly for the household's own consumption.
+
+These facts are consistent with more than one interpretation, and the data cannot separate them. If more women took up or expanded work on family farms and livestock because of pressure on household incomes, the rise would look like this [@jha2026]. If additional family labour reflects productive opportunities in agriculture and allied activities, the pattern would also look like this [@goldar2026]. And if the same activities were recorded more completely, after field instructions that direct enumerators to probe for kitchen gardens, poultry, dairy and free collection and explain when such activity makes a woman engaged in domestic duties a subsidiary worker, the rise would again look like this. The categories that rose are the ones most sensitive to probing in the measurement literature [@langsten2008; @bardasi2011]: unpaid family work, subsidiary activity, small-scale livestock and collection, and production for own use.
+
+Some patterns bear on the relative importance of these explanations without settling it. The worked examples in the instructions describe women who would otherwise be coded 93 being recorded instead with principal status 92 and a subsidiary activity; such a reclassification would lower the share in code 93. That share hardly changed among rural women and rose among urban women, while the share in code 92 fell, mainly because more women reported a principal economic activity. The rise was also gradual: in the published series, the women's WPR rose in each year from 2018--19, before the instructions dated to 2022--23. And men also show a rise in unpaid help and subsidiary work, on a smaller scale. A full assessment would need the annual unit-level data for all years and, ideally, an experimental comparison of probing versions within the survey.
+
+Whatever the mix of causes, the findings have implications for how the rise is used. Measured as hours, the increase in women's work is about half as large as measured by the WPR. Measured against the 2013 international definition of employment, the women's WPR in 2023--24 would be between `r f(ou("Women", "Total", "wpr_x12"))` and `r f(ou("Women", "Total", "wpr_x1"))` per cent rather than `r f(ou("Women", "Total", "wpr"))` per cent. Comparisons of India's women's employment with other countries, or with earlier Indian estimates, should therefore use comparable measures: hours, principal status, or employment excluding own-use production. The PLFS already contains the information needed to produce such measures. Publishing them alongside the headline rates, and reporting principal and subsidiary workers separately, would make the series easier to interpret.
+
+The analysis has limitations. It compares two years six years apart, and the period includes the COVID-19 pandemic; the end points do not show the path. The decomposition is an accounting, not a causal analysis. The destination-of-output question is available only for 2023--24, so the own-use adjustment cannot be applied to 2017--18. The fall in reported hours for men suggests that hours may not be fully comparable between the years. And the assessment of changes in field instructions is based on the published instructions; the data cannot show how they were applied.
+
+# Conclusion
+
+The rise in women's employment in India between 2017--18 and 2023--24 is reproduced, to within rounding, by the unit-level data, and it is real in the sense that the survey records many more women as workers under unchanged definitions. It is concentrated in own-account work and unpaid help in agriculture, in rural areas, among women who work in a subsidiary capacity alongside domestic duties, and in production often mainly for the household's own use. It is not explained by changes in the composition of the population, and in hours of work it is about half as large. The rise therefore lies largely at the boundary of what surveys count as work. Whether it reflects new work, more work by women already working, or more complete recording of existing work matters for how it is read, and answering that question will require the measures this paper proposes to be tracked over time.
+
+`r if (!isTRUE(params$blind)) "# Notes and acknowledgements {-}\n\nPreet Deep Singh is an Independent Researcher, New Delhi, India. Please direct all correspondence to preetds@iima.ac.in. ORCID: 0000-0003-3721-7548.\n\nI thank the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, for making the unit-level data available.\n" else "# Notes and acknowledgements {-}\n\nAuthor details and acknowledgements are omitted from this version for anonymous review.\n"`
+
+**Funding.** No funding was received for this research.
+
+**Disclosure statement.** No potential conflict of interest was reported by the author.
+
+**Data availability.** The unit-level data of the Periodic Labour Force Survey 2017--18 and 2023--24 are produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, and are available from the Ministry's microdata portal under its terms of use. The analysis code is available from the author on request and will be deposited in a public repository on acceptance.
+
+**Ethics.** The study is a secondary analysis of anonymized official survey data released for research use. It involved no contact with human participants, and no ethics approval was required.
+
+**Declaration of generative AI use.** Claude (Anthropic) was used to polish the language of the manuscript. Claude and other AI coding assistants helped write and check the analysis code and check the references under the author's direction. The author reviewed and verified all output and takes full responsibility for the content.
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+\renewcommand{\thetable}{A\arabic{table}}
+\setcounter{table}{0}
+
+# Appendix {-}
+
+```{r tabA1, results="asis"}
+A1 <- data.table(
+  Item = c("Definition of economic activity: primary production for own consumption, including free collection", "Codes 92 (domestic duties only) and 93 (domestic duties and free collection etc. for household use)", "Subsidiary status: economic activity for 30 days or more in the reference year", "List of activities needing special care: kitchen garden, orchards, household poultry, dairy, free collection of fish, small game, wild fruits, vegetables for household consumption or sale", "Worked examples distinguishing codes 92/93 from subsidiary self-employment (usual status)", "Worked examples for codes 92/93 in the daily record (current weekly status)", "Question on destination of output of self-employed in NIC 01--09"),
+  y17 = c("Included", "Included", "Included", "Not included (list has items a--h)", "Not included", "Not included", "Not asked"),
+  y23 = c("Included", "Included", "Included", "Added as item (j) of Box 8", "Added (Box 9)", "Added (Box 10)", "Asked"))
+kbl(A1, format = "latex", booktabs = TRUE, linesep = "\\addlinespace", align = "lll",
+    col.names = c("Element", "2017--18", "2023--24"),
+    caption = "Comparison of field instructions relevant to measuring women's work, PLFS 2017--18 and 2023--24") |>
+  column_spec(1, width = "8.5cm") |> column_spec(2:3, width = "3.2cm") |>
+  kable_styling(latex_options = c("hold_position"), font_size = 9) |>
+  footnote(general = "Source: Instructions to Field Staff, Volume I, for 2017--18 and 2023--24 (Chapter Three), and the note on updated instructions for 2023--24, which dates the clarifications in Boxes 9 and 10 to PLFS 2022--23.", threeparttable = TRUE)
+```
+
+```{r tabA2, results="asis"}
+A2a <- K2[, .(Set = paste0("Cells: ", gsub(" x ", " $\\\\times$ ", cells)), n = f0(ncell), un = f(unmatched_pop, 2), c = f(composition, 2), r = f(rates, 2))]
+A2a[, Set := gsub("secl", "sector", Set)][, Set := gsub("agegrp", "age", Set)][, Set := gsub("edu4", "education", Set)][, Set := gsub("marst", "marital status", Set)][, Set := gsub("socl", "social group", Set)]
+A2b <- data.table(Set = c("Worker-population ratio", "\\quad Own-account", "\\quad Unpaid helper", "\\quad Regular wage", "\\quad Casual", "\\quad Subsidiary only"),
+                  n = c(f(R15[var == "wpr"]$y17), f(R15[var == "s_own"]$y17), f(R15[var == "s_help"]$y17), f(R15[var == "s_reg"]$y17), f(R15[var == "s_cas"]$y17), f(R15[var == "ss"]$y17)),
+                  un = c(f(R15[var == "wpr"]$y23), f(R15[var == "s_own"]$y23), f(R15[var == "s_help"]$y23), f(R15[var == "s_reg"]$y23), f(R15[var == "s_cas"]$y23), f(R15[var == "ss"]$y23)),
+                  c = c(f(R15[var == "wpr"]$d), f(R15[var == "s_own"]$d), f(R15[var == "s_help"]$d), f(R15[var == "s_reg"]$d), f(R15[var == "s_cas"]$d), f(R15[var == "ss"]$d)),
+                  r = c(f2(R15[var == "wpr"]$se_d), f2(R15[var == "s_own"]$se_d), f2(R15[var == "s_help"]$se_d), f2(R15[var == "s_reg"]$se_d), f2(R15[var == "s_cas"]$se_d), f2(R15[var == "ss"]$se_d)))
+Bs <- B[order(-wpr)][, .(Set = paste0("\\quad ", gsub("&", "\\\\&", name, fixed = TRUE)), n = f(wpr), un = f(s_own), c = f(s_help), r = f(s_reg + s_cas))]
+A2 <- rbind(A2a, data.table(Set = "\\textit{Panel B: women aged 15--59}", n = "\\textit{2017--18}", un = "\\textit{2023--24}", c = "\\textit{Change}", r = "\\textit{SE}"), A2b,
+            data.table(Set = "\\textit{Panel C: change by state, 2017--18 to 2023--24}", n = "\\textit{WPR}", un = "\\textit{Own-account}", c = "\\textit{Helper}", r = "\\textit{Wage}"), Bs)
+kbl(A2, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = "lrrrr", longtable = TRUE,
+    col.names = c("\\textit{Panel A: Kitagawa decomposition, alternative cells}", "Cells", "Unmatched (\\%)", "Composition", "Rates"),
+    caption = "Robustness: alternative decomposition cells, working ages and states") |>
+  row_spec(nrow(A2a), hline_after = TRUE) |> row_spec(nrow(A2a) + 1 + nrow(A2b), hline_after = TRUE) |>
+  kable_styling(latex_options = c("hold_position", "repeat_header"), font_size = 8) |>
+  footnote(general = "Panel A: change in women's WPR (all India, 15+) decomposed with alternative cell definitions; unmatched is the population share in cells present in one year only. Panel B: usual status, per cent of women aged 15--59. Panel C: change in women's (15+) WPR and its components in percentage points, 20 most populous states; wage is regular plus casual. Jammu and Kashmir includes Ladakh.", threeparttable = TRUE, escape = FALSE)
+```
