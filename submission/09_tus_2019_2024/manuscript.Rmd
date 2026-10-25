@@ -1,0 +1,402 @@
+---
+title: "More Paid Work, the Same Unpaid Load: Gender Gaps in Time Use in India, 2019--2024"
+params:
+  blind: true
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in.}"`'
+output:
+  pdf_document:
+    number_sections: true
+    keep_tex: true
+    fig_caption: true
+    includes:
+      in_header: ../_common/preamble.tex
+fontsize: 12pt
+linestretch: 1.5
+geometry: margin=1in
+bibliography: refs_local.bib
+csl: apa.csl
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center", fig.pos = "H", out.width = "92%")
+suppressMessages({library(data.table); library(kableExtra); library(ggplot2)})
+TUS_ROOT <- normalizePath("../..")
+R <- readRDS(file.path(TUS_ROOT, "data", "derived", "tus1924_results.rds"))
+f <- function(x, d = 1) { r <- round(x, d); r[r == 0] <- 0; formatC(r, format = "f", digits = d, big.mark = ",") }
+f0 <- function(x) f(x, 0)
+pc <- function(x, d = 1) f(100 * x, d)
+C <- R$change
+g <- function(v, col, tab = C) tab[var == v][[col]]
+ci <- function(est, se, d = 1) paste0("95% CI [", f(est - 1.96 * se, d), ", ", f(est + 1.96 * se, d), "]")
+mci <- function(est, se, d = 1) paste0(f(abs(est), d), " minutes (", ci(abs(est), se, d), ")")
+cs <- function(d, se) paste0(f(d), " (", f(se), ")")
+NN <- R$N[, sum(N)]; Nw <- R$N[sex == "Women", sum(N)]; Nm <- R$N[sex == "Men", sum(N)]
+pi <- R$pi; pw <- function(v, col) pi[var == v & sex == "Women"][[col]]; pm <- function(v, col) pi[var == v & sex == "Men"][[col]]
+SS <- R$ss_w; ssum <- SS[, .(between = sum(between), within = sum(within)), by = var]
+sb <- function(v) ssum[var == v]$between; sw <- function(v) ssum[var == v]$within
+ss1 <- function(v, s, col) SS[var == v & status4 == s][[col]]
+W <- R$within_w; wi <- function(s, v, col = "d") W[status4 == s & var == v][[col]]
+H <- R$het; h <- function(grp, v, col) H[group == grp & var == v][[col]]
+DW <- R$dfl_w; DM <- R$dfl_m; dw <- function(v, col) DW[var == v][[col]]; dm <- function(v, col) DM[var == v][[col]]
+p1559 <- R$p_emp_1559; pe <- function(s, y) p1559[sex == s & year == y]$p
+emp_ext_share <- pw("employment", "ext") / pw("employment", "dmean")
+RB <- R[c("change_1559", "change_normal", "change_self", "change_weekday")]
+rbr <- function(v, col, fun) fun(sapply(RB, function(t) t[var == v][[col]]))
+lv <- c("Self-employed", "Unpaid family helper", "Regular wage/salaried", "Casual labour", "Domestic duties", "Student", "Other (unemployed, not working)")
+```
+
+```{r abstract, results="asis"}
+cat("\\begin{abstract}\n\\noindent ",
+"Official labour force statistics record a steep rise in Indian women's employment after 2019. Time diaries show what that rise meant for how women spend the day. I compare India's nationally representative Time Use Surveys of 2019 and 2024 (", f0(NN), " diaries of persons aged 15 and over). After harmonising the two surveys, I decompose changes across the full 1,440-minute day. Women's mean time in employment rose by ", f(g("employment", "wd")), " minutes a day, almost entirely because more women worked on the diary day (", pc(pw("employment", "p_2019")), "\\% to ", pc(pw("employment", "p_2024")), "\\%); minutes per worker did not change. About ", f0(10 * sb("employment") / g("employment", "wd")), " in 10 of these minutes reflect a shift of women out of domestic duties and into self-employment and salaried work as their principal activity. Women's unpaid domestic and care work did not fall: less time cleaning was offset by more childcare, and the gender gap in unpaid work narrowed by only ", f(abs(g("unpaid_total", "gd"))), " minutes, to ", f0(g("unpaid_total", "gap24")), " minutes a day. Men's employment time rose about twice as much as women's, partly through a shift out of own-use production, so the gender gap in production work was unchanged. Reweighting the 2019 population to the 2024 composition enlarges rather than removes the rise in women's paid work. Gains in paid work were largest for women aged 35 to 59 and women with little schooling; women with secondary or higher education recorded more unpaid work and small paid-work gains. The new paid work has so far been added to women's days rather than redistributing their unpaid work.\n\\end{abstract}\n", sep = "")
+```
+
+\keywords{time use; unpaid care work; female labour force participation; gender gaps; India; time diaries}
+
+\newpage
+
+# Introduction
+
+Women's employment in India has been one of the most debated questions in development economics. For more than a decade the debate was about decline: survey after survey found that fewer women were working even as the economy grew, fertility fell and girls' schooling rose [@klasen2015; @mehrotra2017; @afridi2018; @chatterjee2018]. That pattern has reversed in the official statistics. In India's Periodic Labour Force Survey (PLFS), the worker-population ratio of women aged 15 and over on the usual-status measure rose from 23.3 percent in 2018--19 to 40.3 percent in 2023--24 [@pib2024; @nso2024plfs]. A rise of this size in five years is unusual, and it raises two questions that labour force surveys cannot answer on their own. How much additional time in paid work does the rise represent? And did women's unpaid domestic and care work, which in India takes a very large share of women's time [@hirway2011; @hirway2015], fall as their paid work rose?
+
+Time diaries can answer both questions, because they record every activity over a full day and the minutes must add up to 1,440. India has now fielded two nationally representative Time Use Surveys (TUS), in calendar years 2019 and 2024, with the same 24-hour diary design and the same activity classification. Together they provide `r f0(NN)` diaries of persons aged 15 and over. This paper uses the two surveys to measure how the gendered allocation of time changed over the period in which the official employment rate rose.
+
+The paper makes three contributions. First, it measures the employment rise in minutes rather than in status. Women's mean time in employment rose by `r mci(g("employment", "wd"), g("employment", "wse"))` a day. The increase came almost entirely on the extensive margin: the share of women doing any employment on the diary day rose from `r pc(pw("employment", "p_2019"))` to `r pc(pw("employment", "p_2024"))` percent, while minutes per participating woman stayed at about `r f0(pw("employment", "mpp_2024"))`. A shift-share decomposition by usual principal activity status shows that about `r f0(100 * sb("employment") / g("employment", "wd"))` percent of the rise reflects women moving out of domestic duties and into self-employment and regular salaried work, and the rest reflects more time in employment within a status.
+
+Second, the paper accounts for the whole day. Women's unpaid domestic and care work fell by `r mci(g("unpaid_total", "wd"), g("unpaid_total", "wse"))`, a change that cannot be distinguished from zero. Beneath that stability, time spent cleaning and maintaining the dwelling fell by `r f(abs(g("dom_cleaning", "wd")))` minutes and childcare rose by `r f(g("care_child", "wd"))` minutes. The additional paid minutes therefore came mainly from less self-care and own-use production, not from a net reduction in unpaid work. The gender gap in unpaid work narrowed by `r f(abs(g("unpaid_total", "gd")))` minutes, from `r f0(g("unpaid_total", "gap19"))` to `r f0(g("unpaid_total", "gap24"))` minutes a day. Men's time in employment rose by more than women's, partly because men shifted time from own-use production into employment, so the gender gap in all production work did not change. Men also gained more free time than women.
+
+Third, the paper asks whether these changes reflect changes in who women are, and for whom the changes occurred. Reweighting the 2019 population to the 2024 distribution of age, education, marital status, household structure, consumption and state [@dinardo1996] increases the estimated rise in women's employment time to `r f(dw("employment", "adj"))` minutes, so compositional change does not explain it. The rise was largest among women aged 45 to 59 and women with less than primary schooling, who also recorded less unpaid work. Younger women and women with secondary or higher education recorded little additional paid work and more unpaid work, mostly childcare.
+
+Two recent studies compare the 2019 and 2024 surveys. @krishnamurthy2025 reports national descriptive trends, and @kumar2026 study rural working-age adults with a focus on agriculture, finding higher participation of rural women in agricultural work alongside persistently high unpaid domestic time. The present paper differs in covering the whole population aged 15 and over, in documenting what is and is not comparable between the two surveys, in separating extensive and intensive margins and status composition from within-status change, in a composition-adjusted comparison, and in a full 1,440-minute accounting for both sexes.
+
+The findings connect India's employment debate with the international literature on gender convergence in time use. In high-income countries, women's rising employment was followed, slowly and incompletely, by men doing more unpaid work [@gershuny2000; @bianchi2000; @sayer2005; @kan2011; @altintas2016], a pattern that @england2010 described as uneven and stalled. In India between 2019 and 2024, women's paid work rose while the division of unpaid work barely moved. The results are descriptive. The two surveys are repeated cross-sections, and the period includes the COVID-19 pandemic, so I do not attribute the changes to any single cause or policy.
+
+# Background
+
+## Women's employment in India
+
+The decline in women's labour force participation in India between the mid-2000s and 2017--18 has been attributed to rising household incomes, to rising enrolment in education, to a shortage of jobs considered suitable for women, to social norms that restrict women's mobility and work outside the home, and to the measurement of women's work [@klasen2015; @mehrotra2017; @afridi2018; @chatterjee2018; @jayachandran2021]. Panel evidence shows high rates of entry into and exit from work [@sarkar2019], so women's measured employment is sensitive to the reference period and to how intermittent, home-based and family work is recorded.
+
+Measurement is a long-standing concern. Labour force surveys classify a person by status over a reference period, while much of women's work in India is part-time, seasonal, home-based or done in family enterprises [@hirway2011; @hirway2015]. @deshpande2024 show that women's work in India is distributed across income generation, expenditure-saving production for the household and unpaid domestic work, and that norms shape the distribution. Time-use data record the same activities in minutes on a given day, so they can show whether a change in status corresponds to a change in time spent working [@vijayamba2024].
+
+From 2018--19 the official rates rose steadily. The PLFS usual-status worker-population ratio for women aged 15 and over rose in every year, from 23.3 percent in 2018--19 to 40.3 percent in 2023--24, and the labour force participation rate rose from 24.5 to 41.7 percent [@pib2024]. The time-use surveys provide an independent measurement of the same period with a different instrument.
+
+## Time use and gender convergence
+
+Studies of time use in high-income countries since the 1960s find that women's paid work rose and their unpaid work fell, while men's unpaid work rose slowly. The gap in unpaid work narrowed mainly because women did less housework rather than because men did more [@bianchi2000; @sayer2005; @altintas2016]. Gender gaps in time use are also widest in the life-course stages in which young children are present [@anxo2011]. @goldin2006 and @england2010 describe the change in women's paid work as larger and faster than the change in the domestic division of labour. Evidence from India over the pandemic points the same way: using a household panel, @deshpande2022 found that men's time in domestic work rose during the 2020 lockdown but moved back towards earlier levels as restrictions eased.
+
+These studies suggest three questions for India. Did the employment rise show up in the time diaries, and on which margin? Did women's unpaid work fall to make room? And did men's unpaid work rise? Because the two Indian surveys use the same diary instrument, they can answer these questions over a period of rapid change in the official employment statistics.
+
+# Data and comparability
+
+## The two surveys
+
+The Time Use Survey 2019 was conducted by the National Statistical Office (NSO) from January to December 2019 in four quarterly sub-rounds [@nso2020tus; @tus2019data]. The Time Use Survey 2024 was conducted from January to December 2024 with the same design [@nso2025tus; @tus2024data]. In both surveys every household member aged 6 and over reported the activities of the previous day, from 4:00 a.m. on the day before the interview to 4:00 a.m. on the day of the interview, in 48 half-hour slots. Activities of 10 minutes or more in a slot were recorded with three-digit codes of the International Classification of Activities for Time-Use Statistics 2016 (ICATUS 2016), and one activity in each slot was marked as the major activity. The 2019 survey enumerated 4,47,250 persons aged 6 and over in 1,38,799 households, and the 2024 survey 4,54,192 persons in 1,39,487 households [@nso2020tus; @nso2025tus]. Both surveys use stratified multi-stage samples, with villages and urban blocks as first-stage units and households as second-stage units.
+
+I use the unit-level data released by the Ministry of Statistics and Programme Implementation. For 2019 the files contain `r f0(R$V19$n_activity_rows)` activity records for `r f0(R$V19$n_diarists)` persons with diaries; for 2024 they contain `r f0(R$V24$n_rows)` activity records for `r f0(R$V24$n_diarists)` persons. Following the official estimates that consider only the major activity in a slot, each slot is assigned to its major activity, so every diary sums to 1,440 minutes (all diaries in 2019 and all but `r f0(round((1 - R$V24$share_diaries_1440) * R$V24$n_diarists))` in 2024). I exclude persons recorded as third gender (`r R$V19$n_third_gender_excluded` in 2019 and `r R$V24$n_third_gender` in 2024), because the numbers are too small for separate analysis, and restrict the sample to persons aged 15 and over with a recorded day of the week. The analysis sample contains `r f0(Nw)` diaries of women and `r f0(Nm)` diaries of men.
+
+## What is comparable
+
+Table \ref{tab:tab-comp} summarises the comparison. The activity classification is the same: both surveys use ICATUS 2016 three-digit codes, and the set of codes appearing in the two microdata files is identical. The reference day, slot length, minimum duration, age coverage and diary respondents are the same, and both years were fielded across a full calendar year, so seasonal patterns are balanced. Each person's usual principal activity status, on which the status decomposition in Section 5.3 rests, is recorded with the same codes in both rosters.
+
+```{r tab-comp}
+prox <- function(y) pc(1 - R$comp[year == y, sum(self_report * N) / sum(N)])
+cmp <- data.table(
+  Feature = c("Fieldwork", "Sample design", "Persons aged 6+ enumerated", "Diary reference period", "Slot structure",
+              "Activities recorded per slot", "Activity classification", "Mode of interview", "Proxy-reported diaries, ages 15+",
+              "Household roster", "State boundaries", "Usual activity status"),
+  `TUS 2019` = c("Jan--Dec 2019, four sub-rounds", "Stratified two-stage", "4,47,250",
+                 "4:00 a.m. to 4:00 a.m.", "48 slots of 30 minutes",
+                 "Activities of 10+ minutes; one marked major", "ICATUS 2016, 3-digit",
+                 "Personal interview", paste0(prox(2019), "\\%"),
+                 "All members, incl. under 6", "J\\&K incl. Ladakh; DNH and DD separate", "Principal status, NSS codes"),
+  `TUS 2024` = c("Jan--Dec 2024, four sub-rounds", "Stratified two-stage", "4,54,192",
+                 "4:00 a.m. to 4:00 a.m.", "48 slots of 30 minutes",
+                 "Up to 3 activities of 10+ minutes; one marked major", "ICATUS 2016, 3-digit (same code set)",
+                 "CAPI", paste0(prox(2024), "\\%"),
+                 "Members aged 6+ only", "Ladakh separate; DNH and DD merged", "Principal status, NSS codes"),
+  Harmonisation = c("None needed", "Year-specific weights; clusters by year and first-stage unit", "--",
+                    "None needed", "None needed", "Major activity only (sums to 1,440)", "None needed",
+                    "Not possible; see text", "Robustness: self-reports only",
+                    "Under-6 = household size minus diarists, both years", "Ladakh to J\\&K; DNH and DD merged", "Same groups"))
+kbl(cmp, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "",
+    caption = "Comparability of the 2019 and 2024 Time Use Surveys") |>
+  kable_styling(latex_options = c("hold_position"), font_size = 8.5) |>
+  column_spec(1, width = "2.6cm") |> column_spec(2:3, width = "3.4cm") |> column_spec(4, width = "4cm") |>
+  footnote(general = "Design features from NSO (2020) and NSO (2025). Proxy-reported: weighted share of diaries of persons aged 15+ for which the informant was not the respondent, from the microdata. CAPI: computer-assisted personal interview. J\\\\&K: Jammu and Kashmir; DNH and DD: Dadra and Nagar Haveli, and Daman and Diu.", threeparttable = TRUE, escape = FALSE)
+```
+
+## What is not, or not fully, comparable
+
+Four differences limit comparability. First, the 2024 survey was conducted by computer-assisted personal interview (CAPI) [@nso2025tus], whereas the 2019 report describes personal interviews without specifying computer assistance [@nso2020tus]. A change in mode can change how activities are prompted and recorded. Second, the 2024 documentation explicitly caps recorded activities at three per slot. Because I use only the major activity in each slot, the number of simultaneous activities recorded does not affect the estimates, but the choice of the major activity could. Third, the 2024 microdata contain no household members under age 6, so the number of young children must be inferred as household size minus the number of diarists. I apply the same residual method to 2019. In the 2019 data, where children under 6 are listed, the residual and the direct count agree on whether a household has a child under 6 for `r pc(R$V19$share_hh_under6_resid_agrees)` percent of diaries. Fourth, the share of diaries reported for a "normal" day is slightly lower in 2024 (Table \ref{tab:tab-sample}).
+
+These differences matter most for changes that are common to men and women. Both sexes record about 20 fewer minutes of self-care (sleep, eating and personal hygiene) in 2024 and more free time. A real change cannot be ruled out, but a common shift of this kind is also what a change in recording practice would produce. I therefore give most weight to estimates that are less exposed to common recording changes: changes in the gap between women and men, which difference out shifts common to both sexes, and changes in paid and unpaid work, which are the focus of both surveys' published estimates. I also show that the main estimates hold among self-reported diaries, diaries for normal days, and weekday diaries.
+
+As an external check, participation rates estimated from the microdata closely reproduce the official figures. Among persons aged 15 to 59, the official estimates put the share of women participating in employment and related activities at 21.8 percent in 2019 and 25.0 percent in 2024, and the share of men at 70.9 and 75.0 percent [@nso2025tus]. The corresponding estimates in my data, based on the major activity, are `r pc(pe("Women", 2019))` and `r pc(pe("Women", 2024))` percent for women and `r pc(pe("Men", 2019))` and `r pc(pe("Men", 2024))` percent for men.
+
+## Activity groups
+
+I group the three-digit codes into the nine ICATUS divisions: (1) employment and related activities, including travel to work; (2) production of goods for own final use, such as farming, animal care and collecting fuel and water for the household; (3) unpaid domestic services for household members; (4) unpaid caregiving for household members; (5) unpaid volunteer, trainee and other unpaid work; (6) learning; (7) socialising, communication, community participation and religious practice; (8) culture, leisure, mass media and sports; and (9) self-care and maintenance. I refer to division 1 as employment or paid work, to divisions 1 and 2 together as production work (both fall within the production boundary of the System of National Accounts), to divisions 3 and 4 as unpaid work, to divisions 7 and 8 as free time, and to divisions 1 to 5 as total work.
+
+# Methods
+
+All estimates use the survey weights, rescaled within each year so that the two years contribute in proportion to their sample sizes. Standard errors are clustered by first-stage unit within year, and I report 95 percent confidence intervals.
+
+**Changes and changes in gaps.** For each activity group $y$, the change in mean minutes for women is the coefficient on a 2024 indicator in a weighted regression of $y$ on that indicator in the women's sample, and likewise for men. The change in the gender gap is the coefficient $\delta$ in
+$$y_i = \alpha + \beta\,\text{Female}_i + \gamma\,\text{Y2024}_i + \delta\,(\text{Female}_i \times \text{Y2024}_i) + \varepsilon_i .$$
+Because the 1,440 minutes of each diary are fully allocated, the changes across the nine divisions sum to zero for each sex.
+
+**Extensive and intensive margins.** Mean minutes in an activity equal the share of persons doing it on the diary day, $p$, times the mean minutes among those who do it, $m$. I split the change into an extensive part, $\Delta p \cdot \bar m$, and an intensive part, $\Delta m \cdot \bar p$, where bars denote averages of the two years; the two parts sum to the total change.
+
+**Status shift-share.** Women's mean minutes equal $\sum_k s_k \mu_k$, where $s_k$ is the share of women in usual principal activity status $k$ (self-employed, unpaid family helper, regular wage or salaried, casual labour, domestic duties, student, and other) and $\mu_k$ is mean minutes in that status. The change splits into a between-status part, $\sum_k \Delta s_k \bar\mu_k$, which captures movement of women across statuses, and a within-status part, $\sum_k \bar s_k \Delta \mu_k$, which captures changes in time use among women with the same status. Status is reported for the past year and the diary for one day, so the decomposition links the status-based and time-based measures of work.
+
+**Composition adjustment.** To ask whether changes in the population's composition explain the changes in time use, I reweight the 2019 sample to the 2024 distribution of observed characteristics [@dinardo1996; @fortin2011]. A weighted logit of the 2024 indicator on age group by sector, education by sector, marital status, household size, presence of a child under 6, state, within-year consumption quintile, sub-round and day of the week gives the predicted probability $\hat p(X)$. Each 2019 observation's weight is multiplied by $\hat p(X)/(1-\hat p(X))$ and scaled by the ratio of the year shares. The difference between the 2024 mean and the reweighted 2019 mean is the change holding these characteristics at their 2024 distribution. Status is not included, because it is an outcome of the same process. The effective sample size of the reweighted 2019 sample is `r pc(R$dfl_w$ess_ratio[1], 0)` percent of that with the original weights for women and `r pc(R$dfl_m$ess_ratio[1], 0)` percent for men, so the reweighting does not rest on a few observations.
+
+# Results
+
+## Sample
+
+Table \ref{tab:tab-sample} describes the analysis sample. The two populations are similar. Between 2019 and 2024 the share of women with at least a graduate degree rose from `r pc(R$comp[sex == "Women" & year == 2019]$graduate)` to `r pc(R$comp[sex == "Women" & year == 2024]$graduate)` percent, and the share with less than primary schooling fell from `r pc(R$comp[sex == "Women" & year == 2019]$below_primary)` to `r pc(R$comp[sex == "Women" & year == 2024]$below_primary)` percent. The share of women whose usual principal status was a form of employment rose from `r pc(R$comp[sex == "Women" & year == 2019]$employed)` to `r pc(R$comp[sex == "Women" & year == 2024]$employed)` percent, an increase of `r f(100 * R$emp_status_se$w$d)` percentage points (`r ci(100 * R$emp_status_se$w$d, 100 * R$emp_status_se$w$se)`). The TUS records only usual principal status, whereas the PLFS figures cited above combine principal and subsidiary status and refer to agricultural years (July to June). The levels and changes are therefore not directly comparable, but the TUS principal-status measure rose much less than the PLFS usual-status measure over a similar period.
+
+```{r tab-sample}
+cp <- R$comp[order(match(sex, c("Women", "Men")), year)]
+st <- data.table(Characteristic = c("Diaries (N)", "Mean age (years)", "Urban (\\%)", "Currently married (\\%)", "Graduate or above (\\%)",
+                                    "Below primary (\\%)", "Employed, usual principal status (\\%)", "Child under 6 in household (\\%)",
+                                    "Normal day (\\%)", "Self-reported diary (\\%)", "Sunday diary (\\%)"))
+for (i in seq_len(nrow(cp))) {
+  r <- cp[i]
+  st[[paste(r$sex, r$year)]] <- c(f0(r$N), f(r$age), pc(r$urban), pc(r$married), pc(r$graduate), pc(r$below_primary),
+                                  pc(r$employed), pc(r$under6), pc(r$normal_day), pc(r$self_report), pc(r$sunday))
+}
+kbl(st, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "", align = "lrrrr",
+    caption = "Analysis sample, persons aged 15 and over") |>
+  kable_styling(latex_options = "hold_position", font_size = 9) |>
+  footnote(general = "Weighted means and shares, except N. Child under 6: household size minus the number of diarists is positive (both years). Self-reported diary: the informant was the respondent.", threeparttable = TRUE)
+```
+
+## Paid work rose on the extensive margin
+
+Table \ref{tab:tab-main} reports mean minutes per day in each activity group for women and men in both years, the change, and the change in the gender gap. Women's time in employment rose from `r f(g("employment", "w19"))` to `r f(g("employment", "w24"))` minutes a day, an increase of `r mci(g("employment", "wd"), g("employment", "wse"))`. Men's rose from `r f(g("employment", "m19"))` to `r f(g("employment", "m24"))` minutes, an increase of `r mci(g("employment", "md"), g("employment", "mse"))`.
+
+```{r tab-main}
+labs <- c(employment = "Employment (1)", ownuse_goods = "Own-use production (2)", sna = "Production work (1+2)",
+          unpaid_domestic = "Unpaid domestic services (3)", dom_food = "\\quad Food and meals", dom_cleaning = "\\quad Cleaning and upkeep",
+          unpaid_care = "Unpaid caregiving (4)", care_child = "\\quad Childcare", unpaid_total = "Unpaid work (3+4)",
+          total_work = "Total work (1--5)", learning = "Learning (6)", free_time = "Free time (7+8)",
+          selfcare_all = "Self-care and maintenance (9)", sleep = "\\quad Sleep")
+mt <- C[match(names(labs), var)]
+tb <- data.table(Activity = labs, W19 = f(mt$w19), W24 = f(mt$w24), WD = cs(mt$wd, mt$wse),
+                 M19 = f(mt$m19), M24 = f(mt$m24), MD = cs(mt$md, mt$mse), G19 = f(mt$gap19), G24 = f(mt$gap24), GD = cs(mt$gd, mt$gse))
+kbl(tb, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "", align = "lrrrrrrrrr",
+    col.names = c("Activity (ICATUS division)", "2019", "2024", "Change (SE)", "2019", "2024", "Change (SE)", "2019", "2024", "Change (SE)"),
+    caption = "Mean minutes per day by sex, 2019 and 2024, persons aged 15 and over") |>
+  add_header_above(c(" " = 1, "Women" = 3, "Men" = 3, "Gap (women minus men)" = 3)) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = paste0("Weighted means over all persons, including those who did not do the activity. Major activity in each 30-minute slot. Standard errors clustered by first-stage unit within year. N = ", f0(Nw), " women and ", f0(Nm), " men."), threeparttable = TRUE)
+```
+
+Table \ref{tab:tab-margins} splits the changes into extensive and intensive parts. For women, virtually all of the rise in employment time (`r f(pw("employment", "ext"))` of `r f(pw("employment", "dmean"))` minutes) came from the extensive margin. The share of women who did any paid work on the diary day rose by `r f(100 * R$p_emp_se$w$d)` percentage points (`r ci(100 * R$p_emp_se$w$d, 100 * R$p_emp_se$w$se)`), from `r pc(pw("employment", "p_2019"))` to `r pc(pw("employment", "p_2024"))` percent, while women who worked spent `r f0(pw("employment", "mpp_2019"))` minutes on it in 2019 and `r f0(pw("employment", "mpp_2024"))` in 2024. The new paid work therefore resembles women's existing paid work in duration. It is not dominated by short spells, as might be expected if it mainly reflected a reclassification of marginal activities. For men, the extensive margin also accounts for most of the rise, with participation rising by `r f(100 * R$p_emp_se$m$d)` percentage points.
+
+```{r tab-margins}
+mv <- c(employment = "Employment (1)", ownuse_goods = "Own-use production (2)", sna = "Production work (1+2)",
+        unpaid_domestic = "Unpaid domestic services (3)", unpaid_care = "Unpaid caregiving (4)", unpaid_total = "Unpaid work (3+4)")
+mg <- rbindlist(lapply(c("Women", "Men"), function(s) pi[sex == s][match(names(mv), var)][, Activity := mv]))
+mtb <- mg[, .(Activity, p19 = pc(p_2019), p24 = pc(p_2024), m19 = f0(mpp_2019), m24 = f0(mpp_2024), d = f(dmean), ext = f(ext), int = f(int))]
+kbl(mtb, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrrrrr",
+    col.names = c("Activity", "2019", "2024", "2019", "2024", "Total", "Extensive", "Intensive"),
+    caption = "Participation and minutes per participant: decomposition of the change") |>
+  add_header_above(c(" " = 1, "Participation (%)" = 2, "Minutes per participant" = 2, "Change in mean minutes" = 3)) |>
+  pack_rows("Women", 1, 6) |> pack_rows("Men", 7, 12) |>
+  kable_styling(latex_options = "hold_position", font_size = 9) |>
+  footnote(general = "Participation: share of persons with any minutes in the activity on the diary day. Extensive = change in participation times the two-year mean of minutes per participant; intensive = change in minutes per participant times the two-year mean participation. The two parts sum to the total.", threeparttable = TRUE)
+```
+
+Own-use production moved in the other direction, most clearly for men. Men's minutes in own-use production fell by `r mci(g("ownuse_goods", "md"), g("ownuse_goods", "mse"))`, mostly because men who did any own-use production spent less time on it (`r f0(pm("ownuse_goods", "mpp_2019"))` minutes in 2019 and `r f0(pm("ownuse_goods", "mpp_2024"))` in 2024). The boundary between division 1 (for example, work on a family farm whose output is mainly sold) and division 2 (work whose output is mainly for the household's own use) depends on the intended use of the output, so a shift across it could reflect a change in market orientation or in coding. When the two divisions are combined, production work rose by `r mci(g("sna", "wd"), g("sna", "wse"))` for women and `r mci(g("sna", "md"), g("sna", "mse"))` for men, and the gender gap in production work did not change (change of `r f(g("sna", "gd"))` minutes, `r ci(g("sna", "gd"), g("sna", "gse"))`). Measured by employment alone, the gap widened by `r mci(g("employment", "gd"), g("employment", "gse"))`.
+
+## Who the new working women are
+
+Table \ref{tab:tab-shift} decomposes the change in women's employment and unpaid work by usual principal activity status. The share of women whose principal status was domestic duties fell from `r pc(ss1("employment", "Domestic duties", "sh_2019"))` to `r pc(ss1("employment", "Domestic duties", "sh_2024"))` percent, while the share of self-employed women (own-account workers and employers) rose from `r pc(ss1("employment", "Self-employed", "sh_2019"))` to `r pc(ss1("employment", "Self-employed", "sh_2024"))` percent and the share in regular wage or salaried work from `r pc(ss1("employment", "Regular wage/salaried", "sh_2019"))` to `r pc(ss1("employment", "Regular wage/salaried", "sh_2024"))` percent; the shares of unpaid family helpers and casual labourers changed little.
+
+```{r tab-shift}
+se_ <- SS[var == "employment"][match(lv, as.character(status4))]; su_ <- SS[var == "unpaid_total"][match(lv, as.character(status4))]
+stb <- data.table(Status = lv, s19 = pc(se_$sh_2019), s24 = pc(se_$sh_2024), e19 = f0(se_$m_2019), e24 = f0(se_$m_2024),
+                  eb = f(se_$between), ew = f(se_$within), u19 = f0(su_$m_2019), u24 = f0(su_$m_2024), ub = f(su_$between), uw = f(su_$within))
+stb <- rbind(stb, data.table(Status = "Total", s19 = "100.0", s24 = "100.0", e19 = f(g("employment", "w19")), e24 = f(g("employment", "w24")),
+                             eb = f(sb("employment")), ew = f(sw("employment")), u19 = f(g("unpaid_total", "w19")), u24 = f(g("unpaid_total", "w24")),
+                             ub = f(sb("unpaid_total")), uw = f(sw("unpaid_total"))))
+stb[Status == "Other (unemployed, not working)", Status := "Other not working"]
+kbl(stb, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrrrrrrrr",
+    col.names = c("Usual principal status", "2019", "2024", "2019", "2024", "Between", "Within", "2019", "2024", "Between", "Within"),
+    caption = "Women's time use by usual principal activity status: shift-share decomposition") |>
+  add_header_above(c(" " = 1, "Share (%)" = 2, "Employment minutes" = 4, "Unpaid work minutes" = 4)) |>
+  row_spec(nrow(stb) - 1, hline_after = TRUE) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Women aged 15 and over. Self-employed: own-account workers and employers. Between = change in status share times the two-year mean minutes in that status; within = change in mean minutes in that status times the two-year mean share. The components sum to the total change. Other not working: the unemployed, rentiers, pensioners, persons unable to work and others.", threeparttable = TRUE)
+```
+
+The between-status component accounts for `r f(sb("employment"))` of the `r f(g("employment", "wd"))`-minute rise in women's employment time, and the within-status component for `r f(sw("employment"))` minutes. The largest single contribution, `r f(ss1("employment", "Self-employed", "between"))` minutes, comes from the growth of self-employment, followed by regular salaried work (`r f(ss1("employment", "Regular wage/salaried", "between"))` minutes). Within statuses, unpaid family helpers spent `r mci(wi("Unpaid family helper", "employment"), wi("Unpaid family helper", "employment", "se"))` more in employment in 2024 than in 2019, and casual labourers `r mci(wi("Casual labour", "employment"), wi("Casual labour", "employment", "se"))` more (Table \ref{tab:tab-within} in the appendix). Self-employed and salaried women spent about as much time in employment in 2024 as in 2019, so the women who joined these statuses brought with them the employment time typical of each status. In the TUS, women's status and their time use moved together.
+
+The decomposition of unpaid work shows why women's unpaid work did not fall. The shift out of domestic duties reduced women's mean unpaid work by `r f(abs(ss1("unpaid_total", "Domestic duties", "between")))` minutes, because women whose principal status is domestic duties spend more than `r f0(floor(ss1("unpaid_total", "Domestic duties", "m_2024") / 10) * 10)` minutes a day on unpaid work. But self-employed women, the group that grew most, also do a great deal of unpaid work: `r f0(ss1("unpaid_total", "Self-employed", "m_2019"))` minutes in 2019 and `r f0(ss1("unpaid_total", "Self-employed", "m_2024"))` minutes in 2024, an increase of `r mci(wi("Self-employed", "unpaid_total"), wi("Self-employed", "unpaid_total", "se"))`. Their growing share added `r f(ss1("unpaid_total", "Self-employed", "between"))` minutes to women's mean unpaid work. In total, movement across statuses reduced women's unpaid work by only `r f(abs(sb("unpaid_total")))` minutes, and changes within statuses added `r f(sw("unpaid_total"))` minutes.
+
+The trade-off between paid and unpaid work is stable. Among women, each additional minute of employment is associated with `r f(abs(R$tradeoff["employment", 1]), 2)` fewer minutes of unpaid work, conditional on age, education, marital status, sector, household composition, state, day of the week and sub-round, and the association is almost identical in the two years (difference `r f(R$tradeoff["employment:y24", 1], 3)`, standard error `r f(R$tradeoff["employment:y24", 2], 3)`). At that rate, the observed rise of `r f(g("employment", "wd"))` minutes of employment would be associated with about `r f(abs(R$tradeoff["employment", 1]) * g("employment", "wd"))` fewer minutes of unpaid work, close to the observed decline of `r f(abs(g("unpaid_total", "wd")))` minutes.
+
+## The full day: where the minutes came from
+
+Figure \ref{fig:div} shows the change in each of the nine divisions for women and men. Because the day is fixed, the changes for each sex sum to zero. Women's additional `r f(g("employment", "wd"))` minutes of employment and `r f(g("unpaid_care", "wd"))` minutes of caregiving were matched by `r f(abs(g("unpaid_domestic", "wd")))` fewer minutes of domestic services, `r f(abs(g("ownuse_goods", "wd")))` fewer minutes of own-use production and `r f(abs(g("selfcare_all", "wd")))` fewer minutes of self-care, while their free time rose by `r f(g("free_time", "wd"))` minutes. Men added `r f(g("employment", "md"))` minutes of employment and `r f(g("free_time", "md"))` minutes of free time, mainly leisure and mass media, and recorded `r f(abs(g("ownuse_goods", "md")))` fewer minutes of own-use production, `r f(abs(g("learning", "md")))` fewer of learning and `r f(abs(g("selfcare_all", "md")))` fewer of self-care.
+
+```{r fig-div, fig.cap="Change in minutes per day between 2019 and 2024 by ICATUS division, persons aged 15 and over. Points are changes in weighted means; bars are 95\\% confidence intervals clustered by first-stage unit.\\label{fig:div}", fig.height=4.2, fig.width=7.5}
+dl <- c(employment = "1 Employment", ownuse_goods = "2 Own-use production", unpaid_domestic = "3 Unpaid domestic services",
+        unpaid_care = "4 Unpaid caregiving", volunteer = "5 Volunteer and other unpaid", learning = "6 Learning",
+        social_all = "7 Socialising and religious", leisure_all = "8 Leisure and mass media", selfcare_all = "9 Self-care")
+dd <- rbind(R$div[, .(var, sex = "Women", d = wd, se = wse)], R$div[, .(var, sex = "Men", d = md, se = mse)])
+dd[, lab := factor(dl[var], rev(dl))]; dd[, sex := factor(sex, c("Women", "Men"))]
+ggplot(dd, aes(x = d, y = lab, colour = sex, shape = sex)) +
+  geom_vline(xintercept = 0, colour = "grey60") +
+  geom_pointrange(aes(xmin = d - 1.96 * se, xmax = d + 1.96 * se), position = position_dodge(width = 0.55), size = 0.35) +
+  scale_colour_manual(values = c(Women = "#B2182B", Men = "#2166AC")) +
+  labs(x = "Change in mean minutes per day, 2024 minus 2019", y = NULL, colour = NULL, shape = NULL) +
+  theme_minimal(base_size = 10) + theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+The decline in women's domestic services is concentrated in one activity. Time spent cleaning and maintaining the dwelling and surroundings fell from `r f(g("dom_cleaning", "w19"))` to `r f(g("dom_cleaning", "w24"))` minutes, while time spent preparing food and meals was essentially unchanged at about `r f0(g("dom_food", "w24"))` minutes (Table \ref{tab:tab-main}). The rise in caregiving is almost all childcare, and it came from more women doing any childcare on the diary day: the share rose from `r pc(pw("care_child", "p_2019"))` to `r pc(pw("care_child", "p_2024"))` percent, with little change in minutes per participant. Men's childcare rose by `r mci(g("care_child", "md"), g("care_child", "mse"))`, from a much lower base, so the gender gap in caregiving widened by `r f(g("unpaid_care", "gd"))` minutes.
+
+The gender gap in unpaid work narrowed by `r mci(g("unpaid_total", "gd"), g("unpaid_total", "gse"))`, from `r f(g("unpaid_total", "gap19"))` to `r f(g("unpaid_total", "gap24"))` minutes a day. In 2024 women still did `r f(g("unpaid_total", "w24") / g("unpaid_total", "m24"), 1)` times as much unpaid work as men. Women's total work, paid and unpaid, exceeded men's by `r f0(g("total_work", "gap24"))` minutes a day in 2024, compared with `r f0(g("total_work", "gap19"))` minutes in 2019. Men's free time rose more than women's, so the gap in free time in men's favour widened by `r mci(g("free_time", "gd"), g("free_time", "gse"))`, to `r f0(abs(g("free_time", "gap24")))` minutes a day.
+
+## For whom did time use change?
+
+Table \ref{tab:tab-het} reports changes in women's employment, unpaid work and childcare, men's unpaid work, and the gender gap in unpaid work across population groups. The rise in women's employment time was broad, but its size varied. It was larger among women aged 45 to 59 (`r f(h("Age 45-59", "employment", "wd"))` minutes) than among women aged 15 to 29 (`r f(h("Age 15-29", "employment", "wd"))` minutes), and larger among women with less than primary schooling (`r f(h("Below primary", "employment", "wd"))` minutes) than among women with secondary schooling (`r f(h("Secondary", "employment", "wd"))` minutes) or a degree (`r f(h("Graduate", "employment", "wd"))` minutes). It was also larger in the richest consumption quintile (`r f(h("Consumption Q5 (richest)", "employment", "wd"))` minutes) than in the poorest (`r f(h("Consumption Q1 (poorest)", "employment", "wd"))` minutes). Figure \ref{fig:age} shows women's age profiles: in 2024 women's employment time was higher at every age from 20 onwards, and the difference between the profiles is largest between ages 35 and 59.
+
+```{r tab-het}
+gl <- c("Rural", "Urban", "Age 15-29", "Age 30-44", "Age 45-59", "Age 60+", "Below primary", "Primary or middle", "Secondary", "Graduate",
+        "Married", "Not married", "Child under 6 in household", "No child under 6", "Consumption Q1 (poorest)", "Consumption Q5 (richest)")
+ht <- rbindlist(lapply(gl, function(gg) {
+  e <- H[group == gg & var == "employment"]; u <- H[group == gg & var == "unpaid_total"]; cc <- H[group == gg & var == "care_child"]
+  data.table(Group = gsub("-", "--", gg), e19 = f(e$w19), ed = cs(e$wd, e$wse), u19 = f(u$w19), ud = cs(u$wd, u$wse), cd = cs(cc$wd, cc$wse),
+             md = cs(u$md, u$mse), gd = cs(u$gd, u$gse))
+}))
+kbl(ht, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrrrrr",
+    col.names = c("Group", "2019", "Change (SE)", "2019", "Change (SE)", "Change (SE)", "Change (SE)", "Change (SE)"),
+    caption = "Changes by population group, minutes per day, persons aged 15 and over") |>
+  add_header_above(c(" " = 1, "Women: employment" = 2, "Women: unpaid work" = 2, "Women: childcare" = 1, "Men: unpaid" = 1, "Unpaid gap" = 1)) |>
+  pack_rows("Sector", 1, 2) |> pack_rows("Age", 3, 6) |> pack_rows("Education", 7, 10) |> pack_rows("Marital status", 11, 12) |>
+  pack_rows("Household", 13, 14) |> pack_rows("Consumption quintile (within year)", 15, 16) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Unpaid gap: change in the women-minus-men gap in unpaid work (divisions 3 and 4). Groups are defined separately in each year, so changes within a group combine changes in behaviour and in the group's composition. Standard errors clustered by first-stage unit within year.", threeparttable = TRUE)
+```
+
+```{r fig-age, fig.cap="Women's mean minutes per day in employment and in unpaid work by age group, 2019 and 2024.\\label{fig:age}", fig.height=3.6, fig.width=7.5}
+ap <- R$age_prof[sex == "Women"]; ap <- melt(ap, id.vars = c("sex", "year", "age5"), measure.vars = c("employment", "unpaid_total"))
+ap[, variable := factor(variable, c("employment", "unpaid_total"), c("Employment (division 1)", "Unpaid work (divisions 3 and 4)"))]
+ggplot(ap, aes(x = age5, y = value, group = factor(year), colour = factor(year), linetype = factor(year))) +
+  geom_line() + geom_point(size = 1) + facet_wrap(~variable, scales = "free_y") +
+  scale_colour_manual(values = c("2019" = "grey45", "2024" = "#B2182B")) +
+  labs(x = "Age group", y = "Minutes per day", colour = NULL, linetype = NULL) +
+  theme_minimal(base_size = 10) + theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.minor = element_blank())
+```
+
+Changes in unpaid work differed more sharply across groups. Among women with less than primary schooling, unpaid work fell by `r mci(h("Below primary", "unpaid_total", "wd"), h("Below primary", "unpaid_total", "wse"))` and the gender gap in unpaid work narrowed by `r f(abs(h("Below primary", "unpaid_total", "gd")))` minutes. Among women with secondary schooling, unpaid work rose by `r mci(h("Secondary", "unpaid_total", "wd"), h("Secondary", "unpaid_total", "wse"))`, and among graduates by `r mci(h("Graduate", "unpaid_total", "wd"), h("Graduate", "unpaid_total", "wse"))`, so the gap widened in both groups. The difference is closely tied to young children. In households with a child under 6, women's childcare rose by `r mci(h("Child under 6 in household", "care_child", "wd"), h("Child under 6 in household", "care_child", "wse"))` and their total unpaid work by `r f(h("Child under 6 in household", "unpaid_total", "wd"))` minutes, while men in these households added `r f(h("Child under 6 in household", "care_child", "md"))` minutes of childcare. In households without a young child, women's unpaid work fell by `r mci(h("No child under 6", "unpaid_total", "wd"), h("No child under 6", "unpaid_total", "wse"))`. Older women and women with little schooling, who less often live with young children, thus combined more paid work with less unpaid work, whereas younger and more educated women, who more often live with young children, recorded more childcare and little additional paid work. Using the direct count of children under 6 for 2019 instead of the residual measure gives the same pattern (`r f(R$het_u6_direct[var == "care_child"]$wd)` additional minutes of childcare for women in households with a young child).
+
+The groups are defined in each year, and their composition changed as younger, more educated cohorts replaced older ones, so changes within education groups combine changes in behaviour with changes in who is in each group. The reweighting in the next section addresses composition for the population as a whole.
+
+## Composition does not explain the changes
+
+Table \ref{tab:tab-dfl} compares the raw changes with the changes after the 2019 sample is reweighted to the 2024 distribution of characteristics. For women, the composition-adjusted rise in employment time is `r mci(dw("employment", "adj"), dw("employment", "adj_se"))`, larger than the raw rise of `r f(dw("employment", "raw"))` minutes. Had the 2019 population of women had the 2024 composition (more educated, slightly older and with more young children in the household), their employment time in 2019 would have been lower, at `r f(dw("employment", "m19_rw"))` minutes rather than `r f(g("employment", "w19"))`. The adjusted change in women's unpaid work is a decline of `r mci(dw("unpaid_total", "adj"), dw("unpaid_total", "adj_se"))`, again indistinguishable from zero, and the adjusted rise in their total work is `r mci(dw("total_work", "adj"), dw("total_work", "adj_se"))`. For men, the adjusted and raw changes are close for every activity group. The rise in women's paid work and the stability of their unpaid work are not produced by a changing population.
+
+```{r tab-dfl}
+dv <- c(employment = "Employment (1)", ownuse_goods = "Own-use production (2)", sna = "Production work (1+2)", unpaid_domestic = "Unpaid domestic services (3)",
+        unpaid_care = "Unpaid caregiving (4)", unpaid_total = "Unpaid work (3+4)", total_work = "Total work (1--5)", free_time = "Free time (7+8)",
+        selfcare_all = "Self-care (9)")
+a <- DW[match(names(dv), var)]; b <- DM[match(names(dv), var)]
+dtb <- data.table(Activity = dv, wr = cs(a$raw, a$raw_se), wa = cs(a$adj, a$adj_se), mr = cs(b$raw, b$raw_se), ma = cs(b$adj, b$adj_se))
+kbl(dtb, format = "latex", booktabs = TRUE, linesep = "", align = "lrrrr",
+    col.names = c("Activity", "Raw", "Composition-adjusted", "Raw", "Composition-adjusted"),
+    caption = "Change in minutes per day, 2019 to 2024, raw and adjusted for composition") |>
+  add_header_above(c(" " = 1, "Women" = 2, "Men" = 2)) |>
+  kable_styling(latex_options = "hold_position", font_size = 9) |>
+  footnote(general = "Composition-adjusted: 2019 reweighted to the 2024 distribution of age group by sector, education by sector, marital status, household size, child under 6, state, within-year consumption quintile, sub-round and day of the week. Standard errors in parentheses, clustered by first-stage unit within year; they do not account for estimation of the weights. Diaries with missing education, consumption or household size are excluded, so raw changes can differ slightly from Table 3.", threeparttable = TRUE)
+```
+
+## Robustness
+
+Table \ref{tab:tab-rob} in the appendix repeats the main comparisons in four subsamples: persons aged 15 to 59; diaries for a normal day; self-reported diaries; and diaries for Monday to Friday. In every subsample women's employment time rose by between `r f(rbr("employment", "wd", min))` and `r f(rbr("employment", "wd", max))` minutes, women's childcare rose by about 10 minutes, and the change in women's unpaid work lay between `r f(rbr("unpaid_total", "wd", min))` and `r f(rbr("unpaid_total", "wd", max))` minutes. The gender gap in unpaid work changed by between `r f(rbr("unpaid_total", "gd", min))` and `r f(rbr("unpaid_total", "gd", max))` minutes. Restricting to normal days, which excludes holidays, days of illness and other unusual days, gives a larger rise in men's employment time and so a larger widening of the gender gap in employment, but does not change the conclusions about unpaid work. Self-reported diaries, which are not affected by differences in proxy reporting, give the same pattern as the full sample.
+
+# Discussion
+
+The time diaries confirm that more Indian women did paid work in 2024 than in 2019, and they show that the additional work was substantial in duration: women who worked on the diary day spent close to six hours on it in both years. The size of the change is modest, however, relative to the change in the PLFS usual-status rate. In the diaries, the share of women aged 15 and over doing any paid work on a given day rose by about 3 percentage points, and in the TUS rosters the share of women whose principal status was employment rose by a similar amount. The two kinds of survey measure different things. A usual-status measure counts anyone who worked for a minimum period over a year, including in a subsidiary capacity, whereas a diary measures what happened on one day. Part of the difference may therefore reflect irregular and seasonal work that a usual-status measure counts and a single-day diary often misses. The two sources are best read together. The PLFS shows that more women are attached to work over the year, and the diaries show that by 2024 this had translated into about `r f0(g("employment", "wd"))` additional minutes of paid work per woman per day, or about `r f0(7 * g("employment", "wd"))` minutes a week.
+
+The central finding is that women's unpaid work did not decline. Three features of the change account for this. First, much of the movement into work was into self-employment, and self-employed women in India carry unpaid workloads not far below those of women whose principal activity is domestic duties, which is consistent with the home-based and family-enterprise character of much of women's work [@deshpande2024]. Second, more women recorded childcare. The rise was concentrated among women living with young children, the life-course stage in which gender gaps in time use are widest in other countries as well [@anxo2011]. It could reflect a real increase in time spent with children, or a change in how childcare was reported or recorded between the two rounds, and the data cannot separate the two. Third, men's unpaid work changed little, so there was no reallocation within households of the kind that has gradually narrowed gaps elsewhere [@bianchi2000; @altintas2016]. At the 2019--2024 pace, a narrowing of about `r f(abs(g("unpaid_total", "gd")) / 5, 1)` minutes a year, the unpaid-work gap would take centuries to close. This is a mechanical extrapolation, not a forecast, but it conveys how little the division of unpaid work moved.
+
+The heterogeneity suggests two different processes. For older women with little schooling, paid work rose and unpaid work fell. This is consistent with women who are past the stage of caring for young children taking up paid work, and with the rise in rural women's agricultural work documented by @kumar2026. For younger and more educated women, paid work rose little and childcare rose. This is the group in which education was expected to raise women's employment, and in which the earlier decline was most puzzling [@klasen2015; @chatterjee2018]. The diaries suggest that for this group the time demands of caring for young children remained a binding constraint over the period.
+
+Women's free time rose, but less than men's, and both sexes recorded less self-care. Part of this common change may reflect differences in recording between the two surveys, which is why the paper focuses on paid and unpaid work and on changes in gaps. If the decline in self-care is partly a recording change common to women and men, it affects each sex's estimated changes in other activities but largely cancels out of the changes in gender gaps.
+
+The results have several limitations. The surveys are repeated cross-sections, so they describe changes in population averages and cannot follow individual women into and out of work. The period includes the COVID-19 pandemic and its aftermath, as well as changes in rural incomes, prices and public programmes, and the data cannot separate their roles. The diaries record one day per person; they estimate population averages well but cannot describe the regularity of an individual's work. Using only the major activity in each slot understates activities that are often done alongside others, such as childcare, but the rule is applied in the same way in both years. Finally, the change in interview mode cannot be harmonised, and changes in activities common to both sexes should be read with that in mind.
+
+# Conclusion
+
+Between 2019 and 2024, India's time-use surveys record a rise in women's paid work that is real, substantial in duration, concentrated on the extensive margin and not explained by changes in the population's composition. They also record that women's unpaid domestic and care work did not fall: less time spent cleaning was offset by more childcare, and men's unpaid work barely changed. So far, the rise in women's employment has been added to women's days rather than redistributing their unpaid work. Efforts to sustain the rise in women's employment, and to extend it to younger and more educated women, may therefore need to address the time women spend on unpaid work, including the care of young children, as well as the supply of jobs. The two surveys provide a baseline against which future rounds can measure both.
+
+\newpage
+
+# Declarations {-}
+
+**Data availability.** The unit-level data of the Time Use Survey 2019 and the Time Use Survey 2024 are produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, and are available to registered users from the Ministry's microdata portal (catalogs 223 and 236) under its terms of use, which do not permit redistribution. The R code that builds the harmonised person-day files and produces every estimate, table and figure is available to the editor and reviewers on request and will be made public on acceptance.
+
+**Funding.** This research did not receive any specific grant from funding agencies in the public, commercial or not-for-profit sectors.
+
+**Declaration of competing interest.** The author declares no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+**Declaration of generative AI and AI-assisted technologies in the manuscript preparation process.** Claude (Anthropic) and other AI tools helped with code, reference checks and drafting. The author verified everything and takes full responsibility for the content of the publication.
+
+**Ethics.** The study is a secondary analysis of anonymised official survey microdata and involved no contact with human subjects.
+
+\newpage
+
+# References {-}
+
+<div id="refs"></div>
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+```{r tab-rob}
+rv <- c(employment = "Employment (1)", sna = "Production work (1+2)", unpaid_total = "Unpaid work (3+4)", care_child = "Childcare",
+        total_work = "Total work (1--5)", free_time = "Free time (7+8)", selfcare_all = "Self-care (9)")
+sets <- list("All, aged 15+" = C, "Aged 15--59" = R$change_1559, "Normal days" = R$change_normal, "Self-reported diaries" = R$change_self, "Monday to Friday" = R$change_weekday)
+rb <- rbindlist(lapply(names(sets), function(s) { t <- sets[[s]][match(names(rv), var)]
+  data.table(Activity = rv, w = cs(t$wd, t$wse), m = cs(t$md, t$mse), gg = cs(t$gd, t$gse)) }))
+kbl(rb, format = "latex", booktabs = TRUE, linesep = "", align = "lrrr",
+    col.names = c("Activity", "Women", "Men", "Gap (women minus men)"),
+    caption = "Robustness: change in minutes per day, 2019 to 2024, in subsamples") |>
+  pack_rows(index = setNames(rep(length(rv), length(sets)), names(sets))) |>
+  kable_styling(latex_options = "hold_position", font_size = 9) |>
+  footnote(general = "Changes in weighted means, with standard errors in parentheses clustered by first-stage unit within year. Normal day: type of day reported as normal. Self-reported: the informant was the respondent.", threeparttable = TRUE)
+```
+
+```{r tab-all}
+al <- c(employment = "1 Employment", ownuse_goods = "2 Own-use production", water_fuel = "\\quad Fetching water and fuel", unpaid_domestic = "3 Unpaid domestic services",
+        dom_food = "\\quad Food and meals", dom_cleaning = "\\quad Cleaning and upkeep", unpaid_care = "4 Unpaid caregiving", care_child = "\\quad Childcare",
+        care_dep_adult = "\\quad Care of dependent adults", volunteer = "5 Volunteer and other unpaid work", learning = "6 Learning",
+        social_all = "7 Socialising and religious practice", leisure_all = "8 Leisure, mass media and sports", mass_media = "\\quad Mass media",
+        selfcare_all = "9 Self-care and maintenance", sleep = "\\quad Sleep", eating = "\\quad Eating and drinking", hygiene = "\\quad Personal hygiene and care")
+t <- C[match(names(al), var)]
+kbl(data.table(Activity = al, W19 = f(t$w19), W24 = f(t$w24), WD = cs(t$wd, t$wse), M19 = f(t$m19), M24 = f(t$m24), MD = cs(t$md, t$mse)),
+    format = "latex", booktabs = TRUE, escape = FALSE, linesep = "", align = "lrrrrrr",
+    col.names = c("Activity", "2019", "2024", "Change (SE)", "2019", "2024", "Change (SE)"),
+    caption = "Mean minutes per day in detailed activity groups, persons aged 15 and over") |>
+  add_header_above(c(" " = 1, "Women" = 3, "Men" = 3)) |>
+  kable_styling(latex_options = c("hold_position", "scale_down"), font_size = 9) |>
+  footnote(general = "Fetching water and fuel is part of own-use production, following ICATUS 2016. Standard errors clustered by first-stage unit within year.", threeparttable = TRUE)
+```
+
+```{r tab-within}
+wt <- dcast(W[, .(status4, var, v = cs(d, se))], status4 ~ var, value.var = "v")
+wt <- wt[match(lv, status4)]; wt[status4 == "Other (unemployed, not working)", status4 := "Other not working"]
+kbl(wt[, .(status4, employment, sna, unpaid_total)], format = "latex", booktabs = TRUE, linesep = "", align = "lrrr",
+    col.names = c("Usual principal status", "Employment (1)", "Production work (1+2)", "Unpaid work (3+4)"),
+    caption = "Women: change in minutes per day within usual principal activity status, 2019 to 2024") |>
+  kable_styling(latex_options = "hold_position", font_size = 9) |>
+  footnote(general = "Women aged 15 and over. Standard errors in parentheses, clustered by first-stage unit within year.", threeparttable = TRUE)
+```
