@@ -10,7 +10,7 @@
 
 **Email (corresponding author):** preetds@iima.ac.in
 
-**Word count:** 4,440 words including references, tables and appendix (3,802 words of main text; journal limit 8,000 words including references)
+**Word count:** 5,230 words including references, tables and appendix (4,462 words of main text; journal limit 8,000 words including references)
 
 **Keywords:** women's entrepreneurship; home-based work; putting-out; informal enterprises; India
 

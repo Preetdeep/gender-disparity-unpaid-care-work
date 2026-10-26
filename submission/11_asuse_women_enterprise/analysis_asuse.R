@@ -45,6 +45,7 @@ prep_asuse <- function(dir) {
     contract_any = (as.integer(contract_manuf_service) %in% 1L) | (as.integer(other_contract_services) %in% 1L),
     contract_type = fifelse(as.integer(contract_manuf_service) %in% 1L, as.integer(contract_type), as.integer(other_contract_type)),
     equip_by_contractor = as.integer(equipment_by_contractor), internet = as.integer(used_internet) == 1L,
+    manuf_serv = as.integer(manuf_services) %in% 1L,   # item 238: routes the manufacturing contract item 239
     registered = as.integer(registered) == 1L, w = num(mlt) / 100)]
   E <- merge(E, b3, by = "key", all.x = TRUE)
   g <- b8[item == "769", .(key, gva_m = num(value))]                     # GVA, reference period (item 769)
@@ -204,9 +205,12 @@ ret <- function(d) d[, .(mean_pw = sum(w * gva_month) / sum(w * workers), median
   below_cas25 = sum(w * (gva_pw_m < 25 * B$cas_f_all)) / sum(w),
   below_cas22 = sum(w * (gva_pw_m < 22 * B$cas_f_all)) / sum(w),
   below_cas30 = sum(w * (gva_pw_m < 30 * B$cas_f_all)) / sum(w),
-  per_hour = sum(w * gva_month) / sum(w * workers * pmax(hours, 1) * 25)), by = .(owner_type, oae, home, dep)]
+  per_hour = sum(w * gva_month) / sum(w * workers * pmax(hours, 1) * 25), n_obs = .N), by = .(owner_type, oae, home, dep)]
 RES$returns23 <- ret(R[year == 2023])
-RES$returns23_all <- R[year == 2023, .(median_pw = wq(gva_pw_m, w, 0.5), below_cas25 = sum(w * (gva_pw_m < 25 * B$cas_f_all)) / sum(w)), by = owner_type]
+RES$returns23_all <- R[year == 2023, .(median_pw = wq(gva_pw_m, w, 0.5), p25 = wq(gva_pw_m, w, 0.25), p75 = wq(gva_pw_m, w, 0.75),
+  below_cas25 = sum(w * (gva_pw_m < 25 * B$cas_f_all)) / sum(w), below_cas22 = sum(w * (gva_pw_m < 22 * B$cas_f_all)) / sum(w),
+  below_cas30 = sum(w * (gva_pw_m < 30 * B$cas_f_all)) / sum(w), per_hour = sum(w * gva_month) / sum(w * workers * pmax(hours, 1) * 25),
+  n_obs = .N, n_nonpos = sum(gva_pw_m <= 0)), by = owner_type]
 RES$days <- DAYS
 
 # (5) regressions: log monthly GVA per worker, 2023-24, with survey design
@@ -226,6 +230,10 @@ RES$reg <- list(m1 = tidy(m1), m2 = tidy(m2), m3 = tidy(m3), n = nrow(R23[own %i
 # (6) the same profile in 2015-16 and 2023-24 for the growth margin only (female OAEs at home)
 RES$growth_margin <- D[own == 2 & oae & home, .(n = sum(w), dep = sum(w * dep) / sum(w), mfg = sum(w * (bac == "Manufacturing")) / sum(w),
   hours = sum(w * hours, na.rm = TRUE) / sum(w[!is.na(hours)])), by = year]
+
+# (7) questionnaire routing: share of women's home-based manufacturing establishments (ASUSE 2023-24)
+#     that report providing manufacturing services (item 238), the filter for the contract item 239
+RES$ms_home_fem_mfg <- A[nic2 %in% 10:33 & own == 2L & loc %in% 1L, sum(w * manuf_serv) / sum(w)]
 
 saveRDS(RES, file.path(OUT, "p11_results.rds"))
 cat("Saved", file.path(OUT, "p11_results.rds"), "\n")

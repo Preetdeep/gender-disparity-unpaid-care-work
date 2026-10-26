@@ -8,7 +8,7 @@ printf '%s\n' "$WM" > build/wm.inc
 for v in anonymised author; do
   ( cd build/$v && pandoc manuscript.md --citeproc --bibliography=../../refs_local.bib --csl=../../apa.csl \
       -H ../../preamble.inc -H ../wm.inc -N --pdf-engine=xelatex -V fontsize=12pt -V geometry:margin=1in -V linestretch=1.5 \
-      -V colorlinks=true -V pdfauthor="" -V pdfcreator="" -o ../../package/manuscript_$v.pdf )
+      --columns=150 -V colorlinks=true -V pdfauthor="" -V pdfcreator="" -o ../../package/manuscript_$v.pdf )
 done
 # word count of the anonymised version (all text incl. references, tables, appendix; and main text up to References)
 ( cd build/anonymised && pandoc manuscript.md --citeproc --bibliography=../../refs_local.bib --csl=../../apa.csl -t plain --wrap=none -o ../wc.txt )

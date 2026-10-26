@@ -24,3 +24,5 @@
 \onehalfspacing
 \newcommand{\keywords}[1]{\par\smallskip\noindent\textbf{Keywords:} #1\par}
 \newcommand{\jel}[1]{\par\noindent\textbf{JEL codes:} #1\par}
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize\setlength{\tabcolsep}{4pt}}
