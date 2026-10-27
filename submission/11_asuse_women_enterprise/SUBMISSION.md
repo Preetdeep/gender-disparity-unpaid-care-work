@@ -1,6 +1,6 @@
 # Paper 11: Women's enterprise ownership in India, 2015-16 to 2023-24
 
-Status (25 Oct 2026): **pre-data draft, NOT ready to submit.** Code written and smoke-tested on synthetic data; PLFS benchmark run and validated on real data; ASUSE 2023-24 and NSS 73rd round unit data not yet downloaded (MoSPI microdata portal needs a logged-in browser with captcha). Nothing submitted, no one contacted.
+Status (27 Oct 2026): final version prepared for Small Business Economics (Plain English Summary after the Abstract, AI-use sentence in Method; .docx and .pdf in package/). Submission in progress, no submission ID yet.
 
 ## Question and novelty
 Where did the rise in women's ownership of unincorporated non-agricultural enterprises come from, and what do these enterprises earn relative to women's outside option?
