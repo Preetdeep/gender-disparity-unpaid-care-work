@@ -38,6 +38,12 @@
       </substitute>
     </names>
   </macro>
+  <macro name="author-count">
+    <names variable="author">
+      <name form="count"/>
+      <substitute><names variable="editor"/></substitute>
+    </names>
+  </macro>
   <macro name="author">
     <names variable="author">
       <name sort-separator=" " initialize-with="" name-as-sort-order="all" delimiter=", " delimiter-precedes-last="always"/>
@@ -113,8 +119,11 @@
   </citation>
   <bibliography et-al-min="99" et-al-use-first="3" hanging-indent="true">
     <sort>
-      <key macro="author"/>
-      <key variable="author" sort="ascending"/>
+      <!-- JPopE rule: first author; then single, two, more than two authors; two authors by co-author; more than two by year only -->
+      <key macro="author" names-min="1" names-use-first="1"/>
+      <key macro="author-count" names-min="3" names-use-first="3"/>
+      <key macro="author" names-min="3" names-use-first="1"/>
+      <key variable="issued"/>
     </sort>
     <layout>
       <group delimiter=" ">
