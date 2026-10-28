@@ -1,6 +1,6 @@
 # Paper 11: Women's enterprise ownership in India, 2015-16 to 2023-24
 
-Status (27 Oct 2026): final version prepared for Small Business Economics (Plain English Summary after the Abstract, AI-use sentence in Method; .docx and .pdf in package/). Submission in progress, no submission ID yet.
+Status (28 Oct 2026): submitted to Small Business Economics via Springer Nature SNAPP on 28 Oct 2026, submission ID 8084ceea-5a58-494b-841a-01154c5e590a (v1.0), status Technical check. Subscription model, no fees, no preprint. Final files in package/.
 
 ## Question and novelty
 Where did the rise in women's ownership of unincorporated non-agricultural enterprises come from, and what do these enterprises earn relative to women's outside option?
