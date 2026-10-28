@@ -12,10 +12,10 @@
 | JEL codes | "Only a number of three" | D13, J13, J22 |
 | Text file | Word (.docx or .doc) with all editable source files; plain font such as 10-point Times; automatic page numbers; no field functions; tables with the table function; at most three heading levels | `manuscript_anonymised.docx`: Times New Roman 11 pt, 1.5 spacing, footer page numbers, Word tables, two heading levels (LaTeX source is not required; LaTeX is allowed for mathematical content) |
 | Citations | Name and year in parentheses | Springer Basic author-date style (`springer-basic-author-date.csl`) |
-| Reference list | Alphabetized by first author, then (two authors) co-author, then date; DOIs as full links; journal names abbreviated per ISSN LTWA, **or full titles if unsure** | Full titles used; DOIs as https://doi.org links where the bibliography has one (DOIs added on 18 Oct for Abadie et al. 2023, Anukriti et al. 2020, Klasen and Pieters 2015, Lumsdaine and Vermeer 2015, Rupert and Zanella 2018, Craig and Mullan 2011 and, as the SSRN version, Fletcher et al. 2017, each checked on Crossref and by resolving doi.org); all authors named |
+| Reference list | Alphabetized by first author, then (two authors) co-author, then date; DOIs as full links; journal names abbreviated per ISSN LTWA, **or full titles if unsure** | Full titles used; DOIs as https://doi.org links where the bibliography has one (DOIs added on 18 Oct for Abadie et al. 2023, Anukriti et al. 2020, Klasen and Pieters 2015, Lumsdaine and Vermeer 2015, Rupert and Zanella 2018, Craig and Mullan 2011 each checked on Crossref and by resolving doi.org); Fletcher et al. now cited as the published India Policy Forum 15:149–198 (2019) version, checked 28 Oct on the NCAER volume PDF (no DOI); all authors named |
 | Footnotes | Allowed; never only a citation and never bibliographic details; footnotes instead of endnotes | None used |
 | Tables and figures | Numbered, cited in order, captions in the text file | 8 tables inline in the text, captions numbered Table 1 to Table 8 in both the PDF and the docx (checked); the display equation is numbered (1); figures are in the supplement |
-| Supplement | PDF, cited in the text as "Online Resource", named ESM_1.pdf; each file should carry article title, journal, author names, affiliation and email | `ESM_1.pdf`, cited as Online Resource 1. It has the anonymized title only: see "To decide" below |
+| Supplement | PDF, cited in the text as "Online Resource", named ESM_1.pdf; each file should carry article title, journal, author names, affiliation and email | `ESM_1.pdf`, cited as Online Resource 1. First page carries the title, journal name, author, affiliation and email (preetds@iima.ac.in), added 28 Oct (JPopE is not blind) |
 | Declarations | Heading "Statements and Declarations" before the references with Funding, Competing interests, Ethics, Data availability; submissions without them are returned as incomplete | Included in the manuscript |
 | AI use | Generative-AI use documented in the Methods; copy-editing help needs no declaration | In the Methods and in `title_page.md` |
 | Acknowledgments | Separate section on the title page; should thank the anonymous referees | `title_page.md` |
@@ -60,5 +60,5 @@ Real-data build counts (rebuilt 18 Oct 2026 on the Mac from the real TUS 2024 da
 - [ ] Reviewer suggestions: none; exclusions: none
 
 ## To decide
-- Springer asks that each supplementary file carry the article title, journal, author names, affiliation and email. `ESM_1.pdf` is anonymized, so if the portal is single-blind, Doc can add that header before uploading.
+- Done 28 Oct: `ESM_1.pdf` now carries the article title, journal, author, affiliation and email. If the portal turns out to be blind, rebuild without the header (build_docx.sh block).
 - Optional: Open Choice (APC) or a Springer Compact agreement.

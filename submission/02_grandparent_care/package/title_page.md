@@ -11,7 +11,7 @@
 **Abstract (150 words, non-technical, states the innovation and contribution):** see the manuscript. Keywords (4 to 6): grandparents; childcare; three-generation households; patrilocality; time use; India.
 **JEL classification (three codes):** D13, J13, J22 (J16 dropped from the earlier four).
 
-**Acknowledgments** (separate section on the title page; the journal asks that they thank the anonymous referees): I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. *At acceptance, add:* I am grateful to the anonymous referees for their helpful comments.
+**Acknowledgments** (separate section on the title page; the journal asks that they thank the anonymous referees): I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. I thank the anonymous referees of this Journal for their help and guidance.
 
 **Statements and Declarations** (also printed in the manuscript before the references):
 - **Funding:** No funding was received for conducting this study.

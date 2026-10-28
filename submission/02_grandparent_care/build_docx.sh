@@ -14,6 +14,12 @@ s = open('supplement.tex').read()
 if 'externaldocument{main}' not in s:
     s = s.replace('\\documentclass', '\\RequirePackage{xr}\n\\documentclass', 1).replace('\\begin{document}', '\\externaldocument{main}\n\\begin{document}', 1)
     open('supplement.tex', 'w').write(s)
+# JPopE: each supplementary file carries the article title, journal name, author, affiliation and email (Online Resource 1)
+s = open('supplement.tex').read()
+if 'Journal of Population Economics' not in s:
+    i = s.index('Online Supplement'); j = s.index('\\end{center}', i)
+    s = s[:j] + '\\\\[6pt]\\textit{Journal of Population Economics}\\\\[2pt]Preet Deep Singh, Independent Researcher, New Delhi, India\\\\[2pt]Corresponding author: preetds@iima.ac.in' + s[j:]
+    open('supplement.tex', 'w').write(s)
 PY
 xelatex -interaction=nonstopmode supplement.tex >/dev/null 2>&1 || true
 xelatex -interaction=nonstopmode supplement.tex >/dev/null 2>&1 || true
