@@ -4,7 +4,7 @@
 
 **Target journal:** *Journal of Population Economics* (Springer; ABDC A*)
 
-**Author:** Dr Preet Deep Singh, Independent Researcher, New Delhi, India
+**Author:** Preet Deep Singh, Independent Researcher, New Delhi, India
 **Corresponding author and email:** Preet Deep Singh, preetds@iima.ac.in
 **ORCID:** 0000-0003-3721-7548
 
