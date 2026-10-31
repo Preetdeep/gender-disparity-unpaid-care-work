@@ -28,7 +28,7 @@ Diaries for sisters and brothers in the same household, with sibling-set fixed e
 - [ ] Check the share of sets where siblings report the same diary day (reported inline); if well below 100%, emphasise the day-of-week specification.
 - [ ] Check the mother-link rate (reported inline) and the size of the eldest-boy / eldest-girl subsamples.
 - [ ] If state codes can be mapped from an official NSS list, add north/south heterogeneity (cite Dyson and Moore 1983; Miller 1981).
-- [ ] References in `refs_local.bib` were entered from memory and are NOT verified against sources. Verify every cited reference (`submission/references.bib` and `refs_local.bib`), especially pages for Sen (1990, NYRB), Mishra, Roy and Retherford (2004), Yamaguchi (1989), Emerson and Souza (2008), Webbink, Smits and de Jong (2012), and the author-name order in Das Gupta et al. (2003).
+- [x] References in `refs_local.bib` were entered from memory and are NOT verified against sources. Verify every cited reference (`submission/references.bib` and `refs_local.bib`), especially pages for Sen (1990, NYRB), Mishra, Roy and Retherford (2004), Yamaguchi (1989), Emerson and Souza (2008), Webbink, Smits and de Jong (2012), and the author-name order in Das Gupta et al. (2003). **Done 12 Oct 2026: all entries verified (docs/REFERENCE_CHECK.md); DOIs added.**
 - [ ] Check JDS's current length limit, reference style and anonymisation rules (remove the author footnote for review).
 
 ## Cover letter (draft)

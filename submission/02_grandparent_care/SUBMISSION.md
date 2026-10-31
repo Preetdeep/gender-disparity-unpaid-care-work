@@ -1,37 +1,28 @@
-# Paper 02: Co-resident Grandmothers and Mothers' Time
+# Paper 02: Grandmothers' care and mothers' time
 
-**Target journal:** *Journal of Population Economics*. It publishes the grandparent-childcare and family-structure literature this paper extends (Dimova and Wolff 2011; Afridi et al. 2018).
-**Fallbacks:** *Demography*, *Population and Development Review*, *Feminist Economics*.
+**Target journal (17 Oct 2026):** *Journal of Population Economics* (Springer; ABDC A*), after an earlier preparation for *Ageing & Society* (British English, 6,000 to 8,000 words, abstract up to 300 words). Guidelines: https://link.springer.com/journal/148/submission-guidelines. Details, counts and differences from the first summary are in `package/PORTAL_CHECKLIST.md`.
+**Fallbacks:** *Ageing & Society* (not in the ABDC list; the earlier version is in git history, commit 6c0cccf), *Journal of Family Issues*.
 
-## Contribution in one line
+## Version for the Journal of Population Economics
+- American spelling ("labor", "coresident", "aging"); numbered headings, two levels; tables inline; no "Insert Table" markers.
+- Abstract of exactly 150 words (satisfies both the general 150 to 250 range and the journal-specific 150 maximum), non-technical, with the innovation and contribution.
+- Keywords cut to six; JEL codes cut to three (D13, J13, J22).
+- Springer Basic author-date references with full author lists and DOI links (`springer-basic-author-date.csl`).
+- "Statements and Declarations" before the references; supplement cited as "Online Resource 1" (`ESM_1.pdf`).
+- Added a citation to Bansak, Dziadula and Zavodny (2026, Journal of Population Economics 39:26, https://doi.org/10.1007/s00148-026-01170-2), a coresident-grandparent paper from the same journal, verified on the publisher page.
+- Word file built with `submission/02_grandparent_care/build_docx.sh` (Times New Roman 11 pt, page numbers, Word tables).
+- No result number changed. Wording stays neutral about government and Amazon.
 
-Same-day diaries for mothers and the grandparents who live with them separate the substitution and constraint channels of co-residence. The paper also fixes how grandparents and young children are identified in rosters without parent IDs. Daughters-in-law living with the head and spouse count as having an older generation. Head-level women who live with a junior married couple are treated as grandmothers, not mothers.
+## Earlier wording changes (kept)
+- "Precisely estimated null" removed; pooled estimates described as fragile, with confidence intervals; claims the standard errors contradicted rewritten; placebo described as not fully clean.
+- Under-six count described as a direct count of roster members; Table 9's diary row reads "not summing to 1,440 minutes: 5 of 450,457".
 
-## Analyses in the manuscript
-
-Mothers' full-day time use; childcare by every provider and adult-total childcare (no mechanical mother+grandmother sum); the older generation's own trade-offs (grandmothers vs grandfathers, a young grandchild present); gradients by grandmother age (<60 / 60+), grandmother employment, and grandmother vs grandfather; heterogeneity by generation, urban/rural, education and number of under-6s; a placebo on mothers whose youngest child is 6-14; robustness (sole married woman, head-level only, linked husband, self-report, other adult women, household size, generation control, unweighted, any grandparent, extensive margin, Oster).
+## Open points (substantive, not wording)
+- The pooled grandmother indicator is closely tied to household arrangement, and the pooled estimate averages subgroup estimates of different sign. A specification within arrangement, or by grandmother age and employment, might give a stronger headline.
+- The placebo is not clean for domestic work.
 
 ## Before submitting
-
-- [ ] Real-data run: `TUS_DTA=/path/TimeUse106PER.dta Rscript run_all.R 02`.
-- [ ] Check `validation.txt`: `under6_method` must be the household-size residual, and `share_hh_negative_under6_residual` should be about 0. If not, the household-size column is mis-mapped.
-- [ ] Check the appendix sample-construction table: how many head-level women were excluded as likely grandmothers, and how many junior-level mothers have no grandmother. The junior-level heterogeneity row is reported only if both cells have at least 30 mothers. Otherwise the text says why it is not estimable.
-- [ ] Check that the self-links count is 0 and the link-consistency share is 100% (Section 4.3 prints both).
-- [ ] `employed` depends on the PAS code scheme (shared-code issue in WORKLOG). Re-knit after the lead's CODE fix.
-- [ ] Read every iff() branch once on real data: the abstract, introduction, discussion and conclusion choose their wording from the estimates.
-- [ ] Choose the title from the sign of the headline result. The current title is a question.
-- [ ] Optional strengthening: an instrument for co-residence (for example grandparent mortality by state and age, or the husband's birth order if the roster ever records it).
-- [ ] Check the 31 entries in `refs_local.bib` against the published versions (page ranges especially). Remove the author block if the journal requires anonymity.
-
-## Cover letter (draft)
-
-> Dear Editor,
->
-> I submit "Do Co-resident Grandmothers Lighten Mothers' Care Load? Three-Generation Households and Women's Time in India" for consideration in the *Journal of Population Economics*.
->
-> Studies of grandparents and maternal employment usually observe proximity and employment but not who does the care. India's Time Use Survey 2024 records diaries for every household member, so I measure mothers' and co-resident grandmothers' childcare, domestic work, paid work and leisure together. In patrilocal households this distinguishes a substitution channel (grandmothers do childcare mothers would otherwise do) from a constraint channel (co-residence brings more domestic work and stricter norms). The answer matters for how far family care can stand in for formal childcare in a country where it is the default.
->
-> The manuscript is not under review elsewhere. Code is public; the microdata are available from the National Statistics Office.
->
-> Sincerely,
-> Preet Deep Singh
+- [ ] Check the real-data PDF and docx once for the conditional wording and for any stray dash or "NA".
+- [ ] AI-use declaration: add tool versions and dates if asked.
+- [x] Preprint disclosed: SSRN 6563021 ("The Grandparent Care Economy: Conditional Effects on Women's Childcare Burden in India", posted 26 Apr 2026) is named in the cover letter and on the title page. The cover letter states the differences (Doc: the submission updates the method, sharpens the perspective and rewrites the text). Roo found no preprint clause on the JPopE page; Springer Nature allows preprints and does not treat them as prior publication.
+- [ ] Follow `package/PORTAL_CHECKLIST.md`.

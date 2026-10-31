@@ -156,7 +156,7 @@ validation_table <- function(pd) {
               "Diaries summing to 1,440 minutes", "Records flagged minor (secondary)",
               "Persons with varying weight", "Invalid activity codes",
               "Married persons with linked spouse", "Under-6 count method"),
-    Value = c(fn(V$n_rows), fn(V$n_persons), fn(V$n_households), fn(V$n_fsu),
+    Value = c(fn(V$n_rows), fn(if (is.null(V$n_diarists)) V$n_persons else V$n_diarists), fn(V$n_households), fn(V$n_fsu),
               pct(V$share_diaries_1440), pct(V$share_rows_minor),
               pct(V$share_persons_weight_varies, 2),
               if (length(V$invalid_act3_codes)) paste(V$invalid_act3_codes, collapse = ", ") else "None",
@@ -237,4 +237,41 @@ diff_pp <- function(e, more = "higher", less = "lower", digits = 1) {
   if (is.null(e$est) || is.na(e$est)) return("not estimable")
   paste0(.fmt(100 * abs(e$est), digits), " percentage points (SE ", .fmt(100 * e$se, digits), ") ",
          more_less(e$est, more, less))
+}
+
+# ---- Supplement helpers ---------------------------------------------------------
+# Compress a vector of 3-digit codes into ranges, e.g. 311-319, 442.
+code_ranges <- function(x) {
+  x <- sort(unique(as.integer(x))); if (!length(x)) return("")
+  br <- c(0, which(diff(x) != 1), length(x))
+  paste(sapply(seq_len(length(br) - 1), function(i) {
+    a <- x[br[i] + 1]; b <- x[br[i + 1]]; if (a == b) a else paste0(a, "--", b) }), collapse = ", ")
+}
+# ICATUS 2016 mapping for the categories a paper uses (names of ACT).
+codes_table <- function(cats, labels = cats) {
+  data.frame(Category = labels,
+             `ICATUS 2016 codes` = sapply(cats, function(k) code_ranges(ACT[[k]])),
+             check.names = FALSE, row.names = NULL)
+}
+# From the roster to the analysed diaries (all numbers from the build).
+diary_flow_table <- function(pd) {
+  V <- panel_validation(pd)
+  data.frame(Step = c("Persons aged 6+ on the household roster", "Without diary records in the file",
+                      "Diaries (person-days)", "Diaries not summing to exactly 1,440 minutes",
+                      "Third-gender diaries (excluded from women-men comparisons)", "Diaries of women and men"),
+             N = c(fn(V$n_roster_6plus), fn(V$n_roster_only_age6plus), fn(V$n_diarists),
+                   fn(V$n_diaries_not1440), fn(V$n_third_gender), fn(V$n_analysed)))
+}
+
+# ---- 2019 vs 2024 harmonised comparisons (aggregates written by R/compare_2019.R) ----
+CMP <- local({
+  f <- file.path(TUS_ROOT, "submission", "_common", "tus_2019_2024_compare.csv")
+  if (file.exists(f)) data.table::fread(f, colClasses = c(paper = "character")) else NULL
+})
+cmp <- function(paper, stat, year) {
+  if (is.null(CMP)) return(list(est = NA_real_, se = NA_real_, n = NA_integer_))
+  p_ <- paper; s_ <- stat; y_ <- year
+  r <- as.data.frame(CMP)[CMP[["paper"]] == p_ & CMP[["stat"]] == s_ & CMP[["year"]] == y_, ]
+  if (!nrow(r)) return(list(est = NA_real_, se = NA_real_, n = NA_integer_))
+  list(est = r$est[1], se = r$se[1], n = r$n[1])
 }

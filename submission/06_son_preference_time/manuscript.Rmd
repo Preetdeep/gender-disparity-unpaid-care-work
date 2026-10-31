@@ -1,6 +1,8 @@
 ---
 title: "Daughters' Days: Son Preference, Gender Norms and the Time Use of Sisters and Brothers in India"
-author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+params:
+  blind: false
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent Researcher, New Delhi, India. ORCID: 0000-0003-3721-7548. Email: preetds@iima.ac.in. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content. No funding. No conflicts of interest. All errors are mine.}"`'
 date: "`r format(Sys.Date(), '%B %Y')`"
 output:
   pdf_document:
@@ -13,6 +15,7 @@ fontsize: 11pt
 geometry: margin=1in
 bibliography: [../references.bib, refs_local.bib]
 link-citations: true
+csl: apa.csl
 ---
 
 ```{r setup, include=FALSE}
@@ -81,6 +84,19 @@ K[, `:=`(mixed = as.integer(n_girls > 0 & n_girls < n_sib),
 K[, eldest_girl_set := { e <- girl[eldest == 1]; if (length(e) == 1) as.integer(e) else NA_integer_ }, by = sib_id]
 K[, rank_f := factor(pmin(rank, 3), 1:3, c("1", "2", "3+"))]
 K[, sex_lab := factor(ifelse(girl == 1, "Girls", "Boys"), levels = c("Boys", "Girls"))]
+# Region from the NSS state code: north and north-west (J&K, HP, Punjab, Chandigarh,
+# Uttarakhand, Haryana, Delhi, Rajasthan, UP, Ladakh) vs south (AP, Karnataka, Goa,
+# Lakshadweep, Kerala, TN, Puducherry, Telangana).
+K[, region := fcase(state %in% c(1:9, 37), "north", state %in% c(28:34, 36), "south", default = "other")]
+K[, north := fifelse(region == "other", NA_integer_, as.integer(region == "north"))]
+# State son-preference proxy: sex ratio at birth (girls per 1,000 boys born in the five years before
+# the survey), averaged over NFHS-4 (2015-16) and NFHS-5 (2019-21) state fact sheets (nfhs_srb_state.csv).
+srb <- data.table::fread("nfhs_srb_state.csv")
+srb[, srb_avg := rowMeans(cbind(srb_nfhs5, srb_nfhs4), na.rm = TRUE)]
+K[srb, on = c(state = "nss_state"), srb_avg := i.srb_avg]
+srb_cut <- 920
+K[, low_srb := fifelse(is.na(srb_avg), NA_integer_, as.integer(srb_avg < srb_cut))]
+K[, srb_z := (srb_avg - 950) / 25]
 S <- K[mixed == 1]
 n_fsu_S <- uniqueN(S$fsu)
 sets <- unique(S[, .(sib_id, n_sib, eldest_girl_set, same_day, rel, mom_linked = !is.na(mom_pid))], by = "sib_id")
@@ -149,7 +165,7 @@ ktask <- setNames(lapply(names(task_lab), kf), names(task_lab))
 task_est <- sapply(ktask[c("dom_food", "dom_cleaning", "dom_textiles", "dom_shopping", "dom_rest")], `[[`, "est")
 top_task <- if (all(is.na(task_est))) NA_character_ else names(which.max(task_est))
 dom_unpaid <- k_dom$est + k_care$est
-ratio_dom <- k_dom$est / mean_b("unpaid_domestic")
+ratio_dom <- round(k_dom$est, 1) / round(mean_b("unpaid_domestic"), 1)
 
 # By age group, all mixed sets in one model (girl x age group)
 age_out <- c("unpaid_domestic", "unpaid_care", "learning", "free_time")
@@ -184,6 +200,18 @@ H <- lapply(names(mods), function(x) {
 })
 names(H) <- names(mods)
 share_mom_linked <- mean(!is.na(S$mom_sec))
+# North vs south: girl x north among sets in the two regions
+mNS <- f_fe("unpaid_domestic", d = S[!is.na(north)], rhs = "girl + girl:north")
+k_ns <- coef_of(mNS, "girl:north")
+# Proxy: girl x proxy-reported diary within sets
+mPX <- f_fe("unpaid_domestic", rhs = "girl + proxy_report + girl:proxy_report")
+k_px <- coef_of(mPX, "girl:proxy_report")
+# Son-preference states: girl x low sex ratio at birth; and girl x continuous SRB (per 25 girls per 1,000 boys)
+mSP <- f_fe("unpaid_domestic", d = S[!is.na(low_srb)], rhs = "girl + girl:low_srb")
+k_sp <- coef_of(mSP, "girl:low_srb"); k_sp_lo <- lin2(mSP, "girl", "girl:low_srb"); k_sp_hi <- coef_of(mSP, "girl")
+mSZ <- f_fe("unpaid_domestic", d = S[!is.na(srb_z)], rhs = "girl + girl:srb_z")
+k_sz <- coef_of(mSZ, "girl:srb_z")
+share_low_srb <- wmean(S$low_srb, S$weight)
 
 # Robustness and fertility-stopping selection
 uw <- function(y, d = S) tryCatch(feols(as.formula(paste(y, "~ girl + i(age_f) | sib_id")), d, cluster = ~fsu), error = function(e) NULL)
@@ -198,6 +226,9 @@ specs <- list(
   eboy     = list(lab = "Eldest child is a boy", f = function(y) fe_sub(y, K[eldest_girl_set == 0])),
   egirl    = list(lab = "Eldest child is a girl", f = function(y) fe_sub(y, K[eldest_girl_set == 1])),
   self     = list(lab = "Self-reported diaries only", f = function(y) fe_sub(y, K[proxy_report == 0])),
+  proxy    = list(lab = "Proxy-reported diaries only", f = function(y) fe_sub(y, K[proxy_report == 1])),
+  north    = list(lab = "North and north-west states", f = function(y) fe_sub(y, K[region == "north"])),
+  south    = list(lab = "Southern states", f = function(y) fe_sub(y, K[region == "south"])),
   wkday    = list(lab = "Monday--Saturday diaries", f = function(y) fe_sub(y, K[sunday == 0])),
   sun      = list(lab = "Sunday diaries", f = function(y) fe_sub(y, K[sunday == 1])),
   unw      = list(lab = "Unweighted", f = function(y) uw(y)))
@@ -205,6 +236,12 @@ if (has_typeday) specs$normal <- list(lab = "Normal routine days only",
                                       f = function(y) fe_sub(y, K[type_day == CODE$type_of_day["normal"]]))
 RB <- lapply(specs, function(s) lapply(setNames(het_y, het_y), function(y) { m <- s$f(y); c(coef_of(m, "girl"), n = if (is.null(m)) NA else nobs(m)) }))
 stable_two <- close_to(RB$two$unpaid_domestic, k_dom); stable_eboy <- close_to(RB$eboy$unpaid_domestic, k_dom)
+# "persists": same sign, significant at 5%, and at least half the baseline magnitude
+persists <- function(e, b) isTRUE(!is.na(e$est) && !is.na(b$est) && sign(e$est) == sign(b$est) && is_sig(e) && abs(e$est) >= 0.5 * abs(b$est))
+persist_two <- persists(RB$two$unpaid_domestic, k_dom); persist_eboy <- persists(RB$eboy$unpaid_domestic, k_dom)
+rob_alt <- setdiff(names(RB), "base")
+n_sig_dom <- sum(sapply(rob_alt, function(s) { e <- RB[[s]]$unpaid_domestic; isTRUE(!is.na(e$est) && sign(e$est) == sign(k_dom$est) && is_sig(e)) }))
+rng_dom <- range(sapply(rob_alt, function(s) RB[[s]]$unpaid_domestic$est), na.rm = TRUE)
 stable_self <- close_to(RB$self$unpaid_domestic, k_dom); stable_rank <- close_to(RB$rank$unpaid_domestic, k_dom)
 n_robust_dom <- sum(sapply(setdiff(names(RB), "base"), function(s) close_to(RB[[s]]$unpaid_domestic, k_dom)))
 
@@ -241,14 +278,14 @@ eldest_dau <- is_pos(k_el$unpaid_domestic)
 ```
 
 \begin{abstract}
-Son preference in India is documented in sex ratios, child mortality, nutrition, health care and breastfeeding. Much less is known about how households allocate children's own time. I use India's Time Use Survey 2024, which records a 24-hour diary for every household member aged six and above, to compare sisters and brothers aged 6 to 17 in the same sibling set. Sibling-set fixed effects absorb everything the children share, including income, caste, location and parental preferences. Among `r fn(nrow(S))` children in `r fn(uniqueN(S$sib_id))` mixed-sex sets, girls do `r f1(abs(k_dom$est))` `r more_less(k_dom$est, "more", "fewer")` minutes of unpaid domestic work a day than their brothers (SE `r f1(k_dom$se)`), `r f1(abs(k_care$est))` `r more_less(k_care$est, "more", "fewer")` minutes of caregiving (SE `r f1(k_care$se)`) and `r f1(abs(k_learn$est))` `r more_less(k_learn$est, "more", "fewer")` minutes of learning (SE `r f1(k_learn$se)`), and have `r f1(abs(k_free$est))` `r more_less(k_free$est, "more", "fewer")` minutes of free time (SE `r f1(k_free$se)`). `r iff(age_grows, "The domestic-work gap is larger at ages 15 to 17 than at ages 6 to 10, so the gendered division of household labour takes shape before most girls marry.", "The domestic-work gap at ages 15 to 17 is not significantly larger than at ages 6 to 10.")` `r iff(eldest_dau, "The gap between eldest daughters and eldest sons is larger than the gap between younger sisters and brothers.", "The gap between eldest daughters and eldest sons is not significantly larger than the gap between younger sisters and brothers.")` `r iff(stable_two && stable_eboy, "The domestic-work gap is similar in two-child sets and in sets whose eldest child is a boy, which limits the role of fertility-stopping selection.", "Estimates in two-child sets and in sets whose eldest child is a boy differ from the baseline, so fertility-stopping selection cannot be ruled out as a source of the gap.")` Mothers' active childcare shows `r iff(is_sig(k_mo_act), "a significant", "no significant")` difference by the sex composition of their school-age children. `r iff(girls_dom || girls_learn_less, "Gender discrimination within Indian households extends from parental inputs to the allocation of daughters' own time.", "Within households, the allocation of children's time is less unequal than the parental-input literature would suggest.")`
-\keywords{son preference, child time use, siblings, domestic work, schooling, gender norms, India}
+Son preference in India is documented in sex ratios, mortality, nutrition and health care, but much less in how households allocate children's own time. Using 24-hour diaries from India's Time Use Survey 2024 and sibling-set fixed effects, which absorb everything siblings share, I compare sisters and brothers aged 6 to 17. Among `r fn(nrow(S))` children in `r fn(uniqueN(S$sib_id))` mixed-sex sets, girls do `r f1(abs(k_dom$est))` `r more_less(k_dom$est, "more", "fewer")` minutes of unpaid domestic work a day than their brothers (SE `r f1(k_dom$se)`) and have `r f1(abs(k_free$est))` `r more_less(k_free$est, "more", "fewer")` minutes of free time (SE `r f1(k_free$se)`). `r iff(age_grows, "The domestic-work gap widens with age, so the gendered division of household labour takes shape before most girls marry.", "The domestic-work gap does not widen significantly with age.")` `r iff(isTRUE(RB$egirl$unpaid_domestic$est < RB$eboy$unpaid_domestic$est), paste0("It is smallest in sets whose eldest child is a girl (", f1(RB$egirl$unpaid_domestic$est), " minutes) and larger where the eldest is a boy (", f1(RB$eboy$unpaid_domestic$est), "), consistent with eldest daughters taking on work that younger sisters would otherwise share."), paste0("It is ", f1(RB$egirl$unpaid_domestic$est), " minutes in sets whose eldest child is a girl and ", f1(RB$eboy$unpaid_domestic$est), " where the eldest is a boy."))` `r iff(girls_dom || girls_learn_less, "Within Indian households, the gender division of domestic work begins in childhood.", "Within households, the allocation of children's time is less unequal than the parental-input literature would suggest.")`
+\keywords{son preference, child time use, siblings, domestic work, gender norms, India}
 \jel{J13, J16, O15, I25, D13}
 \end{abstract}
 
 \newpage
 
-# Introduction
+# Introduction {#sec:s1}
 
 Son preference is among the most extensively documented forms of gender discrimination in India. It appears in the deficit of women in the population [@sen1990missing; @anderson2010missing], in male-biased sex ratios at birth [@jha2006low; @guilmoto2009sex], in excess mortality of girls [@dasgupta1987selective; @rose1999consumption], in fertility behaviour that depends on the sex of the children already born [@arnold1998son; @clark2000son; @jayachandran2017fertility], and in parental investments in girls' nutrition, immunisation and health care [@behrman1988intrahousehold; @pande2003selective; @mishra2004sex; @oster2009access]. Within the household, girls are breastfed for shorter periods [@jayachandran2011breastfeed], receive less childcare time and fewer health inputs than boys [@barcellos2014child], and are on average shorter than their brothers in ways that depend on birth order [@jayachandran2017short].
 
@@ -260,23 +297,21 @@ I compare girls and boys aged 6 to 17 within the same sibling set: the never-mar
 
 The fixed effect does not remove all selection. Which children are born, survive and live at home is itself shaped by son preference. Families that stop having children once they have a son produce mixed-sex sets in which daughters are, on average, older than their brothers [@yamaguchi1989formal; @kugler2017preference]. If older children do more household work for reasons unrelated to sex [@edmonds2006sibling; @emerson2008birth], a within-set comparison could confound sex with birth order. I address this in four ways: by controlling for age rank within the set, by estimating eldest-daughter effects directly, by restricting the sample to two-child sets, and by comparing sets whose eldest child is a boy, where the stopping rule after a son cannot have produced the girl-first ordering, with sets whose eldest child is a girl.
 
-The estimates are as follows. Within mixed-sex sibling sets, girls do `r diff_txt(k_dom)` unpaid domestic work per day than their brothers and `r diff_txt(k_care)` caregiving. They spend `r diff_txt(k_learn)` time in learning and have `r diff_txt(k_free)` free time. Brothers' mean domestic work is `r f0(mean_b("unpaid_domestic"))` minutes a day. `r iff(girls_dom && isTRUE(ratio_dom >= 1), paste0("The gap is therefore large relative to the base: it is ", f1(ratio_dom), " times their brothers' mean."), iff(girls_dom, paste0("The gap equals ", pct(ratio_dom, 0), " of their brothers' mean."), "The domestic-work gap is not statistically distinguishable from zero."))` `r iff(age_est_ok, paste0("By age, the domestic-work gap is ", est_se(ba("unpaid_domestic", "6-10")), " at ages 6 to 10 and ", est_se(ba("unpaid_domestic", "15-17")), " at ages 15 to 17."), "The domestic-work gap by age group is not estimable in this sample.")` `r iff(age_grows, "The gendered division of domestic labour thus widens through adolescence, well before marriage.", "The difference between the two age groups is not statistically significant.")` `r iff(stable_two && stable_eboy, "The domestic-work gap in two-child sets and in sets with an elder brother lies close to the baseline, which is hard to reconcile with an explanation based on fertility stopping alone.", "The domestic-work gap in two-child sets or in sets with an elder brother departs from the baseline, so I treat the selection created by fertility stopping as a live concern.")` For mothers, I find `r iff(is_sig(k_mo_act), "a significant", "no significant")` association between having only daughters among co-resident children aged 6 to 17 and active childcare; the difference is `r est_se(k_mo_act)`.
+The estimates are as follows. Within mixed-sex sibling sets, girls do `r diff_txt(k_dom)` unpaid domestic work per day than their brothers and `r diff_txt(k_care)` caregiving. They spend `r diff_txt(k_learn)` time in learning and have `r diff_txt(k_free)` free time. Brothers' mean domestic work is `r f1(mean_b("unpaid_domestic"))` minutes a day. `r iff(girls_dom && isTRUE(ratio_dom >= 1), paste0("The gap is therefore large relative to the base: it is ", f1(ratio_dom), " times their brothers' mean."), iff(girls_dom, paste0("The gap equals ", pct(ratio_dom, 0), " of their brothers' mean."), "The domestic-work gap is not statistically distinguishable from zero."))` `r iff(age_est_ok, paste0("By age, the domestic-work gap is ", est_se(ba("unpaid_domestic", "6-10")), " at ages 6 to 10 and ", est_se(ba("unpaid_domestic", "15-17")), " at ages 15 to 17."), "The domestic-work gap by age group is not estimable in this sample.")` `r iff(age_grows, "The gendered division of domestic labour thus widens through adolescence, well before marriage.", "The difference between the two age groups is not statistically significant.")` `r iff(stable_two && stable_eboy, "The domestic-work gap in two-child sets and in sets with an elder brother lies close to the baseline, which is hard to reconcile with an explanation based on fertility stopping alone.", iff(persist_two && persist_eboy, "The domestic-work gap in two-child sets and in sets with an elder brother is smaller than the baseline but remains large and significant, so fertility stopping can account for at most part of it.", "The domestic-work gap in two-child sets or in sets with an elder brother departs from the baseline, so I treat the selection created by fertility stopping as a live concern."))` For mothers, I find `r iff(is_sig(k_mo_act), "a significant", "no significant")` association between having only daughters among co-resident children aged 6 to 17 and active childcare; the difference is `r est_se(k_mo_act)`.
 
-The paper makes three contributions. First, it adds children's own time to the evidence on son preference and intrahousehold discrimination in India, which has focused on survival, nutrition, health and education spending [@dasgupta1987selective; @behrman1988intrahousehold; @kingdon2005bias; @barcellos2014child; @azam2013girls]. Time is an input whose allocation is visible in a single diary and that does not depend on prices or on the assignment of shared goods, which has made expenditure-based tests of discrimination hard to interpret [@deaton1989looking]. Second, it measures the full day, so that any gap in domestic work can be traced to the activities it displaces. Because each diary sums to 1,440 minutes, the within-sibling gaps across all nine ICATUS divisions sum to zero, and the paper reports the complete reallocation rather than a single outcome. Third, it documents when the adult gender gap in unpaid work [@hirway2011understanding] emerges, by single-year age and by birth order within the family, which bears on the formation of gender norms in adolescence [@dhar2022reshaping; @beaman2012female].
-
-The rest of the paper is organised as follows. Section \ref{sec:lit} reviews the evidence on son preference, children's work, adolescent norms and sibling designs. Section \ref{sec:data} describes the data and the construction of sibling sets. Section \ref{sec:strategy} sets out the empirical strategy and the threats to it. Section \ref{sec:results} reports the main results, the reallocation of the day, the age profile, birth order and heterogeneity. Section \ref{sec:robust} examines fertility-stopping selection and other robustness checks. Section \ref{sec:mothers} turns to mothers' time. Section \ref{sec:discussion} discusses interpretation and policy, and Section \ref{sec:conclusion} concludes.
+The paper makes three contributions. The gender gap in Indian children's housework is already documented across households [@lin2013son; @unicef2024time; @vikram2023time]. First, by comparing sisters and brothers in the same household, it holds constant the household-level differences that confound those comparisons, and it adds this within-household evidence on children's time to the literature on son preference in India, which has focused on survival, nutrition, health and education spending [@dasgupta1987selective; @behrman1988intrahousehold; @kingdon2005bias; @barcellos2014child; @azam2013girls]. Second, it measures the full day, so that any gap in domestic work can be traced to the activities it displaces. Because all but `r fn(V$n_diaries_not1440)` of the `r fn(V$n_diarists)` diaries sum to 1,440 minutes, the within-sibling gaps across all nine ICATUS divisions sum to zero, and the paper reports the complete reallocation rather than a single outcome. Third, it documents when the adult gender gap in unpaid work [@hirway2011understanding] emerges, by single-year age and by birth order within the family, which bears on the formation of gender norms in adolescence [@dhar2022reshaping; @beaman2012female].
 
 # Background and related literature {#sec:lit}
 
 ## Son preference: sex ratios, mortality and fertility stopping
 
-@sen1990missing estimated that, given the sex ratios found where women and men receive similar care, more than 100 million women were missing from the populations of Asia and North Africa, with India a large contributor. @anderson2010missing show that excess female mortality in India is not confined to birth and early childhood but extends into adult ages. Within India, the deficit of girls has long been concentrated in the north-west. @miller1981endangered documented the neglect of female children in rural north India, and @dyson1983kinship related the contrast between north and south to differences in kinship systems and in women's autonomy. @dasgupta2003persistent argue that son preference in China, India and the Republic of Korea is rooted in patrilineal and patrilocal family systems in which sons stay with and support their parents while daughters marry out.
+@sen1990missing estimated that, given the sex ratios found where women and men receive similar care, more than 100 million women were missing from the populations of Asia and North Africa, with India a large contributor. Within India, the deficit of girls has long been concentrated in the north-west. @miller1981endangered documented the neglect of female children in rural north India, and @dyson1983kinship related the contrast between north and south to differences in kinship systems and in women's autonomy. @dasgupta2003persistent argue that son preference in China, India and the Republic of Korea is rooted in patrilineal and patrilocal family systems in which sons stay with and support their parents while daughters marry out.
 
-Son preference operates through fertility as well as through survival. @arnold1998son show that the sex composition of surviving children shapes the family-building process in India, and @clark2000son that couples' fertility depends on the number of sons they already have. When desired family size falls, the conflict between having few children and having a son intensifies, and sex selection rises [@jayachandran2017fertility; @guilmoto2009sex]. @jha2006low find that the sex ratio of second and third births in India is heavily male-biased when the earlier children were girls, but not when they were boys. Policy can shift the trade-off: @anukriti2018financial shows that financial incentives in Haryana that rewarded small families lowered fertility while raising the share of sons. The spread of prenatal sex determination changed which girls are born, and @hu2015prenatal find improvements in the nutritional status of girls relative to boys as it spread. The cost of son preference also falls on mothers: @milazzo2018adult links son-biased fertility behaviour to shorter birth spacing and higher maternal mortality, and @rosenblum2013effect links excess female child mortality to parents' fertility decisions.
+Son preference operates through fertility as well as through survival. @arnold1998son show that the sex composition of surviving children shapes the family-building process in India, and @clark2000son that couples' fertility depends on the number of sons they already have. When desired family size falls, the conflict between having few children and having a son intensifies, and sex selection rises [@jayachandran2017fertility; @guilmoto2009sex]. @jha2006low find that the sex ratio of second and third births in India is heavily male-biased when the earlier children were girls, but not when they were boys. The cost of son preference also falls on mothers: @milazzo2018adult links son-biased fertility behaviour to shorter birth spacing and higher maternal mortality.
 
 ## Inputs to girls: nutrition, health, breastfeeding and birth order
 
-A second strand looks inside the household. @rosenzweig1982market show that the survival advantage of boys over girls in rural India is smaller where women's expected labour market returns are higher. @behrman1988intrahousehold finds that boys are favoured in the allocation of nutrients in the lean season. @dasgupta1987selective shows that in rural Punjab the excess mortality of girls is concentrated among girls born to mothers who already have daughters. @pande2003selective finds that girls' nutrition and immunisation depend on the sex composition of their older siblings, and @mishra2004sex document sex differentials in feeding, health care and nutritional status across India. @jayachandran2011breastfeed show that girls are breastfed for shorter periods because mothers who have not yet had the desired number of sons stop breastfeeding sooner in order to conceive again. @barcellos2014child find that boys receive more childcare time and more health inputs than girls. @oster2009access shows that the size of gender gaps in children's health investments depends on the cost of access to care. @jayachandran2017short show that the height disadvantage of Indian children relative to children in sub-Saharan Africa emerges with second and later births, and that eldest sons in India have a height advantage, which they relate to son preference and the parental resources concentrated on the eldest son.
+A second strand looks inside the household. @rosenzweig1982market show that the survival advantage of boys over girls in rural India is smaller where women's expected labour market returns are higher. @behrman1988intrahousehold finds that boys are favoured in the allocation of nutrients in the lean season. @dasgupta1987selective shows that in rural Punjab the excess mortality of girls is concentrated among girls born to mothers who already have daughters. @pande2003selective finds that girls' nutrition and immunisation depend on the sex composition of their older siblings, and @mishra2004sex document sex differentials in feeding, health care and nutritional status across India. @jayachandran2011breastfeed show that girls are breastfed for shorter periods because mothers who have not yet had the desired number of sons stop breastfeeding sooner in order to conceive again. @barcellos2014child find that boys receive more childcare time and more health inputs than girls. @jayachandran2017short show that the height disadvantage of Indian children relative to children in sub-Saharan Africa emerges with second and later births, and that eldest sons in India have a height advantage, which they relate to son preference and the parental resources concentrated on the eldest son.
 
 Expenditure-based tests of discrimination have been harder to interpret. @deaton1989looking proposed testing whether the arrival of a boy or a girl reduces spending on adult goods by different amounts; such tests often fail to detect discrimination that appears in mortality and health. For education, @kingdon2002gender documents a large gender gap in educational attainment in India and asks how much of it observed characteristics can explain, and @kingdon2005bias and @azam2013girls find evidence of pro-boy bias in household spending on education, concentrated in particular states and age groups. Policy that lowers the cost of attending school can narrow the gender gap: @muralidharan2017cycling show that a programme providing bicycles to girls in Bihar raised girls' secondary-school enrolment.
 
@@ -284,17 +319,19 @@ Two features of this literature matter for the present paper. First, gaps in par
 
 ## Children's work, domestic chores and schooling
 
-The economics of child labour has concentrated on work for pay and in family enterprises. @basu1998economics model households that send children to work only when adult income is too low, and @basu1999child and @edmonds2008child review the theory and evidence. @edmonds2008child emphasises that most working children work for their own households, and that domestic chores are often left out of child-labour measures even though they take a large share of children's time, particularly girls'. @webbink2012hidden compare housework and family-business work of children across 16 developing countries and find that girls do more housework than boys. @assaad2010effect show for Egypt that girls' domestic work reduces their schooling and that measures of child labour that exclude domestic work understate girls' work.
+The economics of child labour has concentrated on work for pay and in family enterprises. @basu1998economics model households that send children to work only when adult income is too low, and @basu1999child and @edmonds2008child review the theory and evidence. @edmonds2008child emphasises that most working children work for their own households, and that domestic chores are often left out of child-labour measures even though they take a large share of children's time, particularly girls'. @assaad2010effect show for Egypt that girls' domestic work reduces their schooling and that measures of child labour that exclude domestic work understate girls' work.
 
-Sibling differences in child work depend on birth order and sex. @edmonds2006sibling uses data from Nepal to study why siblings differ in child labour, including by birth order and sex. @emerson2008birth find for Brazil that earlier-born children are more likely to work and less likely to attend school. @parish1993daughters argue that in Taiwan older daughters' early entry into work helped finance their younger siblings' schooling. In India, evidence on children's domestic work comes mainly from participation questions in household surveys and from the official time-use reports [@nso2020tus; @nso2025tus], which report averages by sex and age but do not compare children within the same household. @hirway2011understanding use Indian time-use data to show how much of women's work is unpaid and unrecorded in conventional labour statistics.
+Closest to this paper is work on children's housework in India itself. @lin2013son use the third National Family Health Survey and find that girls' housework exceeds boys' by more where mothers state a stronger preference for sons. Using the 2019 Time Use Survey, @unicef2024time document that girls aged 6 to 17 spend far more time than boys on unpaid domestic and care work and that this work is associated with less learning, @vikram2023time relate the gender gap in children's time use to household adversity, and @mishra2024younger compare first- and second-born children in two-child households and find that first-born girls carry the most domestic work. These studies compare children across households. The contribution here is the within-household comparison of sisters and brothers and the accounting of the whole day.
+
+Sibling differences in child work depend on birth order and sex. @edmonds2006sibling uses data from Nepal to study why siblings differ in child labour, including by birth order and sex. @emerson2008birth find for Brazil that earlier-born children are more likely to work and less likely to attend school. In India, evidence on children's domestic work comes mainly from participation questions in household surveys and from the official time-use reports [@nso2020tus; @nso2025tus], which report averages by sex and age but do not compare children within the same household.
 
 ## Adolescence and the formation of gender norms
 
-Gender norms about who does housework are learned in the family. In @akerlof2000identity, behaviour that conforms to one's gender category carries identity value; in @bisin2001economics, parents invest in transmitting their own preferences to their children. @fernandez2004mothers show that men whose mothers worked are more likely to have working wives, and @alesina2013origins trace present-day attitudes about women's work to historical agricultural technology. In India, @dhar2019intergenerational find that adolescents' gender attitudes track those of their parents, and @dhar2022reshaping show that a school-based programme in Haryana made adolescents' gender attitudes more progressive and changed self-reported behaviour. @beaman2012female find that exposure to female village leaders in West Bengal raised parents' aspirations for their adolescent daughters, closed the gender gap in adolescents' educational attainment and reduced the time girls spent on household chores. Marriage is the point at which many Indian girls leave school: @field2008early show for Bangladesh that earlier marriage reduces schooling, @desai2010gender examine the gender scripts that shape age at marriage in India, and @jensen2012labor shows that recruiting services for jobs open to young women in Indian villages delayed women's marriage and childbearing and raised girls' school enrolment. Daughters' domestic work during adolescence is one of the channels through which these norms take effect [@jayachandran2015roots; @jayachandran2021social].
+Gender norms about housework are learned in the family [@akerlof2000identity], and Indian adolescents' gender attitudes track their parents' [@dhar2019intergenerational] but can be shifted by school programmes [@dhar2022reshaping] and by exposure to female leaders, which also reduced girls' time in household chores [@beaman2012female]. Marriage is the point at which many girls leave school [@field2008early; @jensen2012labor]. Daughters' domestic work in adolescence is one channel through which these norms take effect [@jayachandran2015roots].
 
 ## Sibling-composition designs and fertility-stopping selection
 
-The sex composition of siblings has been used both as a source of variation and as an outcome. @butcher1994effect find that women raised with only brothers attain more education, while @kaestner1997brothers revisits the evidence and finds little effect. @garg1998sibling and @morduch2000sibling show that, in Ghana and other African countries, children's health and schooling depend on whether their siblings are sisters or brothers, which they interpret as competition for household resources. @angrist1998children use the sex mix of the first two children as a source of exogenous variation in family size in the United States, and @dahl2008demand use the sex of the first-born child to measure parents' demand for sons. @black2005more show that birth order, rather than family size, matters for children's education in Norway. @lundberg2005sons reviews the evidence on how parents' behaviour depends on the sex of their children.
+The sex composition of siblings has been used both as a source of variation and as an outcome. @butcher1994effect find that women raised with only brothers attain more education. @garg1998sibling and @morduch2000sibling show that, in Ghana and other African countries, children's health and schooling depend on whether their siblings are sisters or brothers, which they interpret as competition for household resources. @angrist1998children use the sex mix of the first two children as a source of exogenous variation in family size in the United States, and @dahl2008demand use the sex of the first-born child to measure parents' demand for sons. @lundberg2005sons reviews the evidence on how parents' behaviour depends on the sex of their children.
 
 The validity of such designs rests on the sex of a child being as good as random. In India it is not. Son-preferring stopping rules imply that girls have more siblings on average than boys and that sons tend to be later-born [@yamaguchi1989formal; @basu2010son], and sex selection after the first birth changes which children are born [@jha2006low]. @kugler2017preference use the sex of the first-born child as an instrument for family size in India, on the grounds that the sex of the first-born child is close to random, and find that larger families reduce children's education. The design in this paper uses within-family variation, but which children co-reside is still selected. Section \ref{sec:strategy} discusses the implications, and Section \ref{sec:robust} reports tests.
 
@@ -302,7 +339,7 @@ The validity of such designs rests on the sex of a child being as good as random
 
 ## The Time Use Survey 2024
 
-The Time Use Survey 2024 was conducted by the National Statistics Office from January to December 2024 [@nso2025tus]. It follows the 2019 round [@nso2020tus] and covers a nationally representative sample of households. Every household member aged six and above reports a diary of the 24 hours from 4 a.m. on the day before the interview. Activities are coded at three digits to the ICATUS 2016 classification [@un2016icatus]. Where more than one activity is recorded in a time interval, one is flagged as the major activity. I use every activity record in the file (`r fn(V$n_rows)` records, `r fn(V$n_persons)` diaries in `r fn(V$n_households)` households and `r fn(V$n_fsu)` first-stage units), with no sampling of records. Minutes are computed from major activities only, so each diary should sum to 1,440 minutes; `r pct(V$share_diaries_1440)` of diaries satisfy this exactly. All estimates use the survey weights.
+The diaries come from the Time Use Survey 2024, fielded by the National Statistics Office throughout calendar year 2024 on a nationally representative sample of households [@nso2025tus]. Children are unusually well covered: every household member from age six reports a diary of the 24 hours from 4 a.m. on the day before the interview, so sisters and brothers are observed side by side. The survey repeats the design of the 2019 round [@nso2020tus]. I analyse 2024 alone because schooling and household circumstances changed with the pandemic; published 2019 analyses [@unicef2024time; @mishra2024younger] are a benchmark, and the online supplement replicates the gap in 2019. Activities are coded at three digits to the ICATUS 2016 classification [@un2016icatus]. Where more than one activity is recorded in a time interval, one is flagged as the major activity. I use every activity record in the file (`r fn(V$n_rows)` records, `r fn(V$n_diarists)` diaries in `r fn(V$n_households)` households and `r fn(V$n_fsu)` first-stage units), with no sampling of records. Minutes are computed from major activities only, so each diary should sum to 1,440 minutes; all but `r fn(V$n_diaries_not1440)` of the `r fn(V$n_diarists)` diaries do so exactly. The roster lists `r fn(V$n_roster_6plus)` persons aged six and above; `r fn(V$n_roster_only_age6plus)` of them have no diary records in the file, which leaves the `r fn(V$n_diarists)` diaries, and the `r fn(V$n_third_gender)` diaries of third-gender respondents are excluded from the comparisons of women and men. All estimates use the survey weights.
 
 The survey asks who reported each diary. Children's diaries are often reported by a parent. In the analysis sample, `r pct(share_proxy)` of diaries (weighted) were reported by another household member. I report results restricted to self-reported diaries in Section \ref{sec:robust}.
 
@@ -441,9 +478,140 @@ tab(et, caption = paste0("Birth order within the sibling set: minutes per day", 
     notes = "Each column is one regression on mixed-sex sets with sibling-set fixed effects, single-year age effects, an indicator for the eldest child in the set and its interaction with girl. The last row is the sum of the first and third rows (the girl-boy gap among eldest children). FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 ```
 
-Table \ref{tab:eldest} examines birth order. Among children who are not the eldest, girls do `r diff_txt(k_nel$unpaid_domestic)` domestic work than boys. Being the eldest changes a boy's domestic work by `r est_se(k_elb$unpaid_domestic)`, and the interaction of girl and eldest is `r est_se(k_el$unpaid_domestic)`. An eldest daughter does `r diff_txt(k_eld$unpaid_domestic)` domestic work than an eldest son. `r iff(eldest_dau, "The eldest daughter carries an extra share of the household's domestic work, over and above the gap between younger sisters and brothers. This pattern is consistent with eldest daughters substituting for their mothers in household work.", "The gap among eldest children is not significantly larger than among younger children, so the girl-boy gap is not concentrated on eldest daughters.")` For caregiving, the girl-by-eldest interaction is `r est_se(k_el$unpaid_care)`, and for learning `r est_se(k_el$learning)`. `r iff(is_pos(k_el$unpaid_care), "Eldest daughters in particular look after their younger siblings.", "")`
+Table \ref{tab:eldest} examines birth order. Among children who are not the eldest, girls do `r diff_txt(k_nel$unpaid_domestic)` domestic work than boys. Being the eldest changes a boy's domestic work by `r est_se(k_elb$unpaid_domestic)`, and the interaction of girl and eldest is `r est_se(k_el$unpaid_domestic)`. An eldest daughter does `r diff_txt(k_eld$unpaid_domestic)` domestic work than an eldest son. `r iff(eldest_dau, "The eldest daughter carries an extra share of the household's domestic work, over and above the gap between younger sisters and brothers. This pattern is consistent with eldest daughters substituting for their mothers in household work.", "The gap among eldest children is not significantly larger than among younger children, so the girl-boy gap is not concentrated on eldest daughters.")` The split by the sex of the eldest child (Table \ref{tab:robust}) gives a domestic-work gap of `r est_se(RB$egirl$unpaid_domestic)` in sets whose eldest child is a girl and `r est_se(RB$eboy$unpaid_domestic)` where the eldest is a boy. The two results answer different questions. Table \ref{tab:eldest} compares eldest with younger children across all sets; the split compares sisters and brothers within sets defined by the eldest child's sex. In girl-eldest sets, being a girl and being older coincide for the eldest child, so the age effects absorb part of her extra work, and the remaining girls are younger sisters, whose gap with their brothers may be small when an elder sister carries much of the load. Where the eldest is a boy, every daughter is younger than him and no elder sister shares her work. This reading matches the first-born-girl pattern that @mishra2024younger report for the 2019 survey, but the data cannot distinguish it from differences between the families in which each type of set arises. For caregiving, the girl-by-eldest interaction is `r est_se(k_el$unpaid_care)`, and for learning `r est_se(k_el$learning)`. `r iff(is_pos(k_el$unpaid_care), "Eldest daughters in particular look after their younger siblings.", "")`
 
-## Heterogeneity
+Table \ref{tab:het} in the online supplement reports heterogeneity by urban residence, consumption, parents' education, the presence of a child under six and the diary day.
+
+## School days and Sundays
+
+On Sunday diaries, the domestic-work gap differs from that on other days by `r est_se(H$sunday$int$unpaid_domestic)` and the learning gap by `r est_se(H$sunday$int$learning)`. Estimated separately (Table \ref{tab:robust}), the domestic-work gap is `r est_se(RB$wkday$unpaid_domestic)` on Monday to Saturday and `r est_se(RB$sun$unpaid_domestic)` on Sunday. `r iff(is_pos(H$sunday$int$unpaid_domestic), "The gap is larger on Sundays, when school does not limit the time available, which is consistent with school hours limiting how much domestic work girls can be given on school days; the comparison is across children interviewed on different days and is descriptive.", "The gap is not significantly larger on Sundays, so the school timetable does not appear to be what limits girls' domestic work on other days.")` `r iff(has_typeday, "The survey also asks whether the diary day was a normal routine day. Restricting the sample to normal days gives the estimates in Table \\ref{tab:robust}.", "")`
+
+# Fertility-stopping selection and robustness {#sec:robust}
+
+```{r tab-robust}
+rt <- data.frame(Specification = sapply(specs, `[[`, "lab"),
+                 t(sapply(names(specs), function(s) sapply(het_y, function(y) cell(RB[[s]][[y]])))),
+                 N = sapply(names(specs), function(s) fn(RB[[s]]$unpaid_domestic$n)), check.names = FALSE)
+names(rt) <- c("Specification", "Domestic", "Care", "Learning", "Free time", "N")
+tab(rt, caption = paste0("Robustness and fertility-stopping selection: girl minus boy, minutes per day", syn_note()), label = "robust",
+    align = c("l", "r", "r", "r", "r", "r"),
+    notes = "Sibling-set fixed effects and single-year age effects. Subsample rows re-define mixed-sex sets within the subsample. Eldest child: the unique oldest child aged 6--17 in the set. Self-reported: both the girl and the boy reported their own diary. N: children in the domestic-work regression. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+```
+
+The sibling sets in the data bear the marks of son-biased fertility. Among all children aged 6 to 17, there are `r f0(sexratio)` boys for every 100 girls (weighted). Girls live in sibling sets that are `r f2(abs(g_nsib$est))` children `r more_less(g_nsib$est, "larger", "smaller")` than boys' (SE `r f2(g_nsib$se)`). `r iff(is_pos(g_nsib), "This is the pattern a son-preferring stopping rule predicts [@yamaguchi1989formal; @basu2010son].", "A son-preferring stopping rule predicts that girls live in larger sets; the difference here is not significantly positive, which may reflect the truncation of sets at ages 6 to 17.")`
+
+Table \ref{tab:robust} reports the robustness checks. `r iff(n_sig_dom == length(rob_alt), paste0('All ', length(rob_alt), ' alternative specifications'), paste0(n_sig_dom, ' of the ', length(rob_alt), ' alternative specifications'))` give a girl-minus-boy domestic-work gap of the same sign as the baseline and significant at the 5 per cent level, ranging from `r f1(rng_dom[1])` to `r f1(rng_dom[2])` minutes; `r n_robust_dom` lie within the 95 per cent confidence interval of the baseline. In two-child sets, the domestic-work gap is `r est_se(RB$two$unpaid_domestic)`. In sets whose eldest child is a boy it is `r est_se(RB$eboy$unpaid_domestic)`, and in sets whose eldest child is a girl `r est_se(RB$egirl$unpaid_domestic)`. `r iff(stable_two && stable_eboy, "The gap is present where a girl has an older brother, which is the configuration that a stopping rule cannot produce by continuing childbearing in pursuit of a first son. A gap driven only by girls being elder siblings would vanish in these sets.", iff(persist_two && persist_eboy, "The gap remains large and significant where a girl has an older brother, the configuration that a stopping rule cannot produce by continuing childbearing in pursuit of a first son, although it is smaller than the baseline. Part of the baseline gap may reflect the birth-order structure created by fertility stopping, but most of it does not.", "The gap in sets with an elder brother or in two-child sets departs from the baseline. Part of the baseline gap may therefore reflect the birth-order structure created by fertility stopping rather than sex alone."))` For the head's own children only, which excludes sets that may contain cousins, the gap is `r est_se(RB$head$unpaid_domestic)`. In sets with no co-resident sibling aged 18 or older, it is `r est_se(RB$complete$unpaid_domestic)`.
+
+Proxy reporting is the norm for children: `r pct(share_proxy, 0)` of diaries in the analysis sample were reported by another household member, usually a parent. Among proxy-reported diaries the domestic-work gap is `r est_se(RB$proxy$unpaid_domestic)`, and the within-set interaction of girl and proxy report is `r est_se(k_px)`. `r iff(is_neg(k_px), "Proxy-reported diaries show a smaller gap than self-reported ones. Because children who report their own diaries are older and the gap grows steeply with age, this comparison does not separate reporting from age, but it gives no sign that proxy reporting inflates the gap.", iff(is_pos(k_px), "Proxy-reported diaries show a larger gap, so part of the measured difference may reflect how parents describe their children's days.", "The gap does not differ significantly by who reported the diary."))`
+
+States differ in the strength of son preference. As a state-level measure I use the sex ratio at birth for children born in the five years before each National Family Health Survey, averaged over the 2015--16 and 2019--21 state fact sheets [@iips2017nfhs4; @iips2021nfhs5]. In states with fewer than `r srb_cut` girls per 1,000 boys at birth, which hold `r pct(share_low_srb, 0)` of the children in the sample, the domestic-work gap is `r est_se(k_sp_lo)`, against `r est_se(k_sp_hi)` elsewhere; the difference is `r est_se(k_sp)`. Using the sex ratio as a continuous measure, a fall of 25 girls per 1,000 boys is associated with a change in the gap of `r est_se(list(est = -k_sz$est, se = k_sz$se, p = k_sz$p))`. `r sp_up <- is_pos(k_sp) || is_neg(k_sz); sp_dn <- is_neg(k_sp) || is_pos(k_sz); iff(sp_up && !sp_dn, "The gap between sisters and brothers is larger where son preference, as revealed in sex ratios at birth, is stronger.", iff(sp_dn && !sp_up, "The gap is, if anything, smaller where sex ratios at birth are more male-biased, so the division of children's domestic work does not track this measure of son preference.", iff(sp_up && sp_dn, "The two versions of the measure point in opposite directions, so the evidence does not show that the gap tracks state-level son preference as measured by sex ratios at birth.", "The gap does not vary significantly with the state sex ratio at birth.")))` State sex ratios are noisy in survey data and summarise many differences between states, so this is a test of association, not of mechanism.
+
+By region, the domestic-work gap is `r est_se(RB$north$unpaid_domestic)` in the north and north-west and `r est_se(RB$south$unpaid_domestic)` in the southern states; the within-set difference between the two is `r est_se(k_ns)`. `r iff(is_pos(k_ns), "The gap is larger where son preference has historically been strongest [@dyson1983kinship; @miller1981endangered], as a son-preference account predicts, although the regions differ in many other ways.", iff(is_neg(k_ns), "The gap is smaller in the north, which does not follow the regional pattern of son preference in sex ratios; the regions differ in many other ways.", "The gap does not differ significantly between the two regions, so the division of domestic work among children is more widespread than the regional pattern of sex ratios."))`
+
+Restricting the sample to sets in which both a girl and a boy reported their own diary gives `r est_se(RB$self$unpaid_domestic)`. `r iff(stable_self, "Proxy reporting by parents does not appear to create the gap.", "The estimate on self-reported diaries departs from the baseline, so proxy reporting may contribute to the measured gap, or self-reporting children may differ from others.")` Adding child-level day-of-week indicators gives `r est_se(RB$dow$unpaid_domestic)`, and restricting the sample to sets in which all siblings report the same diary day gives `r est_se(RB$sameday$unpaid_domestic)`. The unweighted estimate is `r est_se(RB$unw$unpaid_domestic)`.
+
+These checks address the selection that operates within the observed sibling set. They cannot address the selection created by which girls were born and survived, or by girls who married or moved before the survey. If the girls who are missing from the sample are those whose families most disfavoured daughters, the remaining girls come from relatively less discriminating families, and the estimated gaps would understate the gap that would be observed if every girl had been born and stayed at home. Sex selection, as @hu2015prenatal argue for nutrition, can improve the average circumstances of the girls who are born.
+
+# Discussion {#sec:discussion}
+
+## Interpretation
+
+`r iff(girls_dom, "Daughters in India do more of the household's domestic work than their brothers of the same age in the same household", "Within-household differences between daughters and sons in domestic work are modest")`, and the sibling design rules out explanations based on differences between families. What the design does not settle is why. Three explanations fit a within-family gap.
+
+The first is son preference in the narrow sense: parents value sons' well-being or future more and allocate scarce study and leisure time accordingly. Patrilocal marriage, under which daughters leave the household and sons stay, gives parents a reason to invest more in sons' schooling [@dasgupta2003persistent; @kingdon2005bias]. The second is a norm about tasks that is independent of how much parents value each child: girls cook and clean because that is what girls do, and identity costs attach to departures from it [@akerlof2000identity; @jayachandran2015roots]. The third is specialisation on expected comparative advantage: if parents expect daughters to run a household as adults and sons to work for pay, training daughters in domestic tasks may look like an investment in the daughter rather than a cost to her [@becker1991treatise; @pitt1990productivity].
+
+The evidence in this paper speaks to these explanations only indirectly. `r iff(girls_learn_less, "That girls also spend less time on learning shows that the domestic burden competes with the activity most closely tied to children's future earnings.", "That girls' learning time is not significantly lower than their brothers' means that the domestic burden competes mainly with free time and rest rather than with education.")` `r iff(is_pos(H$rich$tot$unpaid_domestic) && is_pos(H$urban$tot$unpaid_domestic), "The presence of the gap in urban and richer households, where the household's demand for children's work is plausibly lower, points to norms or preferences rather than to scarcity alone.", "")` `r iff(eldest_dau, "The additional load on eldest daughters fits a model in which daughters substitute for mothers when there is work to be done.", "")` A formal test between the explanations would require variation in the returns to girls' education or in norms, such as the variation used by @jensen2012labor and @beaman2012female.
+
+## Policy
+
+Programmes that aim to keep girls in school, such as conditional transfers or the bicycle programme studied by @muralidharan2017cycling, measure success by enrolment and attendance. The results here suggest also measuring what happens to girls' time outside school. If a girl's domestic load is fixed by the household's needs and by norms, attending school may reduce her free time and rest rather than her domestic work. Interventions that work on norms in adolescence, such as the school curriculum studied by @dhar2022reshaping, can target the division of household tasks between sisters and brothers directly, and girls' domestic workload is a natural outcome measure for them. The official SDG indicator on unpaid domestic and care work is reported by sex and age, and the national time-use reports [@nso2025tus] can report children's unpaid work separately so that the age at which the adult gap opens is visible in official statistics.
+
+## Limitations
+
+The survey records one diary day per person. A single day measures the average day in a population well but measures each child's usual day with error. `r iff(share_same_day > 0.95, "Because sisters and brothers report the same day in almost all sets, the error is common to them and is absorbed by the fixed effect when it reflects the day itself, but not when it reflects child-specific variation.", "Where siblings report the same day, the error is common to them and is absorbed by the fixed effect when it reflects the day itself, but not when it reflects child-specific variation.")` Children under six keep no diary, so the analysis starts at age six, after some of the processes that shape girls' health and nutrition have already run their course. Children who live away from their parents, including girls who married before 18 and children sent to relatives or to boarding schools, are not observed. The survey does not record which child a parent's care is directed to, so the parental analysis relies on sex composition and cannot be estimated within the family. Finally, the regional comparison in Section \ref{sec:robust} uses broad groups of states and cannot separate son preference from other regional differences in household economies.
+
+# Conclusion {#sec:conclusion}
+
+Most evidence on son preference in India measures what parents give to sons and to daughters. This paper measures what households ask of them. Comparing sisters and brothers aged 6 to 17 in the same household with full-day diaries from the Time Use Survey 2024, I find that girls do `r diff_txt(k_dom)` domestic work and `r diff_txt(k_care)` caregiving than their brothers, with `r diff_txt(k_learn)` time in learning and `r diff_txt(k_free)` free time. `r iff(age_grows, "The domestic-work gap widens through adolescence.", "The domestic-work gap does not widen significantly through adolescence.")` `r iff(stable_two && stable_eboy, "It is present in two-child sets and in sets with an elder brother, so it is not an artefact of fertility stopping.", iff(persist_two && persist_eboy, "It is smaller but still large and significant in two-child sets and in sets with an elder brother, so it is not mainly an artefact of fertility stopping.", "It is sensitive to restrictions that address fertility stopping, so part of it may reflect birth order rather than sex."))` The time a girl spends on household work is a measure of gender discrimination that can be collected in any time-use survey, compared across countries and survey rounds, and used to evaluate programmes aimed at adolescent girls.
+
+\newpage
+
+# Funding {-}
+
+No funding was received for this work.
+
+# Disclosure statement {-}
+
+The author reports there are no competing interests to declare.
+
+# Declaration of generative AI use {-}
+
+Generative AI tools (Claude, Anthropic) were used to assist with writing and debugging analysis code, checking references, and drafting and editing text. The author reviewed and verified all analyses, results, and text, and takes full responsibility for the content.
+
+# Data availability statement {-}
+
+The Time Use Survey 2024 unit-level data are distributed by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India (microdata.gov.in, catalogue 236), to registered users. Code available from the author on request; will be made public on acceptance.
+
+# References {-}
+
+::: {#refs}
+:::
+
+\newpage
+\appendix
+
+# Appendix {-}
+
+## Replication in the 2019 survey {-}
+
+With one harmonised specification in both rounds (children of the head aged 10 to 17 in households with at least one girl and one boy in that group, household, age and diary-day fixed effects), girls do `r est_se(cmp("06", "girl_gap_domestic_sibfe", 2019))` more unpaid domestic work than their brothers in 2019 (`r fn(cmp("06", "girl_gap_domestic_sibfe", 2019)$n)` children) and `r est_se(cmp("06", "girl_gap_domestic_sibfe", 2024))` in 2024 (`r fn(cmp("06", "girl_gap_domestic_sibfe", 2024)$n)` children) [@nso2020tus; @nso2025tus]. This specification differs from the main sibling sample, so the levels are not comparable to the main estimates; the point is that a large within-household gap appears in both rounds, `r iff(isTRUE(cmp("06", "girl_gap_domestic_sibfe", 2024)$est < cmp("06", "girl_gap_domestic_sibfe", 2019)$est - 1.96 * sqrt(cmp("06", "girl_gap_domestic_sibfe", 2019)$se^2 + cmp("06", "girl_gap_domestic_sibfe", 2024)$se^2)), "somewhat smaller in 2024", "with no significant change")`.
+
+```{r tab-flow}
+tab(diary_flow_table(pd), caption = "From the household roster to the analysed diaries", label = "flow", align = c("l", "r"),
+    notes = "All counts are computed from the microdata at knit time. Persons without diary records appear only on the household roster.")
+```
+
+```{r tab-codes}
+tab(codes_table(c("paid_work","work_travel","ownuse_goods","dom_food","dom_cleaning","dom_textiles","dom_shopping","unpaid_domestic","care_child","care_dep_adult","unpaid_care","learning","free_time","sleep"), c("Employment","Employment-related travel","Own-use production of goods","Food and meals","Cleaning and upkeep","Care of textiles","Shopping","Unpaid domestic services (division 3)","Childcare","Care of dependent adults","Unpaid caregiving (division 4)","Learning","Free time (divisions 7 and 8)","Sleep")), caption = "Activity categories and ICATUS 2016 codes", label = "codes", align = c("l", "l"),
+    notes = "Minutes are summed over major activities in the person-day diary. Codes are three-digit ICATUS 2016 codes as recorded in the survey.")
+```
+
+```{r tab-sample}
+sm <- data.frame(Step = c("Diaries in the file", "Diaries of women and men (third-gender diaries excluded)", "Children aged 6--17, never married, children or grandchildren of the head",
+                          "In a set with at least two children aged 6--17", "In a mixed-sex set (fixed-effects sample)",
+                          "Mixed-sex sets", "Mixed-sex sets with a unique eldest child", "Children with a linked mother",
+                          "Linked mothers aged 20--49 (mothers' analysis)"),
+                 N = c(fn(V$n_diarists), fn(nrow(pd)), fn(nrow(K)), fn(sum(K$n_sib >= 2)), fn(nrow(S)), fn(uniqueN(S$sib_id)),
+                       fn(sum(!is.na(sets$eldest_girl_set))), fn(sum(!is.na(S$mom_pid))), fn(nrow(Mo))))
+tab(sm, caption = "Construction of the analysis samples", label = "sample", align = c("l", "r"),
+    notes = "A sibling set is the children with the same relationship to the head (child or grandchild) in the same household.")
+```
+
+```{r tab-validation}
+tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
+    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
+```
+
+## Mothers' time and the sex composition of children {#sec:mothers}
+
+```{r tab-mothers}
+mt <- data.frame(Outcome = mo_y,
+                 a = sapply(names(mo_y), function(y) cell(coef_of(mMo[[y]], "all_daughters"))),
+                 b = sapply(names(mo_y), function(y) cell(coef_of(mSub[[y]], "n_d1017"))),
+                 c = sapply(names(mo_y), function(y) .fmt(wmean(Mo[[y]], Mo$weight), 1)))
+names(mt) <- c("Mother's minutes per day", "All daughters (6--17)", "Daughters 10--17 (vs sons)", "Mean")
+tab(mt, caption = paste0("Mothers' time and the sex composition of their co-resident children", syn_note()), label = "mothers",
+    align = c("l", "r", "r", "r"),
+    notes = paste0("Linked mothers aged 20--49 with at least one co-resident child aged 6--17 (N = ", fn(nrow(Mo)), "). Column 1: indicator that all such children are daughters. Column 2: number of daughters aged 10--17, controlling for the number of children aged 10--17 (so the coefficient compares a daughter with a son). Controls: mother's age band and education, urban, consumption quintile, number of children aged 6--17, members under six, employment (except for the employment outcome), proxy report, and state and day-of-week fixed effects. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
+```
+
+The sibling comparison holds the parents fixed, so it cannot show whether parents' own time depends on the sex of their children. Table \ref{tab:mothers} compares mothers whose co-resident children aged 6 to 17 are all daughters with mothers who have at least one such son, conditional on the number of children and household characteristics. Mothers of only daughters do `r diff_txt(k_mo_act)` active childcare and `r diff_txt(k_mo_cc)` childcare in total. Their domestic work differs by `r est_se(k_mo_dom)` and their employment time by `r est_se(k_mo_emp)`.
+
+The second column asks whether daughters substitute for their mothers' domestic work. Conditional on the number of children aged 10 to 17, each adolescent daughter in place of an adolescent son is associated with `r diff_txt(k_sub_dom)` domestic work by the mother. `r iff(is_neg(k_sub_dom), "Mothers with adolescent daughters do less domestic work, which is consistent with daughters taking over part of their mothers' load.", "Mothers' domestic work does not fall significantly with the number of adolescent daughters relative to sons, so the data do not show daughters substituting for their mothers on this margin.")`
+
+These estimates lack a household fixed effect. Under son-biased stopping, mothers with only daughters differ from others in ways that may be related to their time use: they may have more children, may be more likely to be still having children, and may be in families with weaker or stronger son preference. I control for the number of children, the mother's age and household characteristics, but treat these results as secondary evidence.
+
+## Heterogeneity {#sec:het}
 
 ```{r tab-het}
 hrows <- do.call(rbind, lapply(names(mods), function(x) {
@@ -463,95 +631,3 @@ The gap is `r est_se(H$mom_sec$main$unpaid_domestic)` in sets whose mother has l
 
 Where a child under six lives in the household, the caregiving gap changes by `r est_se(H$has_under6$int$unpaid_care)`. `r iff(is_pos(H$has_under6$int$unpaid_care), "Older girls are drawn into the care of young children when there are young children to care for, which is the sibling-care channel through which a mother's fertility can affect her daughters' time.", "The caregiving gap does not rise significantly when there is a young child in the household.")`
 
-## School days and Sundays
-
-On Sunday diaries, the domestic-work gap differs from that on other days by `r est_se(H$sunday$int$unpaid_domestic)` and the learning gap by `r est_se(H$sunday$int$learning)`. Estimated separately (Table \ref{tab:robust}), the domestic-work gap is `r est_se(RB$wkday$unpaid_domestic)` on Monday to Saturday and `r est_se(RB$sun$unpaid_domestic)` on Sunday. `r iff(is_pos(H$sunday$int$unpaid_domestic), "The gap is larger on Sundays, when school does not limit the time available, which suggests that school attendance protects girls' time on school days and that girls' domestic load expands to fill the time that school would otherwise occupy.", "The gap is not significantly larger on Sundays, so the school timetable does not appear to be what limits girls' domestic work on other days.")` `r iff(has_typeday, "The survey also asks whether the diary day was a normal routine day. Restricting the sample to normal days gives the estimates in Table \\ref{tab:robust}.", "")`
-
-# Fertility-stopping selection and robustness {#sec:robust}
-
-```{r tab-robust}
-rt <- data.frame(Specification = sapply(specs, `[[`, "lab"),
-                 t(sapply(names(specs), function(s) sapply(het_y, function(y) cell(RB[[s]][[y]])))),
-                 N = sapply(names(specs), function(s) fn(RB[[s]]$unpaid_domestic$n)), check.names = FALSE)
-names(rt) <- c("Specification", "Domestic", "Care", "Learning", "Free time", "N")
-tab(rt, caption = paste0("Robustness and fertility-stopping selection: girl minus boy, minutes per day", syn_note()), label = "robust",
-    align = c("l", "r", "r", "r", "r", "r"),
-    notes = "Sibling-set fixed effects and single-year age effects. Subsample rows re-define mixed-sex sets within the subsample. Eldest child: the unique oldest child aged 6--17 in the set. Self-reported: both the girl and the boy reported their own diary. N: children in the domestic-work regression. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
-```
-
-The sibling sets in the data bear the marks of son-biased fertility. Among all children aged 6 to 17, there are `r f0(sexratio)` boys for every 100 girls (weighted). Girls live in sibling sets that are `r f2(abs(g_nsib$est))` children `r more_less(g_nsib$est, "larger", "smaller")` than boys' (SE `r f2(g_nsib$se)`). `r iff(is_pos(g_nsib), "This is the pattern a son-preferring stopping rule predicts [@yamaguchi1989formal; @basu2010son].", "A son-preferring stopping rule predicts that girls live in larger sets; the difference here is not significantly positive, which may reflect the truncation of sets at ages 6 to 17.")`
-
-Table \ref{tab:robust} reports the robustness checks. Of the `r length(specs) - 1` alternative specifications, `r n_robust_dom` give a domestic-work gap of the same sign as the baseline and within the 95 per cent confidence interval of the alternative estimate. In two-child sets, the domestic-work gap is `r est_se(RB$two$unpaid_domestic)`. In sets whose eldest child is a boy it is `r est_se(RB$eboy$unpaid_domestic)`, and in sets whose eldest child is a girl `r est_se(RB$egirl$unpaid_domestic)`. `r iff(stable_two && stable_eboy, "The gap is present where a girl has an older brother, which is the configuration that a stopping rule cannot produce by continuing childbearing in pursuit of a first son. A gap driven only by girls being elder siblings would vanish in these sets.", "The gap in sets with an elder brother or in two-child sets departs from the baseline. Part of the baseline gap may therefore reflect the birth-order structure created by fertility stopping rather than sex alone.")` For the head's own children only, which excludes sets that may contain cousins, the gap is `r est_se(RB$head$unpaid_domestic)`. In sets with no co-resident sibling aged 18 or older, it is `r est_se(RB$complete$unpaid_domestic)`.
-
-Restricting the sample to sets in which both a girl and a boy reported their own diary gives `r est_se(RB$self$unpaid_domestic)`. `r iff(stable_self, "Proxy reporting by parents does not appear to create the gap.", "The estimate on self-reported diaries departs from the baseline, so proxy reporting may contribute to the measured gap, or self-reporting children may differ from others.")` Adding child-level day-of-week indicators gives `r est_se(RB$dow$unpaid_domestic)`, and restricting the sample to sets in which all siblings report the same diary day gives `r est_se(RB$sameday$unpaid_domestic)`. The unweighted estimate is `r est_se(RB$unw$unpaid_domestic)`.
-
-These checks address the selection that operates within the observed sibling set. They cannot address the selection created by which girls were born and survived, or by girls who married or moved before the survey. If the girls who are missing from the sample are those whose families most disfavoured daughters, the remaining girls come from relatively less discriminating families, and the estimated gaps would understate the gap that would be observed if every girl had been born and stayed at home. Sex selection, as @hu2015prenatal argue for nutrition, can improve the average circumstances of the girls who are born.
-
-# Mothers' time and the sex composition of children {#sec:mothers}
-
-```{r tab-mothers}
-mt <- data.frame(Outcome = mo_y,
-                 a = sapply(names(mo_y), function(y) cell(coef_of(mMo[[y]], "all_daughters"))),
-                 b = sapply(names(mo_y), function(y) cell(coef_of(mSub[[y]], "n_d1017"))),
-                 c = sapply(names(mo_y), function(y) .fmt(wmean(Mo[[y]], Mo$weight), 1)))
-names(mt) <- c("Mother's minutes per day", "All daughters (6--17)", "Daughters 10--17 (vs sons)", "Mean")
-tab(mt, caption = paste0("Mothers' time and the sex composition of their co-resident children", syn_note()), label = "mothers",
-    align = c("l", "r", "r", "r"),
-    notes = paste0("Linked mothers aged 20--49 with at least one co-resident child aged 6--17 (N = ", fn(nrow(Mo)), "). Column 1: indicator that all such children are daughters. Column 2: number of daughters aged 10--17, controlling for the number of children aged 10--17 (so the coefficient compares a daughter with a son). Controls: mother's age band and education, urban, consumption quintile, number of children aged 6--17, members under six, employment (except for the employment outcome), proxy report, and state and day-of-week fixed effects. FSU-clustered standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."))
-```
-
-The sibling comparison holds the parents fixed, so it cannot show whether parents' own time depends on the sex of their children. Table \ref{tab:mothers} compares mothers whose co-resident children aged 6 to 17 are all daughters with mothers who have at least one such son, conditional on the number of children and household characteristics. Mothers of only daughters do `r diff_txt(k_mo_act)` active childcare and `r diff_txt(k_mo_cc)` childcare in total. Their domestic work differs by `r est_se(k_mo_dom)` and their employment time by `r est_se(k_mo_emp)`.
-
-The second column asks whether daughters substitute for their mothers' domestic work. Conditional on the number of children aged 10 to 17, each adolescent daughter in place of an adolescent son is associated with `r diff_txt(k_sub_dom)` domestic work by the mother. `r iff(is_neg(k_sub_dom), "Mothers with adolescent daughters do less domestic work, which is consistent with daughters taking over part of their mothers' load.", "Mothers' domestic work does not fall significantly with the number of adolescent daughters relative to sons, so the data do not show daughters substituting for their mothers on this margin.")`
-
-These estimates lack a household fixed effect. Under son-biased stopping, mothers with only daughters differ from others in ways that may be related to their time use: they may have more children, may be more likely to be still having children, and may be in families with weaker or stronger son preference. I control for the number of children, the mother's age and household characteristics, but treat these results as secondary evidence.
-
-# Discussion {#sec:discussion}
-
-## Interpretation
-
-`r iff(girls_dom, "Daughters in India do more of the household's domestic work than their brothers of the same age in the same household", "Within-household differences between daughters and sons in domestic work are modest")`, and the sibling design rules out explanations based on differences between families. What the design does not settle is why. Three explanations fit a within-family gap.
-
-The first is son preference in the narrow sense: parents value sons' well-being or future more and allocate scarce study and leisure time accordingly. Patrilocal marriage, under which daughters leave the household and sons stay, gives parents a reason to invest more in sons' schooling [@dasgupta2003persistent; @kingdon2005bias]. The second is a norm about tasks that is independent of how much parents value each child: girls cook and clean because that is what girls do, and identity costs attach to departures from it [@akerlof2000identity; @jayachandran2015roots]. The third is specialisation on expected comparative advantage: if parents expect daughters to run a household as adults and sons to work for pay, training daughters in domestic tasks may look like an investment in the daughter rather than a cost to her [@becker1991treatise; @pitt1990productivity].
-
-The evidence in this paper speaks to these explanations only indirectly. `r iff(girls_learn_less, "That girls also spend less time on learning shows that the domestic burden competes with the activity most closely tied to children's future earnings.", "That girls' learning time is not significantly lower than their brothers' means that the domestic burden competes mainly with free time and rest rather than with education.")` `r iff(is_pos(H$rich$tot$unpaid_domestic) && is_pos(H$urban$tot$unpaid_domestic), "The presence of the gap in urban and richer households, where the household's demand for children's work is plausibly lower, points to norms or preferences rather than to scarcity alone.", "")` `r iff(eldest_dau, "The additional load on eldest daughters fits a model in which daughters substitute for mothers when there is work to be done.", "")` A formal test between the explanations would require variation in the returns to girls' education or in norms, such as the variation used by @jensen2012labor and @beaman2012female.
-
-## Policy
-
-Programmes that aim to keep girls in school, such as conditional transfers or the bicycle programme studied by @muralidharan2017cycling, measure success by enrolment and attendance. The results here suggest also measuring what happens to girls' time outside school. If a girl's domestic load is fixed by the household's needs and by norms, attending school may reduce her free time and rest rather than her domestic work. Interventions that work on norms in adolescence, such as the school curriculum studied by @dhar2022reshaping, can target the division of household tasks between sisters and brothers directly, and girls' domestic workload is a natural outcome measure for them. The official SDG indicator on unpaid domestic and care work is reported by sex and age, and the national time-use reports [@nso2025tus] can report children's unpaid work separately so that the age at which the adult gap opens is visible in official statistics.
-
-## Limitations
-
-The survey records one diary day per person. A single day measures the average day in a population well but measures each child's usual day with error. `r iff(share_same_day > 0.95, "Because sisters and brothers report the same day in almost all sets, the error is common to them and is absorbed by the fixed effect when it reflects the day itself, but not when it reflects child-specific variation.", "Where siblings report the same day, the error is common to them and is absorbed by the fixed effect when it reflects the day itself, but not when it reflects child-specific variation.")` Children under six keep no diary, so the analysis starts at age six, after some of the processes that shape girls' health and nutrition have already run their course. Children who live away from their parents, including girls who married before 18 and children sent to relatives or to boarding schools, are not observed. The survey does not record which child a parent's care is directed to, so the parental analysis relies on sex composition and cannot be estimated within the family. Finally, I do not examine regional differences. The north--south contrast in son preference [@dyson1983kinship; @miller1981endangered] is a natural dimension of heterogeneity, but the data dictionary available for this study does not document the state codes, and I do not assign states to regions without it. State fixed effects are absorbed by the sibling-set fixed effect.
-
-# Conclusion {#sec:conclusion}
-
-Most evidence on son preference in India measures what parents give to sons and to daughters. This paper measures what households ask of them. Comparing sisters and brothers aged 6 to 17 in the same household with full-day diaries from the Time Use Survey 2024, I find that girls do `r diff_txt(k_dom)` domestic work and `r diff_txt(k_care)` caregiving than their brothers, with `r diff_txt(k_learn)` time in learning and `r diff_txt(k_free)` free time. `r iff(age_grows, "The domestic-work gap widens through adolescence.", "The domestic-work gap does not widen significantly through adolescence.")` `r iff(stable_two && stable_eboy, "It is present in two-child sets and in sets with an elder brother, so it is not an artefact of fertility stopping.", "It is sensitive to restrictions that address fertility stopping, so part of it may reflect birth order rather than sex.")` The time a girl spends on household work is a measure of gender discrimination that can be collected in any time-use survey, compared across countries and survey rounds, and used to evaluate programmes aimed at adolescent girls.
-
-\newpage
-
-# References {-}
-
-::: {#refs}
-:::
-
-\newpage
-\appendix
-
-# Appendix {-}
-
-```{r tab-sample}
-sm <- data.frame(Step = c("Diaries in the file", "Children aged 6--17, never married, children or grandchildren of the head",
-                          "In a set with at least two children aged 6--17", "In a mixed-sex set (fixed-effects sample)",
-                          "Mixed-sex sets", "Mixed-sex sets with a unique eldest child", "Children with a linked mother",
-                          "Linked mothers aged 20--49 (mothers' analysis)"),
-                 N = c(fn(nrow(pd)), fn(nrow(K)), fn(sum(K$n_sib >= 2)), fn(nrow(S)), fn(uniqueN(S$sib_id)),
-                       fn(sum(!is.na(sets$eldest_girl_set))), fn(sum(!is.na(S$mom_pid))), fn(nrow(Mo))))
-tab(sm, caption = "Construction of the analysis samples", label = "sample", align = c("l", "r"),
-    notes = "A sibling set is the children with the same relationship to the head (child or grandchild) in the same household.")
-```
-
-```{r tab-validation}
-tab(validation_table(pd), caption = "Construction and validation of the person-day panel", label = "validation",
-    align = c("l", "r"), notes = "All activity records are used; no row sampling.")
-```

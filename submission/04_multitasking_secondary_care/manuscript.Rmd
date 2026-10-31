@@ -1,6 +1,8 @@
 ---
-title: "The Care Hidden in the Margins: Secondary Activities, Multitasking, and the Gender Gap in Unpaid Work in India"
-author: 'Preet Deep Singh\thanks{Blue Machines. Email: preetdeepsingh111@yahoo.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. All errors are mine.}'
+title: "Counting Secondary Care: Multitasking, Measured Unpaid Work and the Gender Gap in India"
+params:
+  blind: false
+author: '`r if (isTRUE(params$blind)) "Manuscript anonymised for review" else "Preet Deep Singh\\thanks{Independent researcher. ORCID: 0000-0003-3721-7548. Email: preetdeepsingh111@gmail.com. I thank the National Statistics Office for access to the Time Use Survey 2024 microdata. AI-assisted tools were used for code checking and language editing; the author takes full responsibility for the content. No conflicts of interest. All errors are mine.}"`'
 date: "`r format(Sys.Date(), '%B %Y')`"
 output:
   pdf_document:
@@ -264,7 +266,7 @@ Standard measures of unpaid work, including SDG indicator 5.4.1, count only the 
 
 \newpage
 
-# Introduction
+# Introduction {#sec:s1}
 
 Time-use statistics rest on a simple accounting rule: a day has 1,440 minutes, and each minute is assigned to one activity. The rule makes the statistics additive and comparable, and it underlies the official indicator for Sustainable Development Goal target 5.4, the proportion of time spent on unpaid domestic and care work (indicator 5.4.1). But much of what households do does not fit the rule. A woman who cooks while watching a toddler, feeds a child while eating, or listens for an elderly parent while resting is doing two things at once. If only the "main" activity is counted, one of them disappears. Feminist economists have long argued that the disappearing activity is disproportionately women's care work, and that the rule therefore understates both women's work and the intensity of their days [@floro1995women; @floro2003overlapping; @folbre2006measuring]. Sociologists of time have made the matching argument about leisure: equal minutes of free time are not equal leisure if one person's free time is interrupted by, or shared with, the care of others [@bittman2000rush; @mattingly2003free; @sullivan1997time].
 
@@ -282,9 +284,9 @@ I then use the results to quantify, without inventing a wage, what single-activi
 
 The contribution is to the measurement of unpaid work. The paper shows, for a large lower-middle-income country with a national survey, how much the measured level of and gender gap in unpaid care depend on the treatment of secondary activities; it bounds that dependence under explicit duration conventions; and it locates secondary care in the day by matching it to the main activity it accompanies. The results bear on the reporting of SDG indicator 5.4.1, which by convention counts only primary activities, and on the design of satellite accounts.
 
-The rest of the paper is organised as follows. Section 2 reviews the literature. Section 3 describes the data and the measures. Section 4 presents the results, Section 5 the valuation exercise, and Section 6 discusses interpretation, limitations and implications.
+The rest of the paper is organised as follows. Section \ref{sec:s2} reviews the literature. Section \ref{sec:s3} describes the data and the measures. Section \ref{sec:s4} presents the results, Section \ref{sec:s5} the valuation exercise, and Section \ref{sec:s6} discusses interpretation, limitations and implications.
 
-# Related literature
+# Related literature {#sec:s2}
 
 ## Time intensity and overlapping activities
 
@@ -324,11 +326,11 @@ The case for valuing household production goes back to @reid1934economics, whose
 
 Secondary activities pose a specific problem for valuation. Under the third-person criterion, minding a child while cooking is two services that could each be bought, so a replacement-cost valuation would count both. But the time input is a single hour, and valuing it twice at the full replacement wage overstates the cost of hiring substitutes if one substitute could do both tasks. One response is to exclude secondary activities from the valuation; another is to value them at a reduced rate. This paper does not take a position on the right rate. It reports the hours under alternative conventions and shows how much each adds to the valuation, in proportional terms that do not depend on the wage. It does not impute a wage, because the survey does not collect one and no external wage series is used here.
 
-# Data and measurement
+# Data and measurement {#sec:s3}
 
 ## The survey
 
-The Time Use Survey 2024 was conducted by the National Statistics Office over January to December 2024 [@nso2025tus]. Every member aged six and above in sampled households reports a diary for the 24 hours from 4:00 a.m. on the day before the interview. The diary is divided into 48 half-hour slots. For each slot, the respondent reports every activity that lasted ten minutes or more, each coded to the 3-digit ICATUS 2016 classification [@un2016icatus]. Three flags describe the slot: whether more than one activity was performed (column 6 of Block 6, coded 1 = yes, 2 = no); if so, whether any were performed simultaneously (column 7, same coding); and whether the activity was the "most important" in the slot (column 9, 1 = major, 2 = minor). The release I use has one row per activity record. Of the `r fn(V$n_rows)` records, `r pct(V$share_rows_minor)` are minor. The major records partition the day: they sum to 1,440 minutes for `r pct(V$share_diaries_1440)` of diaries.
+The Time Use Survey 2024 was conducted by the National Statistics Office over January to December 2024 [@nso2025tus]. Every member aged six and above in sampled households reports a diary for the 24 hours from 4:00 a.m. on the day before the interview. The diary is divided into 48 half-hour slots. For each slot, the respondent reports every activity that lasted ten minutes or more, each coded to the 3-digit ICATUS 2016 classification [@un2016icatus]. Three flags describe the slot: whether more than one activity was performed (column 6 of Block 6, coded 1 = yes, 2 = no); if so, whether any were performed simultaneously (column 7, same coding); and whether the activity was the "most important" in the slot (column 9, 1 = major, 2 = minor). The release I use has one row per activity record. Of the `r fn(V$n_rows)` records, `r pct(V$share_rows_minor)` are minor. The major records partition the day: they sum to exactly 1,440 minutes for all but `r fn(V$n_diaries_not1440)` of the `r fn(V$n_diarists)` diaries. The roster lists `r fn(V$n_roster_6plus)` persons aged six and above; `r fn(V$n_roster_only_age6plus)` of them have no diary records in the file, which leaves the `r fn(V$n_diarists)` diaries, and the `r fn(V$n_third_gender)` diaries of third-gender respondents are excluded from the comparisons of women and men.
 
 The analysis sample consists of the `r fn(N_A)` diarists aged 15 and above (`r fn(N_w)` women and `r fn(N_m)` men). Persons are identified by first-stage unit, household and person serial number. All estimates use the survey weights, and standard errors are clustered on the first-stage unit, the primary sampling unit [@cameron2015practitioner; @abadie2023cluster]. Gaps are differences in weighted means. Regressions are weighted least squares; for outcomes with many zeros I use linear models rather than Tobit, following @stewart2013tobit, because a zero on a single diary day does not imply a corner solution in the person's long-run allocation [@frazis2012think].
 
@@ -377,7 +379,7 @@ tab(dtab, caption = paste0("Secondary activities by sex, persons aged 15 and abo
     notes = "Survey-weighted means; FSU-clustered standard errors in parentheses. Difference is women minus men; * p<0.10, ** p<0.05, *** p<0.01. Minutes are per diary day. Shares of free time and eating are among persons with any free time or eating.")
 ```
 
-# Results
+# Results {#sec:s4}
 
 ## How much activity is secondary, and who does it
 
@@ -522,13 +524,13 @@ On the primary-activity convention used for SDG indicator 5.4.1, women do `r f0(
 
 About `r pct(proxy_w, 0)` of women's diaries and `r pct(proxy_m, 0)` of men's are reported by another household member. Proxy informants may not know about, or may not think to report, the secondary activities of others. Conditional on demographics, household composition and sex, the coefficient on proxy reporting in a regression of secondary minutes is `r est_se(k_proxy)`, and the difference between women and men in this proxy effect is `r est_se(k_proxy_int)`. `r say3(k_proxy, "Proxy-reported diaries thus record more secondary activity than self-reported ones.", "Proxy-reported diaries thus record less secondary activity than self-reported ones.", "On average, proxy-reported diaries do not record measurably less secondary activity than self-reported ones.")` `r say3(k_proxy_int, "The proxy effect is less negative for women's diaries than for men's.", "The proxy effect is more negative for women's diaries than for men's, so proxy reporting may understate women's secondary activity in particular.", "")` `r iff(is_neg(k_proxy) && isTRUE(proxy_m > proxy_w), "Because men's diaries are more often proxy-reported, under-reporting by proxies would inflate the raw gender gap.", iff((is_neg(k_proxy) || is_neg(k_proxy_int)) && isTRUE(proxy_w > proxy_m), "Because women's diaries are more often proxy-reported, under-reporting by proxies would lead the full-sample estimates to understate the gender gap.", ""))` Restricting the sample to self-reported diaries, the gap is `r est_se(g_sec_self)` in secondary minutes and `r est_se(g_scc_self)` in secondary childcare. `r if (!ok(g_scc_self)) "" else iff(is_pos(g_scc_self) == is_pos(g_scc), "The main conclusion about secondary childcare is the same in self-reported diaries.", "The conclusion about secondary childcare differs in self-reported diaries, so proxy reporting should be considered when interpreting the full-sample estimates.")`
 
-# Valuing hidden care
+# Valuing hidden care {#sec:s5}
 
 The survey does not collect wages, and I do not import an external wage series. A monetary valuation of secondary care is therefore outside the scope of this paper. What the data do determine is the quantity side of any valuation, and, for the common replacement-cost approach, the proportional effect of counting secondary care on the value of childcare.
 
 Let $h^P$ and $h^S$ be a group's mean primary and secondary childcare hours, $w$ the replacement wage, and $\lambda \in [0, 1]$ the weight placed on secondary hours. A single-wage replacement-cost valuation is $V(\lambda) = w (h^P + \lambda h^S)$. The proportional uplift from counting secondary care is
 $$\frac{V(\lambda) - V(0)}{V(0)} = \lambda \frac{h^S}{h^P},$$
-which does not depend on $w$. The choice of $\lambda$ embodies the valuation debate discussed in Section 2: $\lambda = 1$ treats minding a child while cooking as two fully separate services, as the third-person criterion suggests [@reid1934economics; @hawrylyshyn1977towards]; $\lambda = 0$ is the primary-activity convention; and intermediate values reflect the view that one hired worker could supply both services in part. The duration conventions in Table \ref{tab:conv} correspond to different values of $\lambda h^S$.
+which does not depend on $w$. The choice of $\lambda$ embodies the valuation debate discussed in Section \ref{sec:s2}: $\lambda = 1$ treats minding a child while cooking as two fully separate services, as the third-person criterion suggests [@reid1934economics; @hawrylyshyn1977towards]; $\lambda = 0$ is the primary-activity convention; and intermediate values reflect the view that one hired worker could supply both services in part. The duration conventions in Table \ref{tab:conv} correspond to different values of $\lambda h^S$.
 
 For women aged 15 and above, secondary childcare at recorded duration is `r f0(hrs_scc_w)` hours a year per woman, against `r f0(hrs_cc_w)` hours of primary childcare. With $\lambda = 1$ the uplift is `r pct(uplift_w, 0)`; at half duration, `r pct(uplift_half_w, 0)`; under the ten-minute floor, `r pct(uplift_floor_w, 0)`; and net of overlap with primary care, `r pct(uplift_noov_w, 0)`. For men, the uplift at recorded duration is `r pct(uplift_m, 0)`. The women-minus-men gap in secondary childcare is `r f0(gap_hrs)` hours a year per person. These proportions can be applied directly to any existing replacement-cost estimate of the value of childcare in India that was computed from primary activities.
 
@@ -536,7 +538,7 @@ At the population level, the survey weights for women aged 15 and above sum to `
 
 Two cautions apply. First, valuing secondary care at the full replacement wage assumes that a hired substitute would have been needed for the supervision. For care during domestic work, a single hired worker might supply both services, which argues for $\lambda < 1$. Second, the opportunity-cost method values an hour at the carer's own wage, and so assigns the same value to an hour regardless of how many activities it contains; under that method, secondary care adds nothing to the valuation unless it displaces another activity. Across these methods, the replacement-cost uplift with $\lambda = 1$ is an upper bound on what counting secondary care adds to the value of household production, and the half-duration and ten-minute-floor conventions give more conservative figures.
 
-# Discussion
+# Discussion {#sec:s6}
 
 ## Interpretation
 
@@ -554,9 +556,9 @@ Identification of children under six from household size minus diarists is valid
 
 ## Implications for measurement
 
-For SDG reporting, the results support publishing, alongside indicator 5.4.1, an inclusive measure that counts secondary unpaid care and domestic work, together with the duration convention used. The 2024 survey already collects what is needed. For national accounts, the proportional uplifts in Section 5 can be applied to any primary-activity replacement-cost valuation, and the choice of $\lambda$ can be made explicit rather than set implicitly to zero. For survey design, the sensitivity of the inclusive measure to duration conventions argues for documenting how duration is assigned to minor records, and for recording supervisory responsibility directly, as the American Time Use Survey does with its "in your care" question. For policy, the 3R framework of recognising, reducing and redistributing unpaid care [@elson2017recognize] begins with recognition, and recognition requires that care performed alongside other activities is counted.
+For SDG reporting, the results support publishing, alongside indicator 5.4.1, an inclusive measure that counts secondary unpaid care and domestic work, together with the duration convention used. The 2024 survey already collects what is needed. For national accounts, the proportional uplifts in Section \ref{sec:s5} can be applied to any primary-activity replacement-cost valuation, and the choice of $\lambda$ can be made explicit rather than set implicitly to zero. For survey design, the sensitivity of the inclusive measure to duration conventions argues for documenting how duration is assigned to minor records, and for recording supervisory responsibility directly, as the American Time Use Survey does with its "in your care" question. For policy, the 3R framework of recognising, reducing and redistributing unpaid care [@elson2017recognize] begins with recognition, and recognition requires that care performed alongside other activities is counted.
 
-# Conclusion
+# Conclusion {#sec:s7}
 
 India's Time Use Survey 2024 records every activity performed in each half-hour slot, not just the main one. Using every record, this paper measures how much of women's and men's activity is secondary, how much of it is care, and what counting it does to the measured gender gap. `r iff(ratio_rises, "Counting secondary childcare raises the women-to-men ratio in childcare", "Counting secondary childcare leaves the women-to-men ratio in childcare about unchanged or lower")`, from `r f1(ratio_primary)` to `r f1(ratio_incl)` at recorded duration and to between `r f1(ratio_lo)` and `r f1(ratio_hi)` across the duration conventions. The gender gap in secondary childcare is `r het_u6_txt` and `r het_emp_txt`. Under a single-wage replacement-cost valuation, counting secondary childcare raises the value of women's childcare by between `r pct(up_lo, 0)` and `r pct(up_hi, 0)`. Statistics that count one activity at a time are a convention, not a description of how time is used; for women's care work in India, the convention determines how much of that work is seen.
 

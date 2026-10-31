@@ -128,7 +128,7 @@ CODE <- list(
   washing     = c(mechanical = 1, manual = 2, outsourced = 3),
   sweeping    = c(mechanical = 1, manual = 2, outsourced = 3),
   religion = c(Hindu = 1, Muslim = 2, Christian = 3, Sikh = 4, Jain = 5,
-               Buddhist = 6, Other = 7),
+               Buddhist = 6, Zoroastrian = 7, Other = 9),   # DDI TUS 2024: 7 = Zoroastrianism, 9 = others
   social_group = c(ST = 1, SC = 2, OBC = 3, Other = 9),
   # Usual principal activity status, cooking and lighting fuel: scheme-dependent,
   # set by apply_code_scheme() (defaults to the official-dictionary scheme).
