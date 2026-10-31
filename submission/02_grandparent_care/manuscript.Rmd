@@ -816,7 +816,7 @@ ogt <- data.frame(Outcome = unname(og_lab[og_outs]),
                   check.names = FALSE)
 tab(ogt, caption = paste0("Older-generation women: sensitivity to the lower age limit", syn_note()), label = "ogage",
     align = c("l", "r", "r", "r"), escape = FALSE,
-    notes = paste0("Estimate [95 percent confidence interval] for a child under six in the household, specification as in the older-generation table. Main sample: ", fn(n_ogw), " women aged 45--80; alternative: ", fn(n_ogw40), " women aged 40--80, the same lower limit as the grandmother link for junior-level mothers; and ", fn(n_ogw50), " women aged 50--80, which drops the ", fn(n_og4549), " women aged 45--49 who could be the mothers of a late-born child. Conversely, ", fn(n_gm4044), " mothers in the analysis sample have a coresident grandmother only through a woman aged 40--44; the robustness table reports the mothers' estimate without them."))
+    notes = paste0("Estimate [95 percent confidence interval] for a child under six in the household, specification as in the older-generation table. Main sample: ", fn(n_ogw), " women aged 45--80; alternative: ", fn(n_ogw40), " women aged 40--80, the same lower limit as the grandmother link for junior-level mothers; and ", fn(n_ogw50), " women aged 50--80, which drops the ", fn(n_og4549), " women aged 45--49 who could be the mothers of a late-born child. Conversely, ", fn(n_gm4044), " mothers in the analysis sample have a coresident grandmother only through a woman aged 40--44; in the robustness-table rows that define the grandmother as aged 45 or above, these mothers stay in the sample and are counted as having no coresident grandmother."))
 ```
 
 ```{r tab-domparts}
