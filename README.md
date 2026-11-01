@@ -31,7 +31,7 @@ Runtime is about two minutes on a laptop-class machine.
 - `04_tables_figs.R`: writes every table (`output/tables/*.tex`) and Figure 1 from `results.json`.
 
 ## Map from exhibits to code
-Table 1, 2, 3, 4 and Figure 1: `04_tables_figs.R` from `results.json` keys `desc`, `main`/`rep1718`, `layoff`/`het`, `entry_type`/`other_members`, `event`. Supplement Tables S1-S4: same script, from `build_diagnostics.json`, `validation.tsv`, `results.json` (`rob`, `event`, `attrition`) and `plfs2024_check.json`.
+Table 1, 2, 3, 4 and Figure 1: `04_tables_figs.R` from `results.json` keys `desc`, `main`/`rep1718`, `layoff`/`het`, `entry_type`/`other_members`, `event`. Supplement Tables S1-S4: same script, from `build_diagnostics.json`, `validation.tsv`, `results.json` (`rob`, `event`, `attrition`, `attrition_bounds`) and `plfs2024_check.json`.
 
 ## Layoff-interpretation rule
 The paper describes estimates as responses to job loss only if (i) the lead placebo has |t| < 1.96 and (ii) the stop coefficient for husbands who were regular salaried employees is positive with p < 0.05. This rule was written into the analysis code (`03_analysis.R`, `layoff`) together with the estimates; it was not registered before estimation, so the paper does not call it pre-specified. The project plan (PLAN.md) stated the looser criterion "associations around job loss unless the displacement subsample and placebos hold". In the 2022-24 data the rule fails: the regular-salaried cell has 4 wives entering after a stop (p = 0.403).
