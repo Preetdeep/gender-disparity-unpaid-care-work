@@ -1,0 +1,31 @@
+{
+  "main_2223_2324": {
+    "records": 1363469,
+    "dup_pid": 0,
+    "revisit_records_without_first_visit": 257737,
+    "persons": 351154,
+    "inconsistent_persons": 0,
+    "persons_kept": 351154,
+    "visits_per_person": {
+      "1": 50221,
+      "2": 48242,
+      "3": 51737,
+      "4": 200954
+    },
+    "cross_year_revisits": 249084
+  },
+  "replication_1718": {
+    "records": 459090,
+    "dup_pid": 0,
+    "revisit_records_without_first_visit": 1970,
+    "persons": 186530,
+    "inconsistent_persons": 1,
+    "persons_kept": 186529,
+    "visits_per_person": {
+      "1": 49416,
+      "2": 47392,
+      "3": 45968,
+      "4": 43753
+    }
+  }
+}

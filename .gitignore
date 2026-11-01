@@ -1,0 +1,8 @@
+*.rds
+*.dta
+*.csv
+*.zip
+derived/
+*.aux
+*.log
+*.out

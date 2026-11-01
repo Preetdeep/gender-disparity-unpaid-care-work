@@ -1,0 +1,43 @@
+{
+  "visits_present": "V1",
+  "counts": [
+    {
+      "Panel": "P4",
+      "Quarter": "Q3",
+      "Visit": "V1",
+      "N": 43932
+    },
+    {
+      "Panel": "P4",
+      "Quarter": "Q4",
+      "Visit": "V1",
+      "N": 43997
+    },
+    {
+      "Panel": "P4",
+      "Quarter": "Q5",
+      "Visit": "V1",
+      "N": 43617
+    },
+    {
+      "Panel": "P4",
+      "Quarter": "Q6",
+      "Visit": "V1",
+      "N": 43511
+    }
+  ],
+  "overlap": [
+    {
+      "quarter": 3,
+      "n_2024": 43932,
+      "n_2324_v1": 43932,
+      "keys_in_2324": 43932
+    },
+    {
+      "quarter": 4,
+      "n_2024": 43997,
+      "n_2324_v1": 43997,
+      "keys_in_2324": 43997
+    }
+  ]
+}

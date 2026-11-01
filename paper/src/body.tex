@@ -1,0 +1,158 @@
+\begin{abstract}
+When an urban Indian husband stops working between two quarterly visits, does his wife start? I link couples across the urban rotational panel of the Periodic Labour Force Survey, pooling households first visited between July 2022 and June 2024 and joining revisits across annual files. Among wives outside the labour force, a husband's stop is associated with a 1.70 percentage point higher chance that the wife is in the labour force at the next visit (95\% CI $-0.56$ to 3.97), with no detectable rise in employment. The 2017--18 panel gives a similar estimate, and placebo tests show no prior difference. Among working wives, a stop is associated with a 21.38 point higher chance that the wife also stops. Other household members are more likely to start work. A pre-specified layoff check is inconclusive, so these are associations. Wives' entry into work provides little short-run insurance.
+\end{abstract}
+
+\noindent\textbf{JEL codes:} J22, J12, J64, O15\\
+\noindent\textbf{Keywords:} added-worker effect; female labour force participation; job loss; India; household labour supply; panel data
+
+\section{Introduction}
+
+A household that loses its main earnings can insure itself by sending another member to work. The added-worker effect, in which a wife enters the labour market when her husband loses his job, is the textbook version of this mechanism \citep{lundberg1985}. In high-income countries it is small, partly because unemployment insurance and other transfers do the insuring \citep{cullen2000,stephens2002,halla2020}. In countries with little formal insurance it should matter more, and evidence from crises in middle-income countries points that way \citep{skoufias2006,bhalotra2010}. Rural Indian households adjust hours worked in response to crop shocks \citep{kochar1999}.
+
+Urban India is a hard case for the mechanism. Women's labour force participation in Indian cities is low and stagnated through decades of growth \citep{klasen2015}, and married women's participation in India as a whole has fallen \citep{mehrotra2017,afridi2018}. Social norms about women's work outside the home, the scarcity of jobs that suit those norms, and the time spent on care are standard explanations \citep{jayachandran2021}. If these barriers bind, a husband's lost earnings may not move a wife into work even when the household needs the income. If they bind only weakly, the shock should reveal latent willingness to work. The answer bears on how far policy can rely on the family to insure urban workers, and on whether women's low participation reflects preferences or constraints that a shock can relax.
+
+This paper measures the response with the urban rotational panel of India's Periodic Labour Force Survey (PLFS), which visits each urban household in four consecutive quarters. I make three contributions. First, I pool two annual rounds and join revisits across the two annual data files. Households first visited in one survey year are revisited in the next, and I link those visits, which triples the number of husband stops available relative to one round alone. Second, I measure the response between consecutive quarterly visits in a large panel drawn from a nationally representative survey, rather than with annual recall. Status at each visit refers to the seven days before the interview, so a stop may be temporary. Third, I report the opposite margin, wives who stop working, alongside the added-worker margin.
+
+The main result is a small, imprecise association on the entry margin and a large one on the exit margin. A husband's stop is associated with a 1.70 percentage point higher probability that a wife outside the labour force enters it by the next visit; the 95 per cent confidence interval includes zero and excludes effects above 4 points. Among wives who were working, a stop is associated with a 21.38 point higher probability that the wife also stops working. The same pattern appears in the 2017--18 panel. I read these estimates as associations, not causal effects. The check I set out in advance for a layoff interpretation is inconclusive (Section~\ref{sec:checks}).
+
+\section{Data}
+
+\subsection{The PLFS urban panel}
+
+The PLFS is the official labour force survey of India, run by the National Statistics Office of the Ministry of Statistics and Programme Implementation (MoSPI). In urban areas each sampled household is visited in four consecutive quarters: a first visit and three revisits. Each visit records the current weekly status (CWS) of every member, that is, the person's activity in the seven days before the interview. I use CWS because it is the only status measured at every visit.
+
+I use the unit-level files for July 2022 to June 2023 and July 2023 to June 2024. A household first visited in the later quarters of one survey year has its revisits in the next year's file. I therefore stack both files, convert the quarter labels to a common calendar index, and link each revisit to the first visit in the quarter implied by its visit number. A person is identified by the first-stage unit, sub-block, second-stage stratum, household and person serial numbers, plus the quarter of the first visit. The survey reuses these identifiers for households in different rotation groups, that is, households that entered the panel in different quarters; adding the quarter of the first visit makes each identifier unique, so no person-visit is counted twice. Table~S1 in the supplement reports the linkage. Of the 351,154 linked urban persons, 200,954 are seen in all four visits, and 249,084 revisit records in the 2023--24 file belong to households first visited in 2022--23. No person-visit appears twice, and no linked person changes sex or ages by more than two years between visits. Revisits whose first visit falls before July 2022 have no first-visit record and are dropped.
+
+I also examined the PLFS calendar-year 2024 file. It contains first visits only, and its first two quarters are the same 43,932 and 43,997 urban persons first visited in the third and fourth quarters of 2023--24 (Table~S4). It adds no transitions, so it is excluded. The main results therefore use households first visited between July 2022 and June 2024. The replication uses the separate 2017--18 panel.
+
+Weights are the first-visit person multipliers, adjusted as MoSPI prescribes for sub-sample overlap and divided by the number of quarters. With these weights my code reproduces all 24 published CWS participation and worker-population ratios for 2017--18, 2022--23 and 2023--24, by sector and sex, to one decimal place, as reported in the series tables of the MoSPI press note for 2023--24 \citep{mospi2024}. Table~S2 in the supplement lists them.
+
+\subsection{Couples, events and outcomes}
+
+The unit of analysis is a couple: the household head and his wife, both aged 18 to 59 at the first visit, in households with exactly one head and one spouse. Pooled, there are 49,358 such couples and 106,299 transitions between consecutive quarters. A husband stops working when he is employed in quarter $t-1$ and not employed in quarter $t$; definitions of employment and the labour force follow the CWS codes in the note to Table~\ref{tab:desc}. Among transitions in which the husband was employed at $t-1$, there are 924 stops, a weighted rate of 0.97 per cent a quarter. In the main sample defined below, in a weighted 66.5 per cent of stops the husband reports seeking or being available for work; in 23.8 per cent he reports being a pensioner, disabled or sick.
+
+The main sample contains transitions in which the husband was employed and the wife was outside the labour force at $t-1$. It has 72,518 transitions and 608 stops, against 205 if only households first visited in 2023--24 were used. Table~\ref{tab:desc} describes it. More than half of husbands who stop working are casual labourers before the stop (52.6 per cent, against 11.6 per cent of husbands who stay employed), and their wives are less often graduates (9.4 against 20.1 per cent). In the raw data, 3.93 per cent of wives whose husbands stop enter the labour force in the next quarter, against 1.62 per cent of the other wives.
+
+\begin{table}[htbp]
+\centering
+\caption{Couples in the entry sample, by whether the husband stops working}
+\label{tab:desc}
+\small
+%%TABLE1%%
+\begin{minipage}{\linewidth}\footnotesize\vspace{4pt}
+\textit{Note:} Pooled 2022--23 and 2023--24 PLFS urban panel. Couple-quarter transitions in which the husband is employed and the wife is outside the labour force at $t-1$. Weighted means with first-visit weights; the last row is unweighted. Employed: CWS codes 11, 12, 21, 31, 41, 42, 51, 61, 62, 71 and 72. Labour force: employed or codes 81 and 82. Out of the labour force: codes 91 to 99. Regular salaried: 31, 71, 72; casual: 41, 42, 51; self-employed or helper: 11, 12, 21, 61, 62.\\
+\textit{Source:} Author's calculations from PLFS unit-level data (MoSPI).
+\end{minipage}
+\end{table}
+
+\section{Empirical approach}
+
+I estimate linear probability models of the form
+\begin{equation*}
+y_{it} = \beta D_{it} + \gamma' X_{i} + \mu_{s(i)q(t)} + \kappa_{k} + \varepsilon_{it},
+\end{equation*}
+where $y_{it}$ is the wife's status in quarter $t$, $D_{it}$ indicates that the husband stopped working between $t-1$ and $t$, $\mu_{sq}$ are state-by-quarter fixed effects that absorb state-level labour market conditions, and $\kappa_k$ are visit-pair fixed effects. $X_i$ holds fixed effects for the wife's age group and education, the husband's education, a child aged 0--5 in the household, social group, religion, household size and the household's consumption tercile, all measured at the first visit. Estimates use first-visit weights, and standard errors are clustered by first-stage unit and rotation group.
+
+Three checks address whether $\beta$ reflects the shock or a pre-existing difference between couples. The lead placebo replaces $D_{it}$ with a stop between $t$ and $t+1$, among couples in which the husband still works at $t$; a non-zero coefficient would mean that wives in households about to be hit already behave differently. The pre-trend check regresses the wife's labour force status at $t-2$ on $D_{it}$. The event study (Figure~\ref{fig:es}) follows couples seen in all four visits, with the husband employed at the first visit, and estimates the wife's participation around the husband's first quarter without work with the interaction-weighted estimator of \citet{sun2021}, using couples whose husband never stops as controls. Conventional two-way fixed-effects event studies can be biased when effects differ across cohorts; this estimator avoids that bias, as does the related estimator of \citet{callaway2021}.
+
+A stop is not necessarily a layoff. Before estimating anything I fixed a rule: I would describe the estimates as responses to job loss only if the lead placebo had $|t|<1.96$ and the coefficient for husbands who were regular salaried employees, whose stops are most likely to be involuntary separations, was positive with $p<0.05$. I also split stops by the husband's reported status after the stop and drop stops into pension, disability or sickness. Heterogeneity estimates are adjusted for multiple testing with the false discovery rate procedure of \citet{benjamini1995}.
+
+\section{Results}
+
+\subsection{Main estimates}
+
+Table~\ref{tab:main} reports the main estimates. Column 1 shows that a husband's stop is associated with a 1.70 percentage point higher probability that his wife is in the labour force at $t$ (standard error 1.16; $p=0.141$). The 95 per cent confidence interval runs from $-0.56$ to 3.97 points. The estimate for entry into employment, in column 2, is 0.51 points ($p=0.453$). The point estimates suggest that part of any entry is into job search, but the difference is not statistically established. Neither estimate is distinguishable from zero. The confidence interval in column 1 excludes responses above about 4 points, which is still large relative to the 1.62 per cent entry rate of other wives.
+
+\begin{table}[htbp]
+\centering
+\caption{Wives' transitions when the husband stops working}
+\label{tab:main}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+%%TABLE2%%
+\begin{minipage}{\linewidth}\footnotesize\vspace{4pt}
+\textit{Note:} LF: labour force. Linear probability models; coefficients and confidence intervals in percentage points. Columns 1, 2, 4, 5 and 6: wife outside the labour force and husband employed at $t-1$. Columns 3 and 7: wife and husband employed at $t-1$; outcome is the wife not employed at $t$. Column 4 replaces the stop with a stop between $t$ and $t+1$ among couples whose husband works at $t$. Column 5: outcome is the wife in the labour force at $t-2$. All columns include state-by-quarter, visit-pair, wife age group and education, husband education, child aged 0--5, social group, religion, household size and consumption-tercile fixed effects. First-visit weights; standard errors (in parentheses) clustered by first-stage unit and rotation group. Transitions are observations used after fixed effects; stop events are the number of husband stops in the estimation sample.\\
+\textit{Source:} Author's calculations from PLFS unit-level data (MoSPI).
+\end{minipage}
+\end{table}
+
+The exit margin moves far more. Among couples in which both spouses work at $t-1$, a husband's stop is associated with a 21.38 point higher probability that the wife is no longer employed at $t$ (column 3; 299 stops). In this sample, spouses' work moves together rather than in opposite directions. The patterns are consistent with shared household enterprises, with shared local demand for casual work, and with common shocks such as illness or migration of the household, but the survey cannot separate these explanations.
+
+The lead placebo (column 4) is 0.50 points with $p=0.609$, and the pre-trend coefficient (column 5) is 0.45 points with $p=0.659$. These tests show no detectable prior difference, although their confidence intervals are wide enough to include the main estimate. Figure~\ref{fig:es} shows the same thing for couples observed in all four visits: coefficients before the stop are close to zero, and participation falls by 6.67 points in the quarter of the stop and by 7.33 points one quarter later (Table~S3 lists the coefficients). Because this sample includes wives who were working before the stop, the decline reflects the joint exits documented in column 3. It does not contradict column 1, which conditions on wives outside the labour force.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{figure1.png}
+\caption{Wife's labour force participation around the husband's first quarter without work. Estimates from the \citet{sun2021} interaction-weighted estimator on 27,563 couples observed in all four quarterly visits with the husband employed at the first visit, of whom 646 experience a stop; couple and state-by-quarter fixed effects, first-visit weights, 95 per cent confidence intervals with standard errors clustered by first-stage unit and rotation group. Quarter $-1$ is the reference. Source: author's calculations from PLFS 2022--23 and 2023--24 unit-level data (MoSPI).}
+\label{fig:es}
+\end{figure}
+\noindent Alt text: A dot-and-whisker chart with quarters relative to the husband's first quarter without work on the horizontal axis, from minus three to plus two, and the wife's labour force participation in percentage points on the vertical axis. The two quarters before the reference quarter have estimates near zero with intervals spanning zero. The estimates fall to about minus seven points in the quarter of the stop and the quarter after, with intervals below zero, and to about minus five points two quarters after, with an interval that touches zero.
+
+Columns 6 and 7 repeat the analysis for the 2017--18 panel, when urban female participation was lower (Table~S2). The entry estimate is 1.09 points ($p=0.220$; 595 stops), and the exit estimate is 19.67 points. Both are close to the pooled 2022--24 estimates. Stops are more frequent in 2017--18, which yields almost as many stop events from a smaller sample.
+
+The entry estimate is similar in sign and magnitude across specifications (Table~S3). It is 1.46 points with district-by-quarter fixed effects and 1.64 points without weights, the only specification with $p<0.05$ ($p=0.047$). Restricted to households first visited in 2023--24, which is what a single annual file allows, it is 1.01 points with a wider interval. Couples whose husband is not employed are 1.29 points more likely to leave the panel before the next visit, against an average attrition rate of 2.33 per cent, so attrition is selective. Because the overall rate is low, it cannot move the entry estimate by more than a fraction of a point unless leavers behave very differently, but it remains a limitation.
+
+\subsection{Layoff checks and heterogeneity}
+\label{sec:checks}
+
+Panel A of Table~\ref{tab:het} reports the layoff checks. The lead placebo condition holds (Table~\ref{tab:main}, column 4). The coefficient for husbands who were regular salaried employees is 2.90 points but imprecise ($p=0.403$; 151 stops), so the second condition is not met, and I describe all estimates as associations. Because few wives of regular salaried husbands entered after a stop, this is a test with little power, not evidence against a layoff reading. Stops into unemployment and stops out of the labour force give imprecise estimates of 0.41 and 10.46 points, and dropping stops into pension, disability or sickness leaves the estimate essentially unchanged.
+
+\begin{table}[htbp]
+\centering
+\caption{Layoff checks and heterogeneity in wives' entry into the labour force}
+\label{tab:het}
+\scriptsize
+%%TABLE3%%
+\begin{minipage}{\linewidth}\footnotesize\vspace{4pt}
+\textit{Note:} Wife enters the labour force at $t$; sample and controls as in Table~\ref{tab:main}, column 1. Estimates in percentage points. Panel A interacts the stop with the husband's job type at $t-1$ and, separately, with his status at $t$. Panel B interacts the stop with each subgroup. Subgroups in which fewer than five wives entered the labour force after a stop are not tested, because the standard error is not informative; the remaining subgroups are adjusted together with the Benjamini--Hochberg procedure ($q$). Events are husband stops in each cell.\\
+\textit{Source:} Author's calculations from PLFS unit-level data (MoSPI).
+\end{minipage}
+\end{table}
+
+Panel B splits the entry estimate by the wife's education and age, the presence of a young child, social group, consumption tercile and the husband's previous job. Twelve subgroup estimates are tested. None is significant after adjustment for multiple testing; the smallest $q$-value is 0.381. In six subgroups too few wives entered after a stop to estimate a response. Among the tested subgroups the point estimates range from $-0.62$ to 3.71 points, and the data cannot distinguish them from each other or from zero.
+
+\subsection{What kind of work, and who else responds}
+
+Table~\ref{tab:qual} describes what happens when wives do enter. Only 24 wives whose husband stopped entered the labour force in the following quarter, so the shares are descriptive. Of those entrants, 34.5 per cent were seeking work rather than working, against 8.7 per cent of entrants in households without a stop, and 36.0 per cent entered regular salaried work. None entered as an unpaid helper, against 21.0 per cent of other entrants; the tightly estimated coefficient on helper work in the table is a mechanical result of this empty cell.
+
+\begin{table}[htbp]
+\centering
+\caption{Type of entry and responses of other household members}
+\label{tab:qual}
+\scriptsize
+%%TABLE4%%
+\begin{minipage}{\linewidth}\footnotesize\vspace{4pt}
+\textit{Note:} Upper panel: sample as in Table~\ref{tab:main}, column 1; each row is a linear probability model for the wife's status at $t$, in percentage points, and the last two columns give weighted shares among wives who entered the labour force. Lower panel: couples with the husband employed at $t-1$ and at least one other member aged 15--64; outcome is any such member moving from not employed to employed between $t-1$ and $t$. Controls as in Table~\ref{tab:main}.\\
+\textit{Source:} Author's calculations from PLFS unit-level data (MoSPI).
+\end{minipage}
+\end{table}
+
+Other household members respond more clearly than wives. In households with at least one other member aged 15 to 64, a husband's stop is associated with a 5.77 point higher probability that one of them starts work (95 per cent CI 2.94 to 8.59), against a base rate of 1.71 per cent. The data do not identify who these members are, and the two estimates come from different samples, but the pattern suggests that households draw on other members more readily than on wives.
+
+\section{Discussion}
+
+I find no statistically detectable entry of urban Indian wives into work when their husbands stop working, and the estimates exclude large responses. Meanwhile the exit margin shows strong co-movement of spouses' employment, which was also present in 2017--18 and so does not seem to be specific to post-pandemic conditions. One reading is a setting in which the barriers to married women's work outside the home are strong enough that an income shock does not overcome them \citep{klasen2015,jayachandran2021}. Another is a setting in which wives' work is tied to the husband's own activity, as in family enterprises and casual work in the same local market, so that the shock hits both earners at once. A third is that many stops are short and do not require a response.
+
+Three limitations matter. First, a stop is a change in weekly status, not a recorded layoff, and the rule I set for a layoff interpretation fails; the estimates are associations. Second, the panel follows households for at most four quarters, so slower responses after the third quarter cannot be measured. Third, the number of stops, although three times what a single round provides, is small for subgroup analysis, and the subgroup estimates should be read as exploratory.
+
+For policy, the results suggest that wives' labour supply provides little short-run insurance when a husband stops working in urban India; casual workers account for more than half of the stops in these data. The results provide no evidence that income support after job loss would crowd out a large existing response by wives. Whether lowering the barriers to married women's employment would strengthen household resilience is a question these data cannot answer, but it is a natural next step.
+
+\section*{Funding}
+This research received no specific grant from any funding agency in the public, commercial or not-for-profit sectors.
+
+\section*{Acknowledgements}
+The author thanks the National Statistics Office, MoSPI, for making the PLFS unit-level data available. MoSPI bears no responsibility for the analysis or interpretation. The views expressed are the author's own.
+
+\section*{Conflicts of interest}
+The author declares no conflicts of interest.
+
+\section*{Ethics}
+The study uses anonymised public-use survey microdata released by MoSPI and involves no contact with human participants.
+
+\section*{Declaration on the use of AI tools}
+AI assistants were used in preparing this paper under the author's direction: an AI coding assistant helped write and check the R code and draft the text, and Claude (Anthropic) was used to read the draft for clarity and internal consistency and to extract the journal's submission requirements. Every number reported was checked by the author against the output of the replication code. The author takes full responsibility for the content.
+
+\section*{Data availability}
+The PLFS unit-level data for July 2017--June 2018, July 2022--June 2023 and July 2023--June 2024 are published by the Ministry of Statistics and Programme Implementation, Government of India, and can be obtained from the MoSPI microdata portal (\url{https://microdata.gov.in}) under its terms of use; they cannot be redistributed by the author. The replication package, with all code and a README describing how to obtain the data and reproduce every table and figure, will be deposited in a public repository on acceptance.
+
+%%REFERENCES%%
