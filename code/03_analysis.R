@@ -128,6 +128,10 @@ R$rob <- list(
   logit_ame       = { m <- feglm(as.formula(paste("w_lf_1 ~ D |", FE)), e, family = binomial(), weights = ~w, cluster = ~cl)
                       list(b_logodds = unname(coef(m)["D"]), p = unname(pvalue(m)["D"])) })
 
+R$rob_rows <- list(pooled = nrow(e), t2223 = nrow(e[cqt <= 4]), t2324 = nrow(e[cqt >= 5]),
+  dropped_2223 = nrow(e[cqt <= 4]) - R$rob$only_2022_23_t$n, dropped_2324 = nrow(e[cqt >= 5]) - R$rob$only_2023_24_t$n, dropped_pooled = nrow(e) - R$main$entry_lf$n)
+cat("rob rows:", unlist(R$rob_rows), "\n")
+
 ## event study (couples seen in all four visits, husband employed at visit 1)
 cv <- C$cv; full <- cv[, .N, by = hid][N == 4, hid]; es <- cv[hid %in% full]
 es <- es[hid %in% es[visit == 1 & h_emp == 1, hid]]

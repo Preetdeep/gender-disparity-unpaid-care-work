@@ -17,7 +17,7 @@ for i in range(1, 5):
 body = body.replace("%%REFERENCES%%", (P / "src/refs.tex").read_text())
 head_blind = "\\begin{center}{\\Large\\bfseries %s}\\end{center}\n" % TITLE
 title_page = ("\\begin{center}{\\Large\\bfseries %s}\\\\[1.5em]\n Preet Deep Singh\\\\ Independent Researcher, New Delhi, India\\\\"
-              " Corresponding author: Preet Deep Singh\\end{center}\n\\vspace{1em}\\noindent Short Paper. Main text under 7,000 words; five exhibits.\\\\\n"
+              " Corresponding author: Preet Deep Singh\\\\ Email: preetdeepsingh111@gmail.com\\\\ ORCID: 0000-0003-3721-7548\\end{center}\n\\vspace{1em}\\noindent Short Paper. Main text under 7,000 words; five exhibits.\\\\\n"
               "\\noindent JEL codes: J22, J12, J64, O15.\n") % TITLE
 (P / "manuscript_blind.tex").write_text(PRE + head_blind + body + "\\end{document}\n")
 (P / "manuscript_author.tex").write_text(PRE + title_page + "\\newpage\n" + head_blind + body + "\\end{document}\n")
