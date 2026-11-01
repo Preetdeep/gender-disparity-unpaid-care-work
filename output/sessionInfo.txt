@@ -11,7 +11,7 @@ locale:
  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
 [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
 
-time zone: Etc/UTC
+time zone: Asia/Kolkata
 tzcode source: system (glibc)
 
 attached base packages:

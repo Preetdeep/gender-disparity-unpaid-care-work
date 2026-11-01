@@ -125,8 +125,9 @@ wr(c("\\begin{tabular}{lrrcrr}", "\\toprule", " & Estimate & SE & 95\\% CI & $p$
   sprintf("\\quad Couples missing at next visit (\\%%) & %s & & & & %s \\\\", f1(R$attrition$rate, 2), big(R$attrition$n)),
   rr("\\quad Husband not employed (difference)", R$attrition$husband_not_employed),
   rr("\\quad Wife out of labour force: husband not employed (difference)", R$attrition_bounds$gap_est),
-  sprintf("\\quad Entry estimate, Lee-style bound if all extra leavers entered & %s & & & & \\\\", f1(R$attrition_bounds$upper, 2)),
-  sprintf("\\quad Entry estimate, Lee-style bound if no extra leaver entered & %s & & & & \\\\", f1(R$attrition_bounds$lower, 2)),
+  sprintf("\\quad Entry estimate, attrition sensitivity bound if all extra leavers entered & %s & & & & \\\\", f1(R$attrition_bounds$upper, 2)),
+  sprintf("\\quad Entry estimate, attrition sensitivity bound if no extra leaver entered & %s & & & & \\\\", f1(R$attrition_bounds$lower, 2)),
+  sprintf("\\quad Upper bound over the gap's 95\\%% CI & %s & & & & \\\\", sprintf("%s to %s", f1(R$attrition_bounds$upper_at_gap_lo, 2), f1(R$attrition_bounds$upper_at_gap_hi, 2))),
   "\\multicolumn{6}{l}{\\textit{D. Husband's status after the stop (share of events, \\%)}} \\\\",
   sprintf("\\quad Unemployed; pensioner/disabled/sick; other out of labour force & \\multicolumn{5}{l}{%s; %s; %s} \\\\", f1(100 * R$main$dest_shares$unemployed), f1(100 * R$main$dest_shares$pension_disab_sick), f1(100 * R$main$dest_shares$other_olf)),
   "\\bottomrule", "\\end{tabular}"), "tableS3.tex")

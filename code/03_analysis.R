@@ -147,17 +147,29 @@ att <- cv[visit < 4]; nx <- cv[, .(hid, visit = visit - 1L, seen = 1L)]; att <- 
 att <- att[!(cq + 1L > 8)]   # next quarter outside the data window
 R$attrition <- list(rate = 100 * wmean(1 - att$seen, att$w), n = nrow(att),
   husband_not_employed = co(feols(I(1 - seen) ~ I(h_jt == "regular") + I(h_emp == 0) | state^cq + visit, att, weights = ~w, cluster = ~cl), "I(h_emp == 0)TRUE"))
-## Lee-style worst-case bounds for the entry estimate (PaperChecker round 2). Among couples with the wife out of the labour force,
-## the extra attrition of couples whose husband is not employed (g) proxies the unobserved extra leavers among stop couples.
-## Adding them back to the stop group: all entered -> upper bound; none entered -> lower bound.
+## Attrition sensitivity bounds for the entry estimate (PaperChecker round 3).
+## Stop-group stayers have mass r1-g; adding back the g extra leavers restores mass r1.
+## If all extra leavers entered, this gives the upper bound; if none entered, it gives the lower bound.
+## The shift in the stop-group entry rate is added to the regression estimate; control-group attrition is assumed ignorable.
 attw <- att[w_lf == 0]; attw[, `:=`(left = as.numeric(1 - seen), hne = as.numeric(h_emp == 0))]
 g_m <- co(feols(left ~ hne | state^cq + visit, attw, weights = ~w, cluster = ~cl), "hne")
 a1 <- wmean(attw[h_emp == 1, left], attw[h_emp == 1, w]); r1 <- 1 - a1; g <- max(g_m$b, 0)
 p1 <- wmean(e[D == 1, w_lf_1], e[D == 1, w]); b0 <- R$main$entry_lf$b
-p1_hi <- (p1 * r1 + g) / (r1 + g); p1_lo <- (p1 * r1) / (r1 + g)
+bound_at_gap <- function(gap) {
+  gap <- max(gap, 0)
+  p_hi <- (p1 * (r1 - gap) + gap) / r1
+  p_lo <- (p1 * (r1 - gap)) / r1
+  c(upper = 100 * (b0 + p_hi - p1), lower = 100 * (b0 + p_lo - p1))
+}
+p1_hi <- (p1 * (r1 - g) + g) / r1; p1_lo <- (p1 * (r1 - g)) / r1
+g_lo <- max(g_m$lo, 0); g_hi <- max(g_m$hi, 0)
+gap_lo_bounds <- bound_at_gap(g_lo); gap_hi_bounds <- bound_at_gap(g_hi)
 R$attrition_bounds <- list(gap = 100 * g, gap_se = 100 * g_m$se, gap_p = g_m$p, gap_n = g_m$n, base_attrition = 100 * a1,
   p1 = 100 * p1, p1_all_entered = 100 * p1_hi, p1_none_entered = 100 * p1_lo,
-  gap_est = g_m, estimate = 100 * b0, upper = 100 * (b0 + p1_hi - p1), lower = 100 * (b0 + p1_lo - p1))
+  gap_est = g_m, estimate = 100 * b0, upper = 100 * (b0 + p1_hi - p1), lower = 100 * (b0 + p1_lo - p1),
+  upper_at_gap_lo = gap_lo_bounds[["upper"]], upper_at_gap_hi = gap_hi_bounds[["upper"]],
+  lower_at_gap_lo = gap_lo_bounds[["lower"]], lower_at_gap_hi = gap_hi_bounds[["lower"]],
+  gap_lo = 100 * g_lo, gap_hi = 100 * g_hi)
 
 ## ---------- replication: 2017-18 ----------
 p <- readRDS(file.path(DERIVED, "persons_1718.rds")); C2 <- make_couples(p); tr2 <- transitions(C2$cv, C2$o)
