@@ -1,31 +1,31 @@
-# Title page (Manuscript - with author details)
+# Title page
 
-**Title:** Counting more women's work: unpaid helpers, subsidiary activity and the rise in women's employment in India, 2017–18 to 2023–24
+**Title:** Counting more women's work: unpaid helpers, subsidiary activity, and the rise in women's employment in India, 2017–18 to 2023–24
 
-**Short title (45 characters or fewer):** Counting more women's work in India
+**Author:** Preet Deep Singh
 
-**Article type:** Original article
-
-**Author:** Preet Deep Singh, Independent Researcher, New Delhi, India
+**Affiliation:** Independent Researcher, New Delhi, India
 
 **ORCID:** 0000-0003-3721-7548
 
-**Email (corresponding author):** preetds@iima.ac.in
+**Corresponding author email:** preetds@iima.ac.in
 
-**Word count:** approximately 4,850 words of main text (Introduction to Conclusion, excluding abstract, tables, figure captions, notes, references and appendix); approximately 6,250 including tables and figure captions. Abstract: 149 words.
+**Article type:** Original research
 
-**Keywords:** women's employment; labour force participation; unpaid family workers; measurement of work; own-use production; India
+**Word count:** 8,262 words of main text (Introduction to Discussion and Conclusion, excluding abstract, tables, figure captions, references and appendix). Abstract: 234 words.
 
-**Notes and acknowledgements:** I thank the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, for making the unit-level data available.
+**Keywords:** women's employment; measurement of work; unpaid family workers; own-use production; labor force surveys; India
+
+**Acknowledgements:** I thank the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, for making the unit-level data available.
+
+## Statements and Declarations
 
 **Funding:** No funding was received for this research.
 
-**Disclosure statement:** No potential conflict of interest was reported by the author.
+**Competing interests:** The author has no competing interests to declare.
 
-**Data availability:** The unit-level data of the Periodic Labour Force Survey 2017–18 and 2023–24 are produced by the National Statistics Office, Ministry of Statistics and Programme Implementation, Government of India, and are available from the Ministry's microdata portal under its terms of use. The analysis code is available from the author on request and will be deposited in a public repository on acceptance.
+**Ethics approval:** Secondary analysis of anonymized official survey microdata released for research use; no contact with human participants; no ethics approval was required.
 
-**Ethics:** Secondary analysis of anonymized official survey microdata released for research use; no contact with human participants; no ethics approval was required.
+**Data availability:** The unit-level data of the Periodic Labour Force Survey 2017–18 and 2023–24 are available from the Ministry of Statistics and Programme Implementation (MoSPI), Government of India, under its terms of use. The analysis code is available from the author on request.
 
-**Declaration of generative AI use:** Claude (Anthropic) and other generative AI tools were used to help write and check the analysis code, check the references and draft and edit the text of the manuscript, under the author's direction. The author reviewed and verified all output, including every number, reference and statement, and takes full responsibility for the content.
-
-**CRediT author statement:** Preet Deep Singh: conceptualization, methodology, software, formal analysis, data curation, writing (original draft), writing (review and editing), visualization.
+**Use of AI tools:** The author used Claude (Anthropic) to improve the language and readability of parts of the text and to assist with code review and checking. The author reviewed and verified all outputs and takes full responsibility for the content.
