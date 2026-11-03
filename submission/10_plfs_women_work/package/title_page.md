@@ -12,7 +12,7 @@
 
 **Article type:** Original research
 
-**Word count:** 8,262 words of main text (Introduction to Discussion and Conclusion, excluding abstract, tables, figure captions, references and appendix). Abstract: 234 words.
+**Word count:** 8,741 words of main text (Introduction to Discussion and Conclusion, excluding abstract, tables, figure captions, references and appendix). Abstract: 229 words.
 
 **Keywords:** women's employment; measurement of work; unpaid family workers; own-use production; labor force surveys; India
 
