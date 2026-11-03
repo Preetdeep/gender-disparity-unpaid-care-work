@@ -238,10 +238,31 @@ st_cor_help <- cor(big$wpr, big$s_help)
 # ---------- robustness: ages 15-59; principal status only; CWS ----------
 R1559 <- est(A[sex == 2 & age <= 59])[secl == "Total" & var %in% c("wpr", "s_own", "s_help", "s_reg", "s_cas", "ss")]
 
+
+# ---------- SE of the subsidiary-only share of the full-period rise in women's WPR (delta method) ----------
+# share = (ss23 - ss17) / (wpr23 - wpr17); rounds are independent samples, so Var/Cov of the changes add across years.
+shv <- lapply(c(2017L, 2023L), function(y) {
+  dd <- A[year == y & sex == 2]
+  des <- svydesign(ids = ~psu, strata = ~strat, weights = ~w, data = dd, nest = TRUE)
+  r <- svymean(~ss + wpr, des); list(b = coef(r), V = vcov(r))
+})
+dss <- shv[[2]]$b[["ss"]] - shv[[1]]$b[["ss"]]; dwp <- shv[[2]]$b[["wpr"]] - shv[[1]]$b[["wpr"]]
+Vd <- shv[[1]]$V + shv[[2]]$V
+g <- c(1 / dwp, -dss / dwp^2)
+SSHARE <- data.table(share = 100 * dss / dwp, se = 100 * sqrt(drop(t(g) %*% Vd %*% g)))
+SSHARE[, `:=`(lo = share - 1.96 * se, hi = share + 1.96 * se)]
+print(SSHARE)
+# ---------- diagnostic: hours per worker vs hours per woman / WPR (Table 4 vs text) ----------
+HDIAG <- A[sex == 2, .(per_worker = sum(w * hours * worker) / sum(w * worker),
+                       per_woman_over_wpr = sum(w * hours * cws_emp) / sum(w * worker),
+                       hrs_usual_not_cws = sum(w * hours * (worker & !cws_emp)) / sum(w * worker),
+                       hrs_cws_not_usual = sum(w * hours * (cws_emp & !worker)) / sum(w * worker),
+                       pct_cws_not_usual = 100 * sum(w * (cws_emp & !worker)) / sum(w)), by = .(year)]
+print(HDIAG); print(hpse)
 # ---------- men: status decomposition (for comparison) ----------
 RES <- list(N = N, EW = EW, EM = EM, ur = ur, VAL = VAL, IW = IW, HP = HP, hpse = hpse, ECO = ECO, ECOt = ECOt, ECOcov = ECOcov,
             own_use_w = own_use_w, OWNUSE = OWNUSE, PD = PD, SSP = SSP, KIT = KIT, KIT2 = KIT2, HET = HET, STw = STw, big = big,
-            st_cor = st_cor, st_cor_help = st_cor_help, R1559 = R1559, nstates = nrow(STw),
+            st_cor = st_cor, st_cor_help = st_cor_help, R1559 = R1559, SSHARE = SSHARE, HDIAG = HDIAG, nstates = nrow(STw),
             n_persons = D[, .N, by = year], n_hh = D[, uniqueN(hhid), by = year], n_fsu = D[, uniqueN(psu), by = year],
             created = Sys.time())
 saveRDS(RES, file.path(OUT, "plfs10_results.rds"))
